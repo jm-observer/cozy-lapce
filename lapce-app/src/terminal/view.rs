@@ -1,28 +1,29 @@
-use std::path::PathBuf;
-use std::{sync::Arc, time::SystemTime};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use alacritty_terminal::{
     grid::Dimensions,
     index::Side,
     selection::{Selection, SelectionType},
-    term::{cell::Flags, test::TermSize, RenderableContent},
+    term::{RenderableContent, cell::Flags, test::TermSize}
 };
-use floem::kurbo::Stroke;
-use floem::views::editor::core::mode::Mode;
 use floem::{
+    Renderer, View, ViewId,
     context::{EventCx, PaintCx},
     event::{Event, EventPropagation},
+    kurbo::Stroke,
     peniko::{
-        kurbo::{Point, Rect, Size},
         Color,
+        kurbo::{Point, Rect, Size}
     },
     pointer::PointerInputEvent,
     reactive::{
-        create_effect, ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith,
+        ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith, create_effect
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
-    views::editor::{core::register::Clipboard, text::SystemClipboard},
-    Renderer, View, ViewId,
+    views::editor::{
+        core::{mode::Mode, register::Clipboard},
+        text::SystemClipboard
+    }
 };
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 use lsp_types::Position;
@@ -33,13 +34,13 @@ use unicode_width::UnicodeWidthChar;
 use super::{panel::TerminalPanelData, raw::RawTerminal};
 use crate::{
     command::InternalCommand,
-    config::{color::LapceColor, LapceConfig},
+    config::{LapceConfig, color::LapceColor},
     debug::RunDebugProcess,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     panel::kind::PanelKind,
     window_tab::Focus,
-    workspace::LapceWorkspace,
+    workspace::LapceWorkspace
 };
 
 /// Threshold used for double_click/triple_click.
@@ -48,33 +49,33 @@ const CLICK_THRESHOLD: u128 = 400;
 enum TerminalViewState {
     Config,
     Focus(bool),
-    Raw(Arc<RwLock<RawTerminal>>),
+    Raw(Arc<RwLock<RawTerminal>>)
 }
 
 struct TerminalLineContent<'a> {
-    y: f64,
-    bg: Vec<(usize, usize, Color)>,
+    y:         f64,
+    bg:        Vec<(usize, usize, Color)>,
     underline: Vec<(usize, usize, Color, f64)>,
-    chars: Vec<(char, Attrs<'a>, f64, f64)>,
-    cursor: Option<(char, f64)>,
+    chars:     Vec<(char, Attrs<'a>, f64, f64)>,
+    cursor:    Option<(char, f64)>
 }
 
 pub struct TerminalView {
-    id: ViewId,
-    term_id: TermId,
-    raw: Arc<RwLock<RawTerminal>>,
-    mode: ReadSignal<Mode>,
-    size: Size,
-    is_focused: bool,
-    config: ReadSignal<Arc<LapceConfig>>,
-    run_config: ReadSignal<Option<RunDebugProcess>>,
-    proxy: ProxyRpcHandler,
-    launch_error: RwSignal<Option<String>>,
-    internal_command: Listener<InternalCommand>,
-    workspace: Arc<LapceWorkspace>,
-    hyper_regs: Vec<Regex>,
+    id:                    ViewId,
+    term_id:               TermId,
+    raw:                   Arc<RwLock<RawTerminal>>,
+    mode:                  ReadSignal<Mode>,
+    size:                  Size,
+    is_focused:            bool,
+    config:                ReadSignal<Arc<LapceConfig>>,
+    run_config:            ReadSignal<Option<RunDebugProcess>>,
+    proxy:                 ProxyRpcHandler,
+    launch_error:          RwSignal<Option<String>>,
+    internal_command:      Listener<InternalCommand>,
+    workspace:             Arc<LapceWorkspace>,
+    hyper_regs:            Vec<Regex>,
     previous_mouse_action: MouseAction,
-    current_mouse_action: MouseAction,
+    current_mouse_action:  MouseAction
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -86,7 +87,7 @@ pub fn terminal_view(
     terminal_panel_data: TerminalPanelData,
     launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
-    workspace: Arc<LapceWorkspace>,
+    workspace: Arc<LapceWorkspace>
 ) -> TerminalView {
     let id = ViewId::new();
 
@@ -146,7 +147,7 @@ pub fn terminal_view(
         workspace,
         hyper_regs: vec![reg],
         previous_mouse_action: Default::default(),
-        current_mouse_action: Default::default(),
+        current_mouse_action: Default::default()
     }
 }
 
@@ -202,15 +203,17 @@ impl TerminalView {
                     }
                     self.internal_command.send(InternalCommand::JumpToLocation {
                         location: EditorLocation {
-                            path: file,
-                            position: Some(EditorPosition::Position(Position::new(
-                                line.saturating_sub(1),
-                                col.saturating_sub(1),
-                            ))),
-                            scroll_offset: None,
+                            path:               file,
+                            position:           Some(EditorPosition::Position(
+                                Position::new(
+                                    line.saturating_sub(1),
+                                    col.saturating_sub(1)
+                                )
+                            )),
+                            scroll_offset:      None,
                             ignore_unconfirmed: false,
-                            same_editor_tab: false,
-                        },
+                            same_editor_tab:    false
+                        }
                     });
                 }
                 return Some(());
@@ -231,24 +234,24 @@ impl TerminalView {
                 } else if mouse.button.is_secondary() {
                     next_action = MouseAction::RightDown { pos: mouse.pos };
                 }
-            }
+            },
             MouseAction::LeftOnce { pos, time } => {
                 let during_mills =
                     time.elapsed().map(|x| x.as_millis()).unwrap_or(u128::MAX);
                 match (
                     mouse.button.is_primary(),
                     mouse.pos == pos,
-                    during_mills < CLICK_THRESHOLD,
+                    during_mills < CLICK_THRESHOLD
                 ) {
                     (true, true, true) => {
                         next_action = MouseAction::LeftOnceAndDown { pos, time };
-                    }
+                    },
                     (true, _, _) => {
                         next_action = MouseAction::LeftDown { pos: mouse.pos };
-                    }
+                    },
                     _ => {}
                 }
-            }
+            },
             MouseAction::LeftOnceAndDown { .. }
             | MouseAction::LeftDown { .. }
             | MouseAction::RightDown { .. } => {}
@@ -259,58 +262,58 @@ impl TerminalView {
     fn update_mouse_action_by_up(&mut self, mouse: &PointerInputEvent) {
         let mut next_action = MouseAction::None;
         match self.current_mouse_action {
-            MouseAction::None => {}
+            MouseAction::None => {},
             MouseAction::LeftDown { pos } => {
                 match (mouse.button.is_primary(), mouse.pos == pos) {
                     (true, true) => {
                         next_action = MouseAction::LeftOnce {
                             pos,
-                            time: SystemTime::now(),
+                            time: SystemTime::now()
                         }
-                    }
+                    },
                     (true, false) => {
                         next_action = MouseAction::LeftSelect {
                             start_pos: pos,
-                            end_pos: mouse.pos,
+                            end_pos:   mouse.pos
                         };
-                    }
+                    },
                     _ => {}
                 }
-            }
-            MouseAction::LeftOnce { .. } => {}
-            MouseAction::LeftSelect { .. } => {}
+            },
+            MouseAction::LeftOnce { .. } => {},
+            MouseAction::LeftSelect { .. } => {},
             MouseAction::LeftOnceAndDown { pos, time } => {
                 let during_mills =
                     time.elapsed().map(|x| x.as_millis()).unwrap_or(u128::MAX);
                 match (
                     mouse.button.is_primary(),
                     mouse.pos == pos,
-                    during_mills < CLICK_THRESHOLD,
+                    during_mills < CLICK_THRESHOLD
                 ) {
                     (true, true, true) => {
                         next_action = MouseAction::LeftDouble { pos };
-                    }
+                    },
                     (true, true, false) => {
                         next_action = MouseAction::LeftOnce {
-                            pos: mouse.pos,
-                            time: SystemTime::now(),
+                            pos:  mouse.pos,
+                            time: SystemTime::now()
                         };
-                    }
+                    },
                     (true, false, _) => {
                         next_action = MouseAction::LeftSelect {
                             start_pos: pos,
-                            end_pos: mouse.pos,
+                            end_pos:   mouse.pos
                         };
-                    }
+                    },
                     _ => {}
                 }
-            }
-            MouseAction::LeftDouble { .. } => {}
+            },
+            MouseAction::LeftDouble { .. } => {},
             MouseAction::RightDown { pos } => {
                 if mouse.button.is_secondary() && mouse.pos == pos {
                     next_action = MouseAction::RightOnce { pos };
                 }
-            }
+            },
             MouseAction::RightOnce { .. } => {}
         }
         self.previous_mouse_action = self.current_mouse_action;
@@ -325,7 +328,7 @@ impl TerminalView {
             - raw.term.grid().display_offset() as i32;
         alacritty_terminal::index::Point::new(
             alacritty_terminal::index::Line(line_no),
-            alacritty_terminal::index::Column(col),
+            alacritty_terminal::index::Column(col)
         )
     }
 
@@ -335,7 +338,7 @@ impl TerminalView {
         content: RenderableContent,
         line_height: f64,
         char_size: Size,
-        config: &LapceConfig,
+        config: &LapceConfig
     ) {
         let term_bg = config.color(LapceColor::TERMINAL_BACKGROUND);
 
@@ -350,11 +353,11 @@ impl TerminalView {
         let cursor_point = &content.cursor.point;
 
         let mut line_content = TerminalLineContent {
-            y: 0.0,
-            bg: Vec::new(),
+            y:         0.0,
+            bg:        Vec::new(),
             underline: Vec::new(),
-            chars: Vec::new(),
-            cursor: None,
+            chars:     Vec::new(),
+            cursor:    None
         };
         for item in content.display_iter {
             let point = item.point;
@@ -371,7 +374,7 @@ impl TerminalView {
                     &line_content,
                     line_height,
                     char_width,
-                    config,
+                    config
                 );
                 line_content.y = y;
                 line_content.bg.clear();
@@ -435,12 +438,12 @@ impl TerminalView {
         line_content: &TerminalLineContent,
         line_height: f64,
         char_width: f64,
-        config: &LapceConfig,
+        config: &LapceConfig
     ) {
         for (start, end, bg) in &line_content.bg {
             let rect = Size::new(
                 char_width * (end.saturating_sub(*start) as f64),
-                line_height,
+                line_height
             )
             .to_rect()
             .with_origin(Point::new(*start as f64 * char_width, line_content.y));
@@ -495,12 +498,12 @@ impl View for TerminalView {
     fn event_before_children(
         &mut self,
         _cx: &mut EventCx,
-        event: &Event,
+        event: &Event
     ) -> EventPropagation {
         match event {
             Event::PointerDown(e) => {
                 self.update_mouse_action_by_down(e);
-            }
+            },
             Event::PointerUp(e) => {
                 self.update_mouse_action_by_up(e);
                 let mut clear_selection = false;
@@ -510,19 +513,19 @@ impl View for TerminalView {
                         if e.modifiers.control() && self.click(pos).is_some() {
                             return EventPropagation::Stop;
                         }
-                    }
+                    },
                     MouseAction::LeftSelect { start_pos, end_pos } => {
                         let mut selection = Selection::new(
                             SelectionType::Simple,
                             self.get_terminal_point(start_pos),
-                            Side::Left,
+                            Side::Left
                         );
                         selection
                             .update(self.get_terminal_point(end_pos), Side::Right);
                         selection.include_all();
                         self.raw.write().term.selection = Some(selection);
                         _cx.app_state_mut().request_paint(self.id);
-                    }
+                    },
                     MouseAction::LeftDouble { pos } => {
                         let position = self.get_terminal_point(pos);
                         let mut raw = self.raw.write();
@@ -532,13 +535,13 @@ impl View for TerminalView {
                         let mut selection = Selection::new(
                             SelectionType::Simple,
                             start_point,
-                            Side::Left,
+                            Side::Left
                         );
                         selection.update(end_point, Side::Right);
                         selection.include_all();
                         raw.term.selection = Some(selection);
                         _cx.app_state_mut().request_paint(self.id);
-                    }
+                    },
                     MouseAction::RightOnce { pos } => {
                         let position = self.get_terminal_point(pos);
                         let raw = self.raw.read();
@@ -552,7 +555,7 @@ impl View for TerminalView {
                                 let mut clipboard = SystemClipboard::new();
                                 let content = raw.term.bounds_to_string(
                                     selection.start,
-                                    selection.end,
+                                    selection.end
                                 );
                                 if !content.is_empty() {
                                     clipboard.put_string(content);
@@ -560,7 +563,7 @@ impl View for TerminalView {
                             }
                             clear_selection = true;
                         }
-                    }
+                    },
                     _ => {
                         clear_selection = true;
                     }
@@ -569,7 +572,7 @@ impl View for TerminalView {
                     self.raw.write().term.selection = None;
                     _cx.app_state_mut().request_paint(self.id);
                 }
-            }
+            },
             _ => {}
         }
         EventPropagation::Continue
@@ -578,14 +581,14 @@ impl View for TerminalView {
     fn update(
         &mut self,
         cx: &mut floem::context::UpdateCx,
-        state: Box<dyn std::any::Any>,
+        state: Box<dyn std::any::Any>
     ) {
         if let Ok(state) = state.downcast() {
             match *state {
-                TerminalViewState::Config => {}
+                TerminalViewState::Config => {},
                 TerminalViewState::Focus(is_focused) => {
                     self.is_focused = is_focused;
-                }
+                },
                 TerminalViewState::Raw(raw) => {
                     self.raw = raw;
                 }
@@ -596,14 +599,14 @@ impl View for TerminalView {
 
     fn layout(
         &mut self,
-        cx: &mut floem::context::LayoutCx,
+        cx: &mut floem::context::LayoutCx
     ) -> floem::taffy::prelude::NodeId {
         cx.layout_node(self.id, false, |_cx| Vec::new())
     }
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx,
+        _cx: &mut floem::context::ComputeLayoutCx
     ) -> Option<Rect> {
         let layout = self.id.get_layout().unwrap_or_default();
         let size = layout.size;
@@ -639,12 +642,12 @@ impl View for TerminalView {
             let text_layout = TextLayout::new_with_text(
                 &format!("Terminal failed to launch. Error: {error}"),
                 AttrsList::new(
-                    attrs.color(config.color(LapceColor::EDITOR_FOREGROUND)),
-                ),
+                    attrs.color(config.color(LapceColor::EDITOR_FOREGROUND))
+                )
             );
             cx.draw_text_with_layout(
                 text_layout.layout_runs(),
-                Point::new(6.0, 0.0 + (line_height - char_size.height) / 2.0),
+                Point::new(6.0, 0.0 + (line_height - char_size.height) / 2.0)
             );
             return;
         }
@@ -654,7 +657,8 @@ impl View for TerminalView {
         let content = term.renderable_content();
 
         // let mut search = RegexSearch::new("[\\w\\\\?]+\\.rs:\\d+:\\d+").unwrap();
-        // self.hyper_matches = visible_regex_match_iter(term, &mut search).collect();
+        // self.hyper_matches = visible_regex_match_iter(term, &mut
+        // search).collect();
 
         if let Some(selection) = content.selection.as_ref() {
             let start_line = selection.start.line.0 + content.display_offset as i32;
@@ -687,7 +691,7 @@ impl View for TerminalView {
                 cx.fill(
                     &Rect::new(x0, y0, x1, y1),
                     config.color(LapceColor::EDITOR_SELECTION),
-                    0.0,
+                    0.0
                 );
             }
         } else if mode != Mode::Terminal {
@@ -697,15 +701,16 @@ impl View for TerminalView {
             cx.fill(
                 &Rect::new(0.0, y, self.size.width, y + line_height),
                 config.color(LapceColor::EDITOR_CURRENT_LINE),
-                0.0,
+                0.0
             );
         }
 
         self.paint_content(cx, content, line_height, char_size, &config);
         // if data.find.visual {
         //     if let Some(search_string) = data.find.search_string.as_ref() {
-        //         if let Ok(dfas) = RegexSearch::new(&regex::escape(search_string)) {
-        //             let mut start = alacritty_terminal::index::Point::new(
+        //         if let Ok(dfas) =
+        // RegexSearch::new(&regex::escape(search_string)) {
+        // let mut start = alacritty_terminal::index::Point::new(
         //                 alacritty_terminal::index::Line(
         //                     -(content.display_offset as i32),
         //                 ),
@@ -737,14 +742,16 @@ impl View for TerminalView {
         //                     .with_origin(Point::new(x, y))
         //                     .with_size(Size::new(
         //                         (m.end().column.0 - m.start().column.0
-        //                             + term.grid()[*m.end()].c.width().unwrap_or(1))
+        //                             + term.grid()[*m.end()].c.width().
+        //                               unwrap_or(1))
         //                             as f64
         //                             * char_width,
         //                         line_height,
         //                     ));
         //                 cx.stroke(
         //                     &rect,
-        //                     config.get_color(LapceColor::TERMINAL_FOREGROUND),
+        //
+        // config.get_color(LapceColor::TERMINAL_FOREGROUND),
         //                     1.0,
         //                 );
         //                 start = *m.end();
@@ -767,27 +774,27 @@ enum MouseAction {
     #[default]
     None,
     LeftDown {
-        pos: Point,
+        pos: Point
     },
     LeftOnce {
-        pos: Point,
-        time: SystemTime,
+        pos:  Point,
+        time: SystemTime
     },
     LeftSelect {
         start_pos: Point,
-        end_pos: Point,
+        end_pos:   Point
     },
     LeftOnceAndDown {
-        pos: Point,
-        time: SystemTime,
+        pos:  Point,
+        time: SystemTime
     },
     LeftDouble {
-        pos: Point,
+        pos: Point
     },
     RightDown {
-        pos: Point,
+        pos: Point
     },
     RightOnce {
-        pos: Point,
-    },
+        pos: Point
+    }
 }

@@ -1,14 +1,14 @@
 use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::Arc
 };
 
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{Receiver, unbounded};
 use notify::{
+    Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
     event::{ModifyKind, RenameMode},
-    recommended_watcher, Event, EventKind, RecommendedWatcher, RecursiveMode,
-    Watcher,
+    recommended_watcher
 };
 use parking_lot::Mutex;
 
@@ -17,23 +17,23 @@ use parking_lot::Mutex;
 /// [crossbeam channel]: https://docs.rs/crossbeam-channel
 pub struct FileWatcher {
     rx_event: Option<Receiver<Result<Event, notify::Error>>>,
-    inner: RecommendedWatcher,
-    state: Arc<Mutex<WatcherState>>,
+    inner:    RecommendedWatcher,
+    state:    Arc<Mutex<WatcherState>>
 }
 
 #[derive(Debug, Default)]
 struct WatcherState {
-    events: EventQueue,
-    watchees: Vec<Watchee>,
+    events:   EventQueue,
+    watchees: Vec<Watchee>
 }
 
 /// Tracks a registered 'that-which-is-watched'.
 #[doc(hidden)]
 struct Watchee {
-    path: PathBuf,
+    path:      PathBuf,
     recursive: bool,
-    token: WatchToken,
-    filter: Option<Box<PathFilter>>,
+    token:     WatchToken,
+    filter:    Option<Box<PathFilter>>
 }
 
 /// Token provided to `FileWatcher`, to associate events with
@@ -66,7 +66,7 @@ impl FileWatcher {
         FileWatcher {
             rx_event: Some(rx_event),
             inner,
-            state,
+            state
         }
     }
 
@@ -112,10 +112,9 @@ impl FileWatcher {
         path: &Path,
         recursive: bool,
         token: WatchToken,
-        filter: F,
+        filter: F
     ) where
-        F: Fn(&Path) -> bool + Send + 'static,
-    {
+        F: Fn(&Path) -> bool + Send + 'static {
         let filter = Box::new(filter) as Box<PathFilter>;
         self.watch_impl(path, recursive, token, Some(filter));
     }
@@ -125,7 +124,7 @@ impl FileWatcher {
         path: &Path,
         recursive: bool,
         token: WatchToken,
-        filter: Option<Box<PathFilter>>,
+        filter: Option<Box<PathFilter>>
     ) {
         let path = match path.canonicalize() {
             Ok(ref p) => p.to_owned(),
@@ -140,7 +139,7 @@ impl FileWatcher {
             path,
             recursive,
             token,
-            filter,
+            filter
         };
         let mode = mode_from_bool(w.recursive);
 
@@ -226,15 +225,15 @@ impl Watchee {
                 } else {
                     false
                 }
-            }
+            },
             EventKind::Create(_) | EventKind::Remove(_) | EventKind::Modify(_) => {
                 if event.paths.len() == 1 {
                     self.applies_to_path(&event.paths[0])
                 } else {
                     false
                 }
-            }
-            _ => false,
+            },
+            _ => false
         }
     }
 

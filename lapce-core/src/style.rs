@@ -37,7 +37,7 @@ pub const SCOPES: &[&str] = &[
     "markup.heading",
     "markup.link.url",
     "markup.link.label",
-    "markup.link.text",
+    "markup.link.text"
 ];
 
 // pub fn line_styles(

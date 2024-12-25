@@ -1,12 +1,11 @@
-use doc::lines::selection::Selection;
 use std::{ops::Range, path::PathBuf, rc::Rc};
 
-use floem::views::editor::core::mode::Mode;
+use doc::lines::selection::Selection;
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::VirtualVector,
+    views::{VirtualVector, editor::core::mode::Mode}
 };
 use indexmap::IndexMap;
 use lapce_rpc::proxy::{ProxyResponse, SearchMatch};
@@ -15,16 +14,16 @@ use lapce_xi_rope::Rope;
 use crate::{
     command::{CommandExecuted, CommandKind},
     editor::EditorData,
-    keypress::{condition::Condition, KeyPressFocus},
+    keypress::{KeyPressFocus, condition::Condition},
     main_split::MainSplitData,
-    window_tab::CommonData,
+    window_tab::CommonData
 };
 
 #[derive(Clone)]
 pub struct SearchMatchData {
-    pub expanded: RwSignal<bool>,
-    pub matches: RwSignal<im::Vector<SearchMatch>>,
-    pub line_height: Memo<f64>,
+    pub expanded:    RwSignal<bool>,
+    pub matches:     RwSignal<im::Vector<SearchMatch>>,
+    pub line_height: Memo<f64>
 }
 
 impl SearchMatchData {
@@ -41,10 +40,10 @@ impl SearchMatchData {
 
 #[derive(Clone, Debug)]
 pub struct GlobalSearchData {
-    pub editor: EditorData,
+    pub editor:        EditorData,
     pub search_result: RwSignal<IndexMap<PathBuf, SearchMatchData>>,
-    pub main_split: MainSplitData,
-    pub common: Rc<CommonData>,
+    pub main_split:    MainSplitData,
+    pub common:        Rc<CommonData>
 }
 
 impl KeyPressFocus for GlobalSearchData {
@@ -60,17 +59,17 @@ impl KeyPressFocus for GlobalSearchData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
-            CommandKind::Workbench(_) => {}
-            CommandKind::Scroll(_) => {}
-            CommandKind::Focus(_) => {}
+            CommandKind::Workbench(_) => {},
+            CommandKind::Scroll(_) => {},
+            CommandKind::Focus(_) => {},
             CommandKind::Edit(_)
             | CommandKind::Move(_)
             | CommandKind::MultiSelection(_) => {
                 return self.editor.run_command(command, count, mods);
-            }
+            },
             CommandKind::MotionMode(_) => {}
         }
         CommandExecuted::No
@@ -99,7 +98,7 @@ impl VirtualVector<(PathBuf, SearchMatchData)> for GlobalSearchData {
 
     fn slice(
         &mut self,
-        _range: Range<usize>,
+        _range: Range<usize>
     ) -> impl Iterator<Item = (PathBuf, SearchMatchData)> {
         self.search_result.get().into_iter()
     }
@@ -115,7 +114,7 @@ impl GlobalSearchData {
             editor,
             search_result,
             main_split,
-            common,
+            common
         };
 
         {
@@ -151,7 +150,7 @@ impl GlobalSearchData {
                     is_regex,
                     move |(_, result)| {
                         send(result);
-                    },
+                    }
                 );
             });
         }
@@ -179,12 +178,15 @@ impl GlobalSearchData {
                     let match_data =
                         current.get(&path).cloned().unwrap_or_else(|| {
                             SearchMatchData {
-                                expanded: self.common.scope.create_rw_signal(true),
-                                matches: self
+                                expanded:    self
+                                    .common
+                                    .scope
+                                    .create_rw_signal(true),
+                                matches:     self
                                     .common
                                     .scope
                                     .create_rw_signal(im::Vector::new()),
-                                line_height: self.common.ui_line_height,
+                                line_height: self.common.ui_line_height
                             }
                         });
 
@@ -192,7 +194,7 @@ impl GlobalSearchData {
 
                     (path, match_data)
                 })
-                .collect(),
+                .collect()
         );
     }
 

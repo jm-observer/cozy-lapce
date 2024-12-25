@@ -1,30 +1,33 @@
 use std::{borrow::Cow, ops::Range, path::PathBuf, str::FromStr};
 
-use doc::lines::buffer::{
-    rope_text::{RopeText, RopeTextRef},
-    Buffer,
+use doc::lines::{
+    RopeTextPosition,
+    buffer::{
+        Buffer,
+        rope_text::{RopeText, RopeTextRef}
+    },
+    selection::Selection
 };
-use doc::lines::selection::Selection;
-use doc::lines::RopeTextPosition;
-use floem::reactive::{batch, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith};
+use floem::reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch};
 use log::error;
 use lsp_types::InsertTextFormat;
 
 use crate::{config::LapceConfig, doc::Doc, editor::EditorData, snippet::Snippet};
 
-// TODO: we could integrate completion lens with this, so it is considered at the same time
+// TODO: we could integrate completion lens with this, so it is considered at
+// the same time
 
 /// Redefinition of lsp types inline completion item with offset range
 #[derive(Debug, Clone)]
 pub struct InlineCompletionItem {
     /// The text to replace the range with.
-    pub insert_text: String,
+    pub insert_text:        String,
     /// Text used to decide if this inline completion should be shown.
-    pub filter_text: Option<String>,
+    pub filter_text:        Option<String>,
     /// The range (of offsets) to replace  
-    pub range: Option<Range<usize>>,
-    pub command: Option<lsp_types::Command>,
-    pub insert_text_format: Option<InsertTextFormat>,
+    pub range:              Option<Range<usize>>,
+    pub command:            Option<lsp_types::Command>,
+    pub insert_text_format: Option<InsertTextFormat>
 }
 impl InlineCompletionItem {
     pub fn from_lsp(buffer: &Buffer, item: lsp_types::InlineCompletionItem) -> Self {
@@ -50,14 +53,14 @@ impl InlineCompletionItem {
             filter_text: item.filter_text,
             range,
             command: item.command,
-            insert_text_format: item.insert_text_format,
+            insert_text_format: item.insert_text_format
         }
     }
 
     pub fn apply(
         &self,
         editor: &EditorData,
-        start_offset: usize,
+        start_offset: usize
     ) -> anyhow::Result<()> {
         let text_format = self
             .insert_text_format
@@ -73,7 +76,7 @@ impl InlineCompletionItem {
             InsertTextFormat::PLAIN_TEXT => editor.do_edit(
                 &selection,
                 &[(selection.clone(), self.insert_text.as_str())],
-                false,
+                false
             ),
             InsertTextFormat::SNIPPET => {
                 let snippet = Snippet::from_str(&self.insert_text)?;
@@ -84,9 +87,9 @@ impl InlineCompletionItem {
                     snippet,
                     &selection,
                     additional_edit,
-                    start_offset,
+                    start_offset
                 )?;
-            }
+            },
             _ => {
                 // We don't know how to support this text format
             }
@@ -100,29 +103,31 @@ impl InlineCompletionItem {
 pub enum InlineCompletionStatus {
     /// The inline completion is not active.
     Inactive,
-    /// The inline completion is active and is waiting for the server to respond.
+    /// The inline completion is active and is waiting for the server to
+    /// respond.
     Started,
-    /// The inline completion is active and has received a response from the server.
-    Active,
+    /// The inline completion is active and has received a response from the
+    /// server.
+    Active
 }
 
 #[derive(Clone)]
 pub struct InlineCompletionData {
-    pub status: InlineCompletionStatus,
+    pub status:       InlineCompletionStatus,
     /// The active inline completion index in the list of completions.
-    pub active: RwSignal<usize>,
-    pub items: im::Vector<InlineCompletionItem>,
+    pub active:       RwSignal<usize>,
+    pub items:        im::Vector<InlineCompletionItem>,
     pub start_offset: usize,
-    pub path: PathBuf,
+    pub path:         PathBuf
 }
 impl InlineCompletionData {
     pub fn new(cx: Scope) -> Self {
         Self {
-            status: InlineCompletionStatus::Inactive,
-            active: cx.create_rw_signal(0),
-            items: im::vector![],
+            status:       InlineCompletionStatus::Inactive,
+            active:       cx.create_rw_signal(0),
+            items:        im::vector![],
             start_offset: 0,
-            path: PathBuf::new(),
+            path:         PathBuf::new()
         }
     }
 
@@ -164,7 +169,7 @@ impl InlineCompletionData {
         &mut self,
         items: im::Vector<InlineCompletionItem>,
         start_offset: usize,
-        path: PathBuf,
+        path: PathBuf
     ) {
         batch(|| {
             self.items = items;
@@ -216,7 +221,7 @@ impl InlineCompletionData {
         &self,
         config: &LapceConfig,
         doc: &Doc,
-        cursor_offset: usize,
+        cursor_offset: usize
     ) {
         if !config.editor.enable_inline_completion {
             doc.clear_inline_completion();
@@ -238,8 +243,8 @@ impl InlineCompletionData {
         match completion {
             ICompletionRes::Hide => {
                 doc.clear_inline_completion();
-            }
-            ICompletionRes::Unchanged => {}
+            },
+            ICompletionRes::Unchanged => {},
             ICompletionRes::Set(new, shift) => {
                 let offset = self.start_offset + shift;
                 let (line, col) = match text.offset_to_line_col(offset) {
@@ -258,7 +263,7 @@ impl InlineCompletionData {
 enum ICompletionRes {
     Hide,
     Unchanged,
-    Set(String, usize),
+    Set(String, usize)
 }
 
 /// Get the text of the inline completion item  
@@ -267,7 +272,7 @@ fn inline_completion_text(
     start_offset: usize,
     cursor_offset: usize,
     item: &InlineCompletionItem,
-    current_completion: Option<&str>,
+    current_completion: Option<&str>
 ) -> ICompletionRes {
     let text_format = item
         .insert_text_format
@@ -278,8 +283,8 @@ fn inline_completion_text(
     if let Some(range) = &item.range {
         let edit_start = range.start;
 
-        // If the start of the edit isn't where the cursor currently is, and is not at the start of
-        // the inline completion, then we ignore it.
+        // If the start of the edit isn't where the cursor currently is, and is not
+        // at the start of the inline completion, then we ignore it.
         if cursor_prev_offset != edit_start && start_offset != edit_start {
             return ICompletionRes::Hide;
         }
@@ -294,7 +299,7 @@ fn inline_completion_text(
             let text = snippet.text();
 
             Cow::Owned(text)
-        }
+        },
         _ => {
             // We don't know how to support this text format
             return ICompletionRes::Hide;

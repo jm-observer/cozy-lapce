@@ -10,41 +10,30 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering}
     },
-    time::Duration,
+    time::Duration
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crossbeam_channel::{Receiver, Sender};
 use dyn_clone::DynClone;
 use flate2::read::GzDecoder;
 use jsonrpc_lite::Id;
 use lapce_core::directory::Directory;
 use lapce_rpc::{
+    RequestId, RpcError,
     core::CoreRpcHandler,
     dap_types::{self, DapId, RunDebugConfig, SourceBreakpoint, ThreadId},
     plugin::{PluginId, VoltInfo, VoltMetadata},
     proxy::ProxyRpcHandler,
     style::LineStyle,
-    terminal::TermId,
-    RequestId, RpcError,
+    terminal::TermId
 };
 use lapce_xi_rope::{Rope, RopeDelta};
 use log::error;
 use lsp_types::{
-    request::{
-        CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
-        CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
-        DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition,
-        GotoImplementation, GotoImplementationResponse, GotoTypeDefinition,
-        GotoTypeDefinitionParams, GotoTypeDefinitionResponse, HoverRequest,
-        InlayHintRequest, InlineCompletionRequest, PrepareRenameRequest, References,
-        Rename, Request, ResolveCompletionItem, SelectionRangeRequest,
-        SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
-        SignatureHelpRequest, WorkspaceSymbolRequest,
-    },
     CallHierarchyClientCapabilities, CallHierarchyIncomingCall,
     CallHierarchyIncomingCallsParams, CallHierarchyItem, CallHierarchyPrepareParams,
     ClientCapabilities, CodeAction, CodeActionCapabilityResolveSupport,
@@ -75,9 +64,20 @@ use lsp_types::{
     VersionedTextDocumentIdentifier, WindowClientCapabilities,
     WorkDoneProgressParams, WorkspaceClientCapabilities, WorkspaceEdit,
     WorkspaceSymbolClientCapabilities, WorkspaceSymbolParams,
+    request::{
+        CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
+        CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
+        DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition,
+        GotoImplementation, GotoImplementationResponse, GotoTypeDefinition,
+        GotoTypeDefinitionParams, GotoTypeDefinitionResponse, HoverRequest,
+        InlayHintRequest, InlineCompletionRequest, PrepareRenameRequest, References,
+        Rename, Request, ResolveCompletionItem, SelectionRangeRequest,
+        SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
+        SignatureHelpRequest, WorkspaceSymbolRequest
+    }
 };
 use parking_lot::Mutex;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Map, Value};
 use tar::Archive;
 
@@ -85,7 +85,7 @@ use self::{
     catalog::PluginCatalog,
     dap::DapRpcHandler,
     psp::{ClonableCallback, PluginServerRpcHandler, RpcCallback},
-    wasi::{load_volt, start_volt},
+    wasi::{load_volt, start_volt}
 };
 use crate::buffer::language_id_from_path;
 
@@ -94,70 +94,70 @@ pub type PluginName = String;
 #[allow(clippy::large_enum_variant)]
 pub enum PluginCatalogRpc {
     ServerRequest {
-        plugin_id: Option<PluginId>,
+        plugin_id:    Option<PluginId>,
         request_sent: Option<Arc<AtomicUsize>>,
-        method: Cow<'static, str>,
-        params: Value,
-        language_id: Option<String>,
-        path: Option<PathBuf>,
-        check: bool,
-        id: u64,
-        f: Box<dyn ClonableCallback<Value, RpcError>>,
+        method:       Cow<'static, str>,
+        params:       Value,
+        language_id:  Option<String>,
+        path:         Option<PathBuf>,
+        check:        bool,
+        id:           u64,
+        f:            Box<dyn ClonableCallback<Value, RpcError>>
     },
     ServerNotification {
-        plugin_id: Option<PluginId>,
-        method: Cow<'static, str>,
-        params: Value,
+        plugin_id:   Option<PluginId>,
+        method:      Cow<'static, str>,
+        params:      Value,
         language_id: Option<String>,
-        path: Option<PathBuf>,
-        check: bool,
+        path:        Option<PathBuf>,
+        check:       bool
     },
     FormatSemanticTokens {
-        id: u64,
+        id:        u64,
         plugin_id: PluginId,
-        tokens: SemanticTokens,
-        text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
+        tokens:    SemanticTokens,
+        text:      Rope,
+        f:         Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
     },
     DapVariable {
-        dap_id: DapId,
+        dap_id:    DapId,
         reference: usize,
-        f: Box<dyn RpcCallback<Vec<dap_types::Variable>, RpcError>>,
+        f:         Box<dyn RpcCallback<Vec<dap_types::Variable>, RpcError>>
     },
     DapGetScopes {
-        dap_id: DapId,
+        dap_id:   DapId,
         frame_id: usize,
         f: Box<
             dyn RpcCallback<
-                Vec<(dap_types::Scope, Vec<dap_types::Variable>)>,
-                RpcError,
-            >,
-        >,
+                    Vec<(dap_types::Scope, Vec<dap_types::Variable>)>,
+                    RpcError
+                >
+        >
     },
     DidOpenTextDocument {
         document: TextDocumentItem,
-        id: u64,
+        id:       u64
     },
     DidChangeTextDocument {
         language_id: String,
-        document: VersionedTextDocumentIdentifier,
-        delta: RopeDelta,
-        text: Rope,
-        new_text: Rope,
+        document:    VersionedTextDocumentIdentifier,
+        delta:       RopeDelta,
+        text:        Rope,
+        new_text:    Rope
     },
     DidSaveTextDocument {
-        language_id: String,
-        path: PathBuf,
+        language_id:   String,
+        path:          PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope,
+        text:          Rope
     },
     Handler(PluginCatalogNotification),
     RemoveVolt {
         volt: VoltInfo,
-        f: Box<dyn ClonableCallback<Value, RpcError>>,
-        id: u64,
+        f:    Box<dyn ClonableCallback<Value, RpcError>>,
+        id:   u64
     },
-    Shutdown,
+    Shutdown
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -172,65 +172,65 @@ pub enum PluginCatalogNotification {
     DapLoaded(DapRpcHandler),
     DapDisconnected(DapId),
     DapStart {
-        config: RunDebugConfig,
-        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
+        config:      RunDebugConfig,
+        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>
     },
     DapProcessId {
-        dap_id: DapId,
+        dap_id:     DapId,
         process_id: Option<u32>,
-        term_id: TermId,
+        term_id:    TermId
     },
     DapContinue {
-        dap_id: DapId,
-        thread_id: ThreadId,
+        dap_id:    DapId,
+        thread_id: ThreadId
     },
     DapStepOver {
-        dap_id: DapId,
-        thread_id: ThreadId,
+        dap_id:    DapId,
+        thread_id: ThreadId
     },
     DapStepInto {
-        dap_id: DapId,
-        thread_id: ThreadId,
+        dap_id:    DapId,
+        thread_id: ThreadId
     },
     DapStepOut {
-        dap_id: DapId,
-        thread_id: ThreadId,
+        dap_id:    DapId,
+        thread_id: ThreadId
     },
     DapPause {
-        dap_id: DapId,
-        thread_id: ThreadId,
+        dap_id:    DapId,
+        thread_id: ThreadId
     },
     DapStop {
-        dap_id: DapId,
+        dap_id: DapId
     },
     DapDisconnect {
-        dap_id: DapId,
+        dap_id: DapId
     },
     DapRestart {
-        config: RunDebugConfig,
-        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
+        config:      RunDebugConfig,
+        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>
     },
     DapSetBreakpoints {
-        dap_id: DapId,
-        path: PathBuf,
-        breakpoints: Vec<SourceBreakpoint>,
+        dap_id:      DapId,
+        path:        PathBuf,
+        breakpoints: Vec<SourceBreakpoint>
     },
     RegisterDebuggerType {
         debugger_type: String,
-        program: String,
-        args: Option<Vec<String>>,
+        program:       String,
+        args:          Option<Vec<String>>
     },
-    Shutdown,
+    Shutdown
 }
 
 #[derive(Clone)]
 pub struct PluginCatalogRpcHandler {
-    core_rpc: CoreRpcHandler,
+    core_rpc:  CoreRpcHandler,
     proxy_rpc: ProxyRpcHandler,
     plugin_tx: Sender<PluginCatalogRpc>,
     plugin_rx: Arc<Mutex<Option<Receiver<PluginCatalogRpc>>>>,
     #[allow(dead_code, clippy::type_complexity)]
-    pending: Arc<Mutex<HashMap<u64, Sender<Result<Value, RpcError>>>>>,
+    pending:   Arc<Mutex<HashMap<u64, Sender<Result<Value, RpcError>>>>>
 }
 
 impl PluginCatalogRpcHandler {
@@ -241,7 +241,7 @@ impl PluginCatalogRpcHandler {
             proxy_rpc,
             plugin_tx,
             plugin_rx: Arc::new(Mutex::new(Some(plugin_rx))),
-            pending: Arc::new(Mutex::new(HashMap::new())),
+            pending: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
@@ -267,7 +267,7 @@ impl PluginCatalogRpcHandler {
                     path,
                     check,
                     id,
-                    f,
+                    f
                 } => {
                     plugin.handle_server_request(
                         plugin_id,
@@ -278,16 +278,16 @@ impl PluginCatalogRpcHandler {
                         path,
                         check,
                         id,
-                        f,
+                        f
                     );
-                }
+                },
                 PluginCatalogRpc::ServerNotification {
                     plugin_id,
                     method,
                     params,
                     language_id,
                     path,
-                    check,
+                    check
                 } => {
                     plugin.handle_server_notification(
                         plugin_id,
@@ -295,69 +295,69 @@ impl PluginCatalogRpcHandler {
                         params,
                         language_id,
                         path,
-                        check,
+                        check
                     );
-                }
+                },
                 PluginCatalogRpc::Handler(notification) => {
                     plugin.handle_notification(notification);
-                }
+                },
                 PluginCatalogRpc::FormatSemanticTokens {
                     plugin_id,
                     tokens,
                     text,
                     f,
-                    id,
+                    id
                 } => {
                     plugin.format_semantic_tokens(id, plugin_id, tokens, text, f);
-                }
+                },
                 PluginCatalogRpc::DidOpenTextDocument { document, id } => {
                     plugin.handle_did_open_text_document(document, id);
-                }
+                },
                 PluginCatalogRpc::DidSaveTextDocument {
                     language_id,
                     path,
                     text_document,
-                    text,
+                    text
                 } => {
                     plugin.handle_did_save_text_document(
                         language_id,
                         path,
                         text_document,
-                        text,
+                        text
                     );
-                }
+                },
                 PluginCatalogRpc::DidChangeTextDocument {
                     language_id,
                     document,
                     delta,
                     text,
-                    new_text,
+                    new_text
                 } => {
                     plugin.handle_did_change_text_document(
                         language_id,
                         document,
                         delta,
                         text,
-                        new_text,
+                        new_text
                     );
-                }
+                },
                 PluginCatalogRpc::DapVariable {
                     dap_id,
                     reference,
-                    f,
+                    f
                 } => {
                     plugin.dap_variable(dap_id, reference, f);
-                }
+                },
                 PluginCatalogRpc::DapGetScopes {
                     dap_id,
                     frame_id,
-                    f,
+                    f
                 } => {
                     plugin.dap_get_scopes(dap_id, frame_id, f);
-                }
+                },
                 PluginCatalogRpc::Shutdown => {
                     return;
-                }
+                },
                 PluginCatalogRpc::RemoveVolt { volt, f, id } => {
                     plugin.shutdown_volt(volt, f, id);
                 }
@@ -378,7 +378,7 @@ impl PluginCatalogRpcHandler {
 
     fn catalog_notification(
         &self,
-        notification: PluginCatalogNotification,
+        notification: PluginCatalogNotification
     ) -> Result<()> {
         self.plugin_tx
             .send(PluginCatalogRpc::Handler(notification))
@@ -393,11 +393,10 @@ impl PluginCatalogRpcHandler {
         language_id: Option<String>,
         path: Option<PathBuf>,
         id: u64,
-        cb: impl FnOnce(PluginId, Result<Resp, RpcError>) + Clone + Send + 'static,
+        cb: impl FnOnce(PluginId, Result<Resp, RpcError>) + Clone + Send + 'static
     ) where
         P: Serialize,
-        Resp: DeserializeOwned,
-    {
+        Resp: DeserializeOwned {
         let got_success = Arc::new(AtomicBool::new(false));
         let request_sent = Arc::new(AtomicUsize::new(0));
         let err_received = Arc::new(AtomicUsize::new(0));
@@ -421,12 +420,12 @@ impl PluginCatalogRpcHandler {
                             Ok(item)
                         } else {
                             Err(RpcError {
-                                code: 0,
-                                message: "deserialize error".to_string(),
+                                code:    0,
+                                message: "deserialize error".to_string()
                             })
                         }
-                    }
-                    Err(e) => Err(e),
+                    },
+                    Err(e) => Err(e)
                 };
                 if result.is_ok() {
                     cb(plugin_id, result)
@@ -436,7 +435,7 @@ impl PluginCatalogRpcHandler {
                         cb(plugin_id, result)
                     }
                 }
-            },
+            }
         );
     }
 
@@ -451,7 +450,7 @@ impl PluginCatalogRpcHandler {
         path: Option<PathBuf>,
         check: bool,
         id: u64,
-        f: impl FnOnce(Id, PluginId, Result<Value, RpcError>) + Send + DynClone + 'static,
+        f: impl FnOnce(Id, PluginId, Result<Value, RpcError>) + Send + DynClone + 'static
     ) {
         let params = serde_json::to_value(params).unwrap();
         let rpc = PluginCatalogRpc::ServerRequest {
@@ -463,7 +462,7 @@ impl PluginCatalogRpcHandler {
             path,
             check,
             id,
-            f: Box::new(f),
+            f: Box::new(f)
         };
         if let Err(err) = self.plugin_tx.send(rpc) {
             log::error!("{:?}", err);
@@ -478,7 +477,7 @@ impl PluginCatalogRpcHandler {
         params: P,
         language_id: Option<String>,
         path: Option<PathBuf>,
-        check: bool,
+        check: bool
     ) {
         let params = serde_json::to_value(params).unwrap();
         let rpc = PluginCatalogRpc::ServerNotification {
@@ -487,7 +486,7 @@ impl PluginCatalogRpcHandler {
             params,
             language_id,
             path,
-            check,
+            check
         };
         if let Err(err) = self.plugin_tx.send(rpc) {
             log::error!("{:?}", err);
@@ -500,7 +499,7 @@ impl PluginCatalogRpcHandler {
         plugin_id: PluginId,
         tokens: SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
     ) {
         if let Err(err) =
             self.plugin_tx.send(PluginCatalogRpc::FormatSemanticTokens {
@@ -508,7 +507,7 @@ impl PluginCatalogRpcHandler {
                 plugin_id,
                 tokens,
                 text,
-                f,
+                f
             })
         {
             log::error!("{:?}", err);
@@ -524,7 +523,7 @@ impl PluginCatalogRpcHandler {
                 language_id,
                 text_document,
                 path: path.into(),
-                text,
+                text
             })
         {
             log::error!("{:?}", err);
@@ -537,11 +536,11 @@ impl PluginCatalogRpcHandler {
         rev: u64,
         delta: RopeDelta,
         text: Rope,
-        new_text: Rope,
+        new_text: Rope
     ) {
         let document = VersionedTextDocumentIdentifier::new(
             Url::from_file_path(path).unwrap(),
-            rev as i32,
+            rev as i32
         );
         let language_id = language_id_from_path(path).unwrap_or("").to_string();
         if let Err(err) =
@@ -551,7 +550,7 @@ impl PluginCatalogRpcHandler {
                     document,
                     delta,
                     text,
-                    new_text,
+                    new_text
                 })
         {
             log::error!("{:?}", err);
@@ -563,20 +562,20 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<GotoDefinitionResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = GotoDefinition::METHOD;
         let params = GotoDefinitionParams {
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            work_done_progress_params:     WorkDoneProgressParams::default(),
+            partial_result_params:         PartialResultParams::default()
         };
 
         let language_id =
@@ -587,7 +586,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -596,20 +595,20 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<GotoTypeDefinitionResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = GotoTypeDefinition::METHOD;
         let params = GotoTypeDefinitionParams {
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            work_done_progress_params:     WorkDoneProgressParams::default(),
+            partial_result_params:         PartialResultParams::default()
         };
 
         let language_id =
@@ -620,7 +619,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -629,18 +628,18 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         item: CallHierarchyItem,
         cb: impl FnOnce(
-                PluginId,
-                Result<Option<Vec<CallHierarchyIncomingCall>>, RpcError>,
-            ) + Clone
-            + Send
-            + 'static,
-        id: u64,
+            PluginId,
+            Result<Option<Vec<CallHierarchyIncomingCall>>, RpcError>
+        ) + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let method = CallHierarchyIncomingCalls::METHOD;
         let params = CallHierarchyIncomingCallsParams {
             item,
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: Default::default(),
+            partial_result_params: Default::default()
         };
 
         let language_id =
@@ -651,7 +650,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -660,19 +659,19 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<Option<Vec<CallHierarchyItem>>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = CallHierarchyPrepare::METHOD;
         let params = CallHierarchyPrepareParams {
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params:     WorkDoneProgressParams::default()
         };
 
         let language_id =
@@ -683,7 +682,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -692,23 +691,23 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<Vec<Location>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = References::METHOD;
         let params = ReferenceParams {
-            text_document_position: TextDocumentPositionParams {
+            text_document_position:    TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
-            context: ReferenceContext {
-                include_declaration: false,
-            },
+            partial_result_params:     PartialResultParams::default(),
+            context:                   ReferenceContext {
+                include_declaration: false
+            }
         };
 
         let language_id =
@@ -719,7 +718,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -727,19 +726,19 @@ impl PluginCatalogRpcHandler {
         &self,
         path: &Path,
         cb: impl FnOnce(
-                PluginId,
-                std::result::Result<Option<Vec<FoldingRange>>, RpcError>,
-            ) + Clone
-            + Send
-            + 'static,
-        id: u64,
+            PluginId,
+            std::result::Result<Option<Vec<FoldingRange>>, RpcError>
+        ) + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = FoldingRangeRequest::METHOD;
         let params = FoldingRangeParams {
-            text_document: TextDocumentIdentifier { uri },
+            text_document:             TextDocumentIdentifier { uri },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            partial_result_params:     PartialResultParams::default()
         };
 
         let language_id =
@@ -750,7 +749,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -759,20 +758,20 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<Option<GotoImplementationResponse>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = GotoImplementation::METHOD;
         let params = GotoTypeDefinitionParams {
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            work_done_progress_params:     WorkDoneProgressParams::default(),
+            partial_result_params:         PartialResultParams::default()
         };
 
         let language_id =
@@ -783,7 +782,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -793,26 +792,26 @@ impl PluginCatalogRpcHandler {
         position: Position,
         diagnostics: Vec<Diagnostic>,
         cb: impl FnOnce(PluginId, Result<CodeActionResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = CodeActionRequest::METHOD;
         let params = CodeActionParams {
-            text_document: TextDocumentIdentifier { uri },
-            range: Range {
+            text_document:             TextDocumentIdentifier { uri },
+            range:                     Range {
                 start: position,
-                end: position,
+                end:   position
             },
-            context: CodeActionContext {
+            context:                   CodeActionContext {
                 diagnostics,
                 only: None,
-                trigger_kind: None,
+                trigger_kind: None
             },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            partial_result_params:     PartialResultParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -822,7 +821,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -830,17 +829,17 @@ impl PluginCatalogRpcHandler {
         &self,
         path: &Path,
         cb: impl FnOnce(PluginId, Result<Option<Vec<CodeLens>>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = CodeLensRequest::METHOD;
         let params = CodeLensParams {
-            text_document: TextDocumentIdentifier { uri },
+            text_document:             TextDocumentIdentifier { uri },
             work_done_progress_params: Default::default(),
-            partial_result_params: Default::default(),
+            partial_result_params:     Default::default()
         };
 
         let language_id =
@@ -852,7 +851,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -861,7 +860,7 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         code_lens: &CodeLens,
         cb: impl FnOnce(PluginId, Result<CodeLens, RpcError>) + Clone + Send + 'static,
-        id: u64,
+        id: u64
     ) {
         let method = CodeLensResolve::METHOD;
         let language_id =
@@ -873,7 +872,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -882,17 +881,17 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         range: Range,
         cb: impl FnOnce(PluginId, Result<Vec<InlayHint>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = InlayHintRequest::METHOD;
         let params = InlayHintParams {
             text_document: TextDocumentIdentifier { uri },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            range,
+            range
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -902,7 +901,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -912,23 +911,23 @@ impl PluginCatalogRpcHandler {
         position: Position,
         trigger_kind: InlineCompletionTriggerKind,
         cb: impl FnOnce(PluginId, Result<InlineCompletionResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = InlineCompletionRequest::METHOD;
         let params = InlineCompletionParams {
-            text_document_position: TextDocumentPositionParams {
+            text_document_position:    TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            context: lsp_types::InlineCompletionContext {
+            context:                   lsp_types::InlineCompletionContext {
                 trigger_kind,
-                selected_completion_info: None,
+                selected_completion_info: None
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params: WorkDoneProgressParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -938,7 +937,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -946,17 +945,17 @@ impl PluginCatalogRpcHandler {
         &self,
         path: &Path,
         cb: impl FnOnce(PluginId, Result<DocumentSymbolResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = DocumentSymbolRequest::METHOD;
         let params = DocumentSymbolParams {
-            text_document: TextDocumentIdentifier { uri },
+            text_document:             TextDocumentIdentifier { uri },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            partial_result_params:     PartialResultParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -966,7 +965,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -974,16 +973,16 @@ impl PluginCatalogRpcHandler {
         &self,
         query: String,
         cb: impl FnOnce(PluginId, Result<Vec<SymbolInformation>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let method = WorkspaceSymbolRequest::METHOD;
         let params = WorkspaceSymbolParams {
             query,
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            partial_result_params: PartialResultParams::default()
         };
         self.send_request_to_all_plugins(method, params, None, None, id, cb);
     }
@@ -992,21 +991,21 @@ impl PluginCatalogRpcHandler {
         &self,
         path: &Path,
         cb: impl FnOnce(PluginId, Result<Vec<TextEdit>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = Formatting::METHOD;
         let params = DocumentFormattingParams {
-            text_document: TextDocumentIdentifier { uri },
-            options: FormattingOptions {
+            text_document:             TextDocumentIdentifier { uri },
+            options:                   FormattingOptions {
                 tab_size: 4,
                 insert_spaces: true,
                 ..Default::default()
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params: WorkDoneProgressParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1016,7 +1015,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1025,16 +1024,16 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<PrepareRenameResponse, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = PrepareRenameRequest::METHOD;
         let params = TextDocumentPositionParams {
             text_document: TextDocumentIdentifier { uri },
-            position,
+            position
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1044,7 +1043,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1054,20 +1053,20 @@ impl PluginCatalogRpcHandler {
         position: Position,
         new_name: String,
         cb: impl FnOnce(PluginId, Result<WorkspaceEdit, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = Rename::METHOD;
         let params = RenameParams {
             text_document_position: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
             new_name,
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params: WorkDoneProgressParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1077,7 +1076,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1085,17 +1084,17 @@ impl PluginCatalogRpcHandler {
         &self,
         path: &Path,
         cb: impl FnOnce(PluginId, Result<SemanticTokens, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = SemanticTokensFullRequest::METHOD;
         let params = SemanticTokensParams {
-            text_document: TextDocumentIdentifier { uri },
+            text_document:             TextDocumentIdentifier { uri },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
+            partial_result_params:     PartialResultParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1105,7 +1104,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1114,10 +1113,10 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         previous_result_id: String,
         cb: impl FnOnce(PluginId, Result<SemanticTokensFullDeltaResult, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = SemanticTokensFullDeltaRequest::METHOD;
@@ -1125,7 +1124,7 @@ impl PluginCatalogRpcHandler {
             text_document: TextDocumentIdentifier { uri },
             work_done_progress_params: WorkDoneProgressParams::default(),
             partial_result_params: PartialResultParams::default(),
-            previous_result_id,
+            previous_result_id
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1135,7 +1134,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1144,10 +1143,10 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         positions: Vec<Position>,
         cb: impl FnOnce(PluginId, Result<Vec<SelectionRange>, RpcError>)
-            + Clone
-            + Send
-            + 'static,
-        id: u64,
+        + Clone
+        + Send
+        + 'static,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = SelectionRangeRequest::METHOD;
@@ -1155,7 +1154,7 @@ impl PluginCatalogRpcHandler {
             text_document: TextDocumentIdentifier { uri },
             positions,
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: Default::default(),
+            partial_result_params: Default::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1165,7 +1164,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1174,16 +1173,16 @@ impl PluginCatalogRpcHandler {
         path: &Path,
         position: Position,
         cb: impl FnOnce(PluginId, Result<Hover, RpcError>) + Clone + Send + 'static,
-        id: u64,
+        id: u64
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = HoverRequest::METHOD;
         let params = HoverParams {
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params:     WorkDoneProgressParams::default()
         };
         let language_id =
             Some(language_id_from_path(path).unwrap_or("").to_string());
@@ -1194,7 +1193,7 @@ impl PluginCatalogRpcHandler {
             language_id,
             Some(path.to_path_buf()),
             id,
-            cb,
+            cb
         );
     }
 
@@ -1204,18 +1203,18 @@ impl PluginCatalogRpcHandler {
         id: u64,
         path: &Path,
         input: String,
-        position: Position,
+        position: Position
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = Completion::METHOD;
         let params = CompletionParams {
-            text_document_position: TextDocumentPositionParams {
+            text_document_position:    TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
             work_done_progress_params: WorkDoneProgressParams::default(),
-            partial_result_params: PartialResultParams::default(),
-            context: None,
+            partial_result_params:     PartialResultParams::default(),
+            context:                   None
         };
 
         let core_rpc = self.core_rpc.clone();
@@ -1236,11 +1235,11 @@ impl PluginCatalogRpcHandler {
                         core_rpc
                             .completion_response(request_id, input, resp, plugin_id);
                     }
-                }
+                },
                 Err(err) => {
                     log::error!("{:?}", err);
                 }
-            },
+            }
         );
     }
 
@@ -1249,7 +1248,7 @@ impl PluginCatalogRpcHandler {
         plugin_id: PluginId,
         item: CompletionItem,
         cb: impl FnOnce(Result<CompletionItem, RpcError>) + Send + Clone + 'static,
-        id: u64,
+        id: u64
     ) {
         let method = ResolveCompletionItem::METHOD;
         self.send_request(
@@ -1270,16 +1269,16 @@ impl PluginCatalogRpcHandler {
                             Ok(item)
                         } else {
                             Err(RpcError {
-                                code: 0,
+                                code:    0,
                                 message: "completion item deserialize error"
-                                    .to_string(),
+                                    .to_string()
                             })
                         }
-                    }
-                    Err(e) => Err(e),
+                    },
+                    Err(e) => Err(e)
                 };
                 cb(result)
-            },
+            }
         );
     }
 
@@ -1288,18 +1287,19 @@ impl PluginCatalogRpcHandler {
         request_id: usize,
         id: u64,
         path: &Path,
-        position: Position,
+        position: Position
     ) {
         let uri = Url::from_file_path(path).unwrap();
         let method = SignatureHelpRequest::METHOD;
         let params = SignatureHelpParams {
-            // TODO: We could provide more information about the signature for the LSP to work with
+            // TODO: We could provide more information about the signature for the
+            // LSP to work with
             context: None,
             text_document_position_params: TextDocumentPositionParams {
                 text_document: TextDocumentIdentifier { uri },
-                position,
+                position
             },
-            work_done_progress_params: WorkDoneProgressParams::default(),
+            work_done_progress_params: WorkDoneProgressParams::default()
         };
 
         let core_rpc = self.core_rpc.clone();
@@ -1321,11 +1321,11 @@ impl PluginCatalogRpcHandler {
                         core_rpc
                             .signature_help_response(request_id, resp, plugin_id);
                     }
-                }
+                },
                 Err(err) => {
                     log::error!("{:?}", err);
                 }
-            },
+            }
         );
     }
 
@@ -1334,7 +1334,7 @@ impl PluginCatalogRpcHandler {
         item: CodeAction,
         plugin_id: PluginId,
         cb: impl FnOnce(Result<CodeAction, RpcError>) + Send + Clone + 'static,
-        id: u64,
+        id: u64
     ) {
         let method = CodeActionResolveRequest::METHOD;
         self.send_request(
@@ -1354,16 +1354,16 @@ impl PluginCatalogRpcHandler {
                             Ok(item)
                         } else {
                             Err(RpcError {
-                                code: 0,
+                                code:    0,
                                 message: "code_action item deserialize error"
-                                    .to_string(),
+                                    .to_string()
                             })
                         }
-                    }
-                    Err(e) => Err(e),
+                    },
+                    Err(e) => Err(e)
                 };
                 cb(result)
-            },
+            }
         );
     }
 
@@ -1373,7 +1373,7 @@ impl PluginCatalogRpcHandler {
         language_id: String,
         version: i32,
         text: String,
-        id: u64,
+        id: u64
     ) {
         match Url::from_file_path(path) {
             Ok(path) => {
@@ -1383,14 +1383,14 @@ impl PluginCatalogRpcHandler {
                             path,
                             language_id,
                             version,
-                            text,
+                            text
                         ),
-                        id,
+                        id
                     })
                 {
                     log::error!("{:?}", err);
                 }
-            }
+            },
             Err(_) => {
                 log::error!("Failed to parse URL from file path: {path:?}");
             }
@@ -1400,28 +1400,28 @@ impl PluginCatalogRpcHandler {
     pub fn unactivated_volts(
         &self,
         volts: Vec<VoltMetadata>,
-        id: u64,
+        id: u64
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::UnactivatedVolts(
-            volts, id,
+            volts, id
         ))
     }
 
     pub fn plugin_server_loaded(
         &self,
-        plugin: PluginServerRpcHandler,
+        plugin: PluginServerRpcHandler
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::PluginServerLoaded(
-            plugin,
+            plugin
         ))
     }
 
     pub fn update_plugin_configs(
         &self,
-        configs: HashMap<String, HashMap<String, serde_json::Value>>,
+        configs: HashMap<String, HashMap<String, serde_json::Value>>
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::UpdatePluginConfigs(
-            configs,
+            configs
         ))
     }
 
@@ -1438,7 +1438,7 @@ impl PluginCatalogRpcHandler {
                     error!("{:?}", e);
                 }
             }),
-            id,
+            id
         };
         if let Err(err) = self.plugin_tx.send(rpc) {
             log::error!("{:?}", err);
@@ -1458,7 +1458,7 @@ impl PluginCatalogRpcHandler {
                     error!("{:?}", e);
                 }
             }),
-            id,
+            id
         };
         if let Err(err) = self.plugin_tx.send(rpc) {
             log::error!("{:?}", err);
@@ -1484,11 +1484,11 @@ impl PluginCatalogRpcHandler {
     pub fn dap_start(
         &self,
         config: RunDebugConfig,
-        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
+        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapStart {
             config,
-            breakpoints,
+            breakpoints
         })
     }
 
@@ -1496,47 +1496,47 @@ impl PluginCatalogRpcHandler {
         &self,
         dap_id: DapId,
         process_id: Option<u32>,
-        term_id: TermId,
+        term_id: TermId
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapProcessId {
             dap_id,
             process_id,
-            term_id,
+            term_id
         })
     }
 
     pub fn dap_continue(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapContinue {
             dap_id,
-            thread_id,
+            thread_id
         })
     }
 
     pub fn dap_pause(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapPause {
             dap_id,
-            thread_id,
+            thread_id
         })
     }
 
     pub fn dap_step_over(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapStepOver {
             dap_id,
-            thread_id,
+            thread_id
         })
     }
 
     pub fn dap_step_into(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapStepInto {
             dap_id,
-            thread_id,
+            thread_id
         })
     }
 
     pub fn dap_step_out(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapStepOut {
             dap_id,
-            thread_id,
+            thread_id
         })
     }
 
@@ -1546,18 +1546,18 @@ impl PluginCatalogRpcHandler {
 
     pub fn dap_disconnect(&self, dap_id: DapId) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapDisconnect {
-            dap_id,
+            dap_id
         })
     }
 
     pub fn dap_restart(
         &self,
         config: RunDebugConfig,
-        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
+        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>
     ) -> Result<()> {
         self.catalog_notification(PluginCatalogNotification::DapRestart {
             config,
-            breakpoints,
+            breakpoints
         })
     }
 
@@ -1565,13 +1565,16 @@ impl PluginCatalogRpcHandler {
         &self,
         dap_id: DapId,
         path: PathBuf,
-        breakpoints: Vec<SourceBreakpoint>,
+        breakpoints: Vec<SourceBreakpoint>
     ) -> Result<()> {
-        log::info!("dap_set_breakpoints dap_id={dap_id:?} path={path:?} breakpoints={breakpoints:?}");
+        log::info!(
+            "dap_set_breakpoints dap_id={dap_id:?} path={path:?} \
+             breakpoints={breakpoints:?}"
+        );
         self.catalog_notification(PluginCatalogNotification::DapSetBreakpoints {
             dap_id,
             path,
-            breakpoints,
+            breakpoints
         })
     }
 
@@ -1579,12 +1582,12 @@ impl PluginCatalogRpcHandler {
         &self,
         dap_id: DapId,
         reference: usize,
-        f: impl FnOnce(Id, Result<Vec<dap_types::Variable>, RpcError>) + Send + 'static,
+        f: impl FnOnce(Id, Result<Vec<dap_types::Variable>, RpcError>) + Send + 'static
     ) {
         if let Err(err) = self.plugin_tx.send(PluginCatalogRpc::DapVariable {
             dap_id,
             reference,
-            f: Box::new(f),
+            f: Box::new(f)
         }) {
             log::error!("{:?}", err);
         }
@@ -1595,15 +1598,15 @@ impl PluginCatalogRpcHandler {
         dap_id: DapId,
         frame_id: usize,
         f: impl FnOnce(
-                Id,
-                Result<Vec<(dap_types::Scope, Vec<dap_types::Variable>)>, RpcError>,
-            ) + Send
-            + 'static,
+            Id,
+            Result<Vec<(dap_types::Scope, Vec<dap_types::Variable>)>, RpcError>
+        ) + Send
+        + 'static
     ) {
         if let Err(err) = self.plugin_tx.send(PluginCatalogRpc::DapGetScopes {
             dap_id,
             frame_id,
-            f: Box::new(f),
+            f: Box::new(f)
         }) {
             log::error!("{:?}", err);
         }
@@ -1613,14 +1616,14 @@ impl PluginCatalogRpcHandler {
         &self,
         debugger_type: String,
         program: String,
-        args: Option<Vec<String>>,
+        args: Option<Vec<String>>
     ) {
         if let Err(err) = self.catalog_notification(
             PluginCatalogNotification::RegisterDebuggerType {
                 debugger_type,
                 program,
-                args,
-            },
+                args
+            }
         ) {
             log::error!("{:?}", err);
         }
@@ -1632,21 +1635,21 @@ impl PluginCatalogRpcHandler {
 #[serde(tag = "method", content = "params")]
 pub enum PluginNotification {
     StartLspServer {
-        exec_path: String,
+        exec_path:   String,
         language_id: String,
-        options: Option<Value>,
-        system_lsp: Option<bool>,
+        options:     Option<Value>,
+        system_lsp:  Option<bool>
     },
     DownloadFile {
-        url: String,
-        path: PathBuf,
+        url:  String,
+        path: PathBuf
     },
     LockFile {
-        path: PathBuf,
+        path: PathBuf
     },
     MakeFileExecutable {
-        path: PathBuf,
-    },
+        path: PathBuf
+    }
 }
 
 pub fn volt_icon(volt: &VoltMetadata) -> Option<Vec<u8>> {
@@ -1708,7 +1711,7 @@ pub fn install_volt(
     workspace: Option<PathBuf>,
     configurations: Option<HashMap<String, serde_json::Value>>,
     volt: VoltInfo,
-    id: u64,
+    id: u64
 ) -> Result<()> {
     let download_volt_result = download_volt(&volt);
     if download_volt_result.is_err() {
@@ -1732,7 +1735,7 @@ pub fn install_volt(
 
 pub fn remove_volt(
     catalog_rpc: PluginCatalogRpcHandler,
-    volt: VoltMetadata,
+    volt: VoltMetadata
 ) -> Result<()> {
     std::thread::spawn(move || -> Result<()> {
         let path = volt.dir.as_ref().ok_or_else(|| {
@@ -1743,7 +1746,8 @@ pub fn remove_volt(
         })?;
         let mut rs = Ok(());
         // Try to remove dir
-        // This is due to some operating systems not releasing immediately, such as Windows.
+        // This is due to some operating systems not releasing immediately, such as
+        // Windows.
         for _ in 0..2 {
             rs = std::fs::remove_dir_all(path);
             if rs.is_err() {
@@ -1757,7 +1761,7 @@ pub fn remove_volt(
             eprintln!("Could not delete plugin folder: {e}");
             catalog_rpc.core_rpc.volt_removing(
                 volt.clone(),
-                "Could not remove Plugin Directory".to_string(),
+                "Could not remove Plugin Directory".to_string()
             );
         } else {
             catalog_rpc.core_rpc.volt_removed(volt.info(), false);
@@ -1790,7 +1794,7 @@ fn client_capabilities() -> ClientCapabilities {
                 completion_item: Some(CompletionItemCapability {
                     snippet_support: Some(true),
                     resolve_support: Some(CompletionItemCapabilityResolveSupport {
-                        properties: vec!["additionalTextEdits".to_string()],
+                        properties: vec!["additionalTextEdits".to_string()]
                     }),
                     ..Default::default()
                 }),
@@ -1798,14 +1802,14 @@ fn client_capabilities() -> ClientCapabilities {
             }),
             signature_help: Some(SignatureHelpClientCapabilities {
                 signature_information: Some(SignatureInformationSettings {
-                    documentation_format: Some(vec![
+                    documentation_format:     Some(vec![
                         MarkupKind::Markdown,
                         MarkupKind::PlainText,
                     ]),
-                    parameter_information: Some(ParameterInformationSettings {
-                        label_offset_support: Some(true),
+                    parameter_information:    Some(ParameterInformationSettings {
+                        label_offset_support: Some(true)
                     }),
-                    active_parameter_support: Some(true),
+                    active_parameter_support: Some(true)
                 }),
                 ..Default::default()
             }),
@@ -1822,7 +1826,7 @@ fn client_capabilities() -> ClientCapabilities {
             code_action: Some(CodeActionClientCapabilities {
                 data_support: Some(true),
                 resolve_support: Some(CodeActionCapabilityResolveSupport {
-                    properties: vec!["edit".to_string()],
+                    properties: vec!["edit".to_string()]
                 }),
                 code_action_literal_support: Some(CodeActionLiteralSupport {
                     code_action_kind: CodeActionKindLiteralSupport {
@@ -1839,23 +1843,23 @@ fn client_capabilities() -> ClientCapabilities {
                                 .to_string(),
                             "quickassist".to_string(),
                             "source.fixAll".to_string(),
-                        ],
-                    },
+                        ]
+                    }
                 }),
                 ..Default::default()
             }),
             semantic_tokens: Some(SemanticTokensClientCapabilities {
                 requests: SemanticTokensClientCapabilitiesRequests {
                     range: None,
-                    full: Some(SemanticTokensFullOptions::Delta {
-                        delta: Some(true),
-                    }),
+                    full:  Some(SemanticTokensFullOptions::Delta {
+                        delta: Some(true)
+                    })
                 },
                 ..Default::default()
             }),
             type_definition: Some(GotoCapability {
-                // Note: This is explicitly specified rather than left to the Default because
-                // of a bug in lsp-types https://github.com/gluon-lang/lsp-types/pull/244
+                // Note: This is explicitly specified rather than left to the Default
+                // because of a bug in lsp-types https://github.com/gluon-lang/lsp-types/pull/244
                 link_support: Some(false),
                 ..Default::default()
             }),
@@ -1869,7 +1873,7 @@ fn client_capabilities() -> ClientCapabilities {
                 ..Default::default()
             }),
             call_hierarchy: Some(CallHierarchyClientCapabilities {
-                dynamic_registration: Some(true),
+                dynamic_registration: Some(true)
             }),
             document_symbol: Some(DocumentSymbolClientCapabilities {
                 hierarchical_document_symbol_support: Some(true),
@@ -1877,10 +1881,10 @@ fn client_capabilities() -> ClientCapabilities {
             }),
             folding_range: Some(FoldingRangeClientCapabilities {
                 dynamic_registration: Some(false),
-                range_limit: None,
-                line_folding_only: Some(false),
-                folding_range_kind: None,
-                folding_range: None,
+                range_limit:          None,
+                line_folding_only:    Some(false),
+                folding_range_kind:   None,
+                folding_range:        None
             }),
             ..Default::default()
         }),
@@ -1888,8 +1892,8 @@ fn client_capabilities() -> ClientCapabilities {
             work_done_progress: Some(true),
             show_message: Some(ShowMessageRequestClientCapabilities {
                 message_action_item: Some(MessageActionItemCapabilities {
-                    additional_properties_support: Some(true),
-                }),
+                    additional_properties_support: Some(true)
+                })
             }),
             ..Default::default()
         }),

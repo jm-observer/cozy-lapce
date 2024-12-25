@@ -1,35 +1,35 @@
 use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use floem::{
+    View,
     event::EventListener,
     reactive::{ReadSignal, SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
-        container, label, scroll, stack, virtual_stack, Decorators,
-        VirtualDirection, VirtualItemSize,
-    },
-    View,
+        Decorators, VirtualDirection, VirtualItemSize, container, label, scroll,
+        stack, virtual_stack
+    }
 };
 use lapce_xi_rope::find::CaseMatching;
 
 use super::kind::PanelKind;
-use crate::panel::position::PanelContainerPosition;
-use crate::svg;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{LapceConfig, color::LapceColor, icon::LapceIcons},
     editor::location::{EditorLocation, EditorPosition},
     focus_text::focus_text,
     global_search::{GlobalSearchData, SearchMatchData},
     listener::Listener,
+    panel::position::PanelContainerPosition,
+    svg,
     text_input::TextInputBuilder,
     window_tab::{Focus, WindowTabData},
-    workspace::LapceWorkspace,
+    workspace::LapceWorkspace
 };
 pub fn global_search_panel(
     window_tab_data: Rc<WindowTabData>,
-    _position: PanelContainerPosition,
+    _position: PanelContainerPosition
 ) -> impl View {
     let global_search = window_tab_data.global_search.clone();
     let editor = global_search.editor.clone();
@@ -55,14 +55,14 @@ pub fn global_search_panel(
                     move || {
                         let new = match case_matching.get_untracked() {
                             CaseMatching::Exact => CaseMatching::CaseInsensitive,
-                            CaseMatching::CaseInsensitive => CaseMatching::Exact,
+                            CaseMatching::CaseInsensitive => CaseMatching::Exact
                         };
                         case_matching.set(new);
                     },
                     move || case_matching.get() == CaseMatching::Exact,
                     || false,
                     || "Case Sensitive",
-                    config,
+                    config
                 )
                 .style(|s| s.padding_vert(4.0)),
                 clickable_icon(
@@ -75,7 +75,7 @@ pub fn global_search_panel(
                     move || whole_word.get(),
                     || false,
                     || "Whole Word",
-                    config,
+                    config
                 )
                 .style(|s| s.padding_left(6.0)),
                 clickable_icon(
@@ -88,9 +88,9 @@ pub fn global_search_panel(
                     move || is_regex.get(),
                     || false,
                     || "Use Regex",
-                    config,
+                    config
                 )
-                .style(|s| s.padding_left(6.0)),
+                .style(|s| s.padding_left(6.0))
             ))
             .on_event_cont(EventListener::PointerDown, move |_| {
                 focus.set(Focus::Panel(PanelKind::Search));
@@ -102,10 +102,10 @@ pub fn global_search_panel(
                     .border(1.0)
                     .border_radius(6.0)
                     .border_color(config.get().color(LapceColor::LAPCE_BORDER))
-            }),
+            })
         )
         .style(|s| s.width_pct(100.0).padding(10.0)),
-        search_result(workspace, global_search, internal_command, config),
+        search_result(workspace, global_search, internal_command, config)
     ))
     .style(|s| s.absolute().size_pct(100.0, 100.0).flex_col())
     .debug_name("Global Search Panel")
@@ -115,7 +115,7 @@ fn search_result(
     workspace: Arc<LapceWorkspace>,
     global_search_data: GlobalSearchData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     let ui_line_height = global_search_data.common.ui_line_height;
     container({
@@ -125,7 +125,7 @@ fn search_result(
                 VirtualItemSize::Fn(Box::new(
                     |(_, match_data): &(PathBuf, SearchMatchData)| {
                         match_data.height()
-                    },
+                    }
                 )),
                 move || global_search_data.clone(),
                 move |(path, _)| path.to_owned(),
@@ -172,7 +172,7 @@ fn search_result(
                                     .size(size, size)
                                     .min_size(size, size)
                                     .color(
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                     )
                             }),
                             svg(move || config.get().file_svg(&path).0).style(
@@ -184,7 +184,7 @@ fn search_result(
                                         .size(size, size)
                                         .min_size(size, size)
                                         .apply_opt(color, Style::color)
-                                },
+                                }
                             ),
                             stack((
                                 label(move || file_name.clone()).style(|s| {
@@ -194,13 +194,13 @@ fn search_result(
                                 }),
                                 label(move || folder.clone()).style(move |s| {
                                     s.color(
-                                        config.get().color(LapceColor::EDITOR_DIM),
+                                        config.get().color(LapceColor::EDITOR_DIM)
                                     )
                                     .min_width(0.0)
                                     .text_ellipsis()
-                                }),
+                                })
                             ))
-                            .style(move |s| s.min_width(0.0).items_center()),
+                            .style(move |s| s.min_width(0.0).items_center())
                         ))
                         .on_click_stop(move |_| {
                             expanded.update(|expanded| *expanded = !*expanded);
@@ -212,8 +212,8 @@ fn search_result(
                                 .hover(|s| {
                                     s.cursor(CursorStyle::Pointer).background(
                                         config.get().color(
-                                            LapceColor::PANEL_HOVERED_BACKGROUND,
-                                        ),
+                                            LapceColor::PANEL_HOVERED_BACKGROUND
+                                        )
                                     )
                                 })
                         }),
@@ -270,7 +270,7 @@ fn search_result(
                                     },
                                     move || {
                                         config.get().color(LapceColor::EDITOR_FOCUS)
-                                    },
+                                    }
                                 )
                                 .style(move |s| {
                                     let config = config.get();
@@ -279,9 +279,9 @@ fn search_result(
                                         |s| {
                                             s.cursor(CursorStyle::Pointer)
                                                 .background(config.color(
-                                                LapceColor::PANEL_HOVERED_BACKGROUND,
+                                                LapceColor::PANEL_HOVERED_BACKGROUND
                                             ))
-                                        },
+                                        }
                                     )
                                 })
                                 .on_click_stop(
@@ -289,27 +289,27 @@ fn search_result(
                                         internal_command.send(
                                             InternalCommand::JumpToLocation {
                                                 location: EditorLocation {
-                                                    path: path.clone(),
-                                                    position: Some(
+                                                    path:               path.clone(),
+                                                    position:           Some(
                                                         EditorPosition::Line(
                                                             line_number
-                                                                .saturating_sub(1),
-                                                        ),
+                                                                .saturating_sub(1)
+                                                        )
                                                     ),
-                                                    scroll_offset: None,
+                                                    scroll_offset:      None,
                                                     ignore_unconfirmed: false,
-                                                    same_editor_tab: false,
-                                                },
-                                            },
+                                                    same_editor_tab:    false
+                                                }
+                                            }
                                         );
-                                    },
+                                    }
                                 )
-                            },
+                            }
                         )
-                        .style(|s| s.flex_col()),
+                        .style(|s| s.flex_col())
                     ))
                     .style(|s| s.flex_col())
-                },
+                }
             )
             .style(|s| s.flex_col().min_width_pct(100.0).line_height(1.8))
         })

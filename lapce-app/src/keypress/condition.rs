@@ -4,7 +4,7 @@ use strum_macros::EnumString;
 pub(super) enum CheckCondition<'a> {
     Single(&'a str),
     Or(&'a str, &'a str),
-    And(&'a str, &'a str),
+    And(&'a str, &'a str)
 }
 
 impl<'a> CheckCondition<'a> {
@@ -16,23 +16,23 @@ impl<'a> CheckCondition<'a> {
             (None, None) => CheckCondition::Single(condition),
             (Some((pos, _)), None) => {
                 CheckCondition::Or(&condition[..pos], &condition[pos + 2..])
-            }
+            },
             (None, Some((pos, _))) => {
                 CheckCondition::And(&condition[..pos], &condition[pos + 2..])
-            }
+            },
             (Some((or_pos, _)), Some((and_pos, _))) => {
                 if or_pos < and_pos {
                     CheckCondition::Or(
                         &condition[..or_pos],
-                        &condition[or_pos + 2..],
+                        &condition[or_pos + 2..]
                     )
                 } else {
                     CheckCondition::And(
                         &condition[..and_pos],
-                        &condition[and_pos + 2..],
+                        &condition[and_pos + 2..]
                     )
                 }
-            }
+            },
         }
     }
 }
@@ -70,7 +70,7 @@ pub enum Condition {
     #[strum(serialize = "search_focus")]
     SearchFocus,
     #[strum(serialize = "replace_focus")]
-    ReplaceFocus,
+    ReplaceFocus
 }
 
 #[cfg(test)]
@@ -79,11 +79,11 @@ mod test {
     use lapce_core::mode::Mode;
 
     use super::Condition;
-    use crate::keypress::{condition::CheckCondition, KeyPressData, KeyPressFocus};
+    use crate::keypress::{KeyPressData, KeyPressFocus, condition::CheckCondition};
 
     #[derive(Clone, Copy, Debug)]
     struct MockFocus {
-        accepted_conditions: &'static [Condition],
+        accepted_conditions: &'static [Condition]
     }
 
     impl KeyPressFocus for MockFocus {
@@ -99,7 +99,7 @@ mod test {
             &self,
             _command: &crate::command::LapceCommand,
             _count: Option<usize>,
-            _mods: Modifiers,
+            _mods: Modifiers
         ) -> crate::command::CommandExecuted {
             unimplemented!()
         }
@@ -132,7 +132,7 @@ mod test {
     #[test]
     fn test_check_condition() {
         let focus = MockFocus {
-            accepted_conditions: &[Condition::EditorFocus, Condition::ListFocus],
+            accepted_conditions: &[Condition::EditorFocus, Condition::ListFocus]
         };
 
         let test_cases = [
@@ -148,14 +148,15 @@ mod test {
             ("!editor_focus && list_focus", false),
             ("editor_focus && list_focus || baz", true),
             ("editor_focus && list_focus && baz", false),
-            ("editor_focus && list_focus && !baz", true),
+            ("editor_focus && list_focus && !baz", true)
         ];
 
         for (condition, should_accept) in test_cases.into_iter() {
             assert_eq!(
                 should_accept,
                 KeyPressData::check_condition(condition, &focus),
-                "Condition check failed. Condition: {condition}. Expected result: {should_accept}",
+                "Condition check failed. Condition: {condition}. Expected result: \
+                 {should_accept}",
             );
         }
     }

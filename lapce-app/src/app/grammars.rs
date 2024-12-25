@@ -1,14 +1,14 @@
 use std::{
     env,
     fs::{self},
-    path::PathBuf,
+    path::PathBuf
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use lapce_core::directory::Directory;
 use log::trace;
 
-use crate::{log::*, update::ReleaseInfo};
+use crate::update::ReleaseInfo;
 
 fn get_github_api(url: &str) -> Result<String> {
     let user_agent = format!("Lapce/{}", lapce_core::meta::VERSION);
@@ -25,7 +25,7 @@ pub fn find_grammar_release() -> Result<ReleaseInfo> {
         "https://api.github.com/repos/lapce/tree-sitter-grammars/releases?per_page=100",
     ).context("Failed to retrieve releases for tree-sitter-grammars")?)?;
 
-    use lapce_core::meta::{ReleaseType, RELEASE, VERSION};
+    use lapce_core::meta::{RELEASE, ReleaseType, VERSION};
 
     let releases = releases
         .into_iter()
@@ -91,7 +91,7 @@ pub fn fetch_queries(release: &ReleaseInfo) -> Result<bool> {
 fn download_release(
     dir: PathBuf,
     release: &ReleaseInfo,
-    file_name: &str,
+    file_name: &str
 ) -> Result<bool> {
     if !dir.exists() {
         fs::create_dir(&dir)?;

@@ -1,26 +1,24 @@
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
 use std::{
     borrow::Cow,
-    collections::VecDeque,
+    collections::{HashMap, VecDeque, hash_map::Iter},
     io::{self, ErrorKind, Read, Write},
     num::NonZeroUsize,
     path::PathBuf,
     sync::Arc,
-    time::Duration,
+    time::Duration
 };
 
 use alacritty_terminal::{
     event::{OnResize, WindowSize},
     event_loop::Msg,
-    tty::{self, setup_env, EventedPty, EventedReadWrite, Options, Shell},
+    tty::{self, EventedPty, EventedReadWrite, Options, Shell, setup_env}
 };
 use anyhow::Result;
 use crossbeam_channel::{Receiver, Sender};
 use directories::BaseDirs;
 use lapce_rpc::{
     core::CoreRpcHandler,
-    terminal::{TermId, TerminalProfile},
+    terminal::{TermId, TerminalProfile}
 };
 use log::info;
 use polling::PollMode;
@@ -39,7 +37,7 @@ const PTY_CHILD_EVENT_TOKEN: usize = 1;
 
 #[derive(Default)]
 pub struct Terminals {
-    terminals: HashMap<TermId, (u64, TerminalSender)>,
+    terminals: HashMap<TermId, (u64, TerminalSender)>
 }
 
 impl Terminals {
@@ -51,7 +49,7 @@ impl Terminals {
     pub fn remove(
         &mut self,
         id: TermId,
-        remove_raw_id: u64,
+        remove_raw_id: u64
     ) -> Option<TerminalSender> {
         info!("Terminals remove id={id:?}");
         if let Some((raw_id, sender)) = self.terminals.remove(&id) {
@@ -79,6 +77,7 @@ impl Terminals {
         }
         None
     }
+
     pub fn iter(&self) -> Iter<'_, TermId, (u64, TerminalSender)> {
         self.terminals.iter()
     }
@@ -94,20 +93,20 @@ impl Terminals {
 
 pub struct TerminalSender {
     term_id: TermId,
-    tx: Sender<Msg>,
-    poller: Arc<polling::Poller>,
+    tx:      Sender<Msg>,
+    poller:  Arc<polling::Poller>
 }
 
 impl TerminalSender {
     pub fn new(
         term_id: TermId,
         tx: Sender<Msg>,
-        poller: Arc<polling::Poller>,
+        poller: Arc<polling::Poller>
     ) -> Self {
         Self {
             term_id,
             tx,
-            poller,
+            poller
         }
     }
 
@@ -121,13 +120,13 @@ impl TerminalSender {
 }
 #[allow(dead_code)]
 pub struct Terminal {
-    term_id: TermId,
-    raw_id: u64,
+    term_id:           TermId,
+    raw_id:            u64,
     pub(crate) poller: Arc<polling::Poller>,
-    pub(crate) pty: alacritty_terminal::tty::Pty,
-    rx: Receiver<Msg>,
-    pub tx: Sender<Msg>,
-    shell: Option<Shell>,
+    pub(crate) pty:    alacritty_terminal::tty::Pty,
+    rx:                Receiver<Msg>,
+    pub tx:            Sender<Msg>,
+    shell:             Option<Shell>
 }
 
 impl Terminal {
@@ -136,15 +135,15 @@ impl Terminal {
         term_id: TermId,
         profile: TerminalProfile,
         width: usize,
-        height: usize,
+        height: usize
     ) -> Result<Terminal> {
         let poll = polling::Poller::new()?.into();
         let shell = Terminal::program(&profile);
         let options = Options {
-            shell: shell.clone(),
+            shell:             shell.clone(),
             working_directory: Terminal::workdir(&profile),
-            hold: false,
-            env: profile.environment.unwrap_or_default(),
+            hold:              false,
+            env:               profile.environment.unwrap_or_default()
         };
 
         setup_env();
@@ -153,10 +152,10 @@ impl Terminal {
         set_locale_environment();
 
         let size = WindowSize {
-            num_lines: height as u16,
-            num_cols: width as u16,
-            cell_width: 1,
-            cell_height: 1,
+            num_lines:   height as u16,
+            num_cols:    width as u16,
+            cell_width:  1,
+            cell_height: 1
         };
         let pty = alacritty_terminal::tty::new(&options, size, 0)?;
 
@@ -169,7 +168,7 @@ impl Terminal {
             pty,
             tx,
             rx,
-            shell,
+            shell
         })
     }
 
@@ -199,7 +198,7 @@ impl Terminal {
             if let Err(err) = self.poller.wait(&mut events, timeout) {
                 match err.kind() {
                     ErrorKind::Interrupted => continue,
-                    _ => panic!("EventLoop polling error: {err:?}"),
+                    _ => panic!("EventLoop polling error: {err:?}")
                 }
             }
 
@@ -230,13 +229,15 @@ impl Terminal {
                                 log::error!("{:?}", err);
                             }
                             log::debug!(
-                                "terminal {:?} {:?} end by exit_code {exited_code:?}",
-                                self.term_id, self.shell
+                                "terminal {:?} {:?} end by exit_code \
+                                 {exited_code:?}",
+                                self.term_id,
+                                self.shell
                             );
                             exit_code = exited_code;
                             should_exit = true;
                         }
-                    }
+                    },
 
                     PTY_READ_WRITE_TOKEN => {
                         if event.is_interrupt() {
@@ -247,10 +248,14 @@ impl Terminal {
                         if event.readable {
                             match self.pty_read(&core_rpc, &mut buf) {
                                 Err(err) => {
-                                    // On Linux, a `read` on the master side of a PTY can fail
-                                    // with `EIO` if the client side hangs up.  In that case,
-                                    // just loop back round for the inevitable `Exited` event.
-                                    // This sucks, but checking the process is either racy or
+                                    // On Linux, a `read` on the master side of a PTY
+                                    // can fail
+                                    // with `EIO` if the client side hangs up.  In
+                                    // that case,
+                                    // just loop back round for the inevitable
+                                    // `Exited` event.
+                                    // This sucks, but checking the process is either
+                                    // racy or
                                     // blocking.
                                     #[cfg(target_os = "linux")]
                                     if err.raw_os_error() == Some(libc::EIO) {
@@ -263,12 +268,12 @@ impl Terminal {
                                     );
                                     println!("pty read error {err:?}");
                                     break 'event_loop;
-                                }
+                                },
                                 Ok(n) => {
                                     if n == 0 && should_exit {
                                         break 'event_loop;
                                     }
-                                }
+                                },
                             }
                         }
 
@@ -281,8 +286,8 @@ impl Terminal {
                                 break 'event_loop;
                             }
                         }
-                    }
-                    _ => (),
+                    },
+                    _ => ()
                 }
             }
 
@@ -311,7 +316,7 @@ impl Terminal {
             match msg {
                 Msg::Input(input) => state.write_list.push_back(input),
                 Msg::Shutdown => return false,
-                Msg::Resize(size) => self.pty.on_resize(size),
+                Msg::Resize(size) => self.pty.on_resize(size)
             }
         }
 
@@ -322,24 +327,24 @@ impl Terminal {
     fn pty_read(
         &mut self,
         core_rpc: &CoreRpcHandler,
-        buf: &mut [u8],
+        buf: &mut [u8]
     ) -> io::Result<usize> {
         let mut total = 0;
         loop {
             match self.pty.reader().read(buf) {
                 Ok(0) => {
                     break;
-                }
+                },
                 Ok(n) => {
                     total += n;
                     core_rpc.update_terminal(self.term_id, buf[..n].to_vec());
-                }
+                },
                 Err(err) => match err.kind() {
                     ErrorKind::Interrupted | ErrorKind::WouldBlock => {
                         break;
-                    }
-                    _ => return Err(err),
-                },
+                    },
+                    _ => return Err(err)
+                }
             }
         }
         Ok(total)
@@ -355,21 +360,21 @@ impl Terminal {
                     Ok(0) => {
                         state.set_current(Some(current));
                         break 'write_many;
-                    }
+                    },
                     Ok(n) => {
                         current.advance(n);
                         if current.finished() {
                             state.goto_next();
                             break 'write_one;
                         }
-                    }
+                    },
                     Err(err) => {
                         state.set_current(Some(current));
                         match err.kind() {
                             ErrorKind::Interrupted | ErrorKind::WouldBlock => {
-                                break 'write_many
-                            }
-                            _ => return Err(err),
+                                break 'write_many;
+                            },
+                            _ => return Err(err)
                         }
                     }
                 }
@@ -386,7 +391,7 @@ impl Terminal {
                     if cwd.exists() {
                         return Some(cwd);
                     }
-                }
+                },
                 Err(err) => {
                     log::error!("{:?}", err);
                 }
@@ -410,16 +415,16 @@ impl Terminal {
 }
 
 struct Writing {
-    source: Cow<'static, [u8]>,
-    written: usize,
+    source:  Cow<'static, [u8]>,
+    written: usize
 }
 
 impl Writing {
     #[inline]
     fn new(c: Cow<'static, [u8]>) -> Writing {
         Writing {
-            source: c,
-            written: 0,
+            source:  c,
+            written: 0
         }
     }
 
@@ -442,7 +447,7 @@ impl Writing {
 #[derive(Default)]
 pub struct State {
     write_list: VecDeque<Cow<'static, [u8]>>,
-    writing: Option<Writing>,
+    writing:    Option<Writing>
 }
 
 impl State {

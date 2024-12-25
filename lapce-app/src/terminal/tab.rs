@@ -6,31 +6,32 @@ use lapce_rpc::terminal::TerminalProfile;
 use super::data::TerminalData;
 use crate::{
     debug::RunDebugProcess, id::TerminalTabId, window_tab::CommonData,
-    workspace::LapceWorkspace,
+    workspace::LapceWorkspace
 };
 
 #[derive(Clone)]
 pub struct TerminalTabData {
-    pub scope: Scope,
+    pub scope:           Scope,
     pub terminal_tab_id: TerminalTabId,
-    pub terminal: RwSignal<TerminalData>,
+    pub terminal:        RwSignal<TerminalData>
 }
 
 impl TerminalTabData {
     pub fn new(
         workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         TerminalTabData::new_run_debug(workspace, None, profile, common)
     }
 
-    /// Create the information for a terminal tab, which can contain multiple terminals.  
+    /// Create the information for a terminal tab, which can contain multiple
+    /// terminals.
     pub fn new_run_debug(
         workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let cx = common.scope.create_child();
         let terminal_data =
@@ -40,7 +41,7 @@ impl TerminalTabData {
         Self {
             scope: cx,
             terminal_tab_id,
-            terminal: terminals,
+            terminal: terminals
         }
     }
 

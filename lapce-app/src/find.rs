@@ -2,14 +2,14 @@ use std::cmp::{max, min};
 
 use doc::lines::{
     selection::{SelRegion, Selection},
-    word::WordCursor,
+    word::WordCursor
 };
 use floem::reactive::{
-    RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith,
+    RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith
 };
 use lapce_xi_rope::{
-    find::{find, is_multiline_regex, CaseMatching},
     Cursor, Interval, Rope,
+    find::{CaseMatching, find, is_multiline_regex}
 };
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
@@ -25,8 +25,9 @@ pub enum FindProgress {
     /// The find process just started.
     Started,
 
-    /// Incremental find is in progress. Keeps tracked of already searched range.
-    InProgress(Selection),
+    /// Incremental find is in progress. Keeps tracked of already searched
+    /// range.
+    InProgress(Selection)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -50,48 +51,48 @@ pub struct FindStatus {
     matches: usize,
 
     /// Line numbers which have find results.
-    lines: Vec<usize>,
+    lines: Vec<usize>
 }
 
 #[derive(Clone)]
 pub struct FindSearchString {
     pub content: String,
-    pub regex: Option<Regex>,
+    pub regex:   Option<Regex>
 }
 
 #[derive(Clone)]
 pub struct Find {
-    pub rev: RwSignal<u64>,
+    pub rev:                  RwSignal<u64>,
     /// If the find is shown
-    pub visual: RwSignal<bool>,
+    pub visual:               RwSignal<bool>,
     /// The currently active search string.
-    pub search_string: RwSignal<Option<FindSearchString>>,
+    pub search_string:        RwSignal<Option<FindSearchString>>,
     /// The case matching setting for the currently active search.
-    pub case_matching: RwSignal<CaseMatching>,
+    pub case_matching:        RwSignal<CaseMatching>,
     /// Query matches only whole words.
-    pub whole_words: RwSignal<bool>,
+    pub whole_words:          RwSignal<bool>,
     /// The search query should be considered as regular expression.
-    pub is_regex: RwSignal<bool>,
+    pub is_regex:             RwSignal<bool>,
     /// replace editor is shown
-    pub replace_active: RwSignal<bool>,
+    pub replace_active:       RwSignal<bool>,
     /// replace editor is focused
-    pub replace_focus: RwSignal<bool>,
+    pub replace_focus:        RwSignal<bool>,
     /// Triggered by changes in the search string
-    pub triggered_by_changes: RwSignal<bool>,
+    pub triggered_by_changes: RwSignal<bool>
 }
 
 impl Find {
     pub fn new(cx: Scope) -> Self {
         let find = Self {
-            rev: cx.create_rw_signal(0),
-            visual: cx.create_rw_signal(false),
-            search_string: cx.create_rw_signal(None),
-            case_matching: cx.create_rw_signal(CaseMatching::CaseInsensitive),
-            whole_words: cx.create_rw_signal(false),
-            is_regex: cx.create_rw_signal(false),
-            replace_active: cx.create_rw_signal(false),
-            replace_focus: cx.create_rw_signal(false),
-            triggered_by_changes: cx.create_rw_signal(false),
+            rev:                  cx.create_rw_signal(0),
+            visual:               cx.create_rw_signal(false),
+            search_string:        cx.create_rw_signal(None),
+            case_matching:        cx.create_rw_signal(CaseMatching::CaseInsensitive),
+            whole_words:          cx.create_rw_signal(false),
+            is_regex:             cx.create_rw_signal(false),
+            replace_active:       cx.create_rw_signal(false),
+            replace_focus:        cx.create_rw_signal(false),
+            triggered_by_changes: cx.create_rw_signal(false)
         };
 
         {
@@ -134,7 +135,7 @@ impl Find {
             self.case_matching.get_untracked()
         } {
             CaseMatching::Exact => true,
-            CaseMatching::CaseInsensitive => false,
+            CaseMatching::CaseInsensitive => false
         }
     }
 
@@ -183,12 +184,12 @@ impl Find {
                 .size_limit(REGEX_SIZE_LIMIT)
                 .case_insensitive(!self.case_sensitive(false))
                 .build()
-                .ok(),
+                .ok()
         };
         self.triggered_by_changes.set(true);
         self.search_string.set(Some(FindSearchString {
             content: search_string.to_string(),
-            regex,
+            regex
         }));
     }
 
@@ -197,7 +198,7 @@ impl Find {
         text: &Rope,
         offset: usize,
         reverse: bool,
-        wrap: bool,
+        wrap: bool
     ) -> Option<(usize, usize)> {
         if !self.visual.get_untracked() {
             self.visual.set(true);
@@ -215,7 +216,7 @@ impl Find {
                         &mut raw_lines,
                         case_matching,
                         &search_string.content,
-                        search_string.regex.as_ref(),
+                        search_string.regex.as_ref()
                     ) {
                         let end = find_cursor.pos();
 
@@ -240,7 +241,7 @@ impl Find {
                             &mut raw_lines,
                             case_matching,
                             &search_string.content,
-                            search_string.regex.as_ref(),
+                            search_string.regex.as_ref()
                         ) {
                             let end = find_cursor.pos();
 
@@ -263,7 +264,7 @@ impl Find {
                         &mut raw_lines,
                         case_matching,
                         &search_string.content,
-                        search_string.regex.as_ref(),
+                        search_string.regex.as_ref()
                     ) {
                         let end = find_cursor.pos();
                         raw_lines = text.lines_raw(find_cursor.pos()..offset);
@@ -288,7 +289,7 @@ impl Find {
                             &mut raw_lines,
                             case_matching,
                             &search_string.content,
-                            search_string.regex.as_ref(),
+                            search_string.regex.as_ref()
                         ) {
                             let end = find_cursor.pos();
 
@@ -312,7 +313,7 @@ impl Find {
                     }
                 }
                 None
-            },
+            }
         )
     }
 
@@ -352,7 +353,7 @@ impl Find {
         case_matching: CaseMatching,
         whole_words: bool,
         include_slop: bool,
-        occurrences: &mut Selection,
+        occurrences: &mut Selection
     ) {
         let search_string = &search.content;
 
@@ -384,7 +385,7 @@ impl Find {
             &mut raw_lines,
             case_matching,
             search_string,
-            search.regex.as_ref(),
+            search.regex.as_ref()
         ) {
             let end = find_cursor.pos();
 
@@ -406,13 +407,14 @@ impl Find {
                 continue;
             }
 
-            // in case current cursor matches search result (for example query a* matches)
-            // all cursor positions, then cursor needs to be increased so that search
-            // continues at next position. Otherwise, search will result in overflow since
+            // in case current cursor matches search result (for example query a*
+            // matches) all cursor positions, then cursor needs to be
+            // increased so that search continues at next position.
+            // Otherwise, search will result in overflow since
             // search will always repeat at current cursor position.
             if start == end {
-                // determine whether end of text is reached and stop search or increase
-                // cursor manually
+                // determine whether end of text is reached and stop search or
+                // increase cursor manually
                 if end + 1 >= text.len() {
                     break;
                 } else {
@@ -425,14 +427,15 @@ impl Find {
         }
     }
 
-    /// Execute the search on the provided text in the range provided by `start` and `end`.
+    /// Execute the search on the provided text in the range provided by `start`
+    /// and `end`.
     pub fn update_find(
         &self,
         text: &Rope,
         start: usize,
         end: usize,
         include_slop: bool,
-        occurrences: &mut Selection,
+        occurrences: &mut Selection
     ) {
         if self.search_string.with_untracked(|search| search.is_none()) {
             return;
@@ -440,8 +443,8 @@ impl Find {
 
         let search = self.search_string.get_untracked().unwrap();
         let search_string = &search.content;
-        // extend the search by twice the string length (twice, because case matching may increase
-        // the length of an occurrence)
+        // extend the search by twice the string length (twice, because case matching
+        // may increase the length of an occurrence)
         let slop = if include_slop {
             search.content.len() * 2
         } else {
@@ -472,7 +475,7 @@ impl Find {
             &mut raw_lines,
             case_matching,
             search_string,
-            search.regex.as_ref(),
+            search.regex.as_ref()
         ) {
             let end = find_cursor.pos();
 
@@ -494,13 +497,14 @@ impl Find {
                 continue;
             }
 
-            // in case current cursor matches search result (for example query a* matches)
-            // all cursor positions, then cursor needs to be increased so that search
-            // continues at next position. Otherwise, search will result in overflow since
+            // in case current cursor matches search result (for example query a*
+            // matches) all cursor positions, then cursor needs to be
+            // increased so that search continues at next position.
+            // Otherwise, search will result in overflow since
             // search will always repeat at current cursor position.
             if start == end {
-                // determine whether end of text is reached and stop search or increase
-                // cursor manually
+                // determine whether end of text is reached and stop search or
+                // increase cursor manually
                 if end + 1 >= text.len() {
                     break;
                 } else {
@@ -516,25 +520,25 @@ impl Find {
 
 #[derive(Clone)]
 pub struct FindResult {
-    pub find_rev: RwSignal<u64>,
-    pub progress: RwSignal<FindProgress>,
-    pub occurrences: RwSignal<Selection>,
+    pub find_rev:      RwSignal<u64>,
+    pub progress:      RwSignal<FindProgress>,
+    pub occurrences:   RwSignal<Selection>,
     pub search_string: RwSignal<Option<FindSearchString>>,
     pub case_matching: RwSignal<CaseMatching>,
-    pub whole_words: RwSignal<bool>,
-    pub is_regex: RwSignal<bool>,
+    pub whole_words:   RwSignal<bool>,
+    pub is_regex:      RwSignal<bool>
 }
 
 impl FindResult {
     pub fn new(cx: Scope) -> Self {
         Self {
-            find_rev: cx.create_rw_signal(0),
-            progress: cx.create_rw_signal(FindProgress::Started),
-            occurrences: cx.create_rw_signal(Selection::new()),
+            find_rev:      cx.create_rw_signal(0),
+            progress:      cx.create_rw_signal(FindProgress::Started),
+            occurrences:   cx.create_rw_signal(Selection::new()),
             search_string: cx.create_rw_signal(None),
             case_matching: cx.create_rw_signal(CaseMatching::Exact),
-            whole_words: cx.create_rw_signal(false),
-            is_regex: cx.create_rw_signal(false),
+            whole_words:   cx.create_rw_signal(false),
+            is_regex:      cx.create_rw_signal(false)
         }
     }
 

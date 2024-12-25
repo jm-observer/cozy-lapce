@@ -10,7 +10,7 @@ use crate::{debug::LapceBreakpoint, main_split::SplitInfo, panel::data::PanelInf
 pub struct SshHost {
     pub user: Option<String>,
     pub host: String,
-    pub port: Option<usize>,
+    pub port: Option<usize>
 }
 
 impl SshHost {
@@ -53,7 +53,7 @@ impl Display for SshHost {
 #[cfg(windows)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct WslHost {
-    pub host: String,
+    pub host: String
 }
 
 #[cfg(windows)]
@@ -69,7 +69,7 @@ pub enum LapceWorkspaceType {
     Local,
     RemoteSSH(SshHost),
     #[cfg(windows)]
-    RemoteWSL(WslHost),
+    RemoteWSL(WslHost)
 }
 
 impl LapceWorkspaceType {
@@ -94,7 +94,7 @@ impl std::fmt::Display for LapceWorkspaceType {
             LapceWorkspaceType::Local => f.write_str("Local"),
             LapceWorkspaceType::RemoteSSH(remote) => {
                 write!(f, "ssh://{remote}")
-            }
+            },
             #[cfg(windows)]
             LapceWorkspaceType::RemoteWSL(remote) => {
                 write!(f, "{remote} (WSL)")
@@ -105,9 +105,9 @@ impl std::fmt::Display for LapceWorkspaceType {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapceWorkspace {
-    pub kind: LapceWorkspaceType,
-    pub path: Option<PathBuf>,
-    pub last_open: u64,
+    pub kind:      LapceWorkspaceType,
+    pub path:      Option<PathBuf>,
+    pub last_open: u64
 }
 
 impl LapceWorkspace {
@@ -122,7 +122,7 @@ impl LapceWorkspace {
             LapceWorkspaceType::Local => String::new(),
             LapceWorkspaceType::RemoteSSH(remote) => {
                 format!(" [SSH: {}]", remote.host)
-            }
+            },
             #[cfg(windows)]
             LapceWorkspaceType::RemoteWSL(remote) => {
                 format!(" [WSL: {}]", remote.host)
@@ -133,7 +133,7 @@ impl LapceWorkspace {
 
     pub fn watch_project_setting(
         &self,
-        watcher: &Arc<RwLock<notify::RecommendedWatcher>>,
+        watcher: &Arc<RwLock<notify::RecommendedWatcher>>
     ) {
         if let Some(path) = self.project_setting() {
             if let Err(e) = watcher
@@ -147,7 +147,7 @@ impl LapceWorkspace {
 
     pub fn unwatch_project_setting(
         &self,
-        watcher: &Arc<RwLock<notify::RecommendedWatcher>>,
+        watcher: &Arc<RwLock<notify::RecommendedWatcher>>
     ) {
         if let Some(path) = self.project_setting() {
             if let Err(e) = watcher.write_arc().unwatch(&path) {
@@ -169,9 +169,9 @@ impl LapceWorkspace {
 impl Default for LapceWorkspace {
     fn default() -> Self {
         Self {
-            kind: LapceWorkspaceType::Local,
-            path: None,
-            last_open: 0,
+            kind:      LapceWorkspaceType::Local,
+            path:      None,
+            last_open: 0
         }
     }
 }
@@ -189,7 +189,7 @@ impl std::fmt::Display for LapceWorkspace {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorkspaceInfo {
-    pub split: SplitInfo,
-    pub panel: PanelInfo,
-    pub breakpoints: HashMap<PathBuf, Vec<LapceBreakpoint>>,
+    pub split:       SplitInfo,
+    pub panel:       PanelInfo,
+    pub breakpoints: HashMap<PathBuf, Vec<LapceBreakpoint>>
 }

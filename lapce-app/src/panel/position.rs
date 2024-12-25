@@ -12,8 +12,8 @@
 //
 // impl PanelPosition {
 //     pub fn is_bottom(&self) -> bool {
-//         matches!(self, PanelPosition::BottomLeft | PanelPosition::BottomRight)
-//     }
+//         matches!(self, PanelPosition::BottomLeft |
+// PanelPosition::BottomRight)     }
 //
 //     pub fn is_right(&self) -> bool {
 //         matches!(self, PanelPosition::RightTop | PanelPosition::RightBottom)
@@ -50,7 +50,7 @@ use serde::{Deserialize, Serialize};
 pub enum PanelContainerPosition {
     Left,
     Bottom,
-    Right,
+    Right
 }
 
 impl PanelContainerPosition {
@@ -86,7 +86,7 @@ impl PanelContainerPosition {
         match self {
             PanelContainerPosition::Left => "Left Pannel Container View",
             PanelContainerPosition::Bottom => "Bottom Pannel Container View",
-            PanelContainerPosition::Right => "Right Pannel Container View",
+            PanelContainerPosition::Right => "Right Pannel Container View"
         }
     }
 }

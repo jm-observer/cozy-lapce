@@ -7,13 +7,12 @@ use super::remote::Remote;
 use crate::{proxy::new_command, workspace::SshHost};
 
 pub struct SshRemote {
-    pub ssh: SshHost,
+    pub ssh: SshHost
 }
 
 impl SshRemote {
     #[cfg(windows)]
     const SSH_ARGS: &'static [&'static str] = &[];
-
     #[cfg(unix)]
     const SSH_ARGS: &'static [&'static str] = &[
         "-o",
@@ -23,7 +22,7 @@ impl SshRemote {
         "-o",
         "ControlPersist=30m",
         "-o",
-        "ConnectTimeout=15",
+        "ConnectTimeout=15"
     ];
 }
 

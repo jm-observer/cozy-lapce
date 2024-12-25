@@ -1,7 +1,7 @@
 use std::{
     cmp::{Ord, Ordering, PartialOrd},
     collections::HashMap,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}
 };
 
 use serde::{Deserialize, Serialize};
@@ -11,17 +11,17 @@ use serde::{Deserialize, Serialize};
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
 pub struct LineCol {
-    pub line: usize,
-    pub column: usize,
+    pub line:   usize,
+    pub column: usize
 }
 
 #[derive(
     Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
 pub struct PathObject {
-    pub path: PathBuf,
+    pub path:    PathBuf,
     pub linecol: Option<LineCol>,
-    pub is_dir: bool,
+    pub is_dir:  bool
 }
 
 impl PathObject {
@@ -29,12 +29,12 @@ impl PathObject {
         path: PathBuf,
         is_dir: bool,
         line: usize,
-        column: usize,
+        column: usize
     ) -> PathObject {
         PathObject {
             path,
             is_dir,
-            linecol: Some(LineCol { line, column }),
+            linecol: Some(LineCol { line, column })
         }
     }
 
@@ -42,7 +42,7 @@ impl PathObject {
         PathObject {
             path,
             is_dir,
-            linecol: None,
+            linecol: None
         }
     }
 }
@@ -58,8 +58,8 @@ pub enum FileNodeViewKind {
     Duplicating {
         /// The path that is being duplicated
         source: PathBuf,
-        err: Option<String>,
-    },
+        err:    Option<String>
+    }
 }
 impl FileNodeViewKind {
     pub fn path(&self) -> Option<&Path> {
@@ -67,7 +67,7 @@ impl FileNodeViewKind {
             Self::Path(path) => Some(path),
             Self::Renaming { path, .. } => Some(path),
             Self::Naming { .. } => None,
-            Self::Duplicating { source, .. } => Some(source),
+            Self::Duplicating { source, .. } => Some(source)
         }
     }
 }
@@ -79,27 +79,27 @@ pub enum NamingState {
     /// Application of the naming is pending
     Pending,
     /// There's an active error with the typed name
-    Err { err: String },
+    Err { err: String }
 }
 impl NamingState {
     pub fn is_accepting_input(&self) -> bool {
         match self {
             Self::Naming | Self::Err { .. } => true,
-            Self::Pending => false,
+            Self::Pending => false
         }
     }
 
     pub fn is_err(&self) -> bool {
         match self {
             Self::Naming | Self::Pending => false,
-            Self::Err { .. } => true,
+            Self::Err { .. } => true
         }
     }
 
     pub fn err(&self) -> Option<&str> {
         match self {
             Self::Err { err } => Some(err.as_str()),
-            _ => None,
+            _ => None
         }
     }
 
@@ -118,32 +118,32 @@ impl NamingState {
 
 /// Stores the state of any in progress rename of a path.
 ///
-/// The `editor_needs_reset` field is `true` if the rename editor should have its contents reset
-/// when the view function next runs.
+/// The `editor_needs_reset` field is `true` if the rename editor should have
+/// its contents reset when the view function next runs.
 #[derive(Debug, Clone)]
 pub struct Renaming {
-    pub state: NamingState,
+    pub state:              NamingState,
     /// Original file's path
-    pub path: PathBuf,
-    pub editor_needs_reset: bool,
+    pub path:               PathBuf,
+    pub editor_needs_reset: bool
 }
 
 #[derive(Debug, Clone)]
 pub struct NewNode {
-    pub state: NamingState,
+    pub state:              NamingState,
     /// If true, then we are creating a directory
-    pub is_dir: bool,
+    pub is_dir:             bool,
     /// The folder that the file/directory is being created within
-    pub base_path: PathBuf,
-    pub editor_needs_reset: bool,
+    pub base_path:          PathBuf,
+    pub editor_needs_reset: bool
 }
 
 #[derive(Debug, Clone)]
 pub struct Duplicating {
-    pub state: NamingState,
+    pub state:              NamingState,
     /// Path to the item being duplicated
-    pub path: PathBuf,
-    pub editor_needs_reset: bool,
+    pub path:               PathBuf,
+    pub editor_needs_reset: bool
 }
 
 #[derive(Debug, Clone)]
@@ -151,7 +151,7 @@ pub enum Naming {
     None,
     Renaming(Renaming),
     NewNode(NewNode),
-    Duplicating(Duplicating),
+    Duplicating(Duplicating)
 }
 impl Naming {
     pub fn state(&self) -> Option<&NamingState> {
@@ -159,7 +159,7 @@ impl Naming {
             Self::None => None,
             Self::Renaming(rename) => Some(&rename.state),
             Self::NewNode(state) => Some(&state.state),
-            Self::Duplicating(state) => Some(&state.state),
+            Self::Duplicating(state) => Some(&state.state)
         }
     }
 
@@ -168,7 +168,7 @@ impl Naming {
             Self::None => None,
             Self::Renaming(rename) => Some(&mut rename.state),
             Self::NewNode(state) => Some(&mut state.state),
-            Self::Duplicating(state) => Some(&mut state.state),
+            Self::Duplicating(state) => Some(&mut state.state)
         }
     }
 
@@ -181,16 +181,16 @@ impl Naming {
             Naming::None => false,
             Naming::Renaming(rename) => rename.editor_needs_reset,
             Naming::NewNode(state) => state.editor_needs_reset,
-            Naming::Duplicating(state) => state.editor_needs_reset,
+            Naming::Duplicating(state) => state.editor_needs_reset
         }
     }
 
     pub fn set_editor_needs_reset(&mut self, needs_reset: bool) {
         match self {
-            Naming::None => {}
+            Naming::None => {},
             Naming::Renaming(rename) => rename.editor_needs_reset = needs_reset,
             Naming::NewNode(state) => state.editor_needs_reset = needs_reset,
-            Naming::Duplicating(state) => state.editor_needs_reset = needs_reset,
+            Naming::Duplicating(state) => state.editor_needs_reset = needs_reset
         }
     }
 
@@ -215,7 +215,7 @@ impl Naming {
     pub fn as_renaming(&self) -> Option<&Renaming> {
         match self {
             Naming::Renaming(rename) => Some(rename),
-            _ => None,
+            _ => None
         }
     }
 
@@ -224,55 +224,55 @@ impl Naming {
         &self,
         is_dir: bool,
         level: usize,
-        path: &Path,
+        path: &Path
     ) -> Option<FileNodeViewData> {
         match self {
             Naming::NewNode(n) if n.base_path == path => Some(FileNodeViewData {
-                kind: FileNodeViewKind::Naming {
-                    err: n.state.err().map(ToString::to_string),
+                kind:    FileNodeViewKind::Naming {
+                    err: n.state.err().map(ToString::to_string)
                 },
-                is_dir: n.is_dir,
+                is_dir:  n.is_dir,
                 is_root: false,
-                open: false,
-                level: level + 1,
+                open:    false,
+                level:   level + 1
             }),
             Naming::Duplicating(d) if d.path == path => Some(FileNodeViewData {
                 kind: FileNodeViewKind::Duplicating {
                     source: d.path.to_path_buf(),
-                    err: d.state.err().map(ToString::to_string),
+                    err:    d.state.err().map(ToString::to_string)
                 },
                 is_dir,
                 is_root: false,
                 open: false,
-                level: level + 1,
+                level: level + 1
             }),
-            _ => None,
+            _ => None
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct FileNodeViewData {
-    pub kind: FileNodeViewKind,
-    pub is_dir: bool,
+    pub kind:    FileNodeViewKind,
+    pub is_dir:  bool,
     pub is_root: bool,
-    pub open: bool,
-    pub level: usize,
+    pub open:    bool,
+    pub level:   usize
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FileNodeItem {
-    pub path: PathBuf,
-    pub is_dir: bool,
+    pub path:                PathBuf,
+    pub is_dir:              bool,
     /// Whether the directory's children have been read.  
     /// Does nothing if not a directory.
-    pub read: bool,
+    pub read:                bool,
     /// Whether the directory is open in the explorer view.
-    pub open: bool,
-    pub children: HashMap<PathBuf, FileNodeItem>,
+    pub open:                bool,
+    pub children:            HashMap<PathBuf, FileNodeItem>,
     /// The number of child (directories) that are open themselves  
     /// Used for sizing of the explorer list
-    pub children_open_count: usize,
+    pub children_open_count: usize
 }
 
 impl PartialOrd for FileNodeItem {
@@ -320,7 +320,8 @@ impl FileNodeItem {
         children
     }
 
-    /// Returns an iterator over the ancestors of `path`, starting with the first descendant of `prefix`.
+    /// Returns an iterator over the ancestors of `path`, starting with the
+    /// first descendant of `prefix`.
     ///
     /// # Example:
     /// (ignored because the function is private but I promise this passes)
@@ -337,14 +338,14 @@ impl FileNodeItem {
     /// #    open: false,
     /// #    children: HashMap::new(),
     /// #    children_open_count: 0,
-    ///};
+    /// };
     /// let mut iter = node_item.ancestors_rev(Path::new("/pre/fix/foo/bar")).unwrap();
     /// assert_eq!(Some(Path::new("/pre/fix/foo")), iter.next());
     /// assert_eq!(Some(Path::new("/pre/fix/foo/bar")), iter.next());
     /// ```
     fn ancestors_rev<'a>(
         &self,
-        path: &'a Path,
+        path: &'a Path
     ) -> Option<impl Iterator<Item = &'a Path>> {
         let take = if let Ok(suffix) = path.strip_prefix(&self.path) {
             suffix.components().count()
@@ -370,7 +371,8 @@ impl FileNodeItem {
     }
 
     /// Remove a specific child from the node.  
-    /// The path is recursive and will remove the child from parent indicated by the path.
+    /// The path is recursive and will remove the child from parent indicated by
+    /// the path.
     pub fn remove_child(&mut self, path: &Path) -> Option<FileNodeItem> {
         let parent = path.parent()?;
         let node = self.get_file_node_mut(parent)?;
@@ -386,17 +388,14 @@ impl FileNodeItem {
     pub fn add_child(&mut self, path: &Path, is_dir: bool) -> Option<()> {
         let parent = path.parent()?;
         let node = self.get_file_node_mut(parent)?;
-        node.children.insert(
-            PathBuf::from(path),
-            FileNodeItem {
-                path: PathBuf::from(path),
-                is_dir,
-                read: false,
-                open: false,
-                children: HashMap::new(),
-                children_open_count: 0,
-            },
-        );
+        node.children.insert(PathBuf::from(path), FileNodeItem {
+            path: PathBuf::from(path),
+            is_dir,
+            read: false,
+            open: false,
+            children: HashMap::new(),
+            children_open_count: 0
+        });
         for p in path.ancestors() {
             self.update_node_count(p);
         }
@@ -409,7 +408,7 @@ impl FileNodeItem {
     pub fn set_item_children(
         &mut self,
         path: &Path,
-        children: HashMap<PathBuf, FileNodeItem>,
+        children: HashMap<PathBuf, FileNodeItem>
     ) {
         if let Some(node) = self.get_file_node_mut(path) {
             node.open = true;
@@ -450,7 +449,7 @@ impl FileNodeItem {
         min: usize,
         max: usize,
         current: usize,
-        level: usize,
+        level: usize
     ) -> usize {
         if current > max {
             return current;
@@ -464,7 +463,7 @@ impl FileNodeItem {
                 if r.path == self.path {
                     FileNodeViewKind::Renaming {
                         path: self.path.clone(),
-                        err: r.state.err().map(ToString::to_string),
+                        err:  r.state.err().map(ToString::to_string)
                     }
                 } else {
                     FileNodeViewKind::Path(self.path.clone())
@@ -477,7 +476,7 @@ impl FileNodeItem {
                 is_dir: self.is_dir,
                 is_root: level == 1,
                 open: self.open,
-                level,
+                level
             });
         }
 
@@ -495,14 +494,14 @@ impl FileNodeItem {
             match (item.is_dir, item.open, item.path == file_path) {
                 (_, _, true) => {
                     return (true, line);
-                }
+                },
                 (true, true, _) => {
                     let (found, item_position) = item.find_file_at_line(file_path);
                     line += item_position;
                     if found {
                         return (true, line);
                     }
-                }
+                },
                 _ => {}
             }
         }
@@ -517,7 +516,7 @@ impl FileNodeItem {
         min: usize,
         max: usize,
         mut i: usize,
-        level: usize,
+        level: usize
     ) -> usize {
         let mut naming_extra = naming.extra_node(self.is_dir, level, &self.path);
 
@@ -547,8 +546,8 @@ impl FileNodeItem {
         let mut after_dirs = false;
 
         for item in self.sorted_children() {
-            // If we're naming a file at the root, then wait until we've added the directories
-            // before adding the input node
+            // If we're naming a file at the root, then wait until we've added the
+            // directories before adding the input node
             if naming_extra.is_some()
                 && !naming_is_dir
                 && !item.is_dir
@@ -556,8 +555,9 @@ impl FileNodeItem {
             {
                 after_dirs = true;
 
-                // If we're creating a new file node, then we show it after the directories
-                // TODO(minor): should this be i >= min or i + 1 >= min?
+                // If we're creating a new file node, then we show it after the
+                // directories TODO(minor): should this be i >= min
+                // or i + 1 >= min?
                 if i >= min {
                     if let Some(node) = naming_extra.take() {
                         view_items.push(node);
@@ -571,7 +571,7 @@ impl FileNodeItem {
                 min,
                 max,
                 i + 1,
-                level + 1,
+                level + 1
             );
             if i > max {
                 return i;

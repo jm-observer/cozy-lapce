@@ -42,8 +42,8 @@ impl Directory {
                     }
                 }
                 Some(dir.to_path_buf())
-            }
-            None => None,
+            },
+            None => None
         }
     }
 
@@ -94,6 +94,7 @@ impl Directory {
             None
         }
     }
+
     /// Get the path to the themes folder
     /// Themes are stored within as individual toml files
     pub fn themes_directory() -> Option<PathBuf> {
@@ -109,6 +110,7 @@ impl Directory {
             None
         }
     }
+
     // Get the path to plugins directory
     // Each plugin has own directory that contains
     // metadata file and plugin wasm
@@ -137,8 +139,8 @@ impl Directory {
                     }
                 }
                 Some(dir.to_path_buf())
-            }
-            None => None,
+            },
+            None => None
         }
     }
 

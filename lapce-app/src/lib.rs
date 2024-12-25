@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 pub mod about;
 pub mod alert;
 pub mod app;
@@ -52,10 +50,7 @@ pub mod workspace;
 #[cfg(windows)]
 extern crate windows_sys as windows;
 
-use floem::prelude::Svg;
-use floem::reactive::create_effect;
-use floem::views::{Decorators, SvgClass};
-use floem::{View, ViewId};
+use floem::{View, prelude::Svg, reactive::create_effect};
 
 pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
     let content = svg_str();

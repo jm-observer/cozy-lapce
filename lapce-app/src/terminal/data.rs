@@ -1,56 +1,58 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
 use alacritty_terminal::{
+    Term,
     grid::{Dimensions, Scroll},
     selection::{Selection, SelectionType},
-    term::{test::TermSize, TermMode},
-    vi_mode::ViMotion,
-    Term,
+    term::{TermMode, test::TermSize},
+    vi_mode::ViMotion
 };
 use anyhow::anyhow;
-use floem::views::editor::core::{
-    command::{EditCommand, FocusCommand, ScrollCommand},
-    mode::{Mode, VisualMode},
-    movement::{LinePosition, Movement},
-    register::Clipboard,
-};
 use floem::{
     keyboard::{Key, KeyEvent, Modifiers, NamedKey},
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::text::SystemClipboard,
+    views::editor::{
+        core::{
+            command::{EditCommand, FocusCommand, ScrollCommand},
+            mode::{Mode, VisualMode},
+            movement::{LinePosition, Movement},
+            register::Clipboard
+        },
+        text::SystemClipboard
+    }
 };
 use lapce_rpc::{
     dap_types::RunDebugConfig,
-    terminal::{TermId, TerminalProfile},
+    terminal::{TermId, TerminalProfile}
 };
 use parking_lot::RwLock;
 use url::Url;
 
 use super::{
     event::TermEvent,
-    raw::{EventProxy, RawTerminal},
+    raw::{EventProxy, RawTerminal}
 };
 use crate::{
     command::{CommandExecuted, CommandKind},
     debug::{RunDebugMode, RunDebugProcess},
-    keypress::{condition::Condition, KeyPressFocus},
+    keypress::{KeyPressFocus, condition::Condition},
     window_tab::CommonData,
-    workspace::LapceWorkspace,
+    workspace::LapceWorkspace
 };
 
 #[derive(Clone, Debug)]
 pub struct TerminalData {
-    pub scope: Scope,
-    pub term_id: TermId,
-    pub workspace: Arc<LapceWorkspace>,
-    pub raw_id: RwSignal<u64>,
-    pub title: RwSignal<String>,
+    pub scope:        Scope,
+    pub term_id:      TermId,
+    pub workspace:    Arc<LapceWorkspace>,
+    pub raw_id:       RwSignal<u64>,
+    pub title:        RwSignal<String>,
     pub launch_error: RwSignal<Option<String>>,
-    pub mode: RwSignal<Mode>,
-    pub visual_mode: RwSignal<VisualMode>,
-    pub raw: RwSignal<Arc<RwLock<RawTerminal>>>,
-    pub run_debug: RwSignal<Option<RunDebugProcess>>,
-    pub common: Rc<CommonData>,
+    pub mode:         RwSignal<Mode>,
+    pub visual_mode:  RwSignal<VisualMode>,
+    pub raw:          RwSignal<Arc<RwLock<RawTerminal>>>,
+    pub run_debug:    RwSignal<Option<RunDebugProcess>>,
+    pub common:       Rc<CommonData>
 }
 
 impl KeyPressFocus for TerminalData {
@@ -66,7 +68,7 @@ impl KeyPressFocus for TerminalData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        _mods: Modifiers,
+        _mods: Modifiers
     ) -> crate::command::CommandExecuted {
         self.common.view_id.get_untracked().request_paint();
         let config = self.common.config.get_untracked();
@@ -79,51 +81,51 @@ impl KeyPressFocus for TerminalData {
                 match movement {
                     Movement::Left => {
                         term.vi_motion(ViMotion::Left);
-                    }
+                    },
                     Movement::Right => {
                         term.vi_motion(ViMotion::Right);
-                    }
+                    },
                     Movement::Up => {
                         term.vi_motion(ViMotion::Up);
-                    }
+                    },
                     Movement::Down => {
                         term.vi_motion(ViMotion::Down);
-                    }
+                    },
                     Movement::FirstNonBlank => {
                         term.vi_motion(ViMotion::FirstOccupied);
-                    }
+                    },
                     Movement::StartOfLine => {
                         term.vi_motion(ViMotion::First);
-                    }
+                    },
                     Movement::EndOfLine => {
                         term.vi_motion(ViMotion::Last);
-                    }
+                    },
                     Movement::WordForward => {
                         term.vi_motion(ViMotion::SemanticRight);
-                    }
+                    },
                     Movement::WordEndForward => {
                         term.vi_motion(ViMotion::SemanticRightEnd);
-                    }
+                    },
                     Movement::WordBackward => {
                         term.vi_motion(ViMotion::SemanticLeft);
-                    }
+                    },
                     Movement::Line(line) => {
                         match line {
                             LinePosition::First => {
                                 term.scroll_display(Scroll::Top);
                                 term.vi_mode_cursor.point.line = term.topmost_line();
-                            }
+                            },
                             LinePosition::Last => {
                                 term.scroll_display(Scroll::Bottom);
                                 term.vi_mode_cursor.point.line =
                                     term.bottommost_line();
-                            }
+                            },
                             LinePosition::Line(_) => {}
                         };
-                    }
-                    _ => (),
+                    },
+                    _ => ()
                 };
-            }
+            },
             CommandKind::Edit(cmd) => match cmd {
                 EditCommand::NormalMode => {
                     if !config.core.modal {
@@ -137,16 +139,16 @@ impl KeyPressFocus for TerminalData {
                         term.toggle_vi_mode();
                     }
                     term.selection = None;
-                }
+                },
                 EditCommand::ToggleVisualMode => {
                     self.toggle_visual(VisualMode::Normal);
-                }
+                },
                 EditCommand::ToggleLinewiseVisualMode => {
                     self.toggle_visual(VisualMode::Linewise);
-                }
+                },
                 EditCommand::ToggleBlockwiseVisualMode => {
                     self.toggle_visual(VisualMode::Blockwise);
-                }
+                },
                 EditCommand::InsertMode => {
                     self.mode.set(Mode::Terminal);
                     let raw = self.raw.get_untracked();
@@ -158,7 +160,7 @@ impl KeyPressFocus for TerminalData {
                     let scroll = alacritty_terminal::grid::Scroll::Bottom;
                     term.scroll_display(scroll);
                     term.selection = None;
-                }
+                },
                 EditCommand::ClipboardCopy => {
                     let mut clipboard = SystemClipboard::new();
                     if matches!(self.mode.get_untracked(), Mode::Visual(_)) {
@@ -173,7 +175,7 @@ impl KeyPressFocus for TerminalData {
                     if self.mode.get_untracked() != Mode::Terminal {
                         term.selection = None;
                     }
-                }
+                },
                 EditCommand::ClipboardPaste => {
                     let mut clipboard = SystemClipboard::new();
                     let mut check_bracketed_paste: bool = false;
@@ -195,8 +197,8 @@ impl KeyPressFocus for TerminalData {
                             self.receive_char(&s);
                         }
                     }
-                }
-                _ => return CommandExecuted::No,
+                },
+                _ => return CommandExecuted::No
             },
             CommandKind::Scroll(cmd) => match cmd {
                 ScrollCommand::PageUp => {
@@ -208,9 +210,9 @@ impl KeyPressFocus for TerminalData {
                         term.vi_mode_cursor.scroll(term, scroll_lines);
 
                     term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines,
+                        scroll_lines
                     ));
-                }
+                },
                 ScrollCommand::PageDown => {
                     let raw = self.raw.get_untracked();
                     let mut raw = raw.write();
@@ -220,10 +222,10 @@ impl KeyPressFocus for TerminalData {
                         term.vi_mode_cursor.scroll(term, scroll_lines);
 
                     term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines,
+                        scroll_lines
                     ));
-                }
-                _ => return CommandExecuted::No,
+                },
+                _ => return CommandExecuted::No
             },
             CommandKind::Focus(cmd) => match cmd {
                 FocusCommand::SplitVertical
@@ -232,7 +234,8 @@ impl KeyPressFocus for TerminalData {
                 | FocusCommand::SplitRight
                 | FocusCommand::SplitExchange
                 | FocusCommand::SearchForward => {
-                    // if let Some(search_string) = self.find.search_string.as_ref() {
+                    // if let Some(search_string) =
+                    // self.find.search_string.as_ref() {
                     //     let mut raw = self.terminal.raw.lock();
                     //     let term = &mut raw.term;
                     //     self.terminal.search_next(
@@ -241,9 +244,10 @@ impl KeyPressFocus for TerminalData {
                     //         Direction::Right,
                     //     );
                     // }
-                }
+                },
                 FocusCommand::SearchBackward => {
-                    // if let Some(search_string) = self.find.search_string.as_ref() {
+                    // if let Some(search_string) =
+                    // self.find.search_string.as_ref() {
                     //     let mut raw = self.terminal.raw.lock();
                     //     let term = &mut raw.term;
                     //     self.terminal.search_next(
@@ -252,10 +256,10 @@ impl KeyPressFocus for TerminalData {
                     //         Direction::Left,
                     //     );
                     // }
-                }
-                _ => return CommandExecuted::No,
+                },
+                _ => return CommandExecuted::No
             },
-            _ => return CommandExecuted::No,
+            _ => return CommandExecuted::No
         };
         CommandExecuted::Yes
     }
@@ -265,7 +269,7 @@ impl KeyPressFocus for TerminalData {
             self.common.proxy.terminal_write(
                 self.term_id,
                 self.raw_id(),
-                c.to_string(),
+                c.to_string()
             );
             self.raw
                 .get_untracked()
@@ -281,7 +285,7 @@ impl TerminalData {
         cx: Scope,
         workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         Self::new_run_debug(cx, workspace, None, profile, common)
     }
@@ -291,7 +295,7 @@ impl TerminalData {
         workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let cx = cx.create_child();
         let term_id = TermId::next();
@@ -310,7 +314,7 @@ impl TerminalData {
             run_debug.as_ref(),
             profile,
             common.clone(),
-            launch_error,
+            launch_error
         );
 
         let run_debug = cx.create_rw_signal(run_debug);
@@ -329,7 +333,7 @@ impl TerminalData {
             mode,
             visual_mode,
             common,
-            launch_error,
+            launch_error
         }
     }
 
@@ -339,7 +343,7 @@ impl TerminalData {
         run_debug: Option<&RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-        launch_error: RwSignal<Option<String>>,
+        launch_error: RwSignal<Option<String>>
     ) -> (Arc<RwLock<RawTerminal>>, u64) {
         log::debug!("term_id={term_id:?} new_raw_terminal");
         let raw_id = TermId::next().to_raw();
@@ -347,14 +351,14 @@ impl TerminalData {
             term_id,
             raw_id,
             common.proxy.clone(),
-            common.term_notification_tx.clone(),
+            common.term_notification_tx.clone()
         )));
 
         let mut profile = profile.unwrap_or_default();
 
         if profile.workdir.is_none() {
             profile.workdir = if let Ok(path) = url::Url::from_file_path(
-                workspace.path.as_ref().cloned().unwrap_or_default(),
+                workspace.path.as_ref().cloned().unwrap_or_default()
             ) {
                 Some(path)
             } else {
@@ -412,8 +416,9 @@ impl TerminalData {
             && matches!(&key.key.logical_key, Key::Character(_))
         {
             if let Key::Character(c) = &key.key.logical_key {
-                // In terminal emulators, when the Alt key is combined with another character
-                // (such as Alt+a), a leading ESC (Escape, ASCII code 0x1B) character is usually
+                // In terminal emulators, when the Alt key is combined with another
+                // character (such as Alt+a), a leading ESC (Escape,
+                // ASCII code 0x1B) character is usually
                 // sent followed by a sequence of that character. For example,
                 // Alt+a sends \x1Ba.
                 self.receive_char("\x1b");
@@ -518,8 +523,9 @@ impl TerminalData {
         match key.key.logical_key {
             Key::Character(ref c) => {
                 if key.modifiers == Modifiers::CONTROL {
-                    // Convert the character into its index (into a control character).
-                    // In essence, this turns `ctrl+h` into `^h`
+                    // Convert the character into its index (into a control
+                    // character). In essence, this turns
+                    // `ctrl+h` into `^h`
                     let str = match c.as_str() {
                         "@" => "\x00",
                         "a" => "\x01",
@@ -553,14 +559,14 @@ impl TerminalData {
                         "]" => "\x1d",
                         "^" => "\x1e",
                         "_" => "\x1f",
-                        _ => return None,
+                        _ => return None
                     };
 
                     Some(str)
                 } else {
                     None
                 }
-            }
+            },
             Key::Named(NamedKey::Backspace) => {
                 Some(if key.modifiers.control() {
                     "\x08" // backspace
@@ -569,44 +575,45 @@ impl TerminalData {
                 } else {
                     "\x7f"
                 })
-            }
+            },
 
             Key::Named(NamedKey::Tab) => Some("\x09"),
             Key::Named(NamedKey::Enter) => Some("\r"),
             Key::Named(NamedKey::Escape) => Some("\x1b"),
 
-            // The following either expands to `\x1b[X` or `\x1b[1;NX` where N is a modifier value
+            // The following either expands to `\x1b[X` or `\x1b[1;NX` where N is a
+            // modifier value
             Key::Named(NamedKey::ArrowUp) => {
                 term_sequence!([all], key, "\x1b[A", "\x1b[1;", "A")
-            }
+            },
             Key::Named(NamedKey::ArrowDown) => {
                 term_sequence!([all], key, "\x1b[B", "\x1b[1;", "B")
-            }
+            },
             Key::Named(NamedKey::ArrowRight) => {
                 term_sequence!([all], key, "\x1b[C", "\x1b[1;", "C")
-            }
+            },
             Key::Named(NamedKey::ArrowLeft) => {
                 term_sequence!([all], key, "\x1b[D", "\x1b[1;", "D")
-            }
+            },
             Key::Named(NamedKey::Home) => {
                 term_sequence!([all], key, "\x1bOH", "\x1b[1;", "H")
-            }
+            },
             Key::Named(NamedKey::End) => {
                 term_sequence!([all], key, "\x1bOF", "\x1b[1;", "F")
-            }
+            },
             Key::Named(NamedKey::Insert) => {
                 term_sequence!([all], key, "\x1b[2~", "\x1b[2;", "~")
-            }
+            },
             Key::Named(NamedKey::Delete) => {
                 term_sequence!([all], key, "\x1b[3~", "\x1b[3;", "~")
-            }
+            },
             Key::Named(NamedKey::PageUp) => {
                 term_sequence!([all], key, "\x1b[5~", "\x1b[5;", "~")
-            }
+            },
             Key::Named(NamedKey::PageDown) => {
                 term_sequence!([all], key, "\x1b[6~", "\x1b[6;", "~")
-            }
-            _ => None,
+            },
+            _ => None
         }
     }
 
@@ -634,15 +641,15 @@ impl TerminalData {
             Mode::Normal => {
                 self.mode.set(Mode::Visual(visual_mode));
                 self.visual_mode.set(visual_mode);
-            }
+            },
             Mode::Visual(_) => {
                 if self.visual_mode.get_untracked() == visual_mode {
                     self.mode.set(Mode::Normal);
                 } else {
                     self.visual_mode.set(visual_mode);
                 }
-            }
-            _ => (),
+            },
+            _ => ()
         }
 
         let raw = self.raw.get_untracked();
@@ -654,14 +661,14 @@ impl TerminalData {
         let ty = match visual_mode {
             VisualMode::Normal => SelectionType::Simple,
             VisualMode::Linewise => SelectionType::Lines,
-            VisualMode::Blockwise => SelectionType::Block,
+            VisualMode::Blockwise => SelectionType::Block
         };
         let point = term.renderable_content().cursor.point;
         self.toggle_selection(
             term,
             ty,
             point,
-            alacritty_terminal::index::Side::Left,
+            alacritty_terminal::index::Side::Left
         );
         if let Some(selection) = term.selection.as_mut() {
             selection.include_all();
@@ -673,16 +680,16 @@ impl TerminalData {
         term: &mut Term<EventProxy>,
         ty: SelectionType,
         point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
+        side: alacritty_terminal::index::Side
     ) {
         match &mut term.selection {
             Some(selection) if selection.ty == ty && !selection.is_empty() => {
                 term.selection = None;
-            }
+            },
             Some(selection) if !selection.is_empty() => {
                 selection.ty = ty;
-            }
-            _ => self.start_selection(term, ty, point, side),
+            },
+            _ => self.start_selection(term, ty, point, side)
         }
     }
 
@@ -691,7 +698,7 @@ impl TerminalData {
         term: &mut Term<EventProxy>,
         ty: SelectionType,
         point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
+        side: alacritty_terminal::index::Side
     ) {
         term.selection = Some(Selection::new(ty, point, side));
     }
@@ -711,7 +718,7 @@ impl TerminalData {
             run_debug.as_ref(),
             None,
             self.common.clone(),
-            self.launch_error,
+            self.launch_error
         );
         let term_size = TermSize::new(width, height);
         raw.write().term.resize(term_size);
@@ -742,20 +749,22 @@ impl TerminalData {
     }
 }
 
-/// [`RunDebugConfig`] with expanded out program/arguments/etc. Used for creating the terminal.
+/// [`RunDebugConfig`] with expanded out program/arguments/etc. Used for
+/// creating the terminal.
 #[derive(Debug, Clone)]
 pub struct ExpandedRunDebug {
     pub work_dir: Option<Url>,
-    pub env: Option<HashMap<String, String>>,
-    pub program: String,
-    pub args: Option<Vec<String>>,
+    pub env:      Option<HashMap<String, String>>,
+    pub program:  String,
+    pub args:     Option<Vec<String>>
 }
 impl ExpandedRunDebug {
     pub fn expand(
         run_debug: &RunDebugConfig,
-        is_prelaunch: bool,
+        is_prelaunch: bool
     ) -> anyhow::Result<Self> {
-        // Get the current working directory variable, which can container ${workspace}
+        // Get the current working directory variable, which can container
+        // ${workspace}
 
         let work_dir = run_debug
             .cwd
@@ -788,24 +797,31 @@ impl ExpandedRunDebug {
                 (run_debug.program.clone(), run_debug.args.clone())
             };
         let program = if program == "${lapce}" {
-            std::env::current_exe().map_err(|e| {
-                anyhow!("Failed to get current exe for ${{lapce}} run and debug: {e}")
-            })?.to_str().ok_or_else(|| anyhow!("Failed to convert ${{lapce}} path to str"))?.to_string()
+            std::env::current_exe()
+                .map_err(|e| {
+                    anyhow!(
+                        "Failed to get current exe for ${{lapce}} run and debug: \
+                         {e}"
+                    )
+                })?
+                .to_str()
+                .ok_or_else(|| anyhow!("Failed to convert ${{lapce}} path to str"))?
+                .to_string()
         } else {
             program
         };
 
         // if program.contains("${workspace}") {
-        //     if let Some(workspace) = workspace.path.as_ref().and_then(|x| x.to_str())
-        //     {
+        //     if let Some(workspace) = workspace.path.as_ref().and_then(|x|
+        // x.to_str())     {
         //         program = program.replace("${workspace}", workspace);
         //     }
         // }
 
         // if let Some(args) = &mut args {
         //     for arg in args {
-        //         // Replace all mentions of ${workspace} with the current workspace path
-        //         if arg.contains("${workspace}") {
+        //         // Replace all mentions of ${workspace} with the current workspace
+        // path         if arg.contains("${workspace}") {
         //             if let Some(workspace) =
         //                 workspace.path.as_ref().and_then(|x| x.to_str())
         //             {
@@ -819,7 +835,7 @@ impl ExpandedRunDebug {
             work_dir,
             env,
             program,
-            args,
+            args
         })
     }
 }

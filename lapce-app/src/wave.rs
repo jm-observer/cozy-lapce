@@ -1,7 +1,7 @@
 use floem::{
-    peniko::kurbo::{BezPath, Point, Size},
-    style::TextColor,
     Renderer, View, ViewId,
+    peniko::kurbo::{BezPath, Point, Size},
+    style::TextColor
 };
 
 pub fn wave_box() -> WaveBox {
@@ -9,7 +9,7 @@ pub fn wave_box() -> WaveBox {
 }
 
 pub struct WaveBox {
-    id: ViewId,
+    id: ViewId
 }
 
 impl View for WaveBox {

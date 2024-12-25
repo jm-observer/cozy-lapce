@@ -2,7 +2,7 @@
 /// `text` is what the offsets are into
 pub fn offset_utf8_to_utf16(
     char_indices: impl Iterator<Item = (usize, char)>,
-    offset: usize,
+    offset: usize
 ) -> usize {
     if offset == 0 {
         return 0;
@@ -14,13 +14,13 @@ pub fn offset_utf8_to_utf16(
         last_ich = Some((utf8_offset, ch));
 
         match utf8_offset.cmp(&offset) {
-            std::cmp::Ordering::Less => {}
+            std::cmp::Ordering::Less => {},
             // We found the right offset
             std::cmp::Ordering::Equal => {
                 return utf16_offset;
-            }
+            },
             // Implies that the offset was inside of a character
-            std::cmp::Ordering::Greater => return utf16_offset,
+            std::cmp::Ordering::Greater => return utf16_offset
         }
 
         utf16_offset += ch.len_utf16();
@@ -33,8 +33,8 @@ pub fn offset_utf8_to_utf16(
     // or past the end.
     let text_len = last_ich.map(|(i, c)| i + c.len_utf8());
     if text_len == Some(offset) {
-        // Since the utf16 offset was being incremented each time, by now it is equivalent to the length
-        // but in utf16 characters
+        // Since the utf16 offset was being incremented each time, by now it is
+        // equivalent to the length but in utf16 characters
         return utf16_offset;
     }
 
@@ -47,19 +47,20 @@ pub fn offset_utf8_to_utf16_str(text: &str, offset: usize) -> usize {
 
 /// Convert a utf16 offset into a utf8 offset, if possible  
 /// `char_indices` is an iterator over utf8 offsets and the characters
-/// It is cloneable so that it can be iterated multiple times. Though it should be cheaply cloneable.
+/// It is cloneable so that it can be iterated multiple times. Though it should
+/// be cheaply cloneable.
 pub fn offset_utf16_to_utf8(
     char_indices: impl Iterator<Item = (usize, char)>,
-    offset: usize,
+    offset: usize
 ) -> usize {
     if offset == 0 {
         return 0;
     }
 
-    // We accumulate the utf16 char lens until we find the utf8 offset that matches it
-    // or, we find out that it went into the middle of sometext
-    // We also keep track of the last offset and char in order to calculate the length of the text
-    // if we the index was at the end of the string
+    // We accumulate the utf16 char lens until we find the utf8 offset that matches
+    // it or, we find out that it went into the middle of sometext
+    // We also keep track of the last offset and char in order to calculate the
+    // length of the text if we the index was at the end of the string
     let mut utf16_offset = 0;
     let mut last_ich = None;
     for (utf8_offset, ch) in char_indices {
@@ -68,13 +69,14 @@ pub fn offset_utf16_to_utf8(
         let ch_utf16_len = ch.len_utf16();
 
         match utf16_offset.cmp(&offset) {
-            std::cmp::Ordering::Less => {}
+            std::cmp::Ordering::Less => {},
             // We found the right offset
             std::cmp::Ordering::Equal => {
                 return utf8_offset;
-            }
-            // This implies that the offset was in the middle of a character as we skipped over it
-            std::cmp::Ordering::Greater => return utf8_offset,
+            },
+            // This implies that the offset was in the middle of a character as we
+            // skipped over it
+            std::cmp::Ordering::Greater => return utf8_offset
         }
 
         utf16_offset += ch_utf16_len;
@@ -99,7 +101,7 @@ pub fn offset_utf16_to_utf8_str(text: &str, offset: usize) -> usize {
 mod tests {
     // TODO: more tests with unicode characters
 
-    use crate::encoding::{offset_utf16_to_utf8_str, offset_utf8_to_utf16_str};
+    use crate::encoding::{offset_utf8_to_utf16_str, offset_utf16_to_utf8_str};
 
     #[test]
     fn utf8_to_utf16() {

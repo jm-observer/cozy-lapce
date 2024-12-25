@@ -1,9 +1,9 @@
 use std::mem;
 
 use lapce_xi_rope::{
-    interval::IntervalBounds,
-    tree::{DefaultMetric, Leaf, Node, NodeInfo, TreeBuilder},
     Cursor, Delta, Interval, Metric,
+    interval::IntervalBounds,
+    tree::{DefaultMetric, Leaf, Node, NodeInfo, TreeBuilder}
 };
 
 const MIN_LEAF: usize = 5;
@@ -19,20 +19,20 @@ pub struct LensInfo(usize);
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LensData {
-    len: usize,
-    line_height: usize,
+    len:         usize,
+    line_height: usize
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LensLeaf {
-    len: usize,
-    data: Vec<LensData>,
-    total_height: usize,
+    len:          usize,
+    data:         Vec<LensData>,
+    total_height: usize
 }
 
 pub struct LensIter<'a> {
     cursor: Cursor<'a, LensInfo>,
-    end: usize,
+    end:    usize
 }
 
 impl Lens {
@@ -60,7 +60,7 @@ impl Lens {
     pub fn iter(&self) -> LensIter {
         LensIter {
             cursor: Cursor::new(&self.0, 0),
-            end: self.len(),
+            end:    self.len()
         }
     }
 
@@ -69,7 +69,7 @@ impl Lens {
 
         LensIter {
             cursor: Cursor::new(&self.0, start),
-            end,
+            end
         }
     }
 
@@ -100,7 +100,7 @@ impl Leaf for LensLeaf {
     fn push_maybe_split(
         &mut self,
         other: &LensLeaf,
-        iv: Interval,
+        iv: Interval
     ) -> Option<LensLeaf> {
         let (iv_start, iv_end) = iv.start_end();
         let mut accum = 0;
@@ -115,8 +115,8 @@ impl Leaf for LensLeaf {
             if accum + sec.len <= iv_end {
                 accum += sec.len;
                 self.data.push(LensData {
-                    len: sec.len,
-                    line_height: sec.line_height,
+                    len:         sec.len,
+                    line_height: sec.line_height
                 });
                 added_len += sec.len;
                 added_height += sec.len * sec.line_height;
@@ -126,7 +126,7 @@ impl Leaf for LensLeaf {
             let len = iv_end - (accum + sec.len);
             self.data.push(LensData {
                 len,
-                line_height: sec.line_height,
+                line_height: sec.line_height
             });
             added_len += len;
             added_height += sec.len * sec.line_height;
@@ -145,9 +145,9 @@ impl Leaf for LensLeaf {
             self.len -= new_len;
             self.total_height -= new_height;
             Some(LensLeaf {
-                len: new_len,
-                data: new,
-                total_height: new_height,
+                len:          new_len,
+                data:         new,
+                total_height: new_height
             })
         }
     }
@@ -200,11 +200,7 @@ impl Metric<LensInfo> for LensMetric {
     }
 
     fn prev(_l: &LensLeaf, offset: usize) -> Option<usize> {
-        if offset == 0 {
-            None
-        } else {
-            Some(offset - 1)
-        }
+        if offset == 0 { None } else { Some(offset - 1) }
     }
 
     fn next(l: &LensLeaf, offset: usize) -> Option<usize> {
@@ -258,15 +254,15 @@ impl Metric<LensInfo> for LensBaseMetric {
 }
 
 pub struct LensBuilder {
-    b: TreeBuilder<LensInfo>,
-    leaf: LensLeaf,
+    b:    TreeBuilder<LensInfo>,
+    leaf: LensLeaf
 }
 
 impl Default for LensBuilder {
     fn default() -> LensBuilder {
         LensBuilder {
-            b: TreeBuilder::new(),
-            leaf: LensLeaf::default(),
+            b:    TreeBuilder::new(),
+            leaf: LensLeaf::default()
         }
     }
 }

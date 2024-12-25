@@ -9,7 +9,7 @@ use regex::Regex;
 pub enum SnippetElement {
     Text(String),
     PlaceHolder(usize, Vec<SnippetElement>),
-    Tabstop(usize),
+    Tabstop(usize)
 }
 
 impl Display for SnippetElement {
@@ -24,8 +24,8 @@ impl Display for SnippetElement {
                     fmt::Display::fmt(child_snippet_elm, f)?;
                 }
                 f.write_str("}")
-            }
-            SnippetElement::Tabstop(tab) => write!(f, "${tab}"),
+            },
+            SnippetElement::Tabstop(tab) => write!(f, "${tab}")
         }
     }
 }
@@ -36,8 +36,8 @@ impl SnippetElement {
             SnippetElement::Text(text) => text.len(),
             SnippetElement::PlaceHolder(_, elements) => {
                 elements.iter().map(|e| e.len()).sum()
-            }
-            SnippetElement::Tabstop(_) => 0,
+            },
+            SnippetElement::Tabstop(_) => 0
         }
     }
 
@@ -63,15 +63,15 @@ impl SnippetElement {
                     child_snippet_elm.write_text_to(buf)?;
                 }
                 fmt::Result::Ok(())
-            }
-            SnippetElement::Tabstop(_) => fmt::Result::Ok(()),
+            },
+            SnippetElement::Tabstop(_) => fmt::Result::Ok(())
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Snippet {
-    elements: Vec<SnippetElement>,
+    elements: Vec<SnippetElement>
 }
 
 impl FromStr for Snippet {
@@ -99,7 +99,7 @@ impl Snippet {
         s: &str,
         pos: usize,
         escs: &[char],
-        loose_escs: &[char],
+        loose_escs: &[char]
     ) -> (Vec<SnippetElement>, usize) {
         let mut elements = Vec::new();
         let mut pos = pos;
@@ -129,7 +129,8 @@ impl Snippet {
         // Regex for `$...` pattern, where `...` is some number (for example `$1`)
         static REGEX_FIRST: Lazy<Regex> =
             Lazy::new(|| Regex::new(r"^\$(\d+)").unwrap());
-        // Regex for `${...}` pattern, where `...` is some number (for example `${1}`)
+        // Regex for `${...}` pattern, where `...` is some number (for example
+        // `${1}`)
         static REGEX_SECOND: Lazy<Regex> =
             Lazy::new(|| Regex::new(r"^\$\{(\d+)\}").unwrap());
 
@@ -153,12 +154,13 @@ impl Snippet {
             let matched = matched.as_str();
             // SAFETY:
             // * The start index is guaranteed not to exceed the end index, since we
-            //   compare with the `${...}` pattern, and, therefore, the first two elements
-            //   are always equal to the `${` and the last one is equal to `}`;
-            // * The indices are within the bounds of the original slice and lie on UTF-8
-            //   sequence boundaries, since we take the entire slice, with the exception
-            //   of the first two `${` and last one `}` chars each of which is 1 byte in
-            //   accordance with the UTF-8 standard.
+            //   compare with the `${...}` pattern, and, therefore, the first two
+            //   elements are always equal to the `${` and the last one is equal to
+            //   `}`;
+            // * The indices are within the bounds of the original slice and lie on
+            //   UTF-8 sequence boundaries, since we take the entire slice, with the
+            //   exception of the first two `${` and last one `}` chars each of which
+            //   is 1 byte in accordance with the UTF-8 standard.
             let n = unsafe {
                 matched
                     .get_unchecked(2..matched.len() - 1)
@@ -173,8 +175,8 @@ impl Snippet {
 
     #[inline]
     fn extract_placeholder(s: &str, pos: usize) -> Option<(SnippetElement, usize)> {
-        // Regex for `${num:text}` pattern, where text can be empty (for example `${1:first}`
-        // and `${2:}`)
+        // Regex for `${num:text}` pattern, where text can be empty (for example
+        // `${1:first}` and `${2:}`)
         static REGEX: Lazy<Regex> =
             Lazy::new(|| Regex::new(r"^\$\{(\d+):(.*?)\}").unwrap());
 
@@ -186,11 +188,10 @@ impl Snippet {
         let content = m.as_str();
         if content.is_empty() {
             return Some((
-                SnippetElement::PlaceHolder(
-                    tab,
-                    vec![SnippetElement::Text(String::new())],
-                ),
-                pos + caps.get(0).unwrap().end(),
+                SnippetElement::PlaceHolder(tab, vec![SnippetElement::Text(
+                    String::new()
+                )]),
+                pos + caps.get(0).unwrap().end()
             ));
         }
         let (els, pos) =
@@ -203,7 +204,7 @@ impl Snippet {
         s: &str,
         pos: usize,
         escs: &[char],
-        loose_escs: &[char],
+        loose_escs: &[char]
     ) -> Option<(SnippetElement, usize)> {
         let mut ele = String::new();
         let mut end = pos;
@@ -255,7 +256,7 @@ impl Snippet {
 
     pub fn elements_tabs(
         elements: &[SnippetElement],
-        start: usize,
+        start: usize
     ) -> Vec<(usize, (usize, usize))> {
         let mut tabs = Vec::new();
         let mut pos = start;
@@ -263,14 +264,14 @@ impl Snippet {
             match el {
                 SnippetElement::Text(t) => {
                     pos += t.len();
-                }
+                },
                 SnippetElement::PlaceHolder(tab, els) => {
                     let placeholder_tabs = Self::elements_tabs(els, pos);
                     let end = pos + els.iter().map(|e| e.len()).sum::<usize>();
                     tabs.push((*tab, (pos, end)));
                     tabs.extend_from_slice(&placeholder_tabs);
                     pos = end;
-                }
+                },
                 SnippetElement::Tabstop(tab) => {
                     tabs.push((*tab, (pos, pos)));
                 }
@@ -348,36 +349,21 @@ mod tests {
 
         assert_eq!(
             Snippet {
-                elements: vec![PlaceHolder(
-                    1,
-                    vec![
-                        Text("first ".into()),
-                        Tabstop(6),
-                        PlaceHolder(
-                            2,
-                            vec![
-                                Text("second ".into()),
-                                Tabstop(7),
-                                PlaceHolder(
-                                    3,
-                                    vec![
-                                        Text("third ".into()),
-                                        PlaceHolder(
-                                            4,
-                                            vec![
-                                                Text("fourth ".into()),
-                                                PlaceHolder(
-                                                    5,
-                                                    vec![Text("fifth".into())]
-                                                )
-                                            ]
-                                        )
-                                    ]
-                                )
-                            ]
-                        )
-                    ]
-                )]
+                elements: vec![PlaceHolder(1, vec![
+                    Text("first ".into()),
+                    Tabstop(6),
+                    PlaceHolder(2, vec![
+                        Text("second ".into()),
+                        Tabstop(7),
+                        PlaceHolder(3, vec![
+                            Text("third ".into()),
+                            PlaceHolder(4, vec![
+                                Text("fourth ".into()),
+                                PlaceHolder(5, vec![Text("fifth".into())])
+                            ])
+                        ])
+                    ])
+                ])]
             },
             parsed
         );
@@ -404,10 +390,10 @@ mod tests {
                     Text("$1 start $2".into()),
                     Tabstop(3),
                     Tabstop(4),
-                    PlaceHolder(
-                        5,
-                        vec![Text("some text${6:third} ".into()), Tabstop(7)]
-                    )
+                    PlaceHolder(5, vec![
+                        Text("some text${6:third} ".into()),
+                        Tabstop(7)
+                    ])
                 ]
             },
             parsed
@@ -488,34 +474,19 @@ mod tests {
 
         assert_eq!(
             (
-                PlaceHolder(
-                    1,
-                    vec![
-                        Text("first ".into()),
-                        PlaceHolder(
-                            2,
-                            vec![
-                                Text("second ".into()),
-                                PlaceHolder(
-                                    3,
-                                    vec![
-                                        Text("third ".into()),
-                                        PlaceHolder(
-                                            4,
-                                            vec![
-                                                Text("fourth ".into()),
-                                                PlaceHolder(
-                                                    5,
-                                                    vec![Text("fifth".into())]
-                                                )
-                                            ]
-                                        )
-                                    ]
-                                )
-                            ]
-                        )
-                    ]
-                ),
+                PlaceHolder(1, vec![
+                    Text("first ".into()),
+                    PlaceHolder(2, vec![
+                        Text("second ".into()),
+                        PlaceHolder(3, vec![
+                            Text("third ".into()),
+                            PlaceHolder(4, vec![
+                                Text("fourth ".into()),
+                                PlaceHolder(5, vec![Text("fifth".into())])
+                            ])
+                        ])
+                    ])
+                ]),
                 56
             ),
             Snippet::extract_placeholder(s1, 0).unwrap()
@@ -537,13 +508,10 @@ mod tests {
 
         assert_eq!(
             (
-                PlaceHolder(
-                    4,
-                    vec![
-                        Text("fourth ".into()),
-                        PlaceHolder(5, vec![Text("fifth".into())])
-                    ]
-                ),
+                PlaceHolder(4, vec![
+                    Text("fourth ".into()),
+                    PlaceHolder(5, vec![Text("fifth".into())])
+                ]),
                 54
             ),
             Snippet::extract_placeholder(s1, 32).unwrap()

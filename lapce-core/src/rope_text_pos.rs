@@ -1,7 +1,8 @@
-use crate::encoding::offset_utf8_to_utf16;
 use anyhow::Result;
 use doc::lines::buffer::rope_text::RopeText;
 use lsp_types::Position;
+
+use crate::encoding::offset_utf8_to_utf16;
 
 pub trait RopeTextPosition: RopeText {
     /// Converts a UTF8 offset to a UTF16 LSP position
@@ -14,8 +15,8 @@ pub trait RopeTextPosition: RopeText {
             offset_utf8_to_utf16(self.char_indices_iter(line_offset..), col);
 
         Ok(Position {
-            line: line as u32,
-            character: utf16_col as u32,
+            line:      line as u32,
+            character: utf16_col as u32
         })
     }
 

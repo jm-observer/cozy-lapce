@@ -1,18 +1,16 @@
-use doc::lines::buffer::rope_text::RopeText;
-use doc::lines::RopeTextPosition;
 use std::{borrow::Cow, path::PathBuf, str::FromStr, sync::Arc};
 
-use floem::views::editor::core::movement::Movement;
+use doc::lines::{RopeTextPosition, buffer::rope_text::RopeText};
 use floem::{
     peniko::kurbo::Rect,
     reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::{id::EditorId, text::Document},
+    views::editor::{core::movement::Movement, id::EditorId}
 };
 use lapce_rpc::{plugin::PluginId, proxy::ProxyRpcHandler};
 use log::error;
 use lsp_types::{
     CompletionItem, CompletionResponse, CompletionTextEdit, InsertTextFormat,
-    Position,
+    Position
 };
 use nucleo::Utf32Str;
 
@@ -22,49 +20,52 @@ use crate::{config::LapceConfig, editor::EditorData, snippet::Snippet};
 pub enum CompletionStatus {
     Inactive,
     Started,
-    Done,
+    Done
 }
 
 #[derive(Clone, PartialEq)]
 pub struct ScoredCompletionItem {
-    pub item: CompletionItem,
-    pub plugin_id: PluginId,
-    pub score: u32,
+    pub item:        CompletionItem,
+    pub plugin_id:   PluginId,
+    pub score:       u32,
     pub label_score: u32,
-    pub indices: Vec<usize>,
+    pub indices:     Vec<usize>
 }
 
 #[derive(Clone)]
 pub struct CompletionData {
-    pub status: CompletionStatus,
+    pub status:           CompletionStatus,
     /// The current request id. This is used to discard old requests.
-    pub request_id: usize,
-    /// An input id that is used for keeping track of whether the input has changed.
-    pub input_id: usize,
+    pub request_id:       usize,
+    /// An input id that is used for keeping track of whether the input has
+    /// changed.
+    pub input_id:         usize,
     // TODO: A `PathBuf` has the issue that the proxy may not have the same format.
-    // TODO(minor): It might be nice to not require a path. LSPs cannot operate on scratch buffers
-    // as of now, but they might be allowed in the future.
-    pub path: PathBuf,
-    /// The offset that the completion is/was started at. Used for positioning the completion elem
-    pub offset: usize,
+    // TODO(minor): It might be nice to not require a path. LSPs cannot operate on
+    // scratch buffers as of now, but they might be allowed in the future.
+    pub path:             PathBuf,
+    /// The offset that the completion is/was started at. Used for positioning
+    /// the completion elem
+    pub offset:           usize,
     /// The active completion index in the list of filtered items
-    pub active: RwSignal<usize>,
-    /// The current input that the user has typed which is being sent for consideration by the LSP
-    pub input: String,
+    pub active:           RwSignal<usize>,
+    /// The current input that the user has typed which is being sent for
+    /// consideration by the LSP
+    pub input:            String,
     /// `(Input, CompletionItems)`
-    pub input_items: im::HashMap<String, im::Vector<ScoredCompletionItem>>,
+    pub input_items:      im::HashMap<String, im::Vector<ScoredCompletionItem>>,
     /// The filtered items that are being displayed to the user
-    pub filtered_items: im::Vector<ScoredCompletionItem>,
+    pub filtered_items:   im::Vector<ScoredCompletionItem>,
     /// The size of the completion element.  
     /// This is used for positioning the element.  
-    /// As well, it is needed for some movement commands like page up/down that need to know the
-    /// height to compute how far to move.
-    pub layout_rect: Rect,
+    /// As well, it is needed for some movement commands like page up/down that
+    /// need to know the height to compute how far to move.
+    pub layout_rect:      Rect,
     /// The editor id that was most recently used to trigger a completion.
     pub latest_editor_id: Option<EditorId>,
     /// Matcher for filtering the completion items
-    matcher: RwSignal<nucleo::Matcher>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    matcher:              RwSignal<nucleo::Matcher>,
+    config:               ReadSignal<Arc<LapceConfig>>
 }
 
 impl CompletionData {
@@ -84,7 +85,7 @@ impl CompletionData {
             matcher: cx
                 .create_rw_signal(nucleo::Matcher::new(nucleo::Config::DEFAULT)),
             latest_editor_id: None,
-            config,
+            config
         }
     }
 
@@ -94,7 +95,7 @@ impl CompletionData {
         request_id: usize,
         input: &str,
         resp: &CompletionResponse,
-        plugin_id: PluginId,
+        plugin_id: PluginId
     ) {
         // If we've been canceled or the request id is old, ignore the response.
         if self.status == CompletionStatus::Inactive || self.request_id != request_id
@@ -105,7 +106,7 @@ impl CompletionData {
         let items = match resp {
             CompletionResponse::Array(items) => items,
             // TODO: Possibly handle the 'is_incomplete' field on List.
-            CompletionResponse::List(list) => &list.items,
+            CompletionResponse::List(list) => &list.items
         };
         let items: im::Vector<ScoredCompletionItem> = items
             .iter()
@@ -114,7 +115,7 @@ impl CompletionData {
                 plugin_id,
                 score: 0,
                 label_score: 0,
-                indices: Vec::new(),
+                indices: Vec::new()
             })
             .collect();
         self.input_items.insert(input.to_string(), items);
@@ -128,7 +129,7 @@ impl CompletionData {
         proxy_rpc: &ProxyRpcHandler,
         path: PathBuf,
         input: String,
-        position: Position,
+        position: Position
     ) {
         self.latest_editor_id = Some(editor_id);
         self.input_items.insert(input.clone(), im::Vector::new());
@@ -154,10 +155,11 @@ impl CompletionData {
             return;
         }
         self.input = input;
-        // TODO: If the user types a letter that continues the current active item, we should
-        // try keeping that item active. Possibly give this a setting.
-        // ex: `p` has `print!` and `println!` has options. If you select the second, then type
-        // `r` then it should stay on `println!` even as the overall filtering of the list changes.
+        // TODO: If the user types a letter that continues the current active item,
+        // we should try keeping that item active. Possibly give this a
+        // setting. ex: `p` has `print!` and `println!` has options. If you
+        // select the second, then type `r` then it should stay on `println!`
+        // even as the overall filtering of the list changes.
         self.active.set(0);
         self.filter_items();
     }
@@ -186,7 +188,7 @@ impl CompletionData {
                 let pattern = nucleo::pattern::Pattern::parse(
                     &self.input,
                     nucleo::pattern::CaseMatching::Ignore,
-                    nucleo::pattern::Normalization::Smart,
+                    nucleo::pattern::Normalization::Smart
                 );
                 self.all_items()
                     .iter()
@@ -232,7 +234,8 @@ impl CompletionData {
                     .collect()
             })
             .unwrap();
-        // Sort all the items by their score, then their label score, then their length.
+        // Sort all the items by their score, then their label score, then their
+        // length.
         items.sort_by(|a, b| {
             b.score
                 .cmp(&a.score)
@@ -274,7 +277,7 @@ impl CompletionData {
             active,
             self.filtered_items.len(),
             count,
-            false,
+            false
         );
         self.active.set(new);
     }
@@ -287,7 +290,7 @@ impl CompletionData {
             active,
             self.filtered_items.len(),
             count,
-            false,
+            false
         );
         self.active.set(new);
     }
@@ -297,11 +300,12 @@ impl CompletionData {
         self.filtered_items.get(self.active.get_untracked())
     }
 
-    /// Update the completion lens of the document with the active completion item.  
+    /// Update the completion lens of the document with the active completion
+    /// item.
     pub fn update_document_completion(
         &self,
         editor_data: &EditorData,
-        cursor_offset: usize,
+        cursor_offset: usize
     ) {
         let doc = editor_data.doc();
 
@@ -320,7 +324,7 @@ impl CompletionData {
             doc.rope_text(),
             cursor_offset,
             self,
-            doc.completion_lens().as_deref(),
+            doc.completion_lens().as_deref()
         );
         match completion_lens {
             Some(Some(lens)) => {
@@ -337,9 +341,9 @@ impl CompletionData {
                 };
 
                 doc.set_completion_lens(lens, line, col);
-            }
+            },
             // Unchanged
-            Some(None) => {}
+            Some(None) => {},
             None => {
                 doc.clear_completion_lens();
             }
@@ -349,13 +353,14 @@ impl CompletionData {
 
 /// Get the text of the completion lens for the given completion item.  
 /// Returns `None` if the completion lens should be hidden.
-/// Returns `Some(None)` if the completion lens should be shown, but not changed.
-/// Returns `Some(Some(text))` if the completion lens should be shown and changed to the given text.
+/// Returns `Some(None)` if the completion lens should be shown, but not
+/// changed. Returns `Some(Some(text))` if the completion lens should be shown
+/// and changed to the given text.
 fn completion_lens_text(
     rope_text: impl RopeText,
     cursor_offset: usize,
     completion: &CompletionData,
-    current_completion: Option<&str>,
+    current_completion: Option<&str>
 ) -> Option<Option<String>> {
     let item = &completion.current_item()?.item;
 
@@ -392,10 +397,11 @@ fn completion_lens_text(
 
         match text_format {
             InsertTextFormat::PLAIN_TEXT => {
-                // This is not entirely correct because it assumes that the position is
-                // `{start,end}_offset` when it may not necessarily be.
+                // This is not entirely correct because it assumes that the position
+                // is `{start,end}_offset` when it may not
+                // necessarily be.
                 Cow::Borrowed(&edit.new_text)
-            }
+            },
             InsertTextFormat::SNIPPET => {
                 // Parse the snippet. Bail if it's invalid.
                 let snippet = Snippet::from_str(&edit.new_text).ok()?;
@@ -403,7 +409,7 @@ fn completion_lens_text(
                 let text = snippet.text();
 
                 Cow::Owned(text)
-            }
+            },
             _ => {
                 // We don't know how to support this text format.
                 return None;
@@ -414,8 +420,9 @@ fn completion_lens_text(
         Cow::Borrowed(&item.label)
     };
     // We strip the prefix of the current input from the label.
-    // So that, for example, `p` with a completion of `println` only sets the lens text to `rintln`.
-    // If the text does not include a prefix in the expected position, then we do not display it.
+    // So that, for example, `p` with a completion of `println` only sets the lens
+    // text to `rintln`. If the text does not include a prefix in the expected
+    // position, then we do not display it.
     let item = item.as_ref().strip_prefix(&completion.input)?;
 
     // Get only the first line of text, because Lapce does not currently support
@@ -423,7 +430,8 @@ fn completion_lens_text(
     let item = item.lines().next().unwrap_or(item);
 
     if Some(item) == current_completion {
-        // If the item is the same as the current completion, then we don't display it.
+        // If the item is the same as the current completion, then we don't display
+        // it.
         Some(None)
     } else {
         Some(Some(item.to_string()))

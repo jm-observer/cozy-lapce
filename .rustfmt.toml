@@ -1,4 +1,20 @@
+# https://rust-lang.github.io/rustfmt/?version=v2.0.0-rc.2&search=#ignore
 max_width = 85
-# below requires nightly
-# imports_granularity = "Crate"
-# group_imports = "StdExternalCrate"
+edition = "2024"
+use_field_init_shorthand = true
+use_try_shorthand = true
+match_block_trailing_comma = true
+blank_lines_upper_bound = 1
+unstable_features = true
+enum_discrim_align_threshold = 20
+struct_field_align_threshold = 20
+format_strings = true
+reorder_impl_items = true
+trailing_comma = "Never"
+brace_style = "PreferSameLine"
+style_edition = "2024"
+wrap_comments = true
+# condense_wildcard_suffixes = ture
+# match_arm_leading_pipes = "Never"
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"

@@ -8,23 +8,23 @@ use std::{
     path::{Path, PathBuf},
     process,
     sync::{Arc, RwLock},
-    thread,
+    thread
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use jsonrpc_lite::{Id, Params};
 use lapce_core::directory::Directory;
 use lapce_rpc::{
-    plugin::{PluginId, VoltID, VoltInfo, VoltMetadata},
-    style::LineStyle,
     RpcError,
+    plugin::{PluginId, VoltID, VoltInfo, VoltMetadata},
+    style::LineStyle
 };
 use lapce_xi_rope::{Rope, RopeDelta};
 use lsp_types::{
-    notification::Initialized, request::Initialize, DocumentFilter,
-    InitializeParams, InitializedParams, TextDocumentContentChangeEvent,
-    TextDocumentIdentifier, Url, VersionedTextDocumentIdentifier,
-    WorkDoneProgressParams, WorkspaceFolder,
+    DocumentFilter, InitializeParams, InitializedParams,
+    TextDocumentContentChangeEvent, TextDocumentIdentifier, Url,
+    VersionedTextDocumentIdentifier, WorkDoneProgressParams, WorkspaceFolder,
+    notification::Initialized, request::Initialize
 };
 use parking_lot::Mutex;
 use psp_types::{Notification, Request};
@@ -33,18 +33,18 @@ use wasi_experimental_http_wasmtime::{HttpCtx, HttpState};
 use wasmtime_wasi::WasiCtxBuilder;
 
 use super::{
-    client_capabilities,
+    PluginCatalogRpcHandler, client_capabilities,
     psp::{
-        handle_plugin_server_message, PluginHandlerNotification, PluginHostHandler,
-        PluginServerHandler, PluginServerRpc, ResponseSender, RpcCallback,
+        PluginHandlerNotification, PluginHostHandler, PluginServerHandler,
+        PluginServerRpc, ResponseSender, RpcCallback, handle_plugin_server_message
     },
-    volt_icon, PluginCatalogRpcHandler,
+    volt_icon
 };
 use crate::plugin::psp::PluginServerRpcHandler;
 
 #[derive(Default)]
 pub struct WasiPipe {
-    buffer: VecDeque<u8>,
+    buffer: VecDeque<u8>
 }
 
 impl WasiPipe {
@@ -68,6 +68,7 @@ impl Write for WasiPipe {
         self.buffer.extend(buf);
         Ok(buf.len())
     }
+
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
@@ -77,16 +78,16 @@ impl Seek for WasiPipe {
     fn seek(&mut self, _pos: std::io::SeekFrom) -> std::io::Result<u64> {
         Err(std::io::Error::new(
             std::io::ErrorKind::Other,
-            "can not seek in a pipe",
+            "can not seek in a pipe"
         ))
     }
 }
 
 pub struct Plugin {
     #[allow(dead_code)]
-    id: PluginId,
-    host: PluginHostHandler,
-    configurations: Option<HashMap<String, serde_json::Value>>,
+    id:             PluginId,
+    host:           PluginHostHandler,
+    configurations: Option<HashMap<String, serde_json::Value>>
 }
 
 impl PluginServerHandler for Plugin {
@@ -97,26 +98,26 @@ impl PluginServerHandler for Plugin {
     fn document_supported(
         &mut self,
         language_id: Option<&str>,
-        path: Option<&Path>,
+        path: Option<&Path>
     ) -> bool {
         self.host.document_supported(language_id, path)
     }
 
     fn handle_handler_notification(
         &mut self,
-        notification: PluginHandlerNotification,
+        notification: PluginHandlerNotification
     ) {
         use PluginHandlerNotification::*;
         match notification {
             Initialize(id) => {
                 self.initialize(id);
-            }
+            },
             InitializeResult(result) => {
                 self.host.server_capabilities = result.capabilities;
-            }
+            },
             Shutdown => {
                 self.shutdown();
-            }
+            },
             SpawnedPluginLoaded { plugin_id } => {
                 self.host.handle_spawned_plugin_loaded(plugin_id);
             }
@@ -127,7 +128,7 @@ impl PluginServerHandler for Plugin {
         &mut self,
         method: String,
         params: Params,
-        from: String,
+        from: String
     ) {
         if let Err(err) = self.host.handle_notification(method, params, from) {
             log::error!("{:?}", err);
@@ -139,7 +140,7 @@ impl PluginServerHandler for Plugin {
         id: Id,
         method: String,
         params: Params,
-        resp: ResponseSender,
+        resp: ResponseSender
     ) {
         self.host.handle_request(id, method, params, resp);
     }
@@ -149,13 +150,13 @@ impl PluginServerHandler for Plugin {
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope,
+        text: Rope
     ) {
         self.host.handle_did_save_text_document(
             language_id,
             path,
             text_document,
-            text,
+            text
         );
     }
 
@@ -169,9 +170,9 @@ impl PluginServerHandler for Plugin {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>,
-            )>,
-        >,
+                Option<TextDocumentContentChangeEvent>
+            )>
+        >
     ) {
         self.host.handle_did_change_text_document(
             language_id,
@@ -179,7 +180,7 @@ impl PluginServerHandler for Plugin {
             delta,
             text,
             new_text,
-            change,
+            change
         );
     }
 
@@ -188,7 +189,7 @@ impl PluginServerHandler for Plugin {
         id: u64,
         tokens: lsp_types::SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
     ) {
         self.host.format_semantic_tokens(id, tokens, text, f);
     }
@@ -204,21 +205,21 @@ impl Plugin {
             Initialize::METHOD,
             #[allow(deprecated)]
             InitializeParams {
-                process_id: Some(process::id()),
-                root_path: None,
-                root_uri: root_uri.clone(),
-                capabilities: client_capabilities(),
-                trace: None,
-                client_info: None,
-                locale: None,
-                initialization_options: configurations,
-                workspace_folders: root_uri.map(|uri| {
+                process_id:                Some(process::id()),
+                root_path:                 None,
+                root_uri:                  root_uri.clone(),
+                capabilities:              client_capabilities(),
+                trace:                     None,
+                client_info:               None,
+                locale:                    None,
+                initialization_options:    configurations,
+                workspace_folders:         root_uri.map(|uri| {
                     vec![WorkspaceFolder {
                         name: uri.as_str().to_string(),
-                        uri,
+                        uri
                     }]
                 }),
-                work_done_progress_params: WorkDoneProgressParams::default(),
+                work_done_progress_params: WorkDoneProgressParams::default()
             },
             None,
             None,
@@ -228,21 +229,21 @@ impl Plugin {
                 Ok(value) => {
                     if let Ok(result) = serde_json::from_value(value) {
                         server_rpc.handle_rpc(PluginServerRpc::Handler(
-                            PluginHandlerNotification::InitializeResult(result),
+                            PluginHandlerNotification::InitializeResult(result)
                         ));
                         server_rpc.server_notification(
                             Initialized::METHOD,
                             InitializedParams {},
                             None,
                             None,
-                            false,
+                            false
                         );
                     }
-                }
+                },
                 Err(err) => {
                     log::error!("{:?}", err);
                 }
-            },
+            }
         );
     }
 
@@ -253,7 +254,7 @@ pub fn load_all_volts(
     plugin_rpc: PluginCatalogRpcHandler,
     extra_plugin_paths: &[PathBuf],
     disabled_volts: Vec<VoltID>,
-    id: u64,
+    id: u64
 ) {
     let all_volts = find_all_volts(extra_plugin_paths);
     let volts = all_volts
@@ -274,10 +275,11 @@ pub fn load_all_volts(
 }
 
 /// Find all installed volts.  
-/// `plugin_dev_path` allows launching Lapce with a plugin on your local system for testing
-/// purposes.  
-/// As well, this function skips any volt in the typical plugin directory that match the name
-/// of the dev plugin so as to support developing a plugin you actively use.
+/// `plugin_dev_path` allows launching Lapce with a plugin on your local system
+/// for testing purposes.  
+/// As well, this function skips any volt in the typical plugin directory that
+/// match the name of the dev plugin so as to support developing a plugin you
+/// actively use.
 pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
     let Some(plugin_dir) = Directory::plugins_directory() else {
         return Vec::new();
@@ -331,9 +333,9 @@ pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
     plugins
 }
 
-/// Returns an instance of "VoltMetadata" or an error if there is no file in the path,
-/// the contents of the file cannot be read into a string, or the content read cannot
-/// be converted to an instance of "VoltMetadata".
+/// Returns an instance of "VoltMetadata" or an error if there is no file in the
+/// path, the contents of the file cannot be read into a string, or the content
+/// read cannot be converted to an instance of "VoltMetadata".
 ///
 /// # Examples
 ///
@@ -384,7 +386,8 @@ pub fn load_volt(path: &Path) -> Result<VoltMetadata> {
         Some(path.join(wasm).canonicalize().ok()?.to_str()?.to_string())
     });
     // FIXME: This does `meta.color_themes = Some([])` in case, for example,
-    // it cannot find matching files, but in that case it should do `meta.color_themes = None`
+    // it cannot find matching files, but in that case it should do
+    // `meta.color_themes = None`
     meta.color_themes = meta.color_themes.as_ref().map(|themes| {
         themes
             .iter()
@@ -394,7 +397,8 @@ pub fn load_volt(path: &Path) -> Result<VoltMetadata> {
             .collect()
     });
     // FIXME: This does `meta.icon_themes = Some([])` in case, for example,
-    // it cannot find matching files, but in that case it should do `meta.icon_themes = None`
+    // it cannot find matching files, but in that case it should do
+    // `meta.icon_themes = None`
     meta.icon_themes = meta.icon_themes.as_ref().map(|themes| {
         themes
             .iter()
@@ -410,7 +414,7 @@ pub fn load_volt(path: &Path) -> Result<VoltMetadata> {
 pub fn enable_volt(
     plugin_rpc: PluginCatalogRpcHandler,
     volt: VoltInfo,
-    id: u64,
+    id: u64
 ) -> Result<()> {
     let path = Directory::plugins_directory()
         .ok_or_else(|| anyhow!("can't get plugin directory"))?
@@ -425,20 +429,20 @@ pub fn start_volt(
     configurations: Option<HashMap<String, serde_json::Value>>,
     plugin_rpc: PluginCatalogRpcHandler,
     meta: VoltMetadata,
-    id: u64,
+    id: u64
 ) -> Result<()> {
     let engine = wasmtime::Engine::default();
     let module = wasmtime::Module::from_file(
         &engine,
         meta.wasm
             .as_ref()
-            .ok_or_else(|| anyhow!("no wasm in plugin"))?,
+            .ok_or_else(|| anyhow!("no wasm in plugin"))?
     )?;
     let mut linker = wasmtime::Linker::new(&engine);
     wasmtime_wasi::add_to_linker(&mut linker, |s| s)?;
     HttpState::new()?.add_to_linker(&mut linker, |_| HttpCtx {
-        allowed_hosts: Some(vec!["insecure:allow-all".to_string()]),
-        max_concurrent_requests: Some(100),
+        allowed_hosts:           Some(vec!["insecure:allow-all".to_string()]),
+        max_concurrent_requests: Some(100)
     })?;
 
     let volt_path = meta
@@ -461,8 +465,8 @@ pub fn start_volt(
                 } else {
                     "glibc"
                 }
-            }
-            _ => "glibc",
+            },
+            _ => "glibc"
         }
     };
 
@@ -481,23 +485,23 @@ pub fn start_volt(
             "VOLT_URI",
             Url::from_directory_path(volt_path)
                 .map_err(|_| anyhow!("can't convert folder path to uri"))?
-                .as_ref(),
+                .as_ref()
         )?
         .stdin(Box::new(wasi_common::pipe::ReadPipe::from_shared(
-            stdin.clone(),
+            stdin.clone()
         )))
         .stdout(Box::new(wasi_common::pipe::WritePipe::from_shared(
-            stdout.clone(),
+            stdout.clone()
         )))
         .stderr(Box::new(wasi_common::pipe::WritePipe::from_shared(
-            stderr.clone(),
+            stderr.clone()
         )))
         .preopened_dir(
             wasmtime_wasi::Dir::open_ambient_dir(
                 volt_path,
-                wasmtime_wasi::ambient_authority(),
+                wasmtime_wasi::ambient_authority()
             )?,
-            "/",
+            "/"
         )?
         .build();
     let mut store = wasmtime::Store::new(&engine, wasi);
@@ -582,8 +586,8 @@ pub fn start_volt(
                 .cloned()
                 .map(|s| DocumentFilter {
                     language: Some(s),
-                    pattern: None,
-                    scheme: None,
+                    pattern:  None,
+                    scheme:   None
                 })
                 .chain(
                     meta.activation
@@ -592,16 +596,16 @@ pub fn start_volt(
                         .cloned()
                         .map(|s| DocumentFilter {
                             language: None,
-                            pattern: Some(s),
-                            scheme: None,
-                        }),
+                            pattern:  Some(s),
+                            scheme:   None
+                        })
                 )
                 .collect(),
             plugin_rpc.core_rpc.clone(),
             rpc.clone(),
-            plugin_rpc.clone(),
+            plugin_rpc.clone()
         ),
-        configurations,
+        configurations
     };
     let local_rpc = rpc.clone();
     thread::spawn(move || {

@@ -2,42 +2,42 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
-    },
+        atomic::{AtomicU64, Ordering}
+    }
 };
 
 use crossbeam_channel::{Receiver, Sender};
 use lsp_types::{
     CancelParams, CompletionResponse, LogMessageParams, ProgressParams,
-    PublishDiagnosticsParams, ShowMessageParams, SignatureHelp,
+    PublishDiagnosticsParams, ShowMessageParams, SignatureHelp
 };
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    RequestId, RpcError, RpcMessage,
     dap_types::{
-        self, DapId, RunDebugConfig, Scope, StackFrame, Stopped, ThreadId, Variable,
+        self, DapId, RunDebugConfig, Scope, StackFrame, Stopped, ThreadId, Variable
     },
     file::PathObject,
     plugin::{PluginId, VoltInfo, VoltMetadata},
     proxy::ProxyStatus,
     source_control::DiffInfo,
-    terminal::TermId,
-    RequestId, RpcError, RpcMessage,
+    terminal::TermId
 };
 
 pub enum CoreRpc {
     Request(RequestId, CoreRequest),
     Notification(Box<CoreNotification>), // Box it since clippy complains
-    Shutdown,
+    Shutdown
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FileChanged {
     Change(String),
-    Delete,
+    Delete
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,107 +45,107 @@ pub enum FileChanged {
 #[serde(tag = "method", content = "params")]
 pub enum CoreNotification {
     ProxyStatus {
-        status: ProxyStatus,
+        status: ProxyStatus
     },
     OpenFileChanged {
-        path: PathBuf,
-        content: FileChanged,
+        path:    PathBuf,
+        content: FileChanged
     },
     CompletionResponse {
         request_id: usize,
-        input: String,
-        resp: CompletionResponse,
-        plugin_id: PluginId,
+        input:      String,
+        resp:       CompletionResponse,
+        plugin_id:  PluginId
     },
     SignatureHelpResponse {
         request_id: usize,
-        resp: SignatureHelp,
-        plugin_id: PluginId,
+        resp:       SignatureHelp,
+        plugin_id:  PluginId
     },
     OpenPaths {
-        paths: Vec<PathObject>,
+        paths: Vec<PathObject>
     },
     WorkspaceFileChange,
     PublishDiagnostics {
-        diagnostics: PublishDiagnosticsParams,
+        diagnostics: PublishDiagnosticsParams
     },
     ServerStatus {
-        params: ServerStatusParams,
+        params: ServerStatusParams
     },
     WorkDoneProgress {
-        progress: ProgressParams,
+        progress: ProgressParams
     },
     ShowMessage {
-        title: String,
-        message: ShowMessageParams,
+        title:   String,
+        message: ShowMessageParams
     },
     LogMessage {
         message: LogMessageParams,
-        target: String,
+        target:  String
     },
     LspCancel {
-        params: CancelParams,
+        params: CancelParams
     },
     HomeDir {
-        path: PathBuf,
+        path: PathBuf
     },
     VoltInstalled {
         volt: VoltMetadata,
-        icon: Option<Vec<u8>>,
+        icon: Option<Vec<u8>>
     },
     VoltInstalling {
-        volt: VoltInfo,
-        error: String,
+        volt:  VoltInfo,
+        error: String
     },
     VoltRemoving {
-        volt: VoltMetadata,
-        error: String,
+        volt:  VoltMetadata,
+        error: String
     },
     VoltRemoved {
-        volt: VoltInfo,
-        only_installing: bool,
+        volt:            VoltInfo,
+        only_installing: bool
     },
     DiffInfo {
-        diff: DiffInfo,
+        diff: DiffInfo
     },
     UpdateTerminal {
         term_id: TermId,
-        content: Vec<u8>,
+        content: Vec<u8>
     },
     TerminalLaunchFailed {
         term_id: TermId,
-        error: String,
+        error:   String
     },
     TerminalProcessId {
-        term_id: TermId,
-        process_id: Option<u32>,
+        term_id:    TermId,
+        process_id: Option<u32>
     },
     TerminalProcessStopped {
-        term_id: TermId,
-        exit_code: Option<i32>,
+        term_id:   TermId,
+        exit_code: Option<i32>
     },
     DapRunInTerminal {
-        config: RunDebugConfig,
+        config: RunDebugConfig
     },
     Log {
-        level: LogLevel,
+        level:   LogLevel,
         message: String,
-        target: Option<String>,
+        target:  Option<String>
     },
     DapStopped {
-        dap_id: DapId,
-        stopped: Stopped,
+        dap_id:       DapId,
+        stopped:      Stopped,
         stack_frames: HashMap<ThreadId, Vec<StackFrame>>,
-        variables: Vec<(Scope, Vec<Variable>)>,
+        variables:    Vec<(Scope, Vec<Variable>)>
     },
     DapContinued {
-        dap_id: DapId,
+        dap_id: DapId
     },
     DapBreakpointsResp {
-        dap_id: DapId,
-        path: PathBuf,
-        breakpoints: Vec<dap_types::Breakpoint>,
-    },
+        dap_id:      DapId,
+        path:        PathBuf,
+        breakpoints: Vec<dap_types::Breakpoint>
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,11 +165,11 @@ pub trait CoreHandler {
 
 #[derive(Clone)]
 pub struct CoreRpcHandler {
-    tx: Sender<CoreRpc>,
-    rx: Receiver<CoreRpc>,
-    id: Arc<AtomicU64>,
+    tx:      Sender<CoreRpc>,
+    rx:      Receiver<CoreRpc>,
+    id:      Arc<AtomicU64>,
     #[allow(clippy::type_complexity)]
-    pending: Arc<Mutex<HashMap<u64, Sender<Result<CoreResponse, RpcError>>>>>,
+    pending: Arc<Mutex<HashMap<u64, Sender<Result<CoreResponse, RpcError>>>>>
 }
 
 impl CoreRpcHandler {
@@ -179,22 +179,21 @@ impl CoreRpcHandler {
             tx,
             rx,
             id: Arc::new(AtomicU64::new(0)),
-            pending: Arc::new(Mutex::new(HashMap::new())),
+            pending: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
     pub fn mainloop<H>(&self, handler: &mut H)
     where
-        H: CoreHandler,
-    {
+        H: CoreHandler {
         for msg in &self.rx {
             match msg {
                 CoreRpc::Request(id, rpc) => {
                     handler.handle_request(id, rpc);
-                }
+                },
                 CoreRpc::Notification(rpc) => {
                     handler.handle_notification(*rpc);
-                }
+                },
                 CoreRpc::Shutdown => {
                     return;
                 }
@@ -209,7 +208,7 @@ impl CoreRpcHandler {
     pub fn handle_response(
         &self,
         id: RequestId,
-        response: Result<CoreResponse, RpcError>,
+        response: Result<CoreResponse, RpcError>
     ) {
         let tx = { self.pending.lock().remove(&id) };
         if let Some(tx) = tx {
@@ -231,8 +230,8 @@ impl CoreRpcHandler {
         }
         rx.recv().unwrap_or_else(|_| {
             Err(RpcError {
-                code: 0,
-                message: "io error".to_string(),
+                code:    0,
+                message: "io error".to_string()
             })
         })
     }
@@ -267,13 +266,13 @@ impl CoreRpcHandler {
         request_id: usize,
         input: String,
         resp: CompletionResponse,
-        plugin_id: PluginId,
+        plugin_id: PluginId
     ) {
         self.notification(CoreNotification::CompletionResponse {
             request_id,
             input,
             resp,
-            plugin_id,
+            plugin_id
         });
     }
 
@@ -281,12 +280,12 @@ impl CoreRpcHandler {
         &self,
         request_id: usize,
         resp: SignatureHelp,
-        plugin_id: PluginId,
+        plugin_id: PluginId
     ) {
         self.notification(CoreNotification::SignatureHelpResponse {
             request_id,
             resp,
-            plugin_id,
+            plugin_id
         });
     }
 
@@ -305,7 +304,7 @@ impl CoreRpcHandler {
     pub fn volt_removed(&self, volt: VoltInfo, only_installing: bool) {
         self.notification(CoreNotification::VoltRemoved {
             volt,
-            only_installing,
+            only_installing
         });
     }
 
@@ -317,7 +316,7 @@ impl CoreRpcHandler {
         self.notification(CoreNotification::Log {
             level,
             message,
-            target,
+            target
         });
     }
 
@@ -348,14 +347,14 @@ impl CoreRpcHandler {
     pub fn terminal_process_id(&self, term_id: TermId, process_id: Option<u32>) {
         self.notification(CoreNotification::TerminalProcessId {
             term_id,
-            process_id,
+            process_id
         });
     }
 
     pub fn terminal_process_stopped(&self, term_id: TermId, exit_code: Option<i32>) {
         self.notification(CoreNotification::TerminalProcessStopped {
             term_id,
-            exit_code,
+            exit_code
         });
     }
 
@@ -372,13 +371,13 @@ impl CoreRpcHandler {
         dap_id: DapId,
         stopped: Stopped,
         stack_frames: HashMap<ThreadId, Vec<StackFrame>>,
-        variables: Vec<(Scope, Vec<Variable>)>,
+        variables: Vec<(Scope, Vec<Variable>)>
     ) {
         self.notification(CoreNotification::DapStopped {
             dap_id,
             stopped,
             stack_frames,
-            variables,
+            variables
         });
     }
 
@@ -390,12 +389,12 @@ impl CoreRpcHandler {
         &self,
         dap_id: DapId,
         path: PathBuf,
-        breakpoints: Vec<dap_types::Breakpoint>,
+        breakpoints: Vec<dap_types::Breakpoint>
     ) {
         self.notification(CoreNotification::DapBreakpointsResp {
             dap_id,
             path,
-            breakpoints,
+            breakpoints
         });
     }
 
@@ -412,18 +411,18 @@ impl Default for CoreRpcHandler {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LogLevel {
-    Info = 0,
-    Warn = 1,
+    Info  = 0,
+    Warn  = 1,
     Error = 2,
     Debug = 3,
-    Trace = 4,
+    Trace = 4
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerStatusParams {
-    health: String,
-    quiescent: bool,
-    pub message: Option<String>,
+    health:      String,
+    quiescent:   bool,
+    pub message: Option<String>
 }
 
 impl ServerStatusParams {

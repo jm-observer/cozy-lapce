@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    path::PathBuf,
+    path::PathBuf
 };
 
 use floem::peniko::Color;
@@ -14,7 +14,7 @@ pub enum ThemeColorPreference {
     Light,
     Dark,
     HighContrastDark,
-    HighContrastLight,
+    HighContrastLight
 }
 
 /// Holds all the resolved theme variables
@@ -31,27 +31,29 @@ pub const THEME_RECURSION_LIMIT: usize = 6;
 #[derive(Debug, Clone, Default)]
 pub struct ThemeColor {
     pub color_preference: ThemeColorPreference,
-    pub base: ThemeBaseColor,
-    pub syntax: HashMap<String, Color>,
-    pub ui: HashMap<String, Color>,
+    pub base:             ThemeBaseColor,
+    pub syntax:           HashMap<String, Color>,
+    pub ui:               HashMap<String, Color>
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct ThemeBaseConfig(pub BTreeMap<String, String>);
 
 impl ThemeBaseConfig {
-    /// Resolve the variables in this theme base config into the actual colors.  
+    /// Resolve the variables in this theme base config into the actual colors.
     /// The basic idea is just: `"field`: some value` does:
-    /// - If the value does not start with `$`, then it is a color and we return it
+    /// - If the value does not start with `$`, then it is a color and we return
+    ///   it
     /// - If the value starts with `$` then it is a variable
     ///   - Look it up in the current theme
     ///   - If not found, look it up in the default theme
     ///   - If not found, return `Color::HOT_PINK` as a fallback
     ///
-    /// Note that this applies even if the default theme colors have a variable.  
-    /// This allows the default theme to have, for example, a `$uibg` variable that the current
-    /// them can override so that if there's ever a new ui element using that variable, the theme
-    /// does not have to be updated.
+    /// Note that this applies even if the default theme colors have a variable.
+    /// This allows the default theme to have, for example, a `$uibg`
+    /// variable that the current them can override so that if there's ever
+    /// a new ui element using that variable, the theme does not have to be
+    /// updated.
     pub fn resolve(&self, default: Option<&ThemeBaseConfig>) -> ThemeBaseColor {
         let default = default.cloned().unwrap_or_default();
 
@@ -61,23 +63,25 @@ impl ThemeBaseConfig {
         for (key, value) in self.0.iter() {
             match self.resolve_variable(&default, key, value, 0) {
                 Ok(Some(color)) => {
-                    let color = Color::parse(color)
-                        .unwrap_or_else(|| {
-                            log::warn!(
-                                "Failed to parse color theme variable for ({key}: {value})"
-                            );
-                            Color::HOT_PINK
-                        });
+                    let color = Color::parse(color).unwrap_or_else(|| {
+                        log::warn!(
+                            "Failed to parse color theme variable for ({key}: \
+                             {value})"
+                        );
+                        Color::HOT_PINK
+                    });
                     base.0.insert(key.to_string(), color);
-                }
+                },
                 Ok(None) => {
                     log::warn!(
-                        "Failed to resolve color theme variable for ({key}: {value})"
+                        "Failed to resolve color theme variable for ({key}: \
+                         {value})"
                     );
-                }
+                },
                 Err(err) => {
                     log::error!(
-                        "Failed to resolve color theme variable ({key}: {value}): {err}"
+                        "Failed to resolve color theme variable ({key}: {value}): \
+                         {err}"
                     );
                 }
             }
@@ -91,7 +95,7 @@ impl ThemeBaseConfig {
         defaults: &'a ThemeBaseConfig,
         key: &str,
         value: &'a str,
-        i: usize,
+        i: usize
     ) -> Result<Option<&'a str>, LoadThemeError> {
         let Some(value) = value.strip_prefix('$') else {
             return Ok(Some(value));
@@ -99,7 +103,7 @@ impl ThemeBaseConfig {
 
         if i > THEME_RECURSION_LIMIT {
             return Err(LoadThemeError::RecursionLimitReached {
-                variable_name: key.to_string(),
+                variable_name: key.to_string()
             });
         }
 
@@ -107,14 +111,14 @@ impl ThemeBaseConfig {
             self.get(value)
                 .or_else(|| defaults.get(value))
                 .ok_or_else(|| LoadThemeError::VariableNotFound {
-                    variable_name: key.to_string(),
+                    variable_name: key.to_string()
                 })?;
 
         self.resolve_variable(defaults, value, target, i + 1)
     }
 
-    // Note: this returns an `&String` just to make it consistent with hashmap lookups that are
-    // also used via ui/syntax
+    // Note: this returns an `&String` just to make it consistent with hashmap
+    // lookups that are also used via ui/syntax
     pub fn get(&self, name: &str) -> Option<&String> {
         self.0.get(name)
     }
@@ -128,19 +132,19 @@ impl ThemeBaseConfig {
 #[serde(rename_all = "kebab-case", default)]
 pub struct ColorThemeConfig {
     #[serde(skip)]
-    pub path: PathBuf,
-    pub name: String,
+    pub path:          PathBuf,
+    pub name:          String,
     pub high_contrast: Option<bool>,
-    pub base: ThemeBaseConfig,
-    pub syntax: BTreeMap<String, String>,
-    pub ui: BTreeMap<String, String>,
+    pub base:          ThemeBaseConfig,
+    pub syntax:        BTreeMap<String, String>,
+    pub ui:            BTreeMap<String, String>
 }
 
 impl ColorThemeConfig {
     fn resolve_color(
         colors: &BTreeMap<String, String>,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>,
+        default: Option<&HashMap<String, Color>>
     ) -> HashMap<String, Color> {
         colors
             .iter()
@@ -165,7 +169,7 @@ impl ColorThemeConfig {
     pub(super) fn resolve_ui_color(
         &self,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>,
+        default: Option<&HashMap<String, Color>>
     ) -> HashMap<String, Color> {
         Self::resolve_color(&self.ui, base, default)
     }
@@ -173,7 +177,7 @@ impl ColorThemeConfig {
     pub(super) fn resolve_syntax_color(
         &self,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>,
+        default: Option<&HashMap<String, Color>>
     ) -> HashMap<String, Color> {
         Self::resolve_color(&self.syntax, base, default)
     }
@@ -215,7 +219,7 @@ color-preference = "dark"
         let test_theme_cfg = Config::builder()
             .add_source(config::File::from_str(
                 test_theme_str,
-                config::FileFormat::Toml,
+                config::FileFormat::Toml
             ))
             .build()
             .unwrap();
@@ -242,7 +246,7 @@ color-preference = "dark"
             Color::rgb8(0xE5, 0xC0, 0x7B),
             "Failed to get from fallback dark theme"
         ); // $yellow
-           // test that our custom variable worked
+        // test that our custom variable worked
         assert_eq!(
             lapce_config.color("editor.background"),
             Color::rgb8(0xFF, 0x00, 0xFF),

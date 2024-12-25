@@ -20,11 +20,11 @@ impl TermId {
 
 #[derive(Eq, PartialEq, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct TerminalProfile {
-    pub name: String,
-    pub command: Option<String>,
-    pub arguments: Option<Vec<String>>,
-    pub workdir: Option<url::Url>,
-    pub environment: Option<HashMap<String, String>>,
+    pub name:        String,
+    pub command:     Option<String>,
+    pub arguments:   Option<Vec<String>>,
+    pub workdir:     Option<url::Url>,
+    pub environment: Option<HashMap<String, String>>
 }
 
 impl TerminalProfile {}

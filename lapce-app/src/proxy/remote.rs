@@ -1,19 +1,20 @@
 use std::{
     io::{BufReader, Write},
     path::Path,
-    process::{Command, Stdio},
+    process::{Command, Stdio}
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use flate2::read::GzDecoder;
 use lapce_core::{
     directory::Directory,
-    meta::{self, ReleaseType},
+    meta::{self, ReleaseType}
 };
 use lapce_rpc::{
+    RpcMessage,
     core::CoreRpcHandler,
     proxy::{ProxyRpc, ProxyRpcHandler},
-    stdio_transport, RpcMessage,
+    stdio_transport
 };
 use log::{debug, error};
 use thiserror::Error;
@@ -32,7 +33,7 @@ enum HostPlatform {
     #[strum(serialize = "darwin")]
     Darwin,
     #[strum(serialize = "bsd")]
-    Bsd,
+    Bsd
 }
 
 /// serialise via strum to arch name that is used
@@ -50,7 +51,7 @@ enum HostArchitecture {
     #[strum(serialize = "armv7")]
     ARM32v7,
     #[strum(serialize = "armhf")]
-    ARM32v6,
+    ARM32v6
 }
 
 pub trait Remote: Sized {
@@ -75,7 +76,7 @@ pub trait Remote: Sized {
 pub fn start_remote(
     remote: impl Remote,
     core_rpc: CoreRpcHandler,
-    proxy_rpc: ProxyRpcHandler,
+    proxy_rpc: ProxyRpcHandler
 ) -> Result<()> {
     // Note about platforms:
     // Windows can use either cmd.exe, powershell.exe or pwsh.exe as
@@ -113,7 +114,7 @@ pub fn start_remote(
 
     let remote_proxy_file = match platform {
         Windows => format!("{remote_proxy_path}\\lapce.exe"),
-        _ => format!("{remote_proxy_path}/lapce"),
+        _ => format!("{remote_proxy_path}/lapce")
     };
 
     if !remote
@@ -135,7 +136,7 @@ pub fn start_remote(
             &platform,
             &architecture,
             &remote_proxy_path,
-            &remote_proxy_file,
+            &remote_proxy_file
         )?;
     };
 
@@ -157,7 +158,7 @@ pub fn start_remote(
             .arg("--proxy")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .spawn()?,
+            .spawn()?
     };
     let stdin = child
         .stdin
@@ -167,7 +168,7 @@ pub fn start_remote(
         child
             .stdout
             .take()
-            .ok_or_else(|| anyhow!("can't find stdout"))?,
+            .ok_or_else(|| anyhow!("can't find stdout"))?
     );
     debug!("process id: {}", child.id());
 
@@ -188,14 +189,14 @@ pub fn start_remote(
                         {
                             log::error!("{:?}", err);
                         }
-                    }
+                    },
                     ProxyRpc::Notification(rpc) => {
                         if let Err(err) =
                             local_writer_tx.send(RpcMessage::Notification(rpc))
                         {
                             log::error!("{:?}", err);
                         }
-                    }
+                    },
                     ProxyRpc::Shutdown => {
                         if let Err(err) = child.kill() {
                             log::error!("{:?}", err);
@@ -225,7 +226,7 @@ pub fn start_remote(
                                 {
                                     log::error!("{:?}", err);
                                 }
-                            }
+                            },
                             Err(e) => {
                                 if let Err(err) =
                                     writer_tx.send(RpcMessage::Error(id, e))
@@ -234,13 +235,13 @@ pub fn start_remote(
                                 }
                             }
                         });
-                    }
+                    },
                     RpcMessage::Notification(n) => {
                         core_rpc.notification(n);
-                    }
+                    },
                     RpcMessage::Response(id, resp) => {
                         proxy_rpc.handle_response(id, Ok(resp));
-                    }
+                    },
                     RpcMessage::Error(id, err) => {
                         proxy_rpc.handle_response(id, Err(err));
                     }
@@ -257,9 +258,9 @@ fn download_remote(
     platform: &HostPlatform,
     architecture: &HostArchitecture,
     remote_proxy_path: &str,
-    remote_proxy_file: &str,
+    remote_proxy_file: &str
 ) -> Result<()> {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
 
     let script_install = match platform {
         HostPlatform::Windows => {
@@ -285,21 +286,21 @@ fn download_remote(
                     "-version",
                     meta::VERSION,
                     "-directory",
-                    remote_proxy_path,
+                    remote_proxy_path
                 ])
                 .output()?;
             debug!("{}", String::from_utf8_lossy(&cmd.stderr));
             debug!("{}", String::from_utf8_lossy(&cmd.stdout));
 
             cmd.status
-        }
+        },
         _ => {
             let proxy_script = general_purpose::STANDARD.encode(UNIX_PROXY_SCRIPT);
 
             let version = match meta::RELEASE {
                 ReleaseType::Debug => "nightly".to_string(),
                 ReleaseType::Nightly => "nightly".to_string(),
-                ReleaseType::Stable => format!("v{}", meta::VERSION),
+                ReleaseType::Stable => format!("v{}", meta::VERSION)
             };
             let cmd = remote
                 .command_builder()
@@ -313,7 +314,7 @@ fn download_remote(
                     "sh",
                     "/dev/stdin",
                     &version,
-                    remote_proxy_path,
+                    remote_proxy_path
                 ])
                 .output()?;
 
@@ -335,7 +336,7 @@ fn download_remote(
                 .arg("test")
                 .arg("-e")
                 .arg(remote_proxy_file)
-                .status()?,
+                .status()?
         };
         if !cmd.success() {
             let proxy_filename = format!("lapce-proxy-{platform}-{architecture}");
@@ -350,7 +351,7 @@ fn download_remote(
             }
             let proxy_version = match meta::RELEASE {
                 meta::ReleaseType::Stable => meta::VERSION,
-                _ => "nightly",
+                _ => "nightly"
             };
             let url = format!("https://github.com/lapce/lapce/releases/download/{proxy_version}/{proxy_filename}.gz");
             debug!("proxy download URI: {url}");
@@ -377,7 +378,7 @@ fn download_remote(
                     .arg("mkdir")
                     .arg("-p")
                     .arg(remote_proxy_path)
-                    .status()?,
+                    .status()?
             };
 
             remote.upload_file(&local_proxy_file, remote_proxy_file)?;
@@ -396,7 +397,7 @@ fn download_remote(
 }
 
 fn host_specification(
-    remote: &impl Remote,
+    remote: &impl Remote
 ) -> Result<(HostPlatform, HostArchitecture)> {
     use HostArchitecture::*;
     use HostPlatform::*;
@@ -428,9 +429,13 @@ fn host_specification(
                                 None => {
                                     // PowerShell fallback
                                     let cmd = remote
-                                            .command_builder()
-                                            .args(["echo", "\"${env:OS} ${env:PROCESSOR_ARCHITECTURE}\""])
-                                            .output();
+                                        .command_builder()
+                                        .args([
+                                            "echo",
+                                            "\"${env:OS} \
+                                             ${env:PROCESSOR_ARCHITECTURE}\""
+                                        ])
+                                        .output();
                                     match cmd {
                                         Ok(cmd) => {
                                             let stdout =
@@ -441,10 +446,10 @@ fn host_specification(
                                             match stdout.split_once(' ') {
                                                 Some((os, arch)) => {
                                                     (parse_os(os), parse_arch(arch))
-                                                }
-                                                None => (UnknownOS, UnknownArch),
+                                                },
+                                                None => (UnknownOS, UnknownArch)
                                             }
-                                        }
+                                        },
                                         Err(e) => {
                                             error!("{e}");
                                             (UnknownOS, UnknownArch)
@@ -452,22 +457,22 @@ fn host_specification(
                                     }
                                 }
                             }
-                        }
+                        },
                         Err(e) => {
                             error!("{e}");
                             (UnknownOS, UnknownArch)
                         }
                     }
-                }
+                },
                 v => {
                     if let Some((os, arch)) = v.split_once(' ') {
                         (parse_os(os), parse_arch(arch))
                     } else {
                         (UnknownOS, UnknownArch)
                     }
-                }
+                },
             }
-        }
+        },
         Err(e) => {
             error!("{e}");
             (UnknownOS, UnknownArch)
@@ -485,7 +490,7 @@ fn parse_arch(arch: &str) -> HostArchitecture {
         "arm" | "armhf" | "armv6" => ARM32v6,
         "armv7" | "armv7l" => ARM32v7,
         "arm64" | "armv8" | "aarch64" => ARM64,
-        _ => UnknownArch,
+        _ => UnknownArch
     }
 }
 
@@ -496,6 +501,6 @@ fn parse_os(os: &str) -> HostPlatform {
         "darwin" => Darwin,
         "windows_nt" => Windows,
         v if v.ends_with("bsd") => Bsd,
-        _ => UnknownOS,
+        _ => UnknownOS
     }
 }

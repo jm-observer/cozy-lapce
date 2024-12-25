@@ -5,25 +5,25 @@ use std::{
     fs::File,
     io::{Read, Write},
     path::{Path, PathBuf},
-    time::SystemTime,
+    time::SystemTime
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use doc::lines::buffer::rope_text::CharIndicesJoin;
 use lapce_core::encoding::offset_utf8_to_utf16;
 use lapce_rpc::buffer::BufferId;
-use lapce_xi_rope::{interval::IntervalBounds, rope::Rope, RopeDelta};
+use lapce_xi_rope::{RopeDelta, interval::IntervalBounds, rope::Rope};
 use lsp_types::*;
 
 #[derive(Clone)]
 pub struct Buffer {
     pub language_id: &'static str,
-    pub read_only: bool,
-    pub id: BufferId,
-    pub rope: Rope,
-    pub path: PathBuf,
-    pub rev: u64,
-    pub mod_time: Option<SystemTime>,
+    pub read_only:   bool,
+    pub id:          BufferId,
+    pub rope:        Rope,
+    pub path:        PathBuf,
+    pub rev:         u64,
+    pub mod_time:    Option<SystemTime>
 }
 
 impl Buffer {
@@ -34,12 +34,12 @@ impl Buffer {
                 Some(err) => match err.kind() {
                     std::io::ErrorKind::PermissionDenied => {
                         ("Permission Denied".to_string(), true)
-                    }
+                    },
                     std::io::ErrorKind::NotFound => ("".to_string(), false),
-                    _ => ("Not Supported".to_string(), true),
+                    _ => ("Not Supported".to_string(), true)
                 },
-                None => ("Not Supported".to_string(), true),
-            },
+                None => ("Not Supported".to_string(), true)
+            }
         };
         let rope = Rope::from(s);
         let rev = u64::from(!rope.is_empty());
@@ -52,7 +52,7 @@ impl Buffer {
             path,
             language_id,
             rev,
-            mod_time,
+            mod_time
         }
     }
 
@@ -70,7 +70,7 @@ impl Buffer {
                 let mut ext = ext.to_os_string();
                 ext.push(".bak");
                 ext
-            },
+            }
         );
         let path = if self.path.is_symlink() {
             self.path.canonicalize()?
@@ -110,7 +110,7 @@ impl Buffer {
     pub fn update(
         &mut self,
         delta: &RopeDelta,
-        rev: u64,
+        rev: u64
     ) -> Result<Option<TextDocumentContentChangeEvent>> {
         if self.rev + 1 != rev {
             return Ok(None);
@@ -120,9 +120,9 @@ impl Buffer {
         self.rope = delta.apply(&self.rope);
         Ok(Some(content_change.unwrap_or_else(|| {
             TextDocumentContentChangeEvent {
-                range: None,
+                range:        None,
                 range_length: None,
-                text: self.get_document(),
+                text:         self.get_document()
             }
         })))
     }
@@ -154,8 +154,8 @@ impl Buffer {
             offset_utf8_to_utf16(self.char_indices_iter(line_offset..), col);
 
         Ok(Position {
-            line: line as u32,
-            character: utf16_col as u32,
+            line:      line as u32,
+            character: utf16_col as u32
         })
     }
 
@@ -165,15 +165,16 @@ impl Buffer {
 
     pub fn line_to_cow(&self, line: usize) -> Result<Cow<str>> {
         Ok(self.rope.slice_to_cow(
-            self.offset_of_line(line)?..self.offset_of_line(line + 1)?,
+            self.offset_of_line(line)?..self.offset_of_line(line + 1)?
         ))
     }
 
     /// Iterate over (utf8_offset, char) values in the given range  
-    /// This uses `iter_chunks` and so does not allocate, compared to `slice_to_cow` which can
+    /// This uses `iter_chunks` and so does not allocate, compared to
+    /// `slice_to_cow` which can
     pub fn char_indices_iter<T: IntervalBounds>(
         &self,
-        range: T,
+        range: T
     ) -> impl Iterator<Item = (usize, char)> + '_ {
         CharIndicesJoin::new(self.rope.iter_chunks(range).map(str::char_indices))
     }
@@ -221,7 +222,7 @@ pub fn language_id_from_path(path: &Path) -> Option<&'static str> {
                     "c" | "h" => "c",
                     "cpp" | "hpp" | "cxx" | "hxx" | "c++" | "h++" | "cc" | "hh" => {
                         "cpp"
-                    }
+                    },
                     "cs" | "csx" => "csharp",
                     "css" => "css",
                     "d" | "di" | "dlang" => "dlang",
@@ -278,10 +279,10 @@ pub fn language_id_from_path(path: &Path) -> Option<&'static str> {
                     "yml" | "yaml" => "yaml",
                     "zig" => "zig",
                     "vue" => "vue",
-                    _ => return None,
-                },
+                    _ => return None
+                }
             }
-        }
+        },
         // Handle paths without extension
         #[allow(clippy::match_single_binding)]
         None => match path.file_name()?.to_str()? {
@@ -289,20 +290,21 @@ pub fn language_id_from_path(path: &Path) -> Option<&'static str> {
             filename => match filename.to_lowercase().as_str() {
                 "dockerfile" => "dockerfile",
                 "makefile" | "gnumakefile" => "makefile",
-                _ => return None,
-            },
-        },
+                _ => return None
+            }
+        }
     })
 }
 
 fn get_document_content_changes(
     delta: &RopeDelta,
-    buffer: &Buffer,
+    buffer: &Buffer
 ) -> Result<Option<TextDocumentContentChangeEvent>> {
     let (interval, _) = delta.summary();
     let (start, end) = interval.start_end();
 
-    // TODO: Handle more trivial cases like typing when there's a selection or transpose
+    // TODO: Handle more trivial cases like typing when there's a selection or
+    // transpose
     Ok(if let Some(node) = delta.as_simple_insert() {
         let (start, end) = interval.start_end();
         let start = buffer.offset_to_position(start)?;
@@ -310,9 +312,9 @@ fn get_document_content_changes(
         let end = buffer.offset_to_position(end)?;
 
         Some(TextDocumentContentChangeEvent {
-            range: Some(Range { start, end }),
+            range:        Some(Range { start, end }),
             range_length: None,
-            text: String::from(node),
+            text:         String::from(node)
         })
     }
     // Or a simple delete
@@ -322,12 +324,12 @@ fn get_document_content_changes(
         let start = buffer.offset_to_position(start)?;
 
         Some(TextDocumentContentChangeEvent {
-            range: Some(Range {
+            range:        Some(Range {
                 start,
-                end: end_position,
+                end: end_position
             }),
             range_length: None,
-            text: String::new(),
+            text:         String::new()
         })
     } else {
         None

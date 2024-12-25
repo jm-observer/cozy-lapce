@@ -1,7 +1,4 @@
-use lapce_core::directory::Directory;
-use log::{error, trace};
-
-use crate::log::*;
+use log::error;
 
 pub(super) fn panic_hook() {
     std::panic::set_hook(Box::new(move |info| {
@@ -25,7 +22,7 @@ pub(super) fn panic_hook() {
                     loc.file(), loc.line(), loc.column(),
                     backtrace,
                 );
-            }
+            },
             None => {
                 error!(
                     target: "lapce_app::panic_hook",
@@ -47,7 +44,7 @@ pub(super) fn error_modal(title: &str, msg: &str) -> i32 {
     use std::{ffi::OsStr, iter::once, mem, os::windows::prelude::OsStrExt};
 
     use windows::Win32::UI::WindowsAndMessaging::{
-        MessageBoxW, MB_ICONERROR, MB_SYSTEMMODAL,
+        MB_ICONERROR, MB_SYSTEMMODAL, MessageBoxW
     };
 
     let result: i32;
@@ -65,7 +62,7 @@ pub(super) fn error_modal(title: &str, msg: &str) -> i32 {
             mem::zeroed(),
             msg.as_ptr(),
             title.as_ptr(),
-            MB_ICONERROR | MB_SYSTEMMODAL,
+            MB_ICONERROR | MB_SYSTEMMODAL
         );
     }
 

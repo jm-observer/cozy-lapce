@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct DiffInfo {
-    pub head: String,
+    pub head:     String,
     pub branches: Vec<String>,
-    pub tags: Vec<String>,
-    pub diffs: Vec<FileDiff>,
+    pub tags:     Vec<String>,
+    pub diffs:    Vec<FileDiff>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -15,7 +15,7 @@ pub enum FileDiff {
     Modified(PathBuf),
     Added(PathBuf),
     Deleted(PathBuf),
-    Renamed(PathBuf, PathBuf),
+    Renamed(PathBuf, PathBuf)
 }
 
 impl FileDiff {
@@ -24,7 +24,7 @@ impl FileDiff {
             FileDiff::Modified(p)
             | FileDiff::Added(p)
             | FileDiff::Deleted(p)
-            | FileDiff::Renamed(_, p) => p,
+            | FileDiff::Renamed(_, p) => p
         }
     }
 
@@ -33,7 +33,7 @@ impl FileDiff {
             FileDiff::Modified(_) => FileDiffKind::Modified,
             FileDiff::Added(_) => FileDiffKind::Added,
             FileDiff::Deleted(_) => FileDiffKind::Deleted,
-            FileDiff::Renamed(_, _) => FileDiffKind::Renamed,
+            FileDiff::Renamed(_, _) => FileDiffKind::Renamed
         }
     }
 }
@@ -43,5 +43,5 @@ pub enum FileDiffKind {
     Modified,
     Added,
     Deleted,
-    Renamed,
+    Renamed
 }

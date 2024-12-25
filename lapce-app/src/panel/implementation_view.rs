@@ -1,37 +1,37 @@
 use std::{ops::AddAssign, path::PathBuf, rc::Rc};
 
 use floem::{
+    IntoView, View, ViewId,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
     views::{
-        container, label, scroll, stack, virtual_stack, Decorators,
-        VirtualDirection, VirtualItemSize, VirtualVector,
-    },
-    IntoView, View, ViewId,
+        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
+        label, scroll, stack, virtual_stack
+    }
 };
 use im::HashMap;
 use itertools::Itertools;
 use lapce_rpc::file_line::FileLine;
-use lsp_types::{request::GotoImplementationResponse, Location, SymbolKind};
+use lsp_types::{Location, SymbolKind, request::GotoImplementationResponse};
 
-use crate::common::common_tab_header;
-use crate::panel::position::PanelContainerPosition;
 use crate::{
     command::InternalCommand,
+    common::common_tab_header,
     config::{color::LapceColor, icon::LapceIcons},
     editor::location::EditorLocation,
+    panel::position::PanelContainerPosition,
     svg,
-    window_tab::WindowTabData,
+    window_tab::WindowTabData
 };
 
 pub fn implementation_panel(
     window_tab_data: Rc<WindowTabData>,
-    _position: PanelContainerPosition,
+    _position: PanelContainerPosition
 ) -> impl View {
     stack((
         common_tab_header(
             window_tab_data.clone(),
-            window_tab_data.main_split.implementations.clone(),
+            window_tab_data.main_split.implementations.clone()
         ),
         common_reference_panel(window_tab_data.clone(), _position, move || {
             window_tab_data
@@ -40,14 +40,14 @@ pub fn implementation_panel(
                 .get_active_content()
                 .unwrap_or_default()
         })
-        .debug_name("implementation panel"),
+        .debug_name("implementation panel")
     ))
     .style(|x| x.flex_col().width_full().height_full())
 }
 pub fn common_reference_panel(
     window_tab_data: Rc<WindowTabData>,
     _position: PanelContainerPosition,
-    each_fn: impl Fn() -> ReferencesRoot + 'static,
+    each_fn: impl Fn() -> ReferencesRoot + 'static
 ) -> impl View {
     let config = window_tab_data.common.config;
     let ui_line_height = window_tab_data.common.ui_line_height;
@@ -201,34 +201,31 @@ pub fn map_to_location(resp: Option<GotoImplementationResponse>) -> Vec<Location
     match resp {
         GotoImplementationResponse::Scalar(local) => {
             vec![local]
-        }
+        },
         GotoImplementationResponse::Array(items) => items,
         GotoImplementationResponse::Link(items) => items
             .into_iter()
             .map(|x| Location {
-                uri: x.target_uri,
-                range: x.target_range,
+                uri:   x.target_uri,
+                range: x.target_range
             })
-            .collect(),
+            .collect()
     }
 }
 
 pub fn init_implementation_root(
     items: Vec<FileLine>,
-    scope: Scope,
+    scope: Scope
 ) -> ReferencesRoot {
     let mut refs_map: HashMap<PathBuf, HashMap<u32, Reference>> = HashMap::new();
     for item in items {
         let entry = refs_map.entry(item.path.clone()).or_default();
-        (*entry).insert(
-            item.position.line,
-            Reference::Line {
-                location: ReferenceLocation::Line {
-                    file_line: item,
-                    view_id: ViewId::new(),
-                },
-            },
-        );
+        (*entry).insert(item.position.line, Reference::Line {
+            location: ReferenceLocation::Line {
+                file_line: item,
+                view_id:   ViewId::new()
+            }
+        });
     }
 
     let mut refs = Vec::new();
@@ -243,10 +240,10 @@ pub fn init_implementation_root(
             location: ReferenceLocation::File {
                 open,
                 path,
-                view_id: ViewId::new(),
+                view_id: ViewId::new()
             },
             children,
-            open,
+            open
         };
         refs.push(ref_item);
     }
@@ -255,7 +252,7 @@ pub fn init_implementation_root(
 
 #[derive(Clone, Default)]
 pub struct ReferencesRoot {
-    pub(crate) children: Vec<Reference>,
+    pub(crate) children: Vec<Reference>
 }
 
 impl ReferencesRoot {
@@ -272,7 +269,7 @@ impl ReferencesRoot {
         next: &mut usize,
         min: usize,
         max: usize,
-        level: usize,
+        level: usize
     ) -> Vec<(usize, usize, ReferenceLocation)> {
         let mut children = Vec::new();
         for child in &self.children {
@@ -295,7 +292,7 @@ impl VirtualVector<(usize, usize, ReferenceLocation)> for ReferencesRoot {
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>,
+        range: std::ops::Range<usize>
     ) -> impl Iterator<Item = (usize, usize, ReferenceLocation)> {
         let min = range.start;
         let max = range.end;
@@ -308,32 +305,32 @@ impl VirtualVector<(usize, usize, ReferenceLocation)> for ReferencesRoot {
 pub enum Reference {
     File {
         location: ReferenceLocation,
-        open: RwSignal<bool>,
-        children: Vec<Reference>,
+        open:     RwSignal<bool>,
+        children: Vec<Reference>
     },
     Line {
-        location: ReferenceLocation,
-    },
+        location: ReferenceLocation
+    }
 }
 
 #[derive(Clone)]
 pub enum ReferenceLocation {
     File {
-        path: PathBuf,
-        open: RwSignal<bool>,
-        view_id: ViewId,
+        path:    PathBuf,
+        open:    RwSignal<bool>,
+        view_id: ViewId
     },
     Line {
         file_line: FileLine,
-        view_id: ViewId,
-    },
+        view_id:   ViewId
+    }
 }
 
 impl ReferenceLocation {
     pub fn view_id(&self) -> ViewId {
         match self {
             ReferenceLocation::File { view_id, .. } => *view_id,
-            ReferenceLocation::Line { view_id, .. } => *view_id,
+            ReferenceLocation::Line { view_id, .. } => *view_id
         }
     }
 }
@@ -342,9 +339,10 @@ impl Reference {
     pub fn location(&self) -> ReferenceLocation {
         match self {
             Reference::File { location, .. } => location.clone(),
-            Reference::Line { location } => location.clone(),
+            Reference::Line { location } => location.clone()
         }
     }
+
     pub fn total_len(&self) -> usize {
         match self {
             Reference::File { children, .. } => {
@@ -353,10 +351,11 @@ impl Reference {
                     total += child.total_len()
                 }
                 total
-            }
-            Reference::Line { .. } => 1,
+            },
+            Reference::Line { .. } => 1
         }
     }
+
     pub fn children(&self) -> Option<&Vec<Reference>> {
         match self {
             Reference::File { children, open, .. } => {
@@ -364,8 +363,8 @@ impl Reference {
                     return Some(children);
                 }
                 None
-            }
-            Reference::Line { .. } => None,
+            },
+            Reference::Line { .. } => None
         }
     }
 
@@ -374,7 +373,7 @@ impl Reference {
         next: &mut usize,
         min: usize,
         max: usize,
-        level: usize,
+        level: usize
     ) -> Vec<(usize, usize, ReferenceLocation)> {
         let mut children = Vec::new();
         if *next >= min && *next < max {

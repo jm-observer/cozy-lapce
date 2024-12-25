@@ -1,14 +1,14 @@
 use floem::reactive::{RwSignal, Scope, SignalGet, SignalUpdate};
 
-/// A signal listener that receives 'events' from the outside and runs the callback.  
-/// This is implemented using effects and normal rw signals. This should be used when it doesn't  
-/// make sense to think of it as 'storing' a value, like an `RwSignal` would typically be used for.
-///  
+/// A signal listener that receives 'events' from the outside and runs the
+/// callback. This is implemented using effects and normal rw signals. This
+/// should be used when it doesn't make sense to think of it as 'storing' a
+/// value, like an `RwSignal` would typically be used for.  
 /// Copied/Cloned listeners refer to the same listener.
 #[derive(Debug)]
 pub struct Listener<T: 'static> {
-    cx: Scope,
-    val: RwSignal<Option<T>>,
+    cx:  Scope,
+    val: RwSignal<Option<T>>
 }
 
 impl<T: Clone + 'static> Listener<T> {
@@ -38,7 +38,8 @@ impl<T: Clone + 'static> Listener<T> {
     }
 
     /// Listen for values sent to this listener.  
-    /// Allows creating the effect with a custom scope, letting it be disposed of.  
+    /// Allows creating the effect with a custom scope, letting it be disposed
+    /// of.
     pub fn listen_with(self, cx: Scope, on_val: impl Fn(T) + 'static) {
         let val = self.val;
 

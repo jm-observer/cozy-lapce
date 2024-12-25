@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result, anyhow};
 use lapce_core::directory::Directory;
 use lapce_rpc::{
-    file::{LineCol, PathObject},
-    proxy::{ProxyMessage, ProxyNotification},
     RpcMessage,
+    file::{LineCol, PathObject},
+    proxy::{ProxyMessage, ProxyNotification}
 };
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PathObjectType {
     #[default]
     Directory,
-    File,
+    File
 }
 
 pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
@@ -20,7 +20,7 @@ pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
         return Ok(PathObject {
             is_dir: path.is_dir(),
             path,
-            linecol: None,
+            linecol: None
         });
     }
 
@@ -45,9 +45,9 @@ pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
             (
                 path,
                 Some(LineCol {
-                    line: second_rhs,
-                    column: first_rhs,
-                }),
+                    line:   second_rhs,
+                    column: first_rhs
+                })
             )
         } else {
             let remaning: Vec<&str> = splits.rev().collect();
@@ -61,9 +61,9 @@ pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
             (
                 path,
                 Some(LineCol {
-                    line: first_rhs,
-                    column: 1,
-                }),
+                    line:   first_rhs,
+                    column: 1
+                })
             )
         }
     } else {
@@ -73,7 +73,7 @@ pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
     Ok(PathObject {
         is_dir: path.is_dir(),
         path,
-        linecol,
+        linecol
     })
 }
 
@@ -84,7 +84,7 @@ pub fn try_open_in_existing_process(paths: &[PathObject]) -> Result<()> {
         interprocess::local_socket::LocalSocketStream::connect(local_socket)?;
 
     let msg: ProxyMessage = RpcMessage::Notification(ProxyNotification::OpenPaths {
-        paths: paths.to_vec(),
+        paths: paths.to_vec()
     });
     lapce_rpc::stdio::write_msg(&mut socket, msg)?;
     Ok(())

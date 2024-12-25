@@ -1,8 +1,9 @@
 #![allow(unused_imports)]
-use crate::window_tab::WindowTabData;
 use floem::reactive::SignalGet;
 use itertools::Itertools;
 use log::{debug, error, info, warn};
+
+use crate::window_tab::WindowTabData;
 
 pub fn log(window: &WindowTabData) {
     print_screen_lines(window);

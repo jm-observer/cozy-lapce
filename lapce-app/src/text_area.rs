@@ -81,8 +81,8 @@
 //     let cursor_pos = move || {
 //         let offset = cursor.with(|c| c.offset());
 //         let (line, col) = doc
-//             .with_untracked(|doc| doc.buffer.with(|b| b.offset_to_line_col(offset)));
-//         text_layout.with(|text_layout| {
+//             .with_untracked(|doc| doc.buffer.with(|b|
+// b.offset_to_line_col(offset)));         text_layout.with(|text_layout| {
 //             let pos = text_layout.line_col_position(line, col);
 //             pos.point - (0.0, pos.glyph_ascent)
 //         })
@@ -103,9 +103,9 @@
 //                         .margin_left(cursor_pos.x as f32 - 1.0)
 //                         .margin_top(cursor_pos.y as f32)
 //                         .border_left(2.0)
-//                         .border_color(config.get().color(LapceColor::EDITOR_CARET))
-//                         .apply_if(!is_active(), |s| s.hide())
-//                 }),
+//
+// .border_color(config.get().color(LapceColor::EDITOR_CARET))
+// .apply_if(!is_active(), |s| s.hide())                 }),
 //             ))
 //             .style(|s| s.width_pct(100.0).padding(6.0)),
 //         )

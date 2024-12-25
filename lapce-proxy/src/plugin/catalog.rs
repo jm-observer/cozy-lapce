@@ -1,53 +1,55 @@
-use jsonrpc_lite::Id;
 use std::{
     borrow::Cow,
     collections::HashMap,
     path::PathBuf,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering}
     },
-    thread,
+    thread
 };
 
-use lapce_rpc::dap_types::{RunDebugConfig, SourceBreakpoint};
+use jsonrpc_lite::Id;
 use lapce_rpc::{
-    dap_types::{self, DapId, DapServer, SetBreakpointsResponse},
+    RpcError,
+    dap_types::{
+        self, DapId, DapServer, RunDebugConfig, SetBreakpointsResponse,
+        SourceBreakpoint
+    },
     plugin::{PluginId, VoltID, VoltInfo, VoltMetadata},
     proxy::ProxyResponse,
-    style::LineStyle,
-    RpcError,
+    style::LineStyle
 };
 use lapce_xi_rope::{Rope, RopeDelta};
 use log::debug;
 use lsp_types::{
-    notification::DidOpenTextDocument, request::Request, DidOpenTextDocumentParams,
-    MessageType, SemanticTokens, ShowMessageParams, TextDocumentIdentifier,
-    TextDocumentItem, VersionedTextDocumentIdentifier,
+    DidOpenTextDocumentParams, MessageType, SemanticTokens, ShowMessageParams,
+    TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier,
+    notification::DidOpenTextDocument, request::Request
 };
 use parking_lot::Mutex;
 use psp_types::Notification;
 use serde_json::Value;
 
 use super::{
+    PluginCatalogNotification, PluginCatalogRpcHandler,
     dap::{DapClient, DapRpcHandler, DebuggerData},
     psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback},
-    wasi::{load_all_volts, start_volt},
-    PluginCatalogNotification, PluginCatalogRpcHandler,
+    wasi::{load_all_volts, start_volt}
 };
 use crate::plugin::{
-    install_volt, psp::PluginHandlerNotification, wasi::enable_volt,
+    install_volt, psp::PluginHandlerNotification, wasi::enable_volt
 };
 
 pub struct PluginCatalog {
-    workspace: Option<PathBuf>,
-    plugin_rpc: PluginCatalogRpcHandler,
-    plugins: HashMap<PluginId, PluginServerRpcHandler>,
-    daps: HashMap<DapId, DapRpcHandler>,
-    debuggers: HashMap<String, DebuggerData>,
+    workspace:             Option<PathBuf>,
+    plugin_rpc:            PluginCatalogRpcHandler,
+    plugins:               HashMap<PluginId, PluginServerRpcHandler>,
+    daps:                  HashMap<DapId, DapRpcHandler>,
+    debuggers:             HashMap<String, DebuggerData>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-    unactivated_volts: HashMap<VoltID, VoltMetadata>,
-    open_files: HashMap<PathBuf, String>,
+    unactivated_volts:     HashMap<VoltID, VoltMetadata>,
+    open_files:            HashMap<PathBuf, String>
 }
 
 impl PluginCatalog {
@@ -57,7 +59,7 @@ impl PluginCatalog {
         disabled_volts: Vec<VoltID>,
         extra_plugin_paths: Vec<PathBuf>,
         plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-        plugin_rpc: PluginCatalogRpcHandler,
+        plugin_rpc: PluginCatalogRpcHandler
     ) -> Self {
         let plugin = Self {
             workspace,
@@ -67,7 +69,7 @@ impl PluginCatalog {
             daps: HashMap::new(),
             debuggers: HashMap::new(),
             unactivated_volts: HashMap::new(),
-            open_files: HashMap::new(),
+            open_files: HashMap::new()
         };
 
         thread::spawn(move || {
@@ -88,7 +90,7 @@ impl PluginCatalog {
         path: Option<PathBuf>,
         check: bool,
         id: u64,
-        f: Box<dyn ClonableCallback<Value, RpcError>>,
+        f: Box<dyn ClonableCallback<Value, RpcError>>
     ) {
         if let Some(plugin_id) = plugin_id {
             if let Some(plugin) = self.plugins.get(&plugin_id) {
@@ -101,24 +103,24 @@ impl PluginCatalog {
                     id,
                     move |id, result| {
                         f(id, plugin_id, result);
-                    },
+                    }
                 );
             } else {
                 f(
                     Id::Num(id as i64),
                     plugin_id,
                     Err(RpcError {
-                        code: 0,
-                        message: "plugin doesn't exist".to_string(),
-                    }),
+                        code:    0,
+                        message: "plugin doesn't exist".to_string()
+                    })
                 );
             }
             return;
         }
 
         if let Some(request_sent) = request_sent {
-            // if there are no plugins installed the callback of the client is not called
-            // so check if plugins list is empty
+            // if there are no plugins installed the callback of the client is not
+            // called so check if plugins list is empty
             if self.plugins.is_empty() {
                 // Add a request
                 request_sent.fetch_add(1, Ordering::Relaxed);
@@ -128,9 +130,11 @@ impl PluginCatalog {
                     Id::Num(id as i64),
                     lapce_rpc::plugin::PluginId(0),
                     Err(RpcError {
-                        code: 0,
-                        message: "no available plugin could make a callback, because the plugins list is empty".to_string(),
-                    }),
+                        code:    0,
+                        message: "no available plugin could make a callback, \
+                                  because the plugins list is empty"
+                            .to_string()
+                    })
                 );
                 return;
             } else {
@@ -149,7 +153,7 @@ impl PluginCatalog {
                 id,
                 move |id, result| {
                     f(id, plugin_id, result);
-                },
+                }
             );
         }
     }
@@ -162,7 +166,7 @@ impl PluginCatalog {
         params: Value,
         language_id: Option<String>,
         path: Option<PathBuf>,
-        check: bool,
+        check: bool
     ) {
         if let Some(plugin_id) = plugin_id {
             if let Some(plugin) = self.plugins.get(&plugin_id) {
@@ -180,7 +184,7 @@ impl PluginCatalog {
                 params.clone(),
                 language_id.clone(),
                 path.clone(),
-                check,
+                check
             );
         }
     }
@@ -189,7 +193,7 @@ impl PluginCatalog {
         &mut self,
         volt: VoltInfo,
         f: Box<dyn ClonableCallback<Value, RpcError>>,
-        request_id: u64,
+        request_id: u64
     ) {
         let id = volt.id();
         for (plugin_id, plugin) in self.plugins.iter() {
@@ -205,7 +209,7 @@ impl PluginCatalog {
                     request_id,
                     move |id, result| {
                         f(id, plugin_id, result);
-                    },
+                    }
                 );
                 plugin.shutdown();
             }
@@ -215,7 +219,7 @@ impl PluginCatalog {
     fn start_unactivated_volts(
         &mut self,
         to_be_activated: Vec<VoltID>,
-        request_id: u64,
+        request_id: u64
     ) {
         for id in to_be_activated.iter() {
             let workspace = self.workspace.clone();
@@ -230,7 +234,7 @@ impl PluginCatalog {
                         configurations,
                         plugin_rpc,
                         meta,
-                        request_id,
+                        request_id
                     ) {
                         log::error!("{:?}", err);
                     }
@@ -269,7 +273,7 @@ impl PluginCatalog {
                             match globset::Glob::new(glob) {
                                 Ok(glob) => {
                                     builder.add(glob);
-                                }
+                                },
                                 Err(err) => {
                                     log::error!("{:?}", err);
                                 }
@@ -287,7 +291,7 @@ impl PluginCatalog {
                                         }
                                     }
                                 }
-                            }
+                            },
                             Err(err) => {
                                 log::error!("{:?}", err);
                             }
@@ -304,12 +308,12 @@ impl PluginCatalog {
     pub fn handle_did_open_text_document(
         &mut self,
         document: TextDocumentItem,
-        id: u64,
+        id: u64
     ) {
         match document.uri.to_file_path() {
             Ok(path) => {
                 self.open_files.insert(path, document.language_id.clone());
-            }
+            },
             Err(err) => {
                 log::error!("{:?}", err);
             }
@@ -324,11 +328,7 @@ impl PluginCatalog {
                     .as_ref()
                     .and_then(|a| a.language.as_ref())
                     .map(|l| l.contains(&document.language_id))?;
-                if contains {
-                    Some(id.clone())
-                } else {
-                    None
-                }
+                if contains { Some(id.clone()) } else { None }
             })
             .collect();
         self.start_unactivated_volts(to_be_activated, id);
@@ -338,11 +338,11 @@ impl PluginCatalog {
             plugin.server_notification(
                 DidOpenTextDocument::METHOD,
                 DidOpenTextDocumentParams {
-                    text_document: document.clone(),
+                    text_document: document.clone()
                 },
                 Some(document.language_id.clone()),
                 path.clone(),
-                true,
+                true
             );
         }
     }
@@ -352,14 +352,14 @@ impl PluginCatalog {
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope,
+        text: Rope
     ) {
         for (_, plugin) in self.plugins.iter() {
             plugin.handle_rpc(PluginServerRpc::DidSaveTextDocument {
-                language_id: language_id.clone(),
-                path: path.clone(),
+                language_id:   language_id.clone(),
+                path:          path.clone(),
                 text_document: text_document.clone(),
-                text: text.clone(),
+                text:          text.clone()
             });
         }
     }
@@ -370,17 +370,17 @@ impl PluginCatalog {
         document: VersionedTextDocumentIdentifier,
         delta: RopeDelta,
         text: Rope,
-        new_text: Rope,
+        new_text: Rope
     ) {
         let change = Arc::new(Mutex::new((None, None)));
         for (_, plugin) in self.plugins.iter() {
             plugin.handle_rpc(PluginServerRpc::DidChangeTextDocument {
                 language_id: language_id.clone(),
-                document: document.clone(),
-                delta: delta.clone(),
-                text: text.clone(),
-                new_text: new_text.clone(),
-                change: change.clone(),
+                document:    document.clone(),
+                delta:       delta.clone(),
+                text:        text.clone(),
+                new_text:    new_text.clone(),
+                change:      change.clone()
             });
         }
     }
@@ -391,22 +391,22 @@ impl PluginCatalog {
         plugin_id: PluginId,
         tokens: SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
     ) {
         if let Some(plugin) = self.plugins.get(&plugin_id) {
             plugin.handle_rpc(PluginServerRpc::FormatSemanticTokens {
                 id,
                 tokens,
                 text,
-                f,
+                f
             });
         } else {
             f.call(
                 Id::Num(id as i64),
                 Err(RpcError {
-                    code: 0,
-                    message: "plugin doesn't exist".to_string(),
-                }),
+                    code:    0,
+                    message: "plugin doesn't exist".to_string()
+                })
             );
         }
     }
@@ -415,22 +415,22 @@ impl PluginCatalog {
         &self,
         dap_id: DapId,
         reference: usize,
-        f: Box<dyn RpcCallback<Vec<dap_types::Variable>, RpcError>>,
+        f: Box<dyn RpcCallback<Vec<dap_types::Variable>, RpcError>>
     ) {
         if let Some(dap) = self.daps.get(&dap_id) {
             dap.variables_async(
                 reference,
                 |id, result: Result<dap_types::VariablesResponse, RpcError>| {
                     f.call(id, result.map(|resp| resp.variables))
-                },
+                }
             );
         } else {
             f.call(
                 Id::Num(0),
                 Err(RpcError {
-                    code: 0,
-                    message: "plugin doesn't exist".to_string(),
-                }),
+                    code:    0,
+                    message: "plugin doesn't exist".to_string()
+                })
             );
         }
     }
@@ -441,10 +441,10 @@ impl PluginCatalog {
         frame_id: usize,
         f: Box<
             dyn RpcCallback<
-                Vec<(dap_types::Scope, Vec<dap_types::Variable>)>,
-                RpcError,
-            >,
-        >,
+                    Vec<(dap_types::Scope, Vec<dap_types::Variable>)>,
+                    RpcError
+                >
+        >
     ) {
         if let Some(dap) = self.daps.get(&dap_id) {
             let local_dap = dap.clone();
@@ -462,11 +462,11 @@ impl PluginCatalog {
                                         move |id,
                                               result: Result<
                                             dap_types::VariablesResponse,
-                                            RpcError,
+                                            RpcError
                                         >| {
                                             let resp: Vec<(
                                                 dap_types::Scope,
-                                                Vec<dap_types::Variable>,
+                                                Vec<dap_types::Variable>
                                             )> = scopes
                                                 .iter()
                                                 .enumerate()
@@ -483,31 +483,31 @@ impl PluginCatalog {
                                                                 .unwrap_or_default()
                                                         } else {
                                                             Vec::new()
-                                                        },
+                                                        }
                                                     )
                                                 })
                                                 .collect();
                                             f.call(id, Ok(resp));
-                                        },
+                                        }
                                     );
                                 });
                             } else {
                                 f.call(id, Ok(Vec::new()));
                             }
-                        }
+                        },
                         Err(e) => {
                             f.call(id, Err(e));
                         }
                     }
-                },
+                }
             );
         } else {
             f.call(
                 Id::Num(0),
                 Err(RpcError {
-                    code: 0,
-                    message: "plugin doesn't exist".to_string(),
-                }),
+                    code:    0,
+                    message: "plugin doesn't exist".to_string()
+                })
             );
         }
     }
@@ -522,11 +522,11 @@ impl PluginCatalog {
                     self.unactivated_volts.insert(id, volt);
                 }
                 self.check_unactivated_volts(id);
-            }
+            },
             UpdatePluginConfigs(configs) => {
                 log::debug!("UpdatePluginConfigs {:?}", configs);
                 self.plugin_configurations = configs;
-            }
+            },
             PluginServerLoaded(plugin) => {
                 // TODO: check if the server has did open registered
                 match self.plugin_rpc.proxy_rpc.get_open_files_content() {
@@ -537,15 +537,15 @@ impl PluginCatalog {
                             plugin.server_notification(
                                 DidOpenTextDocument::METHOD,
                                 DidOpenTextDocumentParams {
-                                    text_document: item,
+                                    text_document: item
                                 },
                                 language_id,
                                 path,
-                                true,
+                                true
                             );
                         }
-                    }
-                    Ok(_) => {}
+                    },
+                    Ok(_) => {},
                     Err(err) => {
                         log::error!("{:?}", err);
                     }
@@ -560,12 +560,12 @@ impl PluginCatalog {
                     if let Some(plugin) = self.plugins.get(&spawned_by) {
                         plugin.handle_rpc(PluginServerRpc::Handler(
                             PluginHandlerNotification::SpawnedPluginLoaded {
-                                plugin_id,
-                            },
+                                plugin_id
+                            }
                         ));
                     }
                 }
-            }
+            },
             InstallVolt(volt, id) => {
                 log::debug!("InstallVolt {:?}", volt);
                 let workspace = self.workspace.clone();
@@ -579,12 +579,12 @@ impl PluginCatalog {
                         workspace,
                         configurations,
                         volt,
-                        id,
+                        id
                     ) {
                         log::error!("{:?}", err);
                     }
                 });
-            }
+            },
             ReloadVolt(volt, id) => {
                 log::debug!("ReloadVolt {:?}", volt);
                 let volt_id = volt.id();
@@ -598,7 +598,7 @@ impl PluginCatalog {
                 if let Err(err) = self.plugin_rpc.unactivated_volts(vec![volt], id) {
                     log::error!("{:?}", err);
                 }
-            }
+            },
             StopVolt(volt) => {
                 log::debug!("StopVolt {:?}", volt);
                 let volt_id = volt.id();
@@ -609,7 +609,7 @@ impl PluginCatalog {
                         plugin.shutdown();
                     }
                 }
-            }
+            },
             EnableVolt(volt, id) => {
                 log::debug!("EnableVolt {:?}", volt);
                 let volt_id = volt.id();
@@ -624,23 +624,23 @@ impl PluginCatalog {
                         log::error!("{:?}", err);
                     }
                 });
-            }
+            },
             DapLoaded(dap_rpc) => {
                 self.daps.insert(dap_rpc.dap_id, dap_rpc);
-            }
+            },
             DapDisconnected(dap_id) => {
                 self.daps.remove(&dap_id);
-            }
+            },
             DapStart {
                 config,
-                breakpoints,
+                breakpoints
             } => {
                 self.dap_start(config, breakpoints);
-            }
+            },
             DapProcessId {
                 dap_id,
                 process_id,
-                term_id,
+                term_id
             } => {
                 if let Some(dap) = self.daps.get(&dap_id) {
                     if let Err(err) =
@@ -649,7 +649,7 @@ impl PluginCatalog {
                         log::error!("{:?}", err);
                     }
                 }
-            }
+            },
             DapContinue { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     let plugin_rpc = self.plugin_rpc.clone();
@@ -659,7 +659,7 @@ impl PluginCatalog {
                         }
                     });
                 }
-            }
+            },
             DapPause { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     thread::spawn(move || {
@@ -668,28 +668,28 @@ impl PluginCatalog {
                         }
                     });
                 }
-            }
+            },
             DapStepOver { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     dap.next(thread_id);
                 }
-            }
+            },
             DapStepInto { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     dap.step_in(thread_id);
                 }
-            }
+            },
             DapStepOut { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     dap.step_out(thread_id);
                 }
-            }
+            },
             DapStop { dap_id } => {
                 if let Some(dap) = self.daps.remove(&dap_id) {
                     debug!("DapStop {dap_id:?}");
                     dap.stop();
                 }
-            }
+            },
             DapDisconnect { dap_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     thread::spawn(move || {
@@ -698,20 +698,20 @@ impl PluginCatalog {
                         }
                     });
                 }
-            }
+            },
             DapRestart {
                 config,
-                breakpoints,
+                breakpoints
             } => {
                 if let Some(dap) = self.daps.remove(&config.dap_id) {
                     dap.stop();
                 }
                 self.dap_start(config, breakpoints);
-            }
+            },
             DapSetBreakpoints {
                 dap_id,
                 path,
-                breakpoints,
+                breakpoints
             } => {
                 if let Some(dap) = self.daps.get(&dap_id) {
                     let core_rpc = self.plugin_rpc.core_rpc.clone();
@@ -734,33 +734,30 @@ impl PluginCatalog {
                         },
                     );
                 }
-            }
+            },
             RegisterDebuggerType {
                 debugger_type,
                 program,
-                args,
+                args
             } => {
-                self.debuggers.insert(
-                    debugger_type.clone(),
-                    DebuggerData {
-                        debugger_type,
-                        program,
-                        args,
-                    },
-                );
-            }
+                self.debuggers.insert(debugger_type.clone(), DebuggerData {
+                    debugger_type,
+                    program,
+                    args
+                });
+            },
             Shutdown => {
                 for (_, plugin) in self.plugins.iter() {
                     plugin.shutdown();
                 }
-            }
+            },
         }
     }
 
     fn dap_start(
         &mut self,
         config: RunDebugConfig,
-        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
+        breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>
     ) {
         let workspace = self.workspace.clone();
         let plugin_rpc = self.plugin_rpc.clone();
@@ -773,12 +770,12 @@ impl PluginCatalog {
                 match DapClient::start(
                     DapServer {
                         program: debugger.program,
-                        args: debugger.args.unwrap_or_default(),
-                        cwd: workspace,
+                        args:    debugger.args.unwrap_or_default(),
+                        cwd:     workspace
                     },
                     config.clone(),
                     breakpoints,
-                    plugin_rpc.clone(),
+                    plugin_rpc.clone()
                 ) {
                     Ok(dap_rpc) => {
                         if let Err(err) = plugin_rpc.dap_loaded(dap_rpc.clone()) {
@@ -788,7 +785,7 @@ impl PluginCatalog {
                         if let Err(err) = dap_rpc.launch(&config) {
                             log::error!("{:?}", err);
                         }
-                    }
+                    },
                     Err(err) => {
                         log::error!("{:?}", err);
                     }
@@ -798,11 +795,11 @@ impl PluginCatalog {
             self.plugin_rpc.core_rpc.show_message(
                 "debug fail".to_owned(),
                 ShowMessageParams {
-                    typ: MessageType::ERROR,
-                    message:
-                        "Debugger not found. Please install the appropriate plugin."
-                            .to_owned(),
-                },
+                    typ:     MessageType::ERROR,
+                    message: "Debugger not found. Please install the appropriate \
+                              plugin."
+                        .to_owned()
+                }
             )
         }
     }

@@ -8,23 +8,23 @@ pub mod terminal;
 pub mod watcher;
 
 use std::{
-    io::{stdin, stdout, BufReader},
+    io::{BufReader, stdin, stdout},
     path::PathBuf,
     process::exit,
     sync::Arc,
-    thread,
+    thread
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use dispatch::Dispatcher;
 use lapce_core::{directory::Directory, meta};
 use lapce_rpc::{
+    RpcMessage,
     core::{CoreRpc, CoreRpcHandler},
     file::PathObject,
     proxy::{ProxyMessage, ProxyNotification, ProxyRpcHandler},
-    stdio::stdio_transport,
-    RpcMessage,
+    stdio::stdio_transport
 };
 use log::error;
 
@@ -41,7 +41,7 @@ struct Cli {
     /// to specify line and column at which it should open the file
     #[clap(value_parser = cli::parse_file_line_column)]
     #[clap(value_hint = clap::ValueHint::AnyPath)]
-    paths: Vec<PathObject>,
+    paths: Vec<PathObject>
 }
 
 pub fn mainloop() {
@@ -71,14 +71,14 @@ pub fn mainloop() {
                     {
                         log::error!("{:?}", err);
                     }
-                }
+                },
                 CoreRpc::Notification(rpc) => {
                     if let Err(err) =
                         local_writer_tx.send(RpcMessage::Notification(rpc))
                     {
                         log::error!("{:?}", err);
                     }
-                }
+                },
                 CoreRpc::Shutdown => {
                     return;
                 }
@@ -101,7 +101,7 @@ pub fn mainloop() {
                                 {
                                     log::error!("{:?}", err);
                                 }
-                            }
+                            },
                             Err(e) => {
                                 if let Err(err) =
                                     writer_tx.send(RpcMessage::Error(id, e))
@@ -111,13 +111,13 @@ pub fn mainloop() {
                             }
                         }
                     });
-                }
+                },
                 RpcMessage::Notification(n) => {
                     local_proxy_rpc.notification(n);
-                }
+                },
                 RpcMessage::Response(id, resp) => {
                     core_rpc.handle_response(id, Ok(resp));
-                }
+                },
                 RpcMessage::Error(id, err) => {
                     core_rpc.handle_response(id, Err(err));
                 }
@@ -147,7 +147,7 @@ pub fn register_lapce_path() -> Result<()> {
             if let Ok(current_path) = std::env::var("PATH") {
                 let mut paths = vec![PathBuf::from(path)];
                 paths.append(
-                    &mut std::env::split_paths(&current_path).collect::<Vec<_>>(),
+                    &mut std::env::split_paths(&current_path).collect::<Vec<_>>()
                 );
                 std::env::set_var("PATH", std::env::join_paths(paths)?);
             }
@@ -173,7 +173,7 @@ fn listen_local_socket(proxy_rpc: ProxyRpcHandler) -> Result<()> {
                 let msg: Option<ProxyMessage> =
                     lapce_rpc::stdio::read_msg(&mut reader)?;
                 if let Some(RpcMessage::Notification(
-                    ProxyNotification::OpenPaths { paths },
+                    ProxyNotification::OpenPaths { paths }
                 )) = msg
                 {
                     proxy_rpc.notification(ProxyNotification::OpenPaths { paths });
@@ -186,7 +186,7 @@ fn listen_local_socket(proxy_rpc: ProxyRpcHandler) -> Result<()> {
 
 pub fn get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
-    user_agent: Option<&str>,
+    user_agent: Option<&str>
 ) -> Result<reqwest::blocking::Response> {
     let mut builder = if let Ok(proxy) = std::env::var("https_proxy") {
         let proxy = reqwest::Proxy::all(proxy)?;

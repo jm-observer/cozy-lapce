@@ -1,45 +1,43 @@
-use std::path::Path;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Display,
-    path::PathBuf,
+    path::{Path, PathBuf},
     rc::Rc,
-    time::Instant,
+    time::Instant
 };
 
 use floem::{
     ext_event::create_ext_action,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::VirtualVector,
+    views::VirtualVector
 };
-use lapce_rpc::proxy::ProxyRpcHandler;
 use lapce_rpc::{
     dap_types::{
         self, DapId, RunDebugConfig, SourceBreakpoint, StackFrame, Stopped,
-        ThreadId, Variable,
+        ThreadId, Variable
     },
-    proxy::ProxyResponse,
-    terminal::TermId,
+    proxy::{ProxyResponse, ProxyRpcHandler},
+    terminal::TermId
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
     command::InternalCommand,
     editor::location::{EditorLocation, EditorPosition},
-    window_tab::CommonData,
+    window_tab::CommonData
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RunDebugMode {
     Run,
-    Debug,
+    Debug
 }
 
 impl Display for RunDebugMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             RunDebugMode::Run => "Run",
-            RunDebugMode::Debug => "Debug",
+            RunDebugMode::Debug => "Debug"
         };
         f.write_str(s)
     }
@@ -47,30 +45,30 @@ impl Display for RunDebugMode {
 
 #[derive(Clone, Debug)]
 pub struct RunDebugProcess {
-    pub mode: RunDebugMode,
+    pub mode:          RunDebugMode,
     pub origin_config: RunDebugConfig,
-    pub config: RunDebugConfig,
-    pub stopped: bool,
-    pub created: Instant,
-    pub is_prelaunch: bool,
+    pub config:        RunDebugConfig,
+    pub stopped:       bool,
+    pub created:       Instant,
+    pub is_prelaunch:  bool
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct RunDebugConfigs {
-    pub configs: Vec<RunDebugConfig>,
+    pub configs: Vec<RunDebugConfig>
 }
 
 #[derive(Clone)]
 pub struct RunDebugData {
     pub active_term: RwSignal<Option<TermId>>,
-    pub daps: RwSignal<im::HashMap<DapId, DapData>>,
-    pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+    pub daps:        RwSignal<im::HashMap<DapId, DapData>>,
+    pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>
 }
 
 impl RunDebugData {
     pub fn new(
         cx: Scope,
-        breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+        breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>
     ) -> Self {
         let active_term: RwSignal<Option<TermId>> = cx.create_rw_signal(None);
         let daps: RwSignal<im::HashMap<DapId, DapData>> =
@@ -79,7 +77,7 @@ impl RunDebugData {
         Self {
             active_term,
             daps,
-            breakpoints,
+            breakpoints
         }
     }
 
@@ -95,17 +93,17 @@ impl RunDebugData {
                         .filter_map(|(_, b)| {
                             if b.active {
                                 Some(SourceBreakpoint {
-                                    line: b.line + 1,
-                                    column: None,
-                                    condition: None,
+                                    line:          b.line + 1,
+                                    column:        None,
+                                    condition:     None,
                                     hit_condition: None,
-                                    log_message: None,
+                                    log_message:   None
                                 })
                             } else {
                                 None
                             }
                         })
-                        .collect(),
+                        .collect()
                 )
             })
             .collect()
@@ -114,27 +112,27 @@ impl RunDebugData {
 
 #[derive(Clone, PartialEq)]
 pub struct StackTraceData {
-    pub expanded: RwSignal<bool>,
-    pub frames: RwSignal<im::Vector<StackFrame>>,
-    pub frames_shown: usize,
+    pub expanded:     RwSignal<bool>,
+    pub frames:       RwSignal<im::Vector<StackFrame>>,
+    pub frames_shown: usize
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LapceBreakpoint {
-    pub id: Option<usize>,
+    pub id:       Option<usize>,
     pub verified: bool,
-    pub message: Option<String>,
-    pub line: usize,
-    pub offset: usize,
+    pub message:  Option<String>,
+    pub line:     usize,
+    pub offset:   usize,
     pub dap_line: Option<usize>,
-    pub active: bool,
+    pub active:   bool
 }
 
 #[derive(Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum ScopeOrVar {
     Scope(dap_types::Scope),
-    Var(dap_types::Variable),
+    Var(dap_types::Variable)
 }
 
 impl Default for ScopeOrVar {
@@ -147,53 +145,53 @@ impl ScopeOrVar {
     pub fn name(&self) -> &str {
         match self {
             ScopeOrVar::Scope(scope) => &scope.name,
-            ScopeOrVar::Var(var) => &var.name,
+            ScopeOrVar::Var(var) => &var.name
         }
     }
 
     pub fn value(&self) -> Option<&str> {
         match self {
             ScopeOrVar::Scope(_) => None,
-            ScopeOrVar::Var(var) => Some(&var.value),
+            ScopeOrVar::Var(var) => Some(&var.value)
         }
     }
 
     pub fn ty(&self) -> Option<&str> {
         match self {
             ScopeOrVar::Scope(_) => None,
-            ScopeOrVar::Var(var) => var.ty.as_deref(),
+            ScopeOrVar::Var(var) => var.ty.as_deref()
         }
     }
 
     pub fn reference(&self) -> usize {
         match self {
             ScopeOrVar::Scope(scope) => scope.variables_reference,
-            ScopeOrVar::Var(var) => var.variables_reference,
+            ScopeOrVar::Var(var) => var.variables_reference
         }
     }
 }
 
 #[derive(Clone, Default)]
 pub struct DapVariable {
-    pub item: ScopeOrVar,
-    pub parent: Vec<usize>,
-    pub expanded: bool,
-    pub read: bool,
-    pub children: Vec<DapVariable>,
-    pub children_expanded_count: usize,
+    pub item:                    ScopeOrVar,
+    pub parent:                  Vec<usize>,
+    pub expanded:                bool,
+    pub read:                    bool,
+    pub children:                Vec<DapVariable>,
+    pub children_expanded_count: usize
 }
 
 #[derive(Clone)]
 pub struct DapData {
-    pub term_id: Option<TermId>,
-    pub dap_id: DapId,
-    pub stopped: RwSignal<bool>,
-    pub thread_id: RwSignal<Option<ThreadId>>,
+    pub term_id:      Option<TermId>,
+    pub dap_id:       DapId,
+    pub stopped:      RwSignal<bool>,
+    pub thread_id:    RwSignal<Option<ThreadId>>,
     pub stack_traces: RwSignal<BTreeMap<ThreadId, StackTraceData>>,
     pub variables_id: RwSignal<usize>,
-    pub variables: RwSignal<DapVariable>,
-    pub breakline: Memo<Option<(usize, PathBuf)>>,
-    pub common: Rc<CommonData>,
+    pub variables:    RwSignal<DapVariable>,
+    pub breakline:    Memo<Option<(usize, PathBuf)>>,
+    pub common:       Rc<CommonData>
 }
 
 impl DapData {
@@ -201,7 +199,7 @@ impl DapData {
         cx: Scope,
         dap_id: DapId,
         term_id: Option<TermId>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let stopped = cx.create_rw_signal(false);
         let thread_id = cx.create_rw_signal(None);
@@ -238,15 +236,17 @@ impl DapData {
             stack_traces,
             variables_id: cx.create_rw_signal(0),
             variables: cx.create_rw_signal(DapVariable {
-                item: ScopeOrVar::Scope(dap_types::Scope::default()),
-                parent: Vec::new(),
-                expanded: true,
-                read: true,
-                children: Vec::new(),
-                children_expanded_count: 0,
+                item:                    ScopeOrVar::Scope(
+                    dap_types::Scope::default()
+                ),
+                parent:                  Vec::new(),
+                expanded:                true,
+                read:                    true,
+                children:                Vec::new(),
+                children_expanded_count: 0
             }),
             breakline,
-            common,
+            common
         }
     }
 
@@ -255,7 +255,7 @@ impl DapData {
         cx: Scope,
         stopped: &Stopped,
         stack_traces: &HashMap<ThreadId, Vec<StackFrame>>,
-        variables: &[(dap_types::Scope, Vec<Variable>)],
+        variables: &[(dap_types::Scope, Vec<Variable>)]
     ) {
         self.stopped.set(true);
         self.thread_id.update(|thread_id| {
@@ -277,13 +277,13 @@ impl DapData {
                                 location: EditorLocation {
                                     path,
                                     position: Some(EditorPosition::Line(
-                                        frame.line.saturating_sub(1),
+                                        frame.line.saturating_sub(1)
                                     )),
                                     scroll_offset: None,
                                     ignore_unconfirmed: false,
-                                    same_editor_tab: false,
-                                },
-                            },
+                                    same_editor_tab: false
+                                }
+                            }
                         );
                     }
                 }
@@ -294,14 +294,11 @@ impl DapData {
                     current.expanded.set(true);
                 }
             } else {
-                current_stack_traces.insert(
-                    *thread_id,
-                    StackTraceData {
-                        expanded: cx.create_rw_signal(is_main_thread),
-                        frames: cx.create_rw_signal(frames.into()),
-                        frames_shown: 20,
-                    },
-                );
+                current_stack_traces.insert(*thread_id, StackTraceData {
+                    expanded:     cx.create_rw_signal(is_main_thread),
+                    frames:       cx.create_rw_signal(frames.into()),
+                    frames_shown: 20
+                });
             }
         }
         self.stack_traces.set(current_stack_traces);
@@ -310,22 +307,22 @@ impl DapData {
                 .iter()
                 .enumerate()
                 .map(|(i, (scope, vars))| DapVariable {
-                    item: ScopeOrVar::Scope(scope.to_owned()),
-                    parent: Vec::new(),
-                    expanded: i == 0,
-                    read: true,
-                    children: vars
+                    item:                    ScopeOrVar::Scope(scope.to_owned()),
+                    parent:                  Vec::new(),
+                    expanded:                i == 0,
+                    read:                    true,
+                    children:                vars
                         .iter()
                         .map(|var| DapVariable {
-                            item: ScopeOrVar::Var(var.to_owned()),
-                            parent: vec![scope.variables_reference],
-                            expanded: false,
-                            read: false,
-                            children: Vec::new(),
-                            children_expanded_count: 0,
+                            item:                    ScopeOrVar::Var(var.to_owned()),
+                            parent:                  vec![scope.variables_reference],
+                            expanded:                false,
+                            read:                    false,
+                            children:                Vec::new(),
+                            children_expanded_count: 0
                         })
                         .collect(),
-                    children_expanded_count: if i == 0 { vars.len() } else { 0 },
+                    children_expanded_count: if i == 0 { vars.len() } else { 0 }
                 })
                 .collect();
             dap_var.children_expanded_count = dap_var
@@ -376,12 +373,12 @@ impl DapData {
                         var.children = varialbes
                             .into_iter()
                             .map(|v| DapVariable {
-                                item: ScopeOrVar::Var(v),
-                                parent: new_parent.clone(),
-                                expanded: false,
-                                read: false,
-                                children: Vec::new(),
-                                children_expanded_count: 0,
+                                item:                    ScopeOrVar::Var(v),
+                                parent:                  new_parent.clone(),
+                                expanded:                false,
+                                read:                    false,
+                                children:                Vec::new(),
+                                children_expanded_count: 0
                             })
                             .collect();
                         root.update_count_recursive(&parent, reference);
@@ -394,16 +391,16 @@ impl DapData {
             reference,
             move |(_, result)| {
                 send(result);
-            },
+            }
         );
     }
 }
 
 pub struct DapVariableViewdata {
-    pub item: ScopeOrVar,
-    pub parent: Vec<usize>,
+    pub item:     ScopeOrVar,
+    pub parent:   Vec<usize>,
     pub expanded: bool,
-    pub level: usize,
+    pub level:    usize
 }
 
 impl VirtualVector<DapVariableViewdata> for DapVariable {
@@ -413,7 +410,7 @@ impl VirtualVector<DapVariableViewdata> for DapVariable {
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>,
+        range: std::ops::Range<usize>
     ) -> impl Iterator<Item = DapVariableViewdata> {
         let min = range.start;
         let max = range.end;
@@ -437,7 +434,7 @@ impl DapVariable {
         min: usize,
         max: usize,
         current: usize,
-        level: usize,
+        level: usize
     ) -> usize {
         if current > max {
             return current;
@@ -452,7 +449,7 @@ impl DapVariable {
                 item: self.item.clone(),
                 parent: self.parent.clone(),
                 expanded: self.expanded,
-                level,
+                level
             });
         }
 
@@ -470,7 +467,7 @@ impl DapVariable {
     pub fn get_var_mut(
         &mut self,
         parent: &[usize],
-        reference: usize,
+        reference: usize
     ) -> Option<&mut DapVariable> {
         let parent = if parent.is_empty() {
             self
@@ -503,7 +500,7 @@ impl DapVariable {
     pub fn update_count(
         &mut self,
         parent: &[usize],
-        reference: usize,
+        reference: usize
     ) -> Option<()> {
         let var = self.get_var_mut(parent, reference)?;
         var.children_expanded_count = if var.expanded {
@@ -521,23 +518,23 @@ impl DapVariable {
 pub enum BreakpointAction<'a> {
     Remove {
         path: &'a Path,
-        line: usize,
+        line: usize
     },
     Add {
-        path: &'a Path,
-        line: usize,
-        offset: usize,
+        path:   &'a Path,
+        line:   usize,
+        offset: usize
     },
     Toggle {
         path: &'a Path,
-        line: usize,
-    },
+        line: usize
+    }
 }
 pub fn update_breakpoints(
     daps: RwSignal<im::HashMap<DapId, DapData>>,
     proxy: ProxyRpcHandler,
     breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
-    action: BreakpointAction,
+    action: BreakpointAction
 ) {
     let (path_breakpoints, path) = match action {
         BreakpointAction::Remove { path, line } => breakpoints
@@ -566,7 +563,7 @@ pub fn update_breakpoints(
                         line,
                         offset,
                         dap_line: None,
-                        active: true,
+                        active: true
                     });
                 } else {
                     let mut toggle_active = false;
@@ -591,7 +588,7 @@ pub fn update_breakpoints(
                 }
                 (breakpoints.clone(), path)
             })
-            .unwrap(),
+            .unwrap()
     };
 
     let source_breakpoints: Vec<SourceBreakpoint> = path_breakpoints
@@ -599,11 +596,11 @@ pub fn update_breakpoints(
         .filter_map(|(_, b)| {
             if b.active {
                 Some(SourceBreakpoint {
-                    line: b.line + 1,
-                    column: None,
-                    condition: None,
+                    line:          b.line + 1,
+                    column:        None,
+                    condition:     None,
                     hit_condition: None,
-                    log_message: None,
+                    log_message:   None
                 })
             } else {
                 None
@@ -616,7 +613,7 @@ pub fn update_breakpoints(
         proxy.dap_set_breakpoints(
             dap_id,
             path.to_path_buf(),
-            source_breakpoints.clone(),
+            source_breakpoints.clone()
         );
     }
 }
@@ -643,7 +640,7 @@ mod tests {
                         variables_reference: 4,
                         ..Default::default()
                     },
-                ],
+                ]
             ),
             (
                 Scope {
@@ -659,7 +656,7 @@ mod tests {
                         variables_reference: 6,
                         ..Default::default()
                     },
-                ],
+                ]
             ),
             (
                 Scope {
@@ -675,37 +672,37 @@ mod tests {
                         variables_reference: 8,
                         ..Default::default()
                     },
-                ],
+                ]
             ),
         ];
 
         let mut root = DapVariable {
-            item: ScopeOrVar::Scope(Scope::default()),
-            parent: Vec::new(),
-            expanded: true,
-            read: true,
-            children: variables
+            item:                    ScopeOrVar::Scope(Scope::default()),
+            parent:                  Vec::new(),
+            expanded:                true,
+            read:                    true,
+            children:                variables
                 .iter()
                 .map(|(scope, vars)| DapVariable {
-                    item: ScopeOrVar::Scope(scope.to_owned()),
-                    parent: Vec::new(),
-                    expanded: true,
-                    read: true,
-                    children: vars
+                    item:                    ScopeOrVar::Scope(scope.to_owned()),
+                    parent:                  Vec::new(),
+                    expanded:                true,
+                    read:                    true,
+                    children:                vars
                         .iter()
                         .map(|var| DapVariable {
-                            item: ScopeOrVar::Var(var.to_owned()),
-                            parent: vec![scope.variables_reference],
-                            expanded: false,
-                            read: false,
-                            children: Vec::new(),
-                            children_expanded_count: 0,
+                            item:                    ScopeOrVar::Var(var.to_owned()),
+                            parent:                  vec![scope.variables_reference],
+                            expanded:                false,
+                            read:                    false,
+                            children:                Vec::new(),
+                            children_expanded_count: 0
                         })
                         .collect(),
-                    children_expanded_count: vars.len(),
+                    children_expanded_count: vars.len()
                 })
                 .collect(),
-            children_expanded_count: 0,
+            children_expanded_count: 0
         };
         root.children_expanded_count = root
             .children
@@ -729,12 +726,12 @@ mod tests {
         ]
         .iter()
         .map(|var| DapVariable {
-            item: ScopeOrVar::Var(var.to_owned()),
-            parent: vec![0, 3],
-            expanded: false,
-            read: false,
-            children: Vec::new(),
-            children_expanded_count: 0,
+            item:                    ScopeOrVar::Var(var.to_owned()),
+            parent:                  vec![0, 3],
+            expanded:                false,
+            read:                    false,
+            children:                Vec::new(),
+            children_expanded_count: 0
         })
         .collect();
         root.update_count_recursive(&[0], 3);

@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 
-use log::{error, Level};
+use log::error;
 use url::Url;
 
 // Rust-analyzer returns paths in the form of "file:///<drive>:/...", which gets parsed into URL
-// as "/<drive>://" which is then interpreted by PathBuf::new() as a UNIX-like path from root.
-// This function strips the additional / from the beginning, if the first segment is a drive letter.
+// as "/<drive>://" which is then interpreted by PathBuf::new() as a UNIX-like
+// path from root. This function strips the additional / from the beginning, if
+// the first segment is a drive letter.
 #[cfg(windows)]
 pub fn path_from_url(url: &Url) -> PathBuf {
     use percent_encoding::percent_decode_str;
@@ -45,7 +46,7 @@ pub fn path_from_url(url: &Url) -> PathBuf {
                     Some(':') => {
                         // event!(Level::DEBUG, "Returning path `{:?}`", path);
                         return PathBuf::from(path);
-                    }
+                    },
                     v => {
                         error!("Unhandled 'maybe_drive_letter' chars: {v:?}");
                     }
@@ -56,9 +57,12 @@ pub fn path_from_url(url: &Url) -> PathBuf {
                         // event!(Level::DEBUG, "Returning path `{:?}`", path);
                         return PathBuf::from(path);
                     } else {
-                        error!("Unhandled 'maybe_drive_letter' pattern: {maybe_drive_letter:?}");
+                        error!(
+                            "Unhandled 'maybe_drive_letter' pattern: \
+                             {maybe_drive_letter:?}"
+                        );
                     }
-                }
+                },
                 v => {
                     error!("Unhandled 'maybe_drive_letter' length: {v}");
                 }

@@ -5,7 +5,7 @@ use anyhow::Result;
 #[derive(Debug)]
 struct ReleaseInfo {
     version: String,
-    branch: String,
+    branch:  String
 }
 
 fn main() -> Result<()> {
@@ -44,7 +44,7 @@ fn get_info() -> Result<ReleaseInfo> {
     if env::var("CARGO_FEATURE_DISTRIBUTION").is_ok() {
         return Ok(ReleaseInfo {
             version: cargo_tag.to_string(),
-            branch: String::from("Stable"),
+            branch:  String::from("Stable")
         });
     }
 
@@ -54,7 +54,7 @@ fn get_info() -> Result<ReleaseInfo> {
         if release_tag.starts_with('v') {
             ReleaseInfo {
                 version: cargo_tag.to_string(),
-                branch: "Stable".to_string(),
+                branch:  "Stable".to_string()
             }
         } else {
             #[cfg(not(debug_assertions))]
@@ -68,7 +68,7 @@ fn get_info() -> Result<ReleaseInfo> {
             );
             ReleaseInfo {
                 version: tag,
-                branch: release.to_string(),
+                branch:  release.to_string()
             }
         }
     };

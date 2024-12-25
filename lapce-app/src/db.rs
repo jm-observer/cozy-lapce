@@ -1,11 +1,11 @@
 use std::{
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc,
+    sync::Arc
 };
 
-use anyhow::{anyhow, Result};
-use crossbeam_channel::{unbounded, Sender};
+use anyhow::{Result, anyhow};
+use crossbeam_channel::{Sender, unbounded};
 use floem::{peniko::kurbo::Vec2, reactive::SignalGet};
 use lapce_core::directory::Directory;
 use lapce_rpc::plugin::VoltID;
@@ -17,7 +17,7 @@ use crate::{
     panel::{data::PanelOrder, kind::PanelKind},
     window::{WindowData, WindowInfo},
     window_tab::WindowTabData,
-    workspace::{LapceWorkspace, WorkspaceInfo},
+    workspace::{LapceWorkspace, WorkspaceInfo}
 };
 
 const APP: &str = "app";
@@ -35,14 +35,14 @@ pub enum SaveEvent {
     Doc(DocInfo),
     DisabledVolts(Vec<VoltID>),
     WorkspaceDisabledVolts(Arc<LapceWorkspace>, Vec<VoltID>),
-    PanelOrder(PanelOrder),
+    PanelOrder(PanelOrder)
 }
 
 #[derive(Clone)]
 pub struct LapceDb {
-    folder: PathBuf,
+    folder:           PathBuf,
     workspace_folder: PathBuf,
-    save_tx: Sender<SaveEvent>,
+    save_tx:          Sender<SaveEvent>
 }
 
 impl LapceDb {
@@ -60,7 +60,7 @@ impl LapceDb {
         let db = Self {
             save_tx,
             workspace_folder,
-            folder,
+            folder
         };
         let local_db = db.clone();
         std::thread::Builder::new()
@@ -73,38 +73,38 @@ impl LapceDb {
                             if let Err(err) = local_db.insert_app_info(info) {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::Workspace(workspace, info) => {
                             if let Err(err) =
                                 local_db.insert_workspace(&workspace, &info)
                             {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::RecentWorkspace(workspace) => {
                             if let Err(err) =
                                 local_db.insert_recent_workspace(workspace)
                             {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::Doc(info) => {
                             if let Err(err) = local_db.insert_doc(&info) {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::DisabledVolts(volts) => {
                             if let Err(err) = local_db.insert_disabled_volts(volts) {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::WorkspaceDisabledVolts(workspace, volts) => {
                             if let Err(err) = local_db
                                 .insert_workspace_disabled_volts(workspace, volts)
                             {
                                 log::error!("{:?}", err);
                             }
-                        }
+                        },
                         SaveEvent::PanelOrder(order) => {
                             if let Err(err) = local_db.insert_panel_orders(&order) {
                                 log::error!("{:?}", err);
@@ -132,7 +132,7 @@ impl LapceDb {
     pub fn save_workspace_disabled_volts(
         &self,
         workspace: Arc<LapceWorkspace>,
-        volts: Vec<VoltID>,
+        volts: Vec<VoltID>
     ) {
         if let Err(err) = self
             .save_tx
@@ -151,7 +151,7 @@ impl LapceDb {
     pub fn insert_workspace_disabled_volts(
         &self,
         workspace: Arc<LapceWorkspace>,
-        volts: Vec<VoltID>,
+        volts: Vec<VoltID>
     ) -> Result<()> {
         let folder = self
             .workspace_folder
@@ -167,7 +167,7 @@ impl LapceDb {
 
     pub fn get_workspace_disabled_volts(
         &self,
-        workspace: &LapceWorkspace,
+        workspace: &LapceWorkspace
     ) -> Result<Vec<VoltID>> {
         let folder = self.workspace_folder.join(workspace_folder_name(workspace));
         let volts = std::fs::read_to_string(folder.join(DISABLED_VOLTS))?;
@@ -233,12 +233,12 @@ impl LapceDb {
 
     pub fn get_workspace_info(
         &self,
-        workspace: &LapceWorkspace,
+        workspace: &LapceWorkspace
     ) -> Result<WorkspaceInfo> {
         let info = std::fs::read_to_string(
             self.workspace_folder
                 .join(workspace_folder_name(workspace))
-                .join(WORKSPACE_INFO),
+                .join(WORKSPACE_INFO)
         )?;
         let info: WorkspaceInfo = serde_json::from_str(&info)?;
         Ok(info)
@@ -247,7 +247,7 @@ impl LapceDb {
     fn insert_workspace(
         &self,
         workspace: &LapceWorkspace,
-        info: &WorkspaceInfo,
+        info: &WorkspaceInfo
     ) -> Result<()> {
         let folder = self.workspace_folder.join(workspace_folder_name(workspace));
         if let Err(err) = std::fs::create_dir_all(&folder) {
@@ -270,7 +270,7 @@ impl LapceDb {
             windows: windows
                 .iter()
                 .map(|(_, window_data)| window_data.info())
-                .collect(),
+                .collect()
         };
         if info.windows.is_empty() {
             return Ok(());
@@ -290,7 +290,8 @@ impl LapceDb {
     pub fn insert_app(&self, data: AppData) -> Result<()> {
         let windows = data.windows.get_untracked();
         if windows.is_empty() {
-            // insert_app is called after window is closed, so we don't want to store it
+            // insert_app is called after window is closed, so we don't want to store
+            // it
             return Ok(());
         }
         for (_, window) in &windows {
@@ -302,7 +303,7 @@ impl LapceDb {
             windows: windows
                 .iter()
                 .map(|(_, window_data)| window_data.info())
-                .collect(),
+                .collect()
         };
         self.insert_app_info(info)?;
         Ok(())
@@ -398,13 +399,13 @@ impl LapceDb {
         workspace: &LapceWorkspace,
         path: PathBuf,
         cursor_offset: usize,
-        scroll_offset: Vec2,
+        scroll_offset: Vec2
     ) {
         let info = DocInfo {
             workspace: workspace.clone(),
             path,
             scroll_offset: (scroll_offset.x, scroll_offset.y),
-            cursor_offset,
+            cursor_offset
         };
         if let Err(err) = self.save_tx.send(SaveEvent::Doc(info)) {
             log::error!("{:?}", err);
@@ -427,7 +428,7 @@ impl LapceDb {
     pub fn get_doc_info(
         &self,
         workspace: &LapceWorkspace,
-        path: &Path,
+        path: &Path
     ) -> Result<DocInfo> {
         let folder = self
             .workspace_folder

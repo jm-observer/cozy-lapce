@@ -1,9 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
-use floem::views::editor::core::mode::Modes;
 use floem::{
     keyboard::{Key, KeyCode, Modifiers, NamedKey, PhysicalKey},
     pointer::PointerButton,
+    views::editor::core::mode::Modes
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -11,22 +11,22 @@ pub enum KeymapMatch {
     Full(String),
     Multiple(Vec<String>),
     Prefix,
-    None,
+    None
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct KeyMap {
-    pub key: Vec<KeyMapPress>,
-    pub modes: Modes,
-    pub when: Option<String>,
-    pub command: String,
+    pub key:     Vec<KeyMapPress>,
+    pub modes:   Modes,
+    pub when:    Option<String>,
+    pub command: String
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Ord, PartialOrd)]
 pub enum KeyMapKey {
     Pointer(PointerButton),
     Logical(Key),
-    Physical(PhysicalKey),
+    Physical(PhysicalKey)
 }
 
 impl std::hash::Hash for KeyMapKey {
@@ -34,15 +34,15 @@ impl std::hash::Hash for KeyMapKey {
         match self {
             Self::Pointer(btn) => (*btn as u8).hash(state),
             Self::Logical(key) => key.hash(state),
-            Self::Physical(physical) => physical.hash(state),
+            Self::Physical(physical) => physical.hash(state)
         }
     }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Ord, PartialOrd)]
 pub struct KeyMapPress {
-    pub key: KeyMapKey,
-    pub mods: Modifiers,
+    pub key:  KeyMapKey,
+    pub mods: Modifiers
 }
 
 impl KeyMapPress {
@@ -101,7 +101,7 @@ impl KeyMapPress {
             let keyname = match std::env::consts::OS {
                 "macos" => "Cmd+",
                 "windows" => "Win+",
-                _ => "Meta+",
+                _ => "Meta+"
             };
             keys.push_str(keyname);
         }
@@ -122,7 +122,7 @@ impl KeyMapPress {
                 } else {
                     match k.rsplit_once('+') {
                         Some(pair) => pair,
-                        None => ("", k),
+                        None => ("", k)
                     }
                 };
 
@@ -144,7 +144,7 @@ impl KeyMapPress {
                         "alt" => mods.set(Modifiers::ALT, true),
                         "altgr" => mods.set(Modifiers::ALTGR, true),
                         "" => (),
-                        other => log::warn!("Invalid key modifier: {}", other),
+                        other => log::warn!("Invalid key modifier: {}", other)
                     }
                 }
 
@@ -232,7 +232,7 @@ impl FromStr for KeyMapKey {
                     return Err(anyhow::anyhow!(
                         "unrecognized physical key code {}",
                         &s[1..s.len() - 2]
-                    ))
+                    ));
                 }
             };
             KeyMapKey::Physical(PhysicalKey::Code(code))
@@ -306,7 +306,7 @@ impl FromStr for KeyMapKey {
                 "f12" => Key::Named(NamedKey::F12),
                 "mediastop" => Key::Named(NamedKey::MediaStop),
                 "open" => Key::Named(NamedKey::Open),
-                _ => Key::Character(s.to_lowercase().into()),
+                _ => Key::Character(s.to_lowercase().into())
             };
             KeyMapKey::Logical(key)
         };
@@ -356,16 +356,16 @@ impl Display for KeyMapKey {
                     PhysicalKey::Unidentified(_) => f.write_str("Unidentified"),
                     PhysicalKey::Code(KeyCode::Backquote) => {
                         f.write_str("Backquote")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Backslash) => {
                         f.write_str("Backslash")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BracketLeft) => {
                         f.write_str("BracketLeft")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BracketRight) => {
                         f.write_str("BracketRight")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Comma) => f.write_str("Comma"),
                     PhysicalKey::Code(KeyCode::Digit0) => f.write_str("0"),
                     PhysicalKey::Code(KeyCode::Digit1) => f.write_str("1"),
@@ -380,7 +380,7 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::Equal) => f.write_str("Equal"),
                     PhysicalKey::Code(KeyCode::IntlBackslash) => {
                         f.write_str("IntlBackslash")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::IntlRo) => f.write_str("IntlRo"),
                     PhysicalKey::Code(KeyCode::IntlYen) => f.write_str("IntlYen"),
                     PhysicalKey::Code(KeyCode::KeyA) => f.write_str("A"),
@@ -414,17 +414,17 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::Quote) => f.write_str("Quote"),
                     PhysicalKey::Code(KeyCode::Semicolon) => {
                         f.write_str("Semicolon")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Slash) => f.write_str("Slash"),
                     PhysicalKey::Code(KeyCode::AltLeft) => f.write_str("Alt"),
                     PhysicalKey::Code(KeyCode::AltRight) => f.write_str("Alt"),
                     PhysicalKey::Code(KeyCode::Backspace) => {
                         f.write_str("Backspace")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::CapsLock) => f.write_str("CapsLock"),
                     PhysicalKey::Code(KeyCode::ContextMenu) => {
                         f.write_str("ContextMenu")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::ControlLeft) => f.write_str("Ctrl"),
                     PhysicalKey::Code(KeyCode::ControlRight) => f.write_str("Ctrl"),
                     PhysicalKey::Code(KeyCode::Enter) => f.write_str("Enter"),
@@ -443,7 +443,7 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::Lang5) => f.write_str("Lang5"),
                     PhysicalKey::Code(KeyCode::NonConvert) => {
                         f.write_str("NonConvert")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Delete) => f.write_str("Delete"),
                     PhysicalKey::Code(KeyCode::End) => f.write_str("End"),
                     PhysicalKey::Code(KeyCode::Help) => f.write_str("Help"),
@@ -468,136 +468,136 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::Numpad9) => f.write_str("Numpad9"),
                     PhysicalKey::Code(KeyCode::NumpadAdd) => {
                         f.write_str("NumpadAdd")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadBackspace) => {
                         f.write_str("NumpadBackspace")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadClear) => {
                         f.write_str("NumpadClear")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadClearEntry) => {
                         f.write_str("NumpadClearEntry")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadComma) => {
                         f.write_str("NumpadComma")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadDecimal) => {
                         f.write_str("NumpadDecimal")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadDivide) => {
                         f.write_str("NumpadDivide")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadEnter) => {
                         f.write_str("NumpadEnter")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadEqual) => {
                         f.write_str("NumpadEqual")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadHash) => {
                         f.write_str("NumpadHash")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMemoryAdd) => {
                         f.write_str("NumpadMemoryAdd")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMemoryClear) => {
                         f.write_str("NumpadMemoryClear")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMemoryRecall) => {
                         f.write_str("NumpadMemoryRecall")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMemoryStore) => {
                         f.write_str("NumpadMemoryStore")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMemorySubtract) => {
                         f.write_str("NumpadMemorySubtract")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadMultiply) => {
                         f.write_str("NumpadMultiply")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadParenLeft) => {
                         f.write_str("NumpadParenLeft")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadParenRight) => {
                         f.write_str("NumpadParenRight")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadStar) => {
                         f.write_str("NumpadStar")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::NumpadSubtract) => {
                         f.write_str("NumpadSubtract")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Escape) => f.write_str("Escape"),
                     PhysicalKey::Code(KeyCode::Fn) => f.write_str("Fn"),
                     PhysicalKey::Code(KeyCode::FnLock) => f.write_str("FnLock"),
                     PhysicalKey::Code(KeyCode::PrintScreen) => {
                         f.write_str("PrintScreen")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::ScrollLock) => {
                         f.write_str("ScrollLock")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Pause) => f.write_str("Pause"),
                     PhysicalKey::Code(KeyCode::BrowserBack) => {
                         f.write_str("BrowserBack")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserFavorites) => {
                         f.write_str("BrowserFavorites")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserForward) => {
                         f.write_str("BrowserForward")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserHome) => {
                         f.write_str("BrowserHome")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserRefresh) => {
                         f.write_str("BrowserRefresh")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserSearch) => {
                         f.write_str("BrowserSearch")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::BrowserStop) => {
                         f.write_str("BrowserStop")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Eject) => f.write_str("Eject"),
                     PhysicalKey::Code(KeyCode::LaunchApp1) => {
                         f.write_str("LaunchApp1")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::LaunchApp2) => {
                         f.write_str("LaunchApp2")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::LaunchMail) => {
                         f.write_str("LaunchMail")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::MediaPlayPause) => {
                         f.write_str("MediaPlayPause")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::MediaSelect) => {
                         f.write_str("MediaSelect")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::MediaStop) => {
                         f.write_str("MediaStop")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::MediaTrackNext) => {
                         f.write_str("MediaTrackNext")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::MediaTrackPrevious) => {
                         f.write_str("MediaTrackPrevious")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::Power) => f.write_str("Power"),
                     PhysicalKey::Code(KeyCode::Sleep) => f.write_str("Sleep"),
                     PhysicalKey::Code(KeyCode::AudioVolumeDown) => {
                         f.write_str("AudioVolumeDown")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::AudioVolumeMute) => {
                         f.write_str("AudioVolumeMute")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::AudioVolumeUp) => {
                         f.write_str("AudioVolumeUp")
-                    }
+                    },
                     PhysicalKey::Code(KeyCode::WakeUp) => f.write_str("WakeUp"),
                     PhysicalKey::Code(KeyCode::Meta) => match std::env::consts::OS {
                         "macos" => f.write_str("Cmd"),
                         "windows" => f.write_str("Win"),
-                        _ => f.write_str("Meta"),
+                        _ => f.write_str("Meta")
                     },
                     PhysicalKey::Code(KeyCode::Hyper) => f.write_str("Hyper"),
                     PhysicalKey::Code(KeyCode::Turbo) => f.write_str("Turbo"),
@@ -650,10 +650,10 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::F33) => f.write_str("F33"),
                     PhysicalKey::Code(KeyCode::F34) => f.write_str("F34"),
                     PhysicalKey::Code(KeyCode::F35) => f.write_str("F35"),
-                    _ => f.write_str("Unidentified"),
+                    _ => f.write_str("Unidentified")
                 }?;
                 f.write_str("]")
-            }
+            },
             Self::Logical(key) => match key {
                 Key::Named(key) => match key {
                     NamedKey::Backspace => f.write_str("Backspace"),
@@ -690,16 +690,16 @@ impl Display for KeyMapKey {
                     NamedKey::F10 => f.write_str("F10"),
                     NamedKey::F11 => f.write_str("F11"),
                     NamedKey::F12 => f.write_str("F12"),
-                    _ => f.write_str("Unidentified"),
+                    _ => f.write_str("Unidentified")
                 },
                 Key::Character(s) => f.write_str(s),
                 Key::Unidentified(_) => f.write_str("Unidentified"),
-                Key::Dead(_) => f.write_str("dead"),
+                Key::Dead(_) => f.write_str("dead")
             },
             Self::Pointer(B::Auxiliary) => f.write_str("MouseMiddle"),
             Self::Pointer(B::X2) => f.write_str("MouseForward"),
             Self::Pointer(B::X1) => f.write_str("MouseBackward"),
-            Self::Pointer(_) => f.write_str("MouseUnimplemented"),
+            Self::Pointer(_) => f.write_str("MouseUnimplemented")
         }
     }
 }

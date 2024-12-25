@@ -1,10 +1,3 @@
-use doc::language::LapceLanguage;
-use doc::lines::fold::FoldingRange;
-use doc::lines::screen_lines::ScreenLines;
-use doc::lines::{DocLinesManager, RopeTextPosition};
-use doc::syntax::edit::SyntaxEdit;
-use doc::syntax::{BracketParser, Syntax};
-use doc::{DiagnosticData, EditorViewKind};
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -12,88 +5,75 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{
-        atomic::{self, AtomicUsize},
-        Arc,
-    },
+    sync::atomic::{self}
 };
 
-use doc::lines::buffer::rope_text::RopeTextVal;
-use doc::lines::edit::EditType;
-use doc::lines::line_ending::LineEnding;
-use doc::lines::{
-    buffer::{
-        diff::{rope_diff, DiffLines},
-        rope_text::RopeText,
-        Buffer, InvalLines,
+use anyhow::Result;
+use doc::{
+    DiagnosticData, EditorViewKind,
+    language::LapceLanguage,
+    lines::{
+        DocLinesManager, RopeTextPosition,
+        buffer::{
+            Buffer, InvalLines,
+            diff::{DiffLines, rope_diff},
+            rope_text::{RopeText, RopeTextVal}
+        },
+        cursor::Cursor,
+        edit::EditType,
+        fold::FoldingRange,
+        line_ending::LineEnding,
+        screen_lines::ScreenLines,
+        selection::{InsertDrift, Selection},
+        word::WordCursor
     },
-    cursor::{Cursor, CursorAffinity},
-    selection::{InsertDrift, Selection},
-    word::{get_char_property, CharClassification, WordCursor},
+    syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
-use floem::kurbo::Rect;
-use floem::reactive::Trigger;
 use floem::{
+    ViewId,
     ext_event::create_ext_action,
     keyboard::Modifiers,
-    peniko::Color,
-    reactive::{
-        batch, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-    },
+    kurbo::Rect,
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch},
     text::FamilyOwned,
     views::editor::{
-        command::{Command, CommandExecuted},
-        id::EditorId,
-        phantom_text::{PhantomText, PhantomTextKind, PhantomTextLine},
-        text::{Document, DocumentPhantom, PreeditData, Styling, SystemClipboard},
-        view::ScreenLinesBase,
         EditorStyle,
-    },
-    ViewId,
+        command::{Command, CommandExecuted},
+        core::{
+            char_buffer::CharBuffer, command::EditCommand, mode::MotionMode,
+            register::Register
+        },
+        id::EditorId,
+        text::{PreeditData},
+        view::ScreenLinesBase
+    }
 };
 use itertools::Itertools;
 use lapce_core::directory::Directory;
-
-use lapce_rpc::{
-    buffer::BufferId,
-    plugin::PluginId,
-    proxy::ProxyResponse,
-    style::{LineStyle, LineStyles, Style},
-};
-use lapce_xi_rope::{
-    spans::{Spans, SpansBuilder},
-    Interval, Rope, RopeDelta, Transformer,
-};
+use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
+use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
 use log::{error, info};
-use lsp_types::{
-    CodeActionOrCommand, CodeLens, Diagnostic, DocumentSymbolResponse, TextEdit,
-};
+use lsp_types::{CodeActionOrCommand, CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::debug::LapceBreakpoint;
-use crate::editor::editor::{CommonAction, CursorInfo, Editor};
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
-    config::LapceConfig,
+    debug::LapceBreakpoint,
     editor::{
-        location::{EditorLocation, EditorPosition},
         EditorData,
+        editor::{CommonAction, CursorInfo, Editor},
+        location::{EditorLocation, EditorPosition}
     },
     find::{Find, FindProgress, FindResult},
     history::DocumentHistory,
     keypress::KeyPressFocus,
     main_split::Editors,
     panel::document_symbol::{
-        DocumentSymbolViewData, SymbolData, SymbolInformationItemData,
+        DocumentSymbolViewData, SymbolData, SymbolInformationItemData
     },
     window_tab::{CommonData, Focus, SignalManager},
-    workspace::LapceWorkspace,
-};
-use anyhow::Result;
-use floem::views::editor::core::{
-    char_buffer::CharBuffer, command::EditCommand, editor::Action,
-    indent::IndentStyle, mode::MotionMode, register::Register,
+    workspace::LapceWorkspace
 };
 
 // #[derive(Clone, Debug)]
@@ -105,14 +85,14 @@ use floem::views::editor::core::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorDiagnostic {
-    pub range: Option<(usize, usize)>,
-    pub diagnostic: Diagnostic,
+    pub range:      Option<(usize, usize)>,
+    pub diagnostic: Diagnostic
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
 pub struct DocHistory {
-    pub path: PathBuf,
-    pub version: String,
+    pub path:    PathBuf,
+    pub version: String
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
@@ -124,7 +104,7 @@ pub enum DocContent {
     /// A document of an old version in the source control
     History(DocHistory),
     /// A new file which doesn't exist in the file system
-    Scratch { id: BufferId, name: String },
+    Scratch { id: BufferId, name: String }
 }
 
 impl DocContent {
@@ -141,7 +121,7 @@ impl DocContent {
             DocContent::File { read_only, .. } => *read_only,
             DocContent::Local => false,
             DocContent::History(_) => true,
-            DocContent::Scratch { .. } => false,
+            DocContent::Scratch { .. } => false
         }
     }
 
@@ -150,17 +130,17 @@ impl DocContent {
             DocContent::File { path, .. } => Some(path),
             DocContent::Local => None,
             DocContent::History(_) => None,
-            DocContent::Scratch { .. } => None,
+            DocContent::Scratch { .. } => None
         }
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DocInfo {
-    pub workspace: LapceWorkspace,
-    pub path: PathBuf,
+    pub workspace:     LapceWorkspace,
+    pub path:          PathBuf,
     pub scroll_offset: (f64, f64),
-    pub cursor_offset: usize,
+    pub cursor_offset: usize
 }
 
 /// (Offset -> (Plugin the code actions are from, Code Actions))
@@ -171,15 +151,16 @@ pub type AllCodeLens = im::HashMap<usize, (PluginId, usize, im::Vector<CodeLens>
 
 #[derive(Clone)]
 pub struct Doc {
-    pub editor_id: EditorId,
-    pub name: Option<String>,
-    pub scope: Scope,
-    pub buffer_id: BufferId,
-    pub content: RwSignal<DocContent>,
-    pub cache_rev: RwSignal<u64>,
-    /// Whether the buffer's content has been loaded/initialized into the buffer.
-    pub loaded: RwSignal<bool>,
-    pub kind: RwSignal<EditorViewKind>,
+    pub editor_id:    EditorId,
+    pub name:         Option<String>,
+    pub scope:        Scope,
+    pub buffer_id:    BufferId,
+    pub content:      RwSignal<DocContent>,
+    pub cache_rev:    RwSignal<u64>,
+    /// Whether the buffer's content has been loaded/initialized into the
+    /// buffer.
+    pub loaded:       RwSignal<bool>,
+    pub kind:         RwSignal<EditorViewKind>,
     // pub syntax: RwSignal<Syntax>,
     // semantic_styles: RwSignal<Option<Spans<Style>>>,
     // semantic_previous_rs_id: RwSignal<Option<String>>,
@@ -203,19 +184,21 @@ pub struct Doc {
     pub code_lens: RwSignal<AllCodeLens>,
 
     // pub folding_ranges: RwSignal<FoldingRanges>,
-    /// Stores information about different versions of the document from source control.
-    histories: RwSignal<im::HashMap<String, DocumentHistory>>,
+    /// Stores information about different versions of the document from source
+    /// control.
+    histories:        RwSignal<im::HashMap<String, DocumentHistory>>,
     pub head_changes: RwSignal<im::Vector<DiffLines>>,
 
     // line_styles: Rc<RefCell<LineStyles>>,
     // pub parser: Rc<RefCell<BracketParser>>,
-    /// A cache for the sticky headers which maps a line to the lines it should show in the header.
+    /// A cache for the sticky headers which maps a line to the lines it should
+    /// show in the header.
     pub sticky_headers: Rc<RefCell<HashMap<usize, Option<Vec<usize>>>>>,
 
     // pub preedit: PreeditData,
     pub find_result: FindResult,
 
-    editors: Editors,
+    editors:    Editors,
     pub common: Rc<CommonData>,
 
     pub document_symbol_data: DocumentSymbolViewData,
@@ -223,8 +206,7 @@ pub struct Doc {
     // pub lines: RwSignal<Lines>,
     // pub editor_style: RwSignal<EditorStyle>,
     // pub viewport: RwSignal<Rect>,
-    pub lines: DocLinesManager,
-    // pub screen_lines: RwSignal<ScreenLines>,
+    pub lines: DocLinesManager // pub screen_lines: RwSignal<ScreenLines>,
 }
 impl Doc {
     pub fn new(
@@ -232,7 +214,7 @@ impl Doc {
         path: PathBuf,
         diagnostics: DiagnosticData,
         editors: Editors,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let editor_id = EditorId::next();
         let queries_directory = Directory::queries_directory().unwrap();
@@ -251,13 +233,13 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit,
+                config.editor.bracket_colorization_limit
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
-            kind,
+            kind
         )
         .unwrap();
         let config = common.config;
@@ -281,7 +263,7 @@ impl Doc {
             cache_rev: cx.create_rw_signal(0),
             content: cx.create_rw_signal(DocContent::File {
                 path,
-                read_only: false,
+                read_only: false
             }),
             loaded: cx.create_rw_signal(false),
             histories: cx.create_rw_signal(im::HashMap::new()),
@@ -296,7 +278,7 @@ impl Doc {
             document_symbol_data: DocumentSymbolViewData::new(cx),
             // folding_ranges: cx.create_rw_signal(FoldingRanges::default()),
             // semantic_previous_rs_id: cx.create_rw_signal(None),
-            lines,
+            lines
         }
     }
 
@@ -304,7 +286,7 @@ impl Doc {
         cx: Scope,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>,
+        name: Option<String>
     ) -> Doc {
         Self::new_content(cx, DocContent::Local, editors, common, name)
     }
@@ -314,7 +296,7 @@ impl Doc {
         content: DocContent,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>,
+        name: Option<String>
     ) -> Self {
         let editor_id = EditorId::next();
         let cx = cx.create_child();
@@ -323,9 +305,9 @@ impl Doc {
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let diagnostics = DiagnosticData {
-            expanded: cx.create_rw_signal(true),
-            diagnostics: cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
+            expanded:         cx.create_rw_signal(true),
+            diagnostics:      cx.create_rw_signal(im::Vector::new()),
+            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
         };
         let queries_directory = Directory::queries_directory().unwrap();
         let grammars_directory = Directory::grammars_directory().unwrap();
@@ -340,13 +322,13 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit,
+                config.editor.bracket_colorization_limit
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
-            kind,
+            kind
         )
         .unwrap();
         let config = common.config;
@@ -377,7 +359,7 @@ impl Doc {
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
-            lines,
+            lines
         }
     }
 
@@ -385,7 +367,7 @@ impl Doc {
         cx: Scope,
         content: DocContent,
         editors: Editors,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let editor_id = EditorId::next();
         let config = common.config.get_untracked();
@@ -402,9 +384,9 @@ impl Doc {
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let diagnostics = DiagnosticData {
-            expanded: cx.create_rw_signal(true),
-            diagnostics: cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
+            expanded:         cx.create_rw_signal(true),
+            diagnostics:      cx.create_rw_signal(im::Vector::new()),
+            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
         };
         let buffer = Buffer::new("");
         let kind = cx.create_rw_signal(EditorViewKind::Normal);
@@ -416,13 +398,13 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit,
+                config.editor.bracket_colorization_limit
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
-            kind,
+            kind
         )
         .unwrap();
         let config = common.config;
@@ -467,7 +449,7 @@ impl Doc {
             // lines,
             // viewport,
             // editor_style,
-            lines,
+            lines
         }
     }
 
@@ -479,8 +461,8 @@ impl Doc {
     //     })
     // }
 
-    /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to be registered
-    /// appropriately to create the [`EditorData`] and such.
+    /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to
+    /// be registered appropriately to create the [`EditorData`] and such.
     pub fn create_editor(self: &Rc<Doc>, cx: Scope, is_local: bool) -> Editor {
         let common = &self.common;
         let config = common.config.get_untracked();
@@ -491,9 +473,12 @@ impl Doc {
         // common, to avoid recreating them everytime.
         let cursor_info = CursorInfo {
             blink_interval: Rc::new(move || config.editor.blink_interval()),
-            blink_timer: common.window_common.cursor_blink_timer,
-            hidden: common.window_common.hide_cursor,
-            should_blink: Rc::new(should_blink(common.focus, common.keyboard_focus)),
+            blink_timer:    common.window_common.cursor_blink_timer,
+            hidden:         common.window_common.hide_cursor,
+            should_blink:   Rc::new(should_blink(
+                common.focus,
+                common.keyboard_focus
+            ))
         };
         let mut editor = Editor::new(cx, self.clone(), modal);
 
@@ -537,7 +522,7 @@ impl Doc {
             if let Err(err) = x.set_syntax(Syntax::from_language(
                 language,
                 &grammars_directory,
-                &queries_directory,
+                &queries_directory
             )) {
                 error!("{:?}", err);
             }
@@ -586,8 +571,8 @@ impl Doc {
     //     // }
     // }
 
-    /// Reload the document's content, and is what you should typically use when you want to *set*
-    /// an existing document's content.
+    /// Reload the document's content, and is what you should typically use when
+    /// you want to *set* an existing document's content.
     pub fn reload(&self, content: Rope, set_pristine: bool) {
         // self.code_actions.clear();
         // self.inlay_hints = None;
@@ -614,7 +599,7 @@ impl Doc {
     pub fn do_insert(
         &self,
         cursor: &mut Cursor,
-        s: &str,
+        s: &str
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only()) {
             return Vec::new();
@@ -637,7 +622,7 @@ impl Doc {
     pub fn do_raw_edit(
         &self,
         edits: &[(Selection, &str)],
-        edit_type: EditType,
+        edit_type: EditType
     ) -> Option<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only()) {
             return None;
@@ -664,7 +649,7 @@ impl Doc {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool,
+        smart_tab: bool
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only())
             && !cmd.not_changing_buffer()
@@ -677,7 +662,7 @@ impl Doc {
             None => {
                 error!("None");
                 return vec![];
-            }
+            },
             Some(Ok(rs)) => rs,
             Some(Err(err)) => {
                 error!("{err:?}");
@@ -702,14 +687,15 @@ impl Doc {
                     self.common.proxy.update(
                         path.clone(),
                         delta.clone(),
-                        rev + i as u64 + 1,
+                        rev + i as u64 + 1
                     );
                 }
             });
         }
-        // TODO(minor): We could avoid this potential allocation since most apply_delta callers are actually using a Vec
-        // which we could reuse.
-        // We use a smallvec because there is unlikely to be more than a couple of deltas
+        // TODO(minor): We could avoid this potential allocation since most
+        // apply_delta callers are actually using a Vec which we could reuse.
+        // We use a smallvec because there is unlikely to be more than a couple of
+        // deltas
         let edits: SmallVec<[SyntaxEdit; 3]> = deltas
             .iter()
             .filter_map(|(before_text, delta, _)| {
@@ -729,14 +715,16 @@ impl Doc {
         self.lines.with_untracked(|b| b.buffer().is_pristine())
     }
 
-    /// Get the buffer's current revision. This is used to track whether the buffer has changed.
+    /// Get the buffer's current revision. This is used to track whether the
+    /// buffer has changed.
     pub fn rev(&self) -> u64 {
         self.lines.with_untracked(|b| b.buffer().rev())
     }
 
     /// Get the buffer's line-ending.
-    /// Note: this may not be the same as what the actual line endings in the file are, rather this
-    /// is what the line-ending is set to (and what it will be saved as).
+    /// Note: this may not be the same as what the actual line endings in the
+    /// file are, rather this is what the line-ending is set to (and what it
+    /// will be saved as).
     pub fn line_ending(&self) -> LineEnding {
         self.lines.with_untracked(|b| b.buffer().line_ending())
     }
@@ -787,8 +775,8 @@ impl Doc {
     //     self.do_raw_edit(&edits, EditType::Completion);
     // }
 
-    // /// Update the styles after an edit, so the highlights are at the correct positions.
-    // /// This does not do a reparse of the document itself.
+    // /// Update the styles after an edit, so the highlights are at the correct
+    // positions. /// This does not do a reparse of the document itself.
     // fn apply_deltas_for_lines(&self, delta: &RopeDelta) {
     //     self.lines.update(|x| x.apply_delta(delta));
     // }
@@ -807,10 +795,10 @@ impl Doc {
                         doc.clear_sticky_headers_cache();
                         doc.clear_text_cache();
                     }
-                }
+                },
                 Some(Err(err)) => {
                     error!("{err:?}");
-                }
+                },
                 None => {
                     error!("None");
                 }
@@ -831,7 +819,7 @@ impl Doc {
                 text,
                 edits.as_deref(),
                 &grammars_directory,
-                &queries_directory,
+                &queries_directory
             );
             send(syntax);
         });
@@ -847,13 +835,14 @@ impl Doc {
         });
     }
 
-    /// Inform any dependents on this document that they should clear any cached text.
+    /// Inform any dependents on this document that they should clear any cached
+    /// text.
     pub fn clear_text_cache(&self) {
         self.cache_rev.try_update(|cache_rev| {
             *cache_rev += 1;
             // TODO: ???
-            // Update the text layouts within the callback so that those alerted to cache rev
-            // will see the now empty layouts.
+            // Update the text layouts within the callback so that those alerted
+            // to cache rev will see the now empty layouts.
             // self.text_layouts.borrow_mut().clear(*cache_rev, None);
         });
     }
@@ -868,8 +857,8 @@ impl Doc {
     //     self.lines.with_untracked(|lines| lines.styles())
     // }
 
-    /// Get the style information for the particular line from semantic/syntax highlighting.
-    /// This caches the result if possible.
+    /// Get the style information for the particular line from semantic/syntax
+    /// highlighting. This caches the result if possible.
     // pub fn line_style(&self, line: usize) -> Vec<LineStyle> {
     //     let buffer = self.buffer.get_untracked();
     //     self.lines
@@ -903,10 +892,10 @@ impl Doc {
                 }) {
                     Some(Ok(true)) => {
                         doc.clear_style_cache();
-                    }
+                    },
                     Some(Err(err)) => {
                         error!("{err:?}");
-                    }
+                    },
                     _ => {}
                 }
             }
@@ -940,7 +929,7 @@ impl Doc {
                             if let Some(fg) = style.style.fg_color {
                                 styles_span.add_span(
                                     Interval::new(style.start, style.end),
-                                    fg,
+                                    fg
                                 );
                             }
                         }
@@ -963,8 +952,8 @@ impl Doc {
         //     return;
         // };
         // let path =
-        //     if let DocContent::File { path, .. } = self.content.get_untracked() {
-        //         path
+        //     if let DocContent::File { path, .. } =
+        // self.content.get_untracked() {         path
         //     } else {
         //         return;
         //     };
@@ -1044,7 +1033,7 @@ impl Doc {
                             }
                             let rs = match doc.lines.with_untracked(|b| {
                                 b.buffer().offset_of_line(
-                                    codelens.range.start.line as usize,
+                                    codelens.range.start.line as usize
                                 )
                             }) {
                                 Ok(rs) => rs,
@@ -1085,15 +1074,15 @@ impl Doc {
                             match resp {
                                 DocumentSymbolResponse::Flat(_symbols) => {
                                     Vec::with_capacity(0)
-                                }
+                                },
                                 DocumentSymbolResponse::Nested(symbols) => symbols
                                     .into_iter()
                                     .map(|x| {
                                         cx.create_rw_signal(
-                                            SymbolInformationItemData::from((x, cx)),
+                                            SymbolInformationItemData::from((x, cx))
                                         )
                                     })
-                                    .collect(),
+                                    .collect()
                             };
                         let symbol_new = Some(SymbolData::new(items, path, cx));
                         doc.document_symbol_data.virtual_list.update(|symbol| {
@@ -1146,9 +1135,10 @@ impl Doc {
 
         self.common.proxy.get_inlay_hints(path, move |(_, result)| {
             if let Ok(ProxyResponse::GetInlayHints { mut hints }) = result {
-                // Sort the inlay hints by their position, as the LSP does not guarantee that it will
-                // provide them in the order that they are in within the file
-                // as well, Spans does not iterate in the order that they appear
+                // Sort the inlay hints by their position, as the LSP does not
+                // guarantee that it will provide them in the order
+                // that they are in within the file as well, Spans
+                // does not iterate in the order that they appear
                 hints.sort_by(|left, right| left.position.cmp(&right.position));
 
                 let mut hints_span = SpansBuilder::new(len);
@@ -1163,7 +1153,7 @@ impl Doc {
                     .min(len);
                     hints_span.add_span(
                         Interval::new(offset, (offset + 1).min(len)),
-                        hint,
+                        hint
                     );
                 }
                 let hints = hints_span.build();
@@ -1176,8 +1166,8 @@ impl Doc {
         self.lines.with_untracked(|x| x.diagnostics.clone())
     }
 
-    // /// Update the diagnostics' positions after an edit so that they appear in the correct place.
-    // fn update_diagnostics(&self, delta: &RopeDelta) {
+    // /// Update the diagnostics' positions after an edit so that they appear in
+    // the correct place. fn update_diagnostics(&self, delta: &RopeDelta) {
     //     self.lines.update(|x| );
     // }
 
@@ -1243,7 +1233,7 @@ impl Doc {
         &self,
         completion_lens: String,
         line: usize,
-        col: usize,
+        col: usize
     ) {
         self.lines.update(|x| {
             if let Err(err) = x.set_completion_lens(completion_lens, line, col) {
@@ -1285,7 +1275,7 @@ impl Doc {
                                         error!("{err:?}");
                                         None
                                     }
-                                },
+                                }
                             )
                             .collect();
                     });
@@ -1294,9 +1284,9 @@ impl Doc {
         }
     }
 
-    // /// Update the completion lens position after an edit so that it appears in the correct place.
-    // pub fn update_completion_lens(&self, delta: &RopeDelta) {
-    //     self.lines.update(|x| x.update_completion_lens(delta));
+    // /// Update the completion lens position after an edit so that it appears in
+    // the correct place. pub fn update_completion_lens(&self, delta:
+    // &RopeDelta) {     self.lines.update(|x| x.update_completion_lens(delta));
     // }
 
     fn update_find_result(&self, delta: &RopeDelta) {
@@ -1332,7 +1322,7 @@ impl Doc {
         let search = self.common.find.search_string.get_untracked();
         let search = match search {
             Some(search) => search,
-            None => return,
+            None => return
         };
         if search.content.is_empty() {
             return;
@@ -1353,19 +1343,19 @@ impl Doc {
                 occurrences.regions().is_empty(),
                 &path,
                 find_rev_signal.get_untracked() == find_rev,
-                triggered_by_changes.get_untracked(),
+                triggered_by_changes.get_untracked()
             ) {
                 triggered_by_changes.set(false);
                 common.internal_command.send(InternalCommand::GoToLocation {
                     location: EditorLocation {
-                        path: path.clone(),
-                        position: Some(EditorPosition::Offset(
-                            occurrences.regions()[0].start,
+                        path:               path.clone(),
+                        position:           Some(EditorPosition::Offset(
+                            occurrences.regions()[0].start
                         )),
-                        scroll_offset: None,
+                        scroll_offset:      None,
                         ignore_unconfirmed: false,
-                        same_editor_tab: false,
-                    },
+                        same_editor_tab:    false
+                    }
                 });
             }
             find_result.occurrences.set(occurrences);
@@ -1385,13 +1375,14 @@ impl Doc {
                 case_matching,
                 whole_words,
                 true,
-                &mut occurrences,
+                &mut occurrences
             );
             send(occurrences);
         });
     }
 
-    /// Get the sticky headers for a particular line, creating them if necessary.
+    /// Get the sticky headers for a particular line, creating them if
+    /// necessary.
     pub fn sticky_headers(&self, line: usize) -> Option<Vec<usize>> {
         if let Some(lines) = self.sticky_headers.borrow().get(&line) {
             return lines.clone();
@@ -1410,11 +1401,7 @@ impl Doc {
                     .iter()
                     .filter_map(|offset| {
                         let l = buffer.line_of_offset(*offset);
-                        if l <= line {
-                            Some(l)
-                        } else {
-                            None
-                        }
+                        if l <= line { Some(l) } else { None }
                     })
                     .dedup()
                     .sorted()
@@ -1445,7 +1432,7 @@ impl Doc {
                         let hisotry = DocumentHistory::new(
                             path.clone(),
                             "head".to_string(),
-                            &content,
+                            &content
                         );
                         histories.update(|histories| {
                             histories.insert("head".to_string(), hisotry);
@@ -1521,10 +1508,10 @@ impl Doc {
                     match lines.try_update(|x| x.set_pristine(rev)) {
                         Some(Ok(true)) => {
                             after_action();
-                        }
+                        },
                         Some(Err(err)) => {
                             error!("{err:?}");
-                        }
+                        },
                         _ => {}
                     }
                 }
@@ -1540,7 +1527,7 @@ impl Doc {
         &self,
         inline_completion: String,
         line: usize,
-        col: usize,
+        col: usize
     ) {
         // TODO: more granular invalidation
         batch(|| {
@@ -1579,8 +1566,8 @@ impl Doc {
     }
 
     /// Returns the offsets of the brackets enclosing the given offset.
-    /// Uses a language aware algorithm if syntax support is available for the current language,
-    /// else falls back to a language unaware algorithm.
+    /// Uses a language aware algorithm if syntax support is available for the
+    /// current language, else falls back to a language unaware algorithm.
     pub fn find_enclosing_brackets(&self, offset: usize) -> Option<(usize, usize)> {
         let rev = self.rev();
         let syntax = self.syntax();
@@ -1657,7 +1644,7 @@ impl Doc {
     pub fn compute_screen_lines(
         &self,
         _editor: &Editor,
-        _base: RwSignal<ScreenLinesBase>,
+        _base: RwSignal<ScreenLinesBase>
     ) -> ScreenLines {
         todo!()
         // let Some(editor_data) = self.editor_data(editor.id()) else {
@@ -1688,7 +1675,7 @@ impl Doc {
         ed: &Editor,
         cmd: &Command,
         count: Option<usize>,
-        modifiers: Modifiers,
+        modifiers: Modifiers
     ) -> CommandExecuted {
         let Some(editor_data) = self.editor_data(ed.id()) else {
             return CommandExecuted::No;
@@ -1697,7 +1684,7 @@ impl Doc {
         let cmd = CommandKind::from(cmd.clone());
         let cmd = LapceCommand {
             kind: cmd,
-            data: None,
+            data: None
         };
         editor_data.run_command(&cmd, count, modifiers)
     }
@@ -1735,7 +1722,7 @@ impl Doc {
     // }
     pub fn font_family(
         &self,
-        _line: usize,
+        _line: usize
     ) -> std::borrow::Cow<[floem::text::FamilyOwned]> {
         // TODO: cache this
         Cow::Owned(self.common.config.with_untracked(|config| {
@@ -1772,7 +1759,7 @@ impl CommonAction for Doc {
         motion_mode: MotionMode,
         range: Range<usize>,
         is_vertical: bool,
-        register: &mut Register,
+        register: &mut Register
     ) {
         let deltas = match self.lines.try_update(move |lines| {
             lines.execute_motion_mode(
@@ -1780,13 +1767,13 @@ impl CommonAction for Doc {
                 motion_mode,
                 range,
                 is_vertical,
-                register,
+                register
             )
         }) {
             None => {
                 error!("None");
                 return;
-            }
+            },
             Some(Ok(rs)) => rs,
             Some(Err(err)) => {
                 error!("{err:?}");
@@ -1803,7 +1790,7 @@ impl CommonAction for Doc {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool,
+        smart_tab: bool
     ) -> bool {
         let deltas = Doc::do_edit(self, cursor, cmd, modal, register, smart_tab);
         !deltas.is_empty()
@@ -1826,7 +1813,7 @@ impl std::fmt::Debug for Doc {
 
 fn should_blink(
     _focus: SignalManager<Focus>,
-    _keyboard_focus: RwSignal<Option<ViewId>>,
+    _keyboard_focus: RwSignal<Option<ViewId>>
 ) -> impl Fn() -> bool {
     move || {
         // let Some(focus) = _focus.try_get_untracked() else {

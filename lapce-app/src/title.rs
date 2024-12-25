@@ -1,29 +1,29 @@
 use std::{rc::Rc, sync::Arc};
 
 use floem::{
+    View,
     event::EventListener,
     menu::{Menu, MenuItem},
     peniko::Color,
     reactive::{
-        create_memo, Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
+        Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo
     },
     style::{AlignItems, CursorStyle, JustifyContent},
-    views::{container, drag_window_area, empty, label, stack, Decorators},
-    View,
+    views::{Decorators, container, drag_window_area, empty, label, stack}
 };
 use lapce_core::meta;
 use lapce_rpc::proxy::ProxyStatus;
 
-use crate::svg;
 use crate::{
     app::{clickable_icon, not_clickable_icon, tooltip_label, window_menu},
     command::{LapceCommand, LapceWorkbenchCommand, WindowCommand},
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{LapceConfig, color::LapceColor, icon::LapceIcons},
     listener::Listener,
     main_split::MainSplitData,
+    svg,
     update::ReleaseInfo,
     window_tab::WindowTabData,
-    workspace::LapceWorkspace,
+    workspace::LapceWorkspace
 };
 fn left(
     workspace: Arc<LapceWorkspace>,
@@ -31,7 +31,7 @@ fn left(
     workbench_command: Listener<LapceWorkbenchCommand>,
     config: ReadSignal<Arc<LapceConfig>>,
     proxy_status: RwSignal<Option<ProxyStatus>>,
-    num_window_tabs: Memo<usize>,
+    num_window_tabs: Memo<usize>
 ) -> impl View {
     let is_local = workspace.kind.is_local();
     let is_macos = cfg!(target_os = "macos");
@@ -49,7 +49,7 @@ fn left(
                 let config = config.get();
                 s.size(16.0, 16.0)
                     .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-            },
+            }
         ))
         .style(move |s| s.margin_horiz(10.0).apply_if(is_macos, |s| s.hide())),
         not_clickable_icon(
@@ -57,7 +57,7 @@ fn left(
             || false,
             || false,
             || "Menu",
-            config,
+            config
         )
         .popout_menu(move || window_menu(lapce_command, workbench_command))
         .style(move |s| {
@@ -76,19 +76,19 @@ fn left(
                     } else {
                         match proxy_status.get() {
                             Some(_) => Color::WHITE,
-                            None => config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                            None => config.color(LapceColor::LAPCE_ICON_ACTIVE)
                         }
                     })
-                },
+                }
             )),
-            || "Connect to Remote",
+            || "Connect to Remote"
         )
         .popout_menu(move || {
             #[allow(unused_mut)]
             let mut menu = Menu::new("").entry(
                 MenuItem::new("Connect to SSH Host").action(move || {
                     workbench_command.send(LapceWorkbenchCommand::ConnectSshHost);
-                }),
+                })
             );
             if !is_local
                 && proxy_status.get().is_some_and(|p| {
@@ -99,7 +99,7 @@ fn left(
                     move || {
                         workbench_command
                             .send(LapceWorkbenchCommand::DisconnectRemote);
-                    },
+                    }
                 ));
             }
             #[cfg(windows)]
@@ -108,7 +108,7 @@ fn left(
                     move || {
                         workbench_command
                             .send(LapceWorkbenchCommand::ConnectWslHost);
-                    },
+                    }
                 ));
             }
             menu
@@ -121,14 +121,14 @@ fn left(
                 match proxy_status.get() {
                     Some(ProxyStatus::Connected) => {
                         config.color(LapceColor::LAPCE_REMOTE_CONNECTED)
-                    }
+                    },
                     Some(ProxyStatus::Connecting) => {
                         config.color(LapceColor::LAPCE_REMOTE_CONNECTING)
-                    }
+                    },
                     Some(ProxyStatus::Disconnected) => {
                         config.color(LapceColor::LAPCE_REMOTE_DISCONNECTED)
-                    }
-                    None => Color::TRANSPARENT,
+                    },
+                    None => Color::TRANSPARENT
                 }
             };
             s.height_pct(100.0)
@@ -137,17 +137,17 @@ fn left(
                 .background(color)
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
                 .active(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
                     )
                 })
         }),
         drag_window_area(empty())
-            .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
+            .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0))
     ))
     .style(move |s| {
         s.height_pct(100.0)
@@ -162,7 +162,7 @@ fn middle(
     workspace: Arc<LapceWorkspace>,
     main_split: MainSplitData,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     let local_workspace = workspace.clone();
     let can_jump_backward = {
@@ -181,7 +181,7 @@ fn middle(
             || false,
             move || !can_jump_backward.get(),
             || "Jump Backward",
-            config,
+            config
         )
         .style(move |s| s.margin_horiz(6.0))
     };
@@ -194,7 +194,7 @@ fn middle(
             || false,
             move || !can_jump_forward.get(),
             || "Jump Forward",
-            config,
+            config
         )
         .style(move |s| s.margin_right(6.0))
     };
@@ -205,7 +205,7 @@ fn middle(
             || false,
             || false,
             || "Open Folder / Recent Workspace",
-            config,
+            config
         )
         .popout_menu(move || {
             Menu::new("")
@@ -223,7 +223,7 @@ fn middle(
             drag_window_area(empty())
                 .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
             jump_backward(),
-            jump_forward(),
+            jump_forward()
         ))
         .style(|s| {
             s.flex_basis(0)
@@ -238,7 +238,7 @@ fn middle(
                         let icon_size = config.ui.icon_size() as f32;
                         s.size(icon_size, icon_size)
                             .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-                    },
+                    }
                 ),
                 label(move || {
                     if let Some(s) = local_workspace.display() {
@@ -248,9 +248,9 @@ fn middle(
                     }
                 })
                 .style(|s| s.padding_left(10).padding_right(5).selectable(false)),
-                open_folder(),
+                open_folder()
             ))
-            .style(|s| s.align_items(Some(AlignItems::Center))),
+            .style(|s| s.align_items(Some(AlignItems::Center)))
         )
         .on_event_stop(EventListener::PointerDown, |_| {})
         .on_click_stop(move |_| {
@@ -283,17 +283,17 @@ fn middle(
                 || false,
                 || false,
                 || "Run and Debug",
-                config,
+                config
             )
             .style(move |s| s.margin_horiz(6.0)),
             drag_window_area(empty())
-                .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
+                .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0))
         ))
         .style(move |s| {
             s.flex_basis(0)
                 .flex_grow(1.0)
                 .justify_content(Some(JustifyContent::FlexStart))
-        }),
+        })
     ))
     .style(|s| {
         s.flex_basis(0)
@@ -311,7 +311,7 @@ fn right(
     update_in_progress: RwSignal<bool>,
     num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     let latest_version = create_memo(move |_| {
         let latest_release = latest_release.get();
@@ -337,7 +337,7 @@ fn right(
                 || false,
                 || false,
                 || "Settings",
-                config,
+                config
             )
             .popout_menu(move || {
                 Menu::new("")
@@ -352,13 +352,13 @@ fn right(
                         move || {
                             workbench_command
                                 .send(LapceWorkbenchCommand::OpenKeyboardShortcuts)
-                        },
+                        }
                     ))
                     .entry(MenuItem::new("Open Theme Color Settings").action(
                         move || {
                             workbench_command
                                 .send(LapceWorkbenchCommand::OpenThemeColorSettings)
-                        },
+                        }
                     ))
                     .separator()
                     .entry(if let Some(v) = latest_version.get_untracked() {
@@ -370,7 +370,7 @@ fn right(
                                 move || {
                                     workbench_command
                                         .send(LapceWorkbenchCommand::RestartToUpdate)
-                                },
+                                }
                             )
                         }
                     } else {
@@ -397,7 +397,7 @@ fn right(
                     .justify_end()
                     .items_end()
                     .apply_if(!has_update, |s| s.hide())
-            }),
+            })
         ))
         .style(move |s| s.margin_horiz(6.0)),
         window_controls_view(
@@ -405,8 +405,8 @@ fn right(
             true,
             num_window_tabs,
             window_maximized,
-            config,
-        ),
+            config
+        )
     ))
     .style(|s| {
         s.flex_basis(0)
@@ -435,13 +435,13 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
             workbench_command,
             config,
             proxy_status,
-            num_window_tabs,
+            num_window_tabs
         ),
         middle(
             workspace,
             window_tab_data.main_split.clone(),
             workbench_command,
-            config,
+            config
         ),
         right(
             window_command,
@@ -450,8 +450,8 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
             update_in_progress,
             num_window_tabs,
             window_maximized,
-            config,
-        ),
+            config
+        )
     ))
     .on_resize(move |rect| {
         let height = rect.height();
@@ -476,7 +476,7 @@ pub fn window_controls_view(
     is_title: bool,
     num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     stack((
         clickable_icon(
@@ -487,7 +487,7 @@ pub fn window_controls_view(
             || false,
             || false,
             || "Minimize",
-            config,
+            config
         )
         .style(|s| s.margin_right(16.0).margin_left(10.0)),
         clickable_icon(
@@ -500,13 +500,13 @@ pub fn window_controls_view(
             },
             move || {
                 floem::action::set_window_maximized(
-                    !window_maximized.get_untracked(),
+                    !window_maximized.get_untracked()
                 );
             },
             || false,
             || false,
             || "Maximize",
-            config,
+            config
         )
         .style(|s| s.margin_right(16.0)),
         clickable_icon(
@@ -517,16 +517,16 @@ pub fn window_controls_view(
             || false,
             || false,
             || "Close Window",
-            config,
+            config
         )
-        .style(|s| s.margin_right(6.0)),
+        .style(|s| s.margin_right(6.0))
     ))
     .style(move |s| {
         s.apply_if(
             cfg!(target_os = "macos")
                 || !config.get_untracked().core.custom_titlebar
                 || (is_title && num_window_tabs.get() > 1),
-            |s| s.hide(),
+            |s| s.hide()
         )
     })
 }
