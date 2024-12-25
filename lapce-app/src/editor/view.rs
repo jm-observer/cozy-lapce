@@ -455,20 +455,19 @@ impl EditorView {
                     None
                 }
             }
-        )?;
-
-        // TODO: check if this is correct
-        if let Some(info) = screen_lines.visual_line_info_of_origin_line(breakline) {
-            let rect = Rect::from_origin_size(
-                (viewport.x0, info.visual_line_y),
-                (viewport.width(), line_height)
-            );
-
-            cx.fill(
-                &rect,
-                config.color(LapceColor::EDITOR_DEBUG_BREAK_LINE),
-                0.0
-            );
+        );
+        if let Some(breakline) = breakline {
+            if let Some(info) = screen_lines.visual_line_info_of_origin_line(breakline) {
+                let rect = Rect::from_origin_size(
+                    (viewport.x0, info.visual_line_y),
+                    (viewport.width(), line_height)
+                );
+                cx.fill(
+                    &rect,
+                    config.color(LapceColor::EDITOR_DEBUG_BREAK_LINE),
+                    0.0
+                );
+            }
         }
 
         cursor.with_untracked(|cursor| {
@@ -499,7 +498,7 @@ impl EditorView {
                                 continue;
                             }
                         };
-                    if origin_folded_line.origin_line == breakline
+                    if Some(origin_folded_line.origin_line) == breakline
                         && origin_folded_line.origin_folded_line_sub_index == 0
                     {
                         continue;
@@ -2211,7 +2210,6 @@ fn editor_content(
                 editor2.editor_view_focus_lost.notify();
             })
             .on_event_cont(EventListener::PointerDown, move |event| {
-                error!("editor_content_view");
                 if let Event::PointerDown(pointer_event) = event {
                     id.request_active();
                     e_data.get_untracked().pointer_down(pointer_event);
