@@ -1,0 +1,378 @@
+name: Release
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release"
+        required: false
+        default: nightly
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  pull_request:
+    paths:
+      # trigger release workflow only if this file changed
+      - .github/workflows/release.yml
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tagname:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: vars
+        shell: bash
+        run: echo "sha_short=${GITHUB_SHA::7}" | tee -a $GITHUB_OUTPUT
+
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+        run: echo 'TAG_NAME=nightly-${{ steps.vars.outputs.sha_short }}' | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+
+      - id: tag
+        run: echo "tag=$TAG_NAME" | tee -a $GITHUB_OUTPUT
+
+  windows:
+    runs-on: windows-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update rust
+        run: rustup update --no-self-update
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Build
+        run: cargo build --frozen --profile release-lto
+
+      - name: Crate msi installer
+        run: |
+          candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
+            -out "./lapce.wixobj" "extra/windows/wix/lapce.wxs"
+
+          light.exe -ext WixUIExtension -ext WixUtilExtension \
+            -out "./Lapce-windows.msi" -sice:ICE61 -sice:ICE91 \
+            "./lapce.wixobj"
+
+      - name: Create portable
+        shell: pwsh
+        run: |
+          cargo build --profile release-lto --features lapce-app/portable
+          Compress-Archive ./target/release-lto/lapce.exe ./Lapce-windows-portable.zip
+
+      - name: Create lapce-proxy archive
+        shell: pwsh
+        run: |
+          $file = [System.IO.File]::Open((Join-Path $PWD '.\target\release-lto\lapce-proxy.exe'), [System.IO.FileMode]::Open)
+          $archive = [System.IO.File]::Create((Join-Path $PWD '.\lapce-proxy-windows-x86_64.gz'))
+          $compressor = [System.IO.Compression.GZipStream]::new($archive, [System.IO.Compression.CompressionMode]::Compress)
+          $file.CopyTo($compressor)
+          Start-Sleep -Seconds 10
+          $compressor.close()
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-windows
+          path: |
+            ./lapce-proxy-windows-*.gz
+            ./Lapce-windows-portable.zip
+            ./Lapce-windows.msi
+          retention-days: 1
+
+  linux:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build deb packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ubuntu-focal-binary
+
+      - name: Gzip
+        run: |
+          mkdir Lapce
+          cp ./target/linux_amd64/lapce Lapce/
+          tar -zcvf ./lapce-linux-amd64.tar.gz Lapce
+
+          rm -rf Lapce
+
+          mkdir Lapce
+          cp ./target/linux_arm64/lapce Lapce/
+          tar -zcvf ./lapce-linux-arm64.tar.gz Lapce
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Vendor dependencies
+        run: |
+          cargo vendor --frozen > ./vendor-config.toml
+          mv ./vendor-config.toml ./vendor/
+          tar -zcf vendor.tar.gz ./vendor/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-linux
+          path: |
+            ./lapce-linux-*.tar.gz
+            ./vendor.tar.gz
+          retention-days: 1
+
+  deb:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os-name: debian
+            os-version: bookworm
+          - os-name: debian
+            os-version: bullseye
+          - os-name: ubuntu
+            os-version: focal
+          - os-name: ubuntu
+            os-version: jammy
+          - os-name: ubuntu
+            os-version: lunar
+          - os-name: ubuntu
+            os-version: mantic
+          - os-name: ubuntu
+            os-version: noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build deb packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ${{ matrix.os-name }}-${{ matrix.os-version }}-package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-${{ matrix.os-name }}-${{ matrix.os-version }}
+          path: |
+            ./target/linux_*/*
+          retention-days: 1
+
+  rpm:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os-name: fedora
+            os-version: 39
+          - os-name: fedora
+            os-version: 40
+          # - os-name: fedora
+          #   os-version: 41
+          # - os-name: fedora
+          #   os-version: rawhide
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build rpm packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ${{ matrix.os-name }}-${{ matrix.os-version }}-package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-${{ matrix.os-name }}-${{ matrix.os-version }}
+          path: |
+            ./target/*
+          retention-days: 1
+
+  lapce-proxy:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os-name: alpine
+            os-version: '3-20'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build lapce-proxy binary
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ${{ matrix.os-name }}-${{ matrix.os-version }}
+
+      - name: Gzip
+        run: |
+          gzip -c ./target/linux_amd64/lapce-proxy > ./lapce-proxy-linux-x86_64.gz
+          gzip -c ./target/linux_arm64/lapce-proxy > ./lapce-proxy-linux-aarch64.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-proxy-linux
+          path: |
+            ./lapce-proxy-linux-*.gz
+          retention-days: 1
+
+  macos:
+    runs-on: macos-14
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+      NOTARIZE_USERNAME: ${{ secrets.NOTARIZE_USERNAME }}
+      NOTARIZE_PASSWORD: ${{ secrets.NOTARIZE_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM target
+        run: rustup update && rustup target add x86_64-apple-darwin
+
+      - name: Import Certificate
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+
+      - name: Select newer Xcode for building
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Make DMG
+        run: make dmg-universal
+
+      - name: Rename
+        run: |
+          cp ./target/release-lto/macos/Lapce.dmg ./target/release-lto/macos/Lapce-macos.dmg
+
+      - name: Gzip lapce-proxy
+        run: |
+          gzip -c ./target/x86_64-apple-darwin/release-lto/lapce-proxy > ./target/release-lto/macos/lapce-proxy-darwin-x86_64.gz
+          gzip -c ./target/aarch64-apple-darwin/release-lto/lapce-proxy > ./target/release-lto/macos/lapce-proxy-darwin-aarch64.gz
+
+      - name: Notarize Release Build
+        uses: lando/notarize-action@v2
+        with:
+          product-path: "./target/release-lto/macos/Lapce-macos.dmg"
+          appstore-connect-username: ${{ secrets.NOTARIZE_USERNAME }}
+          appstore-connect-password: ${{ secrets.NOTARIZE_PASSWORD }}
+          appstore-connect-team-id: CYSGAZFR8D
+          primary-bundle-id: "io.lapce"
+
+      - name: "Staple Release Build"
+        uses: lapce/xcode-staple@062485d6eeafe841c18a412f012e80f49e23c517
+        with:
+          product-path: "./target/release-lto/macos/Lapce-macos.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-macos
+          path: |
+            ./target/release-lto/macos/lapce-proxy-darwin-*.gz
+            ./target/release-lto/macos/Lapce-macos.dmg
+          retention-days: 3
+
+  publish:
+    needs:
+      - linux
+      - lapce-proxy
+      - deb
+      - rpm
+      - windows
+      - macos
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      # Must perform checkout first, since it deletes the target directory
+      # before running, and would therefore delete the downloaded artifacts
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'schedule'
+        run: echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+
+      - if: env.TAG_NAME == 'nightly'
+        run: |
+          {
+            echo 'SUBJECT=Lapce development build'
+            echo 'PRERELEASE=--prerelease'
+          } | tee -a $GITHUB_ENV
+
+      - if: env.TAG_NAME == 'nightly' && github.event_name != 'pull_request'
+        name: Re-Tag nightly
+        run: |
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+
+      - if: env.TAG_NAME != 'nightly'
+        run: |
+          {
+            echo 'SUBJECT=Lapce release build'
+            echo 'PRERELEASE='
+          } | tee -a $GITHUB_ENV
+
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        env:
+          DEBUG: api
+        run: |
+          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
+            lapce-macos/* \
+            lapce-linux/* \
+            lapce-debian*/*/* \
+            lapce-ubuntu*/*/* \
+            lapce-fedora*/* \
+            lapce-proxy-linux/* \
+            lapce-windows/*

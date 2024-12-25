@@ -1,0 +1,9 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 上半部分正方形 -->
+    <path d="M4 10 V2 H12 V10" stroke="black" fill="none"/>
+
+    <!-- 中间的短横线 -->
+    <path d="M6 6 H10" stroke="black" fill="none"/>
+    <!-- 下半部分倒三角形 -->
+    <path d="M4 10 L8 14 L12 10" stroke="black" stroke-width="1" fill="none"/>
+</svg>
