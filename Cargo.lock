@@ -1488,11 +1488,11 @@ dependencies = [
  "arc-swap",
  "cosmic-text",
  "directories",
- "floem 0.1.1",
+ "floem",
  "hashbrown 0.14.5",
  "im",
  "itertools 0.12.1",
- "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
+ "lapce-xi-rope 0.3.2",
  "libloading",
  "log",
  "lsp-types",
@@ -1776,48 +1776,6 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 
 [[package]]
 name = "floem"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
-dependencies = [
- "bitflags 2.6.0",
- "clipboard-win",
- "copypasta",
- "crossbeam",
- "crossbeam-channel",
- "downcast-rs",
- "educe",
- "floem-editor-core 0.1.1",
- "floem-winit 0.29.4",
- "floem_reactive 0.1.1",
- "floem_renderer 0.1.1",
- "floem_tiny_skia_renderer 0.1.1",
- "floem_vger_renderer",
- "im",
- "im-rc",
- "image",
- "indexmap",
- "lapce-xi-rope 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "log",
- "parking_lot",
- "peniko 0.1.1",
- "raw-window-handle 0.6.2",
- "rfd",
- "rustc-hash",
- "serde",
- "sha2",
- "slotmap",
- "smallvec",
- "strum",
- "strum_macros",
- "taffy",
- "unicode-segmentation",
- "wasm-bindgen-futures",
- "web-time",
- "wgpu",
-]
-
-[[package]]
-name = "floem"
 version = "0.2.0"
 dependencies = [
  "bitflags 2.6.0",
@@ -1827,19 +1785,20 @@ dependencies = [
  "crossbeam-channel",
  "downcast-rs",
  "educe",
- "floem-editor-core 0.2.0",
- "floem-winit 0.29.5",
- "floem_reactive 0.2.0",
- "floem_renderer 0.2.0",
- "floem_tiny_skia_renderer 0.2.0",
- "floem_vello_renderer",
+ "floem-editor-core",
+ "floem-winit",
+ "floem_reactive",
+ "floem_renderer",
+ "floem_tiny_skia_renderer",
+ "floem_vger_renderer",
  "im",
  "im-rc",
  "image",
  "indexmap",
  "lapce-xi-rope 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log",
  "parking_lot",
- "peniko 0.2.0",
+ "peniko",
  "raw-window-handle 0.6.2",
  "rfd",
  "rustc-hash",
@@ -1854,20 +1813,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-time",
  "wgpu",
-]
-
-[[package]]
-name = "floem-editor-core"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
-dependencies = [
- "bitflags 2.6.0",
- "itertools 0.12.1",
- "lapce-xi-rope 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "memchr",
- "serde",
- "strum",
- "strum_macros",
 ]
 
 [[package]]
@@ -1885,63 +1830,15 @@ dependencies = [
 
 [[package]]
 name = "floem-vger"
-version = "0.3.0"
-source = "git+https://github.com/lapce/vger-rs?rev=cfdec48f8093837f06be6fecfd75b0e5a0c5a3cf#cfdec48f8093837f06be6fecfd75b0e5a0c5a3cf"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34a6da831b3b6bfeec4f988a1224fa8219de42fe438e27b8a7f7af8e29cbb166"
 dependencies = [
  "cosmic-text",
  "euclid",
  "fontdue",
  "rect_packer",
  "wgpu",
-]
-
-[[package]]
-name = "floem-winit"
-version = "0.29.4"
-source = "git+https://github.com/lapce/winit?rev=c8d3b8fd6fa4ffd5e0f99be78aacddcf6de57bcd#c8d3b8fd6fa4ffd5e0f99be78aacddcf6de57bcd"
-dependencies = [
- "ahash",
- "android-activity",
- "atomic-waker",
- "bitflags 2.6.0",
- "bytemuck",
- "calloop 0.12.4",
- "cfg_aliases 0.1.1",
- "core-foundation 0.9.4",
- "core-graphics 0.23.2",
- "cursor-icon",
- "icrate",
- "js-sys",
- "libc",
- "log",
- "memmap2",
- "ndk",
- "ndk-sys",
- "objc2 0.4.1",
- "once_cell",
- "orbclient",
- "percent-encoding",
- "raw-window-handle 0.5.2",
- "raw-window-handle 0.6.2",
- "redox_syscall 0.3.5",
- "rustix",
- "sctk-adwaita",
- "serde",
- "smithay-client-toolkit 0.18.1",
- "smol_str",
- "unicode-segmentation",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wayland-backend",
- "wayland-client",
- "wayland-protocols 0.31.2",
- "wayland-protocols-plasma",
- "web-sys",
- "web-time",
- "windows-sys 0.48.0",
- "x11-dl",
- "x11rb",
- "xkbcommon-dl",
 ]
 
 [[package]]
@@ -1996,35 +1893,9 @@ dependencies = [
 
 [[package]]
 name = "floem_reactive"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
-dependencies = [
- "smallvec",
-]
-
-[[package]]
-name = "floem_reactive"
 version = "0.2.0"
 dependencies = [
  "smallvec",
-]
-
-[[package]]
-name = "floem_renderer"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
-dependencies = [
- "cosmic-text",
- "crossbeam",
- "floem-winit 0.29.4",
- "futures",
- "image",
- "parking_lot",
- "peniko 0.1.1",
- "resvg 0.40.0",
- "swash",
- "wasm-bindgen-futures",
- "wgpu",
 ]
 
 [[package]]
@@ -2033,12 +1904,12 @@ version = "0.2.0"
 dependencies = [
  "cosmic-text",
  "crossbeam",
- "floem-winit 0.29.5",
+ "floem-winit",
  "futures",
  "image",
  "parking_lot",
- "peniko 0.2.0",
- "resvg 0.43.0",
+ "peniko",
+ "resvg",
  "swash",
  "wasm-bindgen-futures",
  "wgpu",
@@ -2046,66 +1917,32 @@ dependencies = [
 
 [[package]]
 name = "floem_tiny_skia_renderer"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
-dependencies = [
- "anyhow",
- "bytemuck",
- "floem_renderer 0.1.1",
- "futures",
- "image",
- "peniko 0.1.1",
- "raw-window-handle 0.6.2",
- "resvg 0.40.0",
- "softbuffer",
- "swash",
-]
-
-[[package]]
-name = "floem_tiny_skia_renderer"
 version = "0.2.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "floem_renderer 0.2.0",
+ "floem_renderer",
  "futures",
  "image",
- "peniko 0.2.0",
+ "peniko",
  "raw-window-handle 0.6.2",
- "resvg 0.43.0",
+ "resvg",
  "softbuffer",
  "swash",
-]
-
-[[package]]
-name = "floem_vello_renderer"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "floem_renderer 0.2.0",
- "futures",
- "image",
- "peniko 0.2.0",
- "raw-window-handle 0.6.2",
- "swash",
- "vello",
- "vello_svg",
- "wgpu",
 ]
 
 [[package]]
 name = "floem_vger_renderer"
-version = "0.1.1"
-source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#13c42d2cc0dbfafb0a16c4b36ac1eff8bae16706"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "floem-vger",
- "floem_renderer 0.1.1",
+ "floem_renderer",
  "futures",
  "image",
- "peniko 0.1.1",
+ "peniko",
  "raw-window-handle 0.6.2",
- "resvg 0.40.0",
+ "resvg",
  "swash",
  "wgpu",
 ]
@@ -2131,7 +1968,7 @@ version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1fcfcd44ca6e90c921fee9fa665d530b21ef1327a4c1a6c5250ea44b776ada7"
 dependencies = [
- "roxmltree 0.20.0",
+ "roxmltree",
 ]
 
 [[package]]
@@ -2292,17 +2129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures-intrusive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d930c203dd0b6ff06e0201a4a2fe9149b43c684fd4420555b26d21b1a02956f"
-dependencies = [
- "futures-core",
- "lock_api",
- "parking_lot",
-]
-
-[[package]]
 name = "futures-io"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2422,16 +2248,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi",
-]
-
-[[package]]
-name = "gif"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80792593675e051cf94a4b111980da2ba60d4a83e43e0048c5693baab3977045"
-dependencies = [
- "color_quant",
- "weezl",
 ]
 
 [[package]]
@@ -2615,16 +2431,6 @@ name = "grid"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d196ffc1627db18a531359249b2bf8416178d84b729f3cebeb278f285fb9b58c"
-
-[[package]]
-name = "guillotiere"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b62d5865c036cb1393e23c50693df631d3f5d7bcca4c04fe4cc0fd592e74a782"
-dependencies = [
- "euclid",
- "svg_fmt",
-]
 
 [[package]]
 name = "h2"
@@ -2916,8 +2722,6 @@ checksum = "99314c8a2152b8ddb211f924cdae532d8c5e4c8bb54728e12fff1b0cd5963a10"
 dependencies = [
  "bytemuck",
  "byteorder-lite",
- "color_quant",
- "gif 0.13.1",
  "image-webp",
  "num-traits",
  "png",
@@ -2934,12 +2738,6 @@ dependencies = [
  "byteorder-lite",
  "quick-error",
 ]
-
-[[package]]
-name = "imagesize"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "029d73f573d8e8d63e6d5020011d3255b28c3ba85d6cf870a07184ed23de9284"
 
 [[package]]
 name = "imagesize"
@@ -3151,12 +2949,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jpeg-decoder"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5d4a7da358eff58addd2877a45865158f0d78c911d43a5784ceb7bbf52833b0"
-
-[[package]]
 name = "js-sys"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3215,25 +3007,6 @@ dependencies = [
 
 [[package]]
 name = "kurbo"
-version = "0.9.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd85a5776cd9500c2e2059c8c76c3b01528566b7fcbaf8098b55a33fc298849b"
-dependencies = [
- "arrayvec",
-]
-
-[[package]]
-name = "kurbo"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1618d4ebd923e97d67e7cd363d80aef35fe961005cbbbb3d2dad8bdd1bc63440"
-dependencies = [
- "arrayvec",
- "smallvec",
-]
-
-[[package]]
-name = "kurbo"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89234b2cc610a7dd927ebde6b41dd1a5d4214cffaef4cf1fb2195d592f92518f"
@@ -3270,7 +3043,7 @@ dependencies = [
  "dmg",
  "doc",
  "flate2",
- "floem 0.2.0",
+ "floem",
  "fs_extra",
  "globset",
  "im",
@@ -3425,19 +3198,6 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6516aaa99c5059dc1a1bc02ed782d5e524699c1b4330028a6bed8259f9d9ff0a"
 dependencies = [
- "bytecount",
- "memchr",
- "regex",
- "serde",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "lapce-xi-rope"
-version = "0.3.2"
-source = "git+https://github.com/jm-observer/xi-editor.git#9359084a6c2a4d6b5826083e84b355c11ff8c5aa"
-dependencies = [
- "anyhow",
  "bytecount",
  "memchr",
  "regex",
@@ -4211,23 +3971,11 @@ checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "peniko"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c28d7294093837856bb80ad191cc46a2fcec8a30b43b7a3b0285325f0a917a9"
-dependencies = [
- "kurbo 0.11.1",
- "serde",
- "serde_bytes",
- "smallvec",
-]
-
-[[package]]
-name = "peniko"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a648c93f502a0bef0a9cb47fa1335994958a2744667d3f82defe513f276741a"
 dependencies = [
- "kurbo 0.11.1",
+ "kurbo",
  "serde",
  "serde_bytes",
  "smallvec",
@@ -4702,35 +4450,18 @@ dependencies = [
 
 [[package]]
 name = "resvg"
-version = "0.40.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "024e40e1ba7313fc315b1720298988c0cd6f8bfe3754b52838aafecebd11355a"
-dependencies = [
- "gif 0.12.0",
- "jpeg-decoder",
- "log",
- "pico-args",
- "png",
- "rgb",
- "svgtypes 0.14.0",
- "tiny-skia",
- "usvg 0.40.0",
-]
-
-[[package]]
-name = "resvg"
 version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7314563c59c7ce31c18e23ad3dd092c37b928a0fa4e1c0a1a6504351ab411d1"
 dependencies = [
- "gif 0.13.1",
+ "gif",
  "image-webp",
  "log",
  "pico-args",
  "rgb",
- "svgtypes 0.15.2",
+ "svgtypes",
  "tiny-skia",
- "usvg 0.43.0",
+ "usvg",
  "zune-jpeg",
 ]
 
@@ -4765,12 +4496,6 @@ checksum = "57397d16646700483b67d2dd6511d79318f9d057fdbd21a4066aeac8b41d310a"
 dependencies = [
  "bytemuck",
 ]
-
-[[package]]
-name = "roxmltree"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cd14fd5e3b777a7422cca79358c57a8f6e3a703d9ac187448d0daf220c2407f"
 
 [[package]]
 name = "roxmltree"
@@ -4839,22 +4564,6 @@ name = "rustversion"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
-
-[[package]]
-name = "rustybuzz"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0ae5692c5beaad6a9e22830deeed7874eae8a4e3ba4076fb48e12c56856222c"
-dependencies = [
- "bitflags 2.6.0",
- "bytemuck",
- "smallvec",
- "ttf-parser 0.20.0",
- "unicode-bidi-mirroring 0.1.0",
- "unicode-ccc 0.1.2",
- "unicode-properties",
- "unicode-script",
-]
 
 [[package]]
 name = "rustybuzz"
@@ -5121,12 +4830,6 @@ dependencies = [
 
 [[package]]
 name = "siphasher"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
-
-[[package]]
-name = "siphasher"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
@@ -5381,29 +5084,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "svg_fmt"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5d813d71d82c4cbc1742135004e4a79fd870214c155443451c139c9470a0aa"
-
-[[package]]
-name = "svgtypes"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59d7618f12b51be8171a7cfdda1e7a93f79cbc57c4e7adf89a749cf671125241"
-dependencies = [
- "kurbo 0.10.4",
- "siphasher 0.3.11",
-]
-
-[[package]]
 name = "svgtypes"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "794de53cc48eaabeed0ab6a3404a65f40b3e38c067e4435883a65d2aa4ca000e"
 dependencies = [
- "kurbo 0.11.1",
- "siphasher 1.0.1",
+ "kurbo",
+ "siphasher",
 ]
 
 [[package]]
@@ -5915,12 +5602,6 @@ checksum = "5ab17db44d7388991a428b2ee655ce0c212e862eff1768a455c58f9aad6e7893"
 
 [[package]]
 name = "unicode-bidi-mirroring"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56d12260fb92d52f9008be7e4bca09f584780eb2266dc8fecc6a192bec561694"
-
-[[package]]
-name = "unicode-bidi-mirroring"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23cb788ffebc92c5948d0e997106233eeb1d8b9512f93f41651f52b6c5f5af86"
@@ -5930,12 +5611,6 @@ name = "unicode-bidi-mirroring"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64af057ad7466495ca113126be61838d8af947f41d93a949980b2389a118082f"
-
-[[package]]
-name = "unicode-ccc"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc2520efa644f8268dce4dcd3050eaa7fc044fca03961e9998ac7e2e92b77cf1"
 
 [[package]]
 name = "unicode-ccc"
@@ -6026,33 +5701,6 @@ checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "usvg"
-version = "0.40.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c04150a94f0bfc3b2c15d4e151524d14cd06765fc6641d8b1c59a248360d4474"
-dependencies = [
- "base64 0.21.7",
- "data-url",
- "flate2",
- "fontdb 0.16.2",
- "imagesize 0.12.0",
- "kurbo 0.9.5",
- "log",
- "pico-args",
- "roxmltree 0.19.0",
- "rustybuzz 0.12.1",
- "simplecss",
- "siphasher 0.3.11",
- "strict-num",
- "svgtypes 0.14.0",
- "tiny-skia-path",
- "unicode-bidi",
- "unicode-script",
- "unicode-vo",
- "xmlwriter",
-]
-
-[[package]]
-name = "usvg"
 version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6803057b5cbb426e9fb8ce2216f3a9b4ca1dd2c705ba3cbebc13006e437735fd"
@@ -6061,16 +5709,16 @@ dependencies = [
  "data-url",
  "flate2",
  "fontdb 0.21.0",
- "imagesize 0.13.0",
- "kurbo 0.11.1",
+ "imagesize",
+ "kurbo",
  "log",
  "pico-args",
- "roxmltree 0.20.0",
+ "roxmltree",
  "rustybuzz 0.18.0",
  "simplecss",
- "siphasher 1.0.1",
+ "siphasher",
  "strict-num",
- "svgtypes 0.15.2",
+ "svgtypes",
  "tiny-skia-path",
  "unicode-bidi",
  "unicode-script",
@@ -6095,63 +5743,6 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
-
-[[package]]
-name = "vello"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc44dd4eb9af6a41551b9a82c93d068bd832693d6f78ab118ad19780d8e1202e"
-dependencies = [
- "bytemuck",
- "futures-intrusive",
- "log",
- "peniko 0.2.0",
- "png",
- "raw-window-handle 0.6.2",
- "skrifa",
- "static_assertions",
- "thiserror",
- "vello_encoding",
- "vello_shaders",
- "wgpu",
-]
-
-[[package]]
-name = "vello_encoding"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8110c14702a4e17f9200f6e3c4fe05dda5a22bf031ae4feafed4a61429f66fb2"
-dependencies = [
- "bytemuck",
- "guillotiere",
- "peniko 0.2.0",
- "skrifa",
- "smallvec",
-]
-
-[[package]]
-name = "vello_shaders"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07cad02d6f29f2212a6ee382a8fec6f9977d0cceefacf07f8e361607ffe3988d"
-dependencies = [
- "bytemuck",
- "naga",
- "thiserror",
- "vello_encoding",
-]
-
-[[package]]
-name = "vello_svg"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47ca63b9321e371196c2645343bde868b1854d433608043ef1abbad6c8a83484"
-dependencies = [
- "image",
- "thiserror",
- "usvg 0.43.0",
- "vello",
-]
 
 [[package]]
 name = "version_check"

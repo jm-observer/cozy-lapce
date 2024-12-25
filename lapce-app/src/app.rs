@@ -3761,7 +3761,7 @@ pub fn launch() {
     //     logging::panic_hook();
     // }
 
-    let _ = custom_utils::logger::logger_feature("lapce", "warn,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,hyper=info,reqwest=info,wasmtime=info,floem=info,alacritty_terminal=info,lapce_app::keypress::loader=info", log::LevelFilter::Info)
+    let _ = custom_utils::logger::logger_feature("lapce", "warn,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,hyper=info,reqwest=info,wasmtime=info,floem=info,alacritty_terminal=info,lapce_app::keypress::loader=info", log::LevelFilter::Info, true)
         .build();
 
     trace!("Starting up Lapce..");
