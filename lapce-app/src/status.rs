@@ -1,20 +1,20 @@
 use std::{
     rc::Rc,
-    sync::{Arc, atomic::AtomicU64}
+    sync::{atomic::AtomicU64, Arc},
 };
 
 use floem::{
-    View,
     event::EventPropagation,
     reactive::{
-        Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo
+        create_memo, Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
     },
     style::{AlignItems, CursorStyle, Display, FlexWrap},
     views::{
-        Decorators, dyn_stack,
+        dyn_stack,
         editor::core::mode::{Mode, VisualMode},
-        label, stack
-    }
+        label, stack, Decorators,
+    },
+    View,
 };
 use indexmap::IndexMap;
 use log::error;
@@ -23,14 +23,14 @@ use lsp_types::{DiagnosticSeverity, ProgressToken};
 use crate::{
     app::clickable_icon,
     command::LapceWorkbenchCommand,
-    config::{LapceConfig, color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
     editor::EditorData,
     listener::Listener,
     palette::kind::PaletteKind,
     panel::{kind::PanelKind, position::PanelContainerPosition},
     source_control::SourceControlData,
     svg,
-    window_tab::{WindowTabData, WorkProgress}
+    window_tab::{WindowTabData, WorkProgress},
 };
 
 pub fn status(
@@ -38,7 +38,7 @@ pub fn status(
     source_control: SourceControlData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     status_height: RwSignal<f64>,
-    _config: ReadSignal<Arc<LapceConfig>>
+    _config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let diagnostics = window_tab_data.main_split.diagnostics;
@@ -54,7 +54,7 @@ pub fn status(
                     match severity {
                         DiagnosticSeverity::ERROR => errors += 1,
                         DiagnosticSeverity::WARNING => warnings += 1,
-                        _ => ()
+                        _ => (),
                     }
                 }
             }
@@ -87,9 +87,9 @@ pub fn status(
                 Mode::Visual(mode) => match mode {
                     VisualMode::Normal => "Visual".to_string(),
                     VisualMode::Linewise => "Visual Line".to_string(),
-                    VisualMode::Blockwise => "Visual Block".to_string()
+                    VisualMode::Blockwise => "Visual Block".to_string(),
                 },
-                Mode::Terminal => "Terminal".to_string()
+                Mode::Terminal => "Terminal".to_string(),
             })
             .style(move |s| {
                 let config = config.get();
@@ -102,20 +102,20 @@ pub fn status(
                 let (bg, fg) = match mode.get() {
                     Mode::Normal => (
                         LapceColor::STATUS_MODAL_NORMAL_BACKGROUND,
-                        LapceColor::STATUS_MODAL_NORMAL_FOREGROUND
+                        LapceColor::STATUS_MODAL_NORMAL_FOREGROUND,
                     ),
                     Mode::Insert => (
                         LapceColor::STATUS_MODAL_INSERT_BACKGROUND,
-                        LapceColor::STATUS_MODAL_INSERT_FOREGROUND
+                        LapceColor::STATUS_MODAL_INSERT_FOREGROUND,
                     ),
                     Mode::Visual(_) => (
                         LapceColor::STATUS_MODAL_VISUAL_BACKGROUND,
-                        LapceColor::STATUS_MODAL_VISUAL_FOREGROUND
+                        LapceColor::STATUS_MODAL_VISUAL_FOREGROUND,
                     ),
                     Mode::Terminal => (
                         LapceColor::STATUS_MODAL_TERMINAL_BACKGROUND,
-                        LapceColor::STATUS_MODAL_TERMINAL_FOREGROUND
-                    )
+                        LapceColor::STATUS_MODAL_TERMINAL_FOREGROUND,
+                    ),
                 };
 
                 let bg = config.color(bg);
@@ -140,7 +140,7 @@ pub fn status(
                     s.margin_left(10.0)
                         .color(config.get().color(LapceColor::STATUS_FOREGROUND))
                         .selectable(false)
-                })
+                }),
             ))
             .style(move |s| {
                 s.display(if branch().is_empty() {
@@ -153,7 +153,7 @@ pub fn status(
                 .align_items(Some(AlignItems::Center))
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
             })
@@ -169,7 +169,7 @@ pub fn status(
                     }
                     pointer_down.set(false);
                     EventPropagation::Continue
-                }
+                },
             ),
             {
                 let panel = panel.clone();
@@ -180,7 +180,7 @@ pub fn status(
                             let size = config.ui.icon_size() as f32;
                             s.size(size, size)
                                 .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-                        }
+                        },
                     ),
                     label(move || diagnostic_count.get().0.to_string()).style(
                         move |s| {
@@ -188,10 +188,10 @@ pub fn status(
                                 .color(
                                     config
                                         .get()
-                                        .color(LapceColor::STATUS_FOREGROUND)
+                                        .color(LapceColor::STATUS_FOREGROUND),
                                 )
                                 .selectable(false)
-                        }
+                        },
                     ),
                     svg(move || config.get().ui_svg(LapceIcons::WARNING)).style(
                         move |s| {
@@ -200,7 +200,7 @@ pub fn status(
                             s.size(size, size)
                                 .margin_left(5.0)
                                 .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-                        }
+                        },
                     ),
                     label(move || diagnostic_count.get().1.to_string()).style(
                         move |s| {
@@ -208,11 +208,11 @@ pub fn status(
                                 .color(
                                     config
                                         .get()
-                                        .color(LapceColor::STATUS_FOREGROUND)
+                                        .color(LapceColor::STATUS_FOREGROUND),
                                 )
                                 .selectable(false)
-                        }
-                    )
+                        },
+                    ),
                 ))
                 .on_click_stop(move |_| {
                     panel.show_panel(&PanelKind::Problem);
@@ -225,12 +225,12 @@ pub fn status(
                             s.cursor(CursorStyle::Pointer).background(
                                 config
                                     .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                         })
                 })
             },
-            progress_view(config, progresses)
+            progress_view(config, progresses),
         ))
         .style(|s| {
             s.height_pct(100.0)
@@ -262,7 +262,7 @@ pub fn status(
                     || false,
                     || false,
                     || "Toggle Left Panel",
-                    config
+                    config,
                 )
             },
             {
@@ -272,7 +272,7 @@ pub fn status(
                     move || {
                         if panel.is_container_shown(
                             &PanelContainerPosition::Bottom,
-                            true
+                            true,
                         ) {
                             LapceIcons::LAYOUT_PANEL
                         } else {
@@ -289,7 +289,7 @@ pub fn status(
                     || false,
                     || false,
                     || "Toggle Bottom Panel",
-                    config
+                    config,
                 )
             },
             {
@@ -314,9 +314,9 @@ pub fn status(
                     || false,
                     || false,
                     || "Toggle Right Panel",
-                    config
+                    config,
                 )
-            }
+            },
         ))
         .style(move |s| {
             s.height_pct(100.0)
@@ -336,7 +336,7 @@ pub fn status(
                                 Err(err) => {
                                     error!("{err:?}");
                                     None
-                                }
+                                },
                             }
                         })
                     {
@@ -399,7 +399,7 @@ pub fn status(
                 .flex_basis(0.0)
                 .flex_grow(1.0)
                 .justify_end()
-        })
+        }),
     ))
     .on_resize(move |rect| {
         let height = rect.height();
@@ -422,7 +422,7 @@ pub fn status(
 
 fn progress_view(
     config: ReadSignal<Arc<LapceConfig>>,
-    progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>
+    progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>,
 ) -> impl View {
     let id = AtomicU64::new(0);
     dyn_stack(
@@ -433,7 +433,7 @@ fn progress_view(
                 Some(message) if !message.is_empty() => {
                     format!("{}: {}", p.title, message)
                 },
-                _ => p.title
+                _ => p.title,
             };
             label(move || progress.clone()).style(move |s| {
                 s.height_pct(100.0)
@@ -444,7 +444,7 @@ fn progress_view(
                     .items_center()
                     .color(config.get().color(LapceColor::STATUS_FOREGROUND))
             })
-        }
+        },
     )
     .style(move |s| s.flex_wrap(FlexWrap::Wrap).height_pct(100.0).min_width(0.0))
 }
@@ -452,7 +452,7 @@ fn progress_view(
 fn status_text<S: std::fmt::Display + 'static>(
     config: ReadSignal<Arc<LapceConfig>>,
     editor: Memo<Option<EditorData>>,
-    text: impl Fn() -> S + 'static
+    text: impl Fn() -> S + 'static,
 ) -> impl View {
     label(text).style(move |s| {
         let config = config.get();

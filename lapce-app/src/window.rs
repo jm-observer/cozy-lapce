@@ -1,14 +1,14 @@
 use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use floem::{
-    ViewId,
     action::TimerToken,
     peniko::kurbo::{Point, Size},
     reactive::{
-        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        use_context
+        use_context, Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate,
+        SignalWith,
     },
-    window::WindowId
+    window::WindowId,
+    ViewId,
 };
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -22,38 +22,38 @@ use crate::{
     listener::Listener,
     update::ReleaseInfo,
     window_tab::WindowTabData,
-    workspace::LapceWorkspace
+    workspace::LapceWorkspace,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabsInfo {
     pub active_tab: usize,
-    pub workspaces: Vec<LapceWorkspace>
+    pub workspaces: Vec<LapceWorkspace>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
-    pub size:      Size,
-    pub pos:       Point,
+    pub size: Size,
+    pub pos: Point,
     pub maximised: bool,
-    pub tabs:      TabsInfo
+    pub tabs: TabsInfo,
 }
 
 #[derive(Clone)]
 pub struct WindowCommonData {
-    pub window_command:           Listener<WindowCommand>,
-    pub window_scale:             RwSignal<f64>,
-    pub size:                     RwSignal<Size>,
-    pub num_window_tabs:          Memo<usize>,
-    pub window_maximized:         RwSignal<bool>,
+    pub window_command: Listener<WindowCommand>,
+    pub window_scale: RwSignal<f64>,
+    pub size: RwSignal<Size>,
+    pub num_window_tabs: Memo<usize>,
+    pub window_maximized: RwSignal<bool>,
     pub window_tab_header_height: RwSignal<f64>,
-    pub latest_release:           ReadSignal<Arc<Option<ReleaseInfo>>>,
-    pub ime_allowed:              RwSignal<bool>,
-    pub cursor_blink_timer:       RwSignal<TimerToken>,
+    pub latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
+    pub ime_allowed: RwSignal<bool>,
+    pub cursor_blink_timer: RwSignal<TimerToken>,
     // the value to be update by curosr blinking
-    pub hide_cursor:              RwSignal<bool>,
-    pub app_view_id:              RwSignal<ViewId>,
-    pub extra_plugin_paths:       Arc<Vec<PathBuf>>
+    pub hide_cursor: RwSignal<bool>,
+    pub app_view_id: RwSignal<ViewId>,
+    pub extra_plugin_paths: Arc<Vec<PathBuf>>,
 }
 
 /// `WindowData` is the application model for a top-level window.
@@ -67,22 +67,22 @@ pub struct WindowCommonData {
 /// normally only one window tab), size, position etc.
 #[derive(Clone)]
 pub struct WindowData {
-    pub window_id:       WindowId,
-    pub scope:           Scope,
+    pub window_id: WindowId,
+    pub scope: Scope,
     /// The set of tabs within the window. These tabs are high-level
     /// constructs for workspaces, in particular they are not **editor tabs**.
-    pub window_tabs:     RwSignal<im::Vector<(RwSignal<usize>, Rc<WindowTabData>)>>,
+    pub window_tabs: RwSignal<im::Vector<(RwSignal<usize>, Rc<WindowTabData>)>>,
     pub num_window_tabs: Memo<usize>,
     /// The index of the active window tab.
-    pub active:          RwSignal<usize>,
-    pub app_command:     Listener<AppCommand>,
-    pub position:        RwSignal<Point>,
-    pub root_view_id:    RwSignal<ViewId>,
-    pub window_scale:    RwSignal<f64>,
-    pub config:          RwSignal<Arc<LapceConfig>>,
-    pub ime_enabled:     RwSignal<bool>,
-    pub common:          Rc<WindowCommonData>,
-    pub watcher:         Arc<RwLock<notify::RecommendedWatcher>>
+    pub active: RwSignal<usize>,
+    pub app_command: Listener<AppCommand>,
+    pub position: RwSignal<Point>,
+    pub root_view_id: RwSignal<ViewId>,
+    pub window_scale: RwSignal<f64>,
+    pub config: RwSignal<Arc<LapceConfig>>,
+    pub ime_enabled: RwSignal<bool>,
+    pub common: Rc<WindowCommonData>,
+    pub watcher: Arc<RwLock<notify::RecommendedWatcher>>,
 }
 
 impl WindowData {
@@ -95,7 +95,7 @@ impl WindowData {
         latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
         app_command: Listener<AppCommand>,
-        watcher: Arc<RwLock<notify::RecommendedWatcher>>
+        watcher: Arc<RwLock<notify::RecommendedWatcher>>,
     ) -> Self {
         let cx = Scope::new();
         let config =
@@ -127,7 +127,7 @@ impl WindowData {
             cursor_blink_timer,
             hide_cursor,
             app_view_id,
-            extra_plugin_paths
+            extra_plugin_paths,
         });
         //
         for w in info.tabs.workspaces {
@@ -145,7 +145,7 @@ impl WindowData {
             let window_tab = Rc::new(WindowTabData::new(
                 cx,
                 Arc::new(LapceWorkspace::default()),
-                common.clone()
+                common.clone(),
             ));
             window_tabs.update(|window_tabs| {
                 window_tabs.push_back((cx.create_rw_signal(0), window_tab));
@@ -168,7 +168,7 @@ impl WindowData {
             config,
             ime_enabled: cx.create_rw_signal(false),
             common,
-            watcher
+            watcher,
         };
 
         {
@@ -198,7 +198,7 @@ impl WindowData {
         let config = LapceConfig::load(
             &LapceWorkspace::default(),
             &[],
-            &self.common.extra_plugin_paths
+            &self.common.extra_plugin_paths,
         );
         self.config.set(Arc::new(config));
         let window_tabs = self.window_tabs.get_untracked();
@@ -232,20 +232,20 @@ impl WindowData {
                 let window_tab = Rc::new(WindowTabData::new(
                     self.scope,
                     workspace.clone(),
-                    self.common.clone()
+                    self.common.clone(),
                 ));
 
                 self.window_tabs.update(|window_tabs| {
                     if window_tabs.is_empty() {
                         window_tabs.push_back((
                             self.scope.create_rw_signal(0),
-                            window_tab.clone()
+                            window_tab.clone(),
                         ));
                     } else {
                         let active = window_tabs.len().saturating_sub(1).min(active);
                         let (_, old_window_tab) = window_tabs.set(
                             active,
-                            (self.scope.create_rw_signal(0), window_tab.clone())
+                            (self.scope.create_rw_signal(0), window_tab.clone()),
                         );
                         old_window_tab.proxy.shutdown();
                         old_window_tab
@@ -265,7 +265,7 @@ impl WindowData {
                 let window_tab = Rc::new(WindowTabData::new(
                     self.scope,
                     Arc::new(workspace),
-                    self.common.clone()
+                    self.common.clone(),
                 ));
                 let active = self.active.get_untracked();
                 let active = self
@@ -274,14 +274,14 @@ impl WindowData {
                         if end || tabs.is_empty() {
                             tabs.push_back((
                                 self.scope.create_rw_signal(0),
-                                window_tab
+                                window_tab,
                             ));
                             tabs.len() - 1
                         } else {
                             let index = tabs.len().min(active + 1);
                             tabs.insert(
                                 index,
-                                (self.scope.create_rw_signal(0), window_tab)
+                                (self.scope.create_rw_signal(0), window_tab),
                             );
                             index
                         }
@@ -346,7 +346,7 @@ impl WindowData {
             WindowCommand::CloseWindow => {
                 self.app_command
                     .send(AppCommand::CloseWindow(self.window_id));
-            }
+            },
         }
         self.app_command.send(AppCommand::SaveApp);
     }
@@ -374,13 +374,13 @@ impl WindowData {
             .map(|(_, t)| (*t.workspace).clone())
             .collect();
         WindowInfo {
-            size:      self.common.size.get_untracked(),
-            pos:       self.position.get_untracked(),
+            size: self.common.size.get_untracked(),
+            pos: self.position.get_untracked(),
             maximised: false,
-            tabs:      TabsInfo {
+            tabs: TabsInfo {
                 active_tab: self.active.get_untracked(),
-                workspaces
-            }
+                workspaces,
+            },
         }
     }
 

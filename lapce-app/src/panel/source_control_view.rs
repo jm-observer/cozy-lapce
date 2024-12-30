@@ -2,18 +2,18 @@ use std::{path::PathBuf, rc::Rc};
 
 use doc::lines::buffer::rope_text::RopeText;
 use floem::{
-    View,
     action::show_context_menu,
     event::{Event, EventListener},
     kurbo::Affine,
     menu::{Menu, MenuItem},
     peniko::kurbo::Rect,
     reactive::{
-        SignalGet, SignalTrack, SignalUpdate, SignalWith, create_memo,
-        create_rw_signal
+        create_memo, create_rw_signal, SignalGet, SignalTrack, SignalUpdate,
+        SignalWith,
     },
     style::{CursorStyle, Style},
-    views::{Decorators, container, dyn_stack, label, scroll, stack, text}
+    views::{container, dyn_stack, label, scroll, stack, text, Decorators},
+    View,
 };
 use lapce_rpc::source_control::FileDiff;
 
@@ -26,11 +26,11 @@ use crate::{
     settings::checkbox,
     source_control::SourceControlData,
     svg,
-    window_tab::{Focus, WindowTabData}
+    window_tab::{Focus, WindowTabData},
 };
 pub fn source_control_panel(
     window_tab_data: Rc<WindowTabData>,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let source_control = window_tab_data.source_control.clone();
@@ -64,7 +64,7 @@ pub fn source_control_panel(
                             editor.get_untracked(),
                             debug_breakline,
                             is_active,
-                            "source control"
+                            "source control",
                         )
                         .style(|x| x.width_pct(100.0).min_width(100.0)),
                         label(|| "Commit Message".to_string()).style(move |s| {
@@ -75,7 +75,7 @@ pub fn source_control_panel(
                                 .color(config.color(LapceColor::EDITOR_DIM))
                                 .apply_if(!is_empty.get(), |s| s.hide())
                                 .selectable(false)
-                        })
+                        }),
                     ))
                     .style(|s| {
                         s.absolute()
@@ -109,7 +109,7 @@ pub fn source_control_panel(
                             if let Event::PointerUp(pointer_event) = event {
                                 editor.get_untracked().pointer_up(&pointer_event);
                             }
-                        }
+                        },
                     )
                 })
                 .on_move(move |pos| {
@@ -129,7 +129,7 @@ pub fn source_control_panel(
                         &e_data.editor,
                         offset,
                         !cursor.is_insert(),
-                        cursor.affinity
+                        cursor.affinity,
                     ) {
                         let rect =
                             Rect::from_origin_size((x, y), (width, line_height));
@@ -197,26 +197,26 @@ pub fn source_control_panel(
                             .hover(|s| {
                                 s.cursor(CursorStyle::Pointer).background(
                                     config
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
                             })
                             .active(|s| {
                                 s.background(config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
                                 ))
                             })
                             .selectable(false)
                     })
-            }
+            },
         ))
         .style(|s| s.flex_col().width_pct(100.0).padding(10.0)),
         foldable_panel_section(
             text("Changes"),
             file_diffs_view(source_control),
             window_tab_data.panel.section_open(PanelSection::Changes),
-            config
+            config,
         )
-        .style(|s| s.flex_col().size_pct(100.0, 100.0))
+        .style(|s| s.flex_col().size_pct(100.0, 100.0)),
     ))
     .on_event_stop(EventListener::PointerDown, move |_| {
         if focus.get_untracked() != Focus::Panel(PanelKind::SourceControl) {
@@ -310,7 +310,7 @@ fn file_diffs_view(source_control: SourceControlData) -> impl View {
                         FileDiff::Modified(_) => LapceIcons::SCM_DIFF_MODIFIED,
                         FileDiff::Added(_) => LapceIcons::SCM_DIFF_ADDED,
                         FileDiff::Deleted(_) => LapceIcons::SCM_DIFF_REMOVED,
-                        FileDiff::Renamed(_, _) => LapceIcons::SCM_DIFF_RENAMED
+                        FileDiff::Renamed(_, _) => LapceIcons::SCM_DIFF_RENAMED,
                     };
                     config.get().ui_svg(svg)
                 })
@@ -335,11 +335,11 @@ fn file_diffs_view(source_control: SourceControlData) -> impl View {
                     .padding_right(20.0)
                     .items_center()
                     .justify_end()
-            })
+            }),
         ))
         .on_click_stop(move |_| {
             internal_command.send(InternalCommand::OpenFileChanges {
-                path: path_for_click.clone()
+                path: path_for_click.clone(),
             });
         })
         .on_event_cont(EventListener::PointerDown, move |event| {
@@ -348,9 +348,9 @@ fn file_diffs_view(source_control: SourceControlData) -> impl View {
             let discard = move || {
                 lapce_command.send(LapceCommand {
                     kind: CommandKind::Workbench(
-                        LapceWorkbenchCommand::SourceControlDiscardTargetFileChanges
+                        LapceWorkbenchCommand::SourceControlDiscardTargetFileChanges,
                     ),
-                    data: Some(serde_json::json!(diff_for_menu.clone()))
+                    data: Some(serde_json::json!(diff_for_menu.clone())),
                 });
             };
 
@@ -382,7 +382,7 @@ fn file_diffs_view(source_control: SourceControlData) -> impl View {
                 |(path, (diff, checked))| {
                     (path.to_path_buf(), diff.clone(), *checked)
                 },
-                view_fn
+                view_fn,
             )
             .style(|s| s.line_height(1.6).flex_col().width_pct(100.0))
         })

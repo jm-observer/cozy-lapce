@@ -5,30 +5,30 @@ use floem::{
     reactive::*,
     style::CursorStyle,
     taffy::{
+        style_helpers::{self, auto, fr},
         Line,
-        style_helpers::{self, auto, fr}
     },
     unit::{Auto, PxPctAuto},
     views::{scroll::VerticalScrollAsHorizontal, *},
-    *
+    *,
 };
 
 use crate::{
     app::clickable_icon,
     config::{
-        LapceConfig,
         color::LapceColor,
         icon::LapceIcons,
-        ui::{TabCloseButton, TabSeparatorHeight}
+        ui::{TabCloseButton, TabSeparatorHeight},
+        LapceConfig,
     },
     svg,
-    window_tab::WindowTabData
+    window_tab::WindowTabData,
 };
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 pub fn common_tab_header<T: Clone + 'static>(
     window_tab_data: Rc<WindowTabData>,
-    tabs: Tabs<T>
+    tabs: Tabs<T>,
 ) -> impl View {
     let config = window_tab_data.common.config;
 
@@ -44,7 +44,7 @@ pub fn common_tab_header<T: Clone + 'static>(
                     |(tab, _close_manager): &(Tab<T>, CloseManager<T>)| tab.key(),
                     |(tab, close_manager): (Tab<T>, CloseManager<T>)| {
                         tab.view_content(close_manager)
-                    }
+                    },
                 )
                 .debug_name("Horizontal Tab Stack")
                 .style(|s| s.height_full().items_center())
@@ -71,11 +71,11 @@ pub fn common_tab_header<T: Clone + 'static>(
                 s.set(VerticalScrollAsHorizontal, true)
                     .absolute()
                     .size_full()
-            })
+            }),
         )
         .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.).min_width(10.))
         .debug_name("Tab scroll"),
-        tabs.view_close()
+        tabs.view_close(),
     ))
     .style(move |s| {
         let config = config.get();
@@ -93,7 +93,7 @@ pub fn common_tab_header<T: Clone + 'static>(
 
 fn tooltip_tip<V: View + 'static>(
     config: ReadSignal<Arc<LapceConfig>>,
-    child: V
+    child: V,
 ) -> impl IntoView {
     container(child).style(move |s| {
         let config = config.get();
@@ -115,26 +115,28 @@ fn tooltip_tip<V: View + 'static>(
 
 #[derive(Clone)]
 pub struct Tabs<T: Clone + 'static> {
-    pub config:        ReadSignal<Arc<LapceConfig>>,
+    pub config: ReadSignal<Arc<LapceConfig>>,
     pub close_manager: CloseManager<T>,
-    pub active:        RwSignal<Option<ViewId>>,
-    pub tabs:          RwSignal<Vec<Tab<T>>>,
-    pub cx:            Scope
+    pub active: RwSignal<Option<ViewId>>,
+    pub tabs: RwSignal<Vec<Tab<T>>>,
+    pub cx: Scope,
 }
 
 #[derive(Clone, Copy)]
 pub struct CloseManager<T: Clone + 'static> {
-    pub tabs: RwSignal<Vec<Tab<T>>>
+    pub tabs: RwSignal<Vec<Tab<T>>>,
 }
 
 impl<T: Clone + 'static> CloseManager<T> {
     fn close(&self, id: ViewId) {
         self.tabs.update(|x| {
-            let Some(index) = x
-                .iter()
-                .enumerate()
-                .find_map(|item| if item.1.id == id { Some(item.0) } else { None })
-            else {
+            let Some(index) = x.iter().enumerate().find_map(|item| {
+                if item.1.id == id {
+                    Some(item.0)
+                } else {
+                    None
+                }
+            }) else {
                 return;
             };
             x.remove(index);
@@ -144,18 +146,18 @@ impl<T: Clone + 'static> CloseManager<T> {
 
 #[derive(Clone)]
 pub struct Tab<T: Clone + 'static> {
-    pub id:         ViewId,
-    pub content:    String,
-    pub active:     RwSignal<Option<ViewId>>,
-    pub config:     ReadSignal<Arc<LapceConfig>>,
-    pub rect:       RwSignal<Rect>,
-    pub references: RwSignal<T>
+    pub id: ViewId,
+    pub content: String,
+    pub active: RwSignal<Option<ViewId>>,
+    pub config: ReadSignal<Arc<LapceConfig>>,
+    pub rect: RwSignal<Rect>,
+    pub references: RwSignal<T>,
 }
 
 impl<T: Clone + 'static> Tab<T> {
     fn view_tab_close_button(
         &self,
-        close_manager: CloseManager<T>
+        close_manager: CloseManager<T>,
     ) -> impl View + 'static {
         let config = self.config;
         let id = self.id;
@@ -167,14 +169,14 @@ impl<T: Clone + 'static> Tab<T> {
             || false,
             || false,
             || "Close",
-            config
+            config,
         )
         .style(move |s| {
             let tab_close_button = config.get().ui.tab_close_button;
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(1),
-                    end:   style_helpers::span(1)
+                    end: style_helpers::span(1),
                 })
             })
             .apply_if(tab_close_button == TabCloseButton::Off, |s| s.hide())
@@ -193,14 +195,14 @@ impl<T: Clone + 'static> Tab<T> {
         let (content, tip) = self.content_tip();
         tooltip(
             label(move || content.clone()).style(move |s| s.selectable(false)),
-            move || tooltip_tip(config, text(tip.clone()))
+            move || tooltip_tip(config, text(tip.clone())),
         )
         .style(move |s| {
             let tab_close_button = config.get().ui.tab_close_button;
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(2),
-                    end:   style_helpers::span(1)
+                    end: style_helpers::span(1),
                 })
             })
             .apply_if(tab_close_button == TabCloseButton::Off, |s| {
@@ -224,7 +226,7 @@ impl<T: Clone + 'static> Tab<T> {
                 .apply_if(tab_close_button == TabCloseButton::Left, |s| {
                     s.grid_column(Line {
                         start: style_helpers::line(3),
-                        end:   style_helpers::span(1)
+                        end: style_helpers::span(1),
                     })
                 })
         })
@@ -239,7 +241,7 @@ impl<T: Clone + 'static> Tab<T> {
             stack((
                 self.tab_icon(),
                 self.view_tab_content(),
-                self.view_tab_close_button(close_manager)
+                self.view_tab_close_button(close_manager),
             ))
             .style(move |s| {
                 s.items_center()
@@ -276,10 +278,10 @@ impl<T: Clone + 'static> Tab<T> {
                         config
                             .get()
                             .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
-                            .multiply_alpha(0.5)
+                            .multiply_alpha(0.5),
                     )
                 })
-                .debug_name("Tab Boundary")
+                .debug_name("Tab Boundary"),
         ))
         .on_click_stop(move |_| {
             active.set(Some(id));
@@ -320,7 +322,7 @@ impl<T: Clone + 'static> Tabs<T> {
             tabs,
             close_manager,
             active,
-            cx
+            cx,
         }
     }
 
@@ -337,7 +339,7 @@ impl<T: Clone + 'static> Tabs<T> {
             active,
             config,
             rect,
-            references
+            references,
         };
         batch(|| {
             self.tabs.update(|x| x.push(tab));
@@ -472,7 +474,7 @@ impl<T: Clone + 'static> Tabs<T> {
                 || false,
                 || false,
                 || "Previous Tab",
-                config
+                config,
             )
             .style(|s| s.margin_horiz(6.0).margin_vert(7.0)),
             clickable_icon(
@@ -483,7 +485,7 @@ impl<T: Clone + 'static> Tabs<T> {
                 || false,
                 || false,
                 || "Next Tab",
-                config
+                config,
             )
             .style(|s| s.margin_right(6.0)),
             empty()
@@ -492,10 +494,10 @@ impl<T: Clone + 'static> Tabs<T> {
                         config
                             .get()
                             .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
-                            .multiply_alpha(0.5)
+                            .multiply_alpha(0.5),
                     )
                 })
-                .debug_name("Tab Boundary")
+                .debug_name("Tab Boundary"),
         ))
         .on_resize(move |rect| {
             size.set(rect.size());

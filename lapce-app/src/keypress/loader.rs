@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use floem::views::editor::core::mode::Modes;
 use indexmap::IndexMap;
 use log::{debug, error};
@@ -6,22 +6,22 @@ use log::{debug, error};
 use super::keymap::{KeyMap, KeyMapPress};
 
 pub struct KeyMapLoader {
-    keymaps:         IndexMap<Vec<KeyMapPress>, Vec<KeyMap>>,
-    command_keymaps: IndexMap<String, Vec<KeyMap>>
+    keymaps: IndexMap<Vec<KeyMapPress>, Vec<KeyMap>>,
+    command_keymaps: IndexMap<String, Vec<KeyMap>>,
 }
 
 impl KeyMapLoader {
     pub fn new() -> Self {
         Self {
-            keymaps:         Default::default(),
-            command_keymaps: Default::default()
+            keymaps: Default::default(),
+            command_keymaps: Default::default(),
         }
     }
 
     pub fn load_from_str<'a>(
         &'a mut self,
         s: &str,
-        modal: bool
+        modal: bool,
     ) -> Result<&'a mut Self> {
         let toml_keymaps: toml_edit::Document = s.parse()?;
         let toml_keymaps = toml_keymaps
@@ -39,12 +39,12 @@ impl KeyMapLoader {
                 Err(err) => {
                     error!("Could not parse keymap: {err}");
                     continue;
-                }
+                },
             };
 
             let (command, bind) = match keymap.command.strip_prefix('-') {
                 Some(cmd) => (cmd.to_string(), false),
-                None => (keymap.command.clone(), true)
+                None => (keymap.command.clone(), true),
             };
 
             let current_keymaps = self.command_keymaps.entry(command).or_default();
@@ -78,14 +78,14 @@ impl KeyMapLoader {
 
     #[allow(clippy::type_complexity)]
     pub fn finalize(
-        self
+        self,
     ) -> (
         IndexMap<Vec<KeyMapPress>, Vec<KeyMap>>,
-        IndexMap<String, Vec<KeyMap>>
+        IndexMap<String, Vec<KeyMap>>,
     ) {
         let Self {
             keymaps: map,
-            command_keymaps: command_map
+            command_keymaps: command_map,
         } = self;
 
         (map, command_map)
@@ -93,7 +93,7 @@ impl KeyMapLoader {
 
     fn get_keymap(
         toml_keymap: &toml_edit::Table,
-        modal: bool
+        modal: bool,
     ) -> Result<Option<KeyMap>> {
         let key = toml_keymap
             .get("key")
@@ -122,7 +122,7 @@ impl KeyMapLoader {
                 .get("command")
                 .and_then(|c| c.as_str())
                 .map(|w| w.trim().to_string())
-                .unwrap_or_default()
+                .unwrap_or_default(),
         }))
     }
 }

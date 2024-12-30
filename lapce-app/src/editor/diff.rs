@@ -1,24 +1,24 @@
 use std::{rc::Rc, sync::atomic};
 
 use doc::{
-    EditorViewKind,
     lines::{
         buffer::{
-            diff::{DiffExpand, DiffLines, expand_diff_lines, rope_diff},
-            rope_text::RopeText
+            diff::{expand_diff_lines, rope_diff, DiffExpand, DiffLines},
+            rope_text::RopeText,
         },
-        diff::DiffInfo
-    }
+        diff::DiffInfo,
+    },
+    EditorViewKind,
 };
 use floem::{
-    View,
     event::EventListener,
     ext_event::create_ext_action,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, clip, dyn_stack, editor::id::EditorId, empty, label, stack
-    }
+        clip, dyn_stack, editor::id::EditorId, empty, label, stack, Decorators,
+    },
+    View,
 };
 use lapce_rpc::{buffer::BufferId, proxy::ProxyResponse};
 use lapce_xi_rope::Rope;
@@ -32,7 +32,7 @@ use crate::{
     main_split::{Editors, MainSplitData},
     svg,
     wave::wave_box,
-    window_tab::CommonData
+    window_tab::CommonData,
 };
 
 // #[derive(Clone)]
@@ -43,15 +43,15 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DiffEditorInfo {
-    pub left_content:  DocContent,
-    pub right_content: DocContent
+    pub left_content: DocContent,
+    pub right_content: DocContent,
 }
 
 impl DiffEditorInfo {
     pub fn to_data(
         &self,
         data: MainSplitData,
-        editor_tab_id: EditorTabId
+        editor_tab_id: EditorTabId,
     ) -> DiffEditorData {
         let cx = data.scope.create_child();
 
@@ -73,7 +73,7 @@ impl DiffEditorInfo {
                         cx,
                         content.clone(),
                         data.editors,
-                        common.clone()
+                        common.clone(),
                     );
                     let doc = Rc::new(doc);
 
@@ -92,7 +92,7 @@ impl DiffEditorInfo {
                             history.path.clone(),
                             move |(_, result)| {
                                 send(result);
-                            }
+                            },
                         );
                     }
 
@@ -100,22 +100,22 @@ impl DiffEditorInfo {
                 },
                 DocContent::Scratch { name, .. } => {
                     let doc_content = DocContent::Scratch {
-                        id:   BufferId::next(),
-                        name: name.to_string()
+                        id: BufferId::next(),
+                        name: name.to_string(),
                     };
                     let doc = Doc::new_content(
                         cx,
                         doc_content,
                         data.editors,
                         common.clone(),
-                        None
+                        None,
                     );
                     let doc = Rc::new(doc);
                     data.scratch_docs.update(|scratch_docs| {
                         scratch_docs.insert(name.to_string(), doc.clone());
                     });
                     doc
-                }
+                },
             }
         };
 
@@ -129,7 +129,7 @@ impl DiffEditorInfo {
             left_doc,
             right_doc,
             data.editors,
-            data.common.clone()
+            data.common.clone(),
         );
 
         data.diff_editors.update(|diff_editors| {
@@ -142,13 +142,13 @@ impl DiffEditorInfo {
 
 #[derive(Clone)]
 pub struct DiffEditorData {
-    pub id:            DiffEditorId,
+    pub id: DiffEditorId,
     pub editor_tab_id: RwSignal<EditorTabId>,
-    pub scope:         Scope,
-    pub left:          EditorData,
-    pub right:         EditorData,
-    pub confirmed:     RwSignal<bool>,
-    pub focus_right:   RwSignal<bool>
+    pub scope: Scope,
+    pub left: EditorData,
+    pub right: EditorData,
+    pub confirmed: RwSignal<bool>,
+    pub focus_right: RwSignal<bool>,
 }
 
 impl DiffEditorData {
@@ -159,7 +159,7 @@ impl DiffEditorData {
         left_doc: Rc<Doc>,
         right_doc: Rc<Doc>,
         editors: Editors,
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Self {
         let cx = cx.create_child();
         let confirmed = cx.create_rw_signal(false);
@@ -172,7 +172,7 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 Some(confirmed),
-                common.clone()
+                common.clone(),
             )
         });
 
@@ -183,7 +183,7 @@ impl DiffEditorData {
             left,
             right,
             confirmed,
-            focus_right: cx.create_rw_signal(true)
+            focus_right: cx.create_rw_signal(true),
         };
 
         data.listen_diff_changes();
@@ -193,8 +193,8 @@ impl DiffEditorData {
 
     pub fn diff_editor_info(&self) -> DiffEditorInfo {
         DiffEditorInfo {
-            left_content:  self.left.doc().content.get_untracked(),
-            right_content: self.right.doc().content.get_untracked()
+            left_content: self.left.doc().content.get_untracked(),
+            right_content: self.right.doc().content.get_untracked(),
         }
     }
 
@@ -203,7 +203,7 @@ impl DiffEditorData {
         cx: Scope,
         editor_tab_id: EditorTabId,
         diff_editor_id: EditorId,
-        editors: Editors
+        editors: Editors,
     ) -> Self {
         let cx = cx.create_child();
         let confirmed = cx.create_rw_signal(true);
@@ -215,7 +215,7 @@ impl DiffEditorData {
                     cx,
                     None,
                     Some((editor_tab_id, diff_editor_id)),
-                    Some(confirmed)
+                    Some(confirmed),
                 )
                 .unwrap()
         });
@@ -227,7 +227,7 @@ impl DiffEditorData {
             focus_right: cx.create_rw_signal(true),
             left,
             right,
-            confirmed
+            confirmed,
         };
 
         diff_editor.listen_diff_changes();
@@ -292,11 +292,11 @@ impl DiffEditorData {
 
                     left_editor_view.set(EditorViewKind::Diff(DiffInfo {
                         is_right: false,
-                        changes:  changes.clone()
+                        changes: changes.clone(),
                     }));
                     right_editor_view.set(EditorViewKind::Diff(DiffInfo {
                         is_right: true,
-                        changes
+                        changes,
                     }));
                 })
             };
@@ -307,7 +307,7 @@ impl DiffEditorData {
                     right_rope,
                     right_rev,
                     right_atomic_rev.clone(),
-                    Some(3)
+                    Some(3),
                 );
                 send(changes);
             });
@@ -316,15 +316,15 @@ impl DiffEditorData {
 }
 
 struct DiffShowMoreSection {
-    left_actual_line:  usize,
+    left_actual_line: usize,
     right_actual_line: usize,
-    visual_line:       usize,
-    lines:             usize
+    visual_line: usize,
+    lines: usize,
 }
 
 pub fn diff_show_more_section_view(
     left_editor: &EditorData,
-    right_editor: &EditorData
+    right_editor: &EditorData,
 ) -> impl View {
     let left_editor_view = left_editor.kind_rw();
     let right_editor_view = right_editor.kind_rw();
@@ -373,7 +373,7 @@ pub fn diff_show_more_section_view(
                                     left_actual_line: info.left.start,
                                     right_actual_line: info.right.start,
                                     visual_line,
-                                    lines: skip.len()
+                                    lines: skip.len(),
                                 });
                             }
                             visual_line += 1;
@@ -413,7 +413,7 @@ pub fn diff_show_more_section_view(
                     s.size(size, size)
                         .color(config.color(LapceColor::EDITOR_FOREGROUND))
                 }),
-                label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
+                label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0)),
             ))
             .on_event_stop(EventListener::PointerDown, move |_| {})
             .on_click_stop(move |_event| {
@@ -423,7 +423,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.left_actual_line,
                             DiffExpand::All,
-                            false
+                            false,
                         );
                     }
                 });
@@ -433,7 +433,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.right_actual_line,
                             DiffExpand::All,
-                            true
+                            true,
                         );
                     }
                 });
@@ -452,9 +452,9 @@ pub fn diff_show_more_section_view(
                         let size = config.ui.icon_size() as f32;
                         s.size(size, size)
                             .color(config.color(LapceColor::EDITOR_FOREGROUND))
-                    }
+                    },
                 ),
-                label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
+                label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0)),
             ))
             .on_event_stop(EventListener::PointerDown, move |_| {})
             .on_click_stop(move |_event| {
@@ -464,7 +464,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.left_actual_line,
                             DiffExpand::Up(10),
-                            false
+                            false,
                         );
                     }
                 });
@@ -474,7 +474,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.right_actual_line,
                             DiffExpand::Up(10),
-                            true
+                            true,
                         );
                     }
                 });
@@ -493,9 +493,9 @@ pub fn diff_show_more_section_view(
                         let size = config.ui.icon_size() as f32;
                         s.size(size, size)
                             .color(config.color(LapceColor::EDITOR_FOREGROUND))
-                    }
+                    },
                 ),
-                label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
+                label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0)),
             ))
             .on_event_stop(EventListener::PointerDown, move |_| {})
             .on_click_stop(move |_event| {
@@ -505,7 +505,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.left_actual_line,
                             DiffExpand::Down(10),
-                            false
+                            false,
                         );
                     }
                 });
@@ -515,7 +515,7 @@ pub fn diff_show_more_section_view(
                             &mut diff_info.changes,
                             section.right_actual_line,
                             DiffExpand::Down(10),
-                            true
+                            true,
                         );
                     }
                 });
@@ -525,7 +525,7 @@ pub fn diff_show_more_section_view(
                     .height_pct(100.0)
                     .items_center()
                     .hover(|s| s.cursor(CursorStyle::Pointer))
-            })
+            }),
         ))
         .style(move |s| {
             let config = config.get();
@@ -536,7 +536,7 @@ pub fn diff_show_more_section_view(
                 .items_center()
                 .margin_top(
                     (section.visual_line * config.editor.line_height()) as f32
-                        - viewport.get().y0 as f32
+                        - viewport.get().y0 as f32,
                 )
                 .hover(|s| s.cursor(CursorStyle::Default))
         })
@@ -548,9 +548,9 @@ pub fn diff_show_more_section_view(
         }),
         clip(
             dyn_stack(each_fn, key_fn, view_fn)
-                .style(|s| s.flex_col().size_pct(100.0, 100.0))
+                .style(|s| s.flex_col().size_pct(100.0, 100.0)),
         )
-        .style(|s| s.size_pct(100.0, 100.0))
+        .style(|s| s.size_pct(100.0, 100.0)),
     ))
     .style(|s| s.absolute().flex_col().size_pct(100.0, 100.0))
     .debug_name("Diff Show More Section")

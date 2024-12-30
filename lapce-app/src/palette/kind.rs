@@ -23,7 +23,7 @@ pub enum PaletteKind {
     SCMReferences,
     TerminalProfile,
     DiffFiles,
-    HelpAndFile
+    HelpAndFile,
 }
 
 impl PaletteKind {
@@ -50,7 +50,7 @@ impl PaletteKind {
             | PaletteKind::HelpAndFile
             | PaletteKind::DiffFiles => "",
             #[cfg(windows)]
-            PaletteKind::WslHost => ""
+            PaletteKind::WslHost => "",
         }
     }
 
@@ -65,7 +65,7 @@ impl PaletteKind {
             _ if input.starts_with('>') => PaletteKind::Workspace,
             _ if input.starts_with(':') => PaletteKind::Command,
             _ if input.starts_with('<') => PaletteKind::TerminalProfile,
-            _ => PaletteKind::File
+            _ => PaletteKind::File,
         }
     }
 
@@ -104,7 +104,7 @@ impl PaletteKind {
                 Some(LapceWorkbenchCommand::PaletteSCMReferences)
             },
             PaletteKind::TerminalProfile => None, // InternalCommand::NewTerminal
-            PaletteKind::DiffFiles => Some(LapceWorkbenchCommand::DiffFiles)
+            PaletteKind::DiffFiles => Some(LapceWorkbenchCommand::DiffFiles),
         }
     }
 

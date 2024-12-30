@@ -4,14 +4,14 @@ use anyhow::anyhow;
 use floem::{
     ext_event::create_ext_action,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::core::mode::Mode
+    views::editor::core::mode::Mode,
 };
 use lapce_rpc::{
     dap_types::{
-        self, DapId, RunDebugConfig, StackFrame, Stopped, ThreadId, Variable
+        self, DapId, RunDebugConfig, StackFrame, Stopped, ThreadId, Variable,
     },
     proxy::ProxyResponse,
-    terminal::{TermId, TerminalProfile}
+    terminal::{TermId, TerminalProfile},
 };
 use log::{debug, error};
 use parking_lot::RwLock;
@@ -21,7 +21,7 @@ use super::{data::TerminalData, tab::TerminalTabData};
 use crate::{
     debug::{
         DapData, DapVariable, RunDebugConfigs, RunDebugData, RunDebugMode,
-        RunDebugProcess, ScopeOrVar
+        RunDebugProcess, ScopeOrVar,
     },
     id::TerminalTabId,
     keypress::{EventRef, KeyPressData, KeyPressFocus, KeyPressHandle},
@@ -29,12 +29,12 @@ use crate::{
     panel::kind::PanelKind,
     terminal::{event::TermEvent, raw::RawTerminal},
     window_tab::{CommonData, Focus},
-    workspace::LapceWorkspace
+    workspace::LapceWorkspace,
 };
 
 pub struct TerminalTabInfo {
     pub active: Option<TerminalTabId>,
-    pub tabs:   im::Vector<TerminalTabData>
+    pub tabs: im::Vector<TerminalTabData>,
 }
 
 impl TerminalTabInfo {
@@ -70,13 +70,13 @@ impl TerminalTabInfo {
 
 #[derive(Clone)]
 pub struct TerminalPanelData {
-    pub cx:         Scope,
-    pub workspace:  Arc<LapceWorkspace>,
-    pub tab_infos:  RwSignal<TerminalTabInfo>,
-    pub debug:      RunDebugData,
-    pub breakline:  Memo<Option<(usize, PathBuf)>>,
-    pub common:     Rc<CommonData>,
-    pub main_split: MainSplitData
+    pub cx: Scope,
+    pub workspace: Arc<LapceWorkspace>,
+    pub tab_infos: RwSignal<TerminalTabInfo>,
+    pub debug: RunDebugData,
+    pub breakline: Memo<Option<(usize, PathBuf)>>,
+    pub common: Rc<CommonData>,
+    pub main_split: MainSplitData,
 }
 
 impl TerminalPanelData {
@@ -84,7 +84,7 @@ impl TerminalPanelData {
         workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-        main_split: MainSplitData
+        main_split: MainSplitData,
     ) -> Self {
         let terminal_tab =
             TerminalTabData::new(workspace.clone(), profile, common.clone());
@@ -104,7 +104,7 @@ impl TerminalPanelData {
                 let active_term = active_term.get();
                 let active_term = match active_term {
                     Some(active_term) => active_term,
-                    None => return None
+                    None => return None,
                 };
 
                 let term = tab_info.with_untracked(|info| {
@@ -124,7 +124,7 @@ impl TerminalPanelData {
                 });
                 let term = match term {
                     Some(term) => term,
-                    None => return None
+                    None => return None,
                 };
                 let stopped = term
                     .run_debug
@@ -147,7 +147,7 @@ impl TerminalPanelData {
             debug,
             breakline,
             common,
-            main_split
+            main_split,
         }
     }
 
@@ -170,7 +170,7 @@ impl TerminalPanelData {
     pub fn key_down<'a>(
         &self,
         event: impl Into<EventRef<'a>> + Copy,
-        keypress: &KeyPressData
+        keypress: &KeyPressData,
     ) -> Option<KeyPressHandle> {
         if self.tab_infos.with_untracked(|info| info.tabs.is_empty()) {
             self.new_tab(None);
@@ -186,9 +186,9 @@ impl TerminalPanelData {
                 if let EventRef::Keyboard(key_event) = event.into() {
                     if terminal.send_keypress(key_event) {
                         return Some(KeyPressHandle {
-                            handled:  true,
+                            handled: true,
                             keymatch: handle.keymatch,
-                            keypress: handle.keypress
+                            keypress: handle.keypress,
                         });
                     }
                 }
@@ -208,13 +208,13 @@ impl TerminalPanelData {
     pub fn new_tab_run_debug(
         &self,
         run_debug: Option<RunDebugProcess>,
-        profile: Option<TerminalProfile>
+        profile: Option<TerminalProfile>,
     ) -> TerminalTabData {
         let terminal_tab = TerminalTabData::new_run_debug(
             self.workspace.clone(),
             run_debug,
             profile,
-            self.common.clone()
+            self.common.clone(),
         );
         let tab_id = terminal_tab.terminal_tab_id;
         let update_terminal = terminal_tab.clone();
@@ -305,7 +305,7 @@ impl TerminalPanelData {
 
     fn get_terminal_in_tab(
         &self,
-        term_id: &TermId
+        term_id: &TermId,
     ) -> Option<(TerminalTabData, TerminalData)> {
         self.tab_infos.with_untracked(|info| {
             for tab in info.tabs.iter() {
@@ -425,11 +425,11 @@ impl TerminalPanelData {
                         if run_debug.mode == RunDebugMode::Debug {
                             update_executable(
                                 &mut run_debug,
-                                terminal.raw.get_untracked().clone()
+                                terminal.raw.get_untracked().clone(),
                             );
                             self.common.proxy.dap_start(
                                 run_debug.config,
-                                self.debug.source_breakpoints()
+                                self.debug.source_breakpoints(),
                             )
                         } else {
                             terminal.new_process(Some(run_debug));
@@ -446,7 +446,7 @@ impl TerminalPanelData {
     pub fn get_stopped_run_debug_terminal(
         &self,
         mode: &RunDebugMode,
-        config: &RunDebugConfig
+        config: &RunDebugConfig,
     ) -> Option<TerminalData> {
         self.tab_infos.with_untracked(|info| {
             for tab in &info.tabs {
@@ -465,7 +465,7 @@ impl TerminalPanelData {
                                     if run_debug.config.dap_id == config.dap_id {
                                         return Some(terminal.clone());
                                     }
-                                }
+                                },
                             }
                         }
                     }
@@ -504,7 +504,7 @@ impl TerminalPanelData {
                     self.workspace.clone(),
                     Some(run_debug),
                     None,
-                    self.common.clone()
+                    self.common.clone(),
                 );
                 let new_term_id = new_terminal.term_id;
                 terminal_tab.terminal.update(|terminals| {
@@ -521,7 +521,7 @@ impl TerminalPanelData {
                     .proxy
                     .dap_restart(config, self.debug.source_breakpoints());
                 term_id
-            }
+            },
         };
 
         self.focus_terminal(new_term_id);
@@ -543,7 +543,7 @@ impl TerminalPanelData {
                     Err(err) => {
                         // todo show message window
                         log::error!("deser fail {:?}", err);
-                    }
+                    },
                 }
             }
         }
@@ -589,7 +589,7 @@ impl TerminalPanelData {
 
     fn _manual_stop_run_debug(
         &self,
-        terminal_id: TerminalTabId
+        terminal_id: TerminalTabId,
     ) -> anyhow::Result<()> {
         let terminal = self
             .get_terminal(terminal_id)
@@ -602,7 +602,11 @@ impl TerminalPanelData {
                     stopped = x.stopped;
                     x.stopped = true
                 }
-                if stopped { None } else { x.clone() }
+                if stopped {
+                    None
+                } else {
+                    x.clone()
+                }
             })
             .flatten()
         else {
@@ -635,7 +639,7 @@ impl TerminalPanelData {
                 // self.common
                 //     .term_tx
                 //     .send((terminal.term_id, TermEvent::CloseTerminal))?;
-            }
+            },
         }
         self.focus_terminal(terminal_id);
         Ok(())
@@ -643,7 +647,7 @@ impl TerminalPanelData {
 
     pub fn run_debug_process(
         &self,
-        tracked: bool
+        tracked: bool,
     ) -> Vec<(TermId, RunDebugProcess)> {
         let mut processes = Vec::new();
         if tracked {
@@ -702,7 +706,7 @@ impl TerminalPanelData {
         dap_id: &DapId,
         stopped: &Stopped,
         stack_frames: &HashMap<ThreadId, Vec<StackFrame>>,
-        variables: &[(dap_types::Scope, Vec<Variable>)]
+        variables: &[(dap_types::Scope, Vec<Variable>)],
     ) {
         let dap = self
             .debug
@@ -802,7 +806,7 @@ impl TerminalPanelData {
     pub fn get_dap(
         &self,
         terminal_tab_id: TerminalTabId,
-        tracked: bool
+        tracked: bool,
     ) -> Option<DapData> {
         let terminal = self.get_terminal(terminal_tab_id)?;
         let dap_id = if tracked {
@@ -834,32 +838,26 @@ impl TerminalPanelData {
                             .iter()
                             .enumerate()
                             .map(|(i, (scope, vars))| DapVariable {
-                                item:                    ScopeOrVar::Scope(
-                                    scope.to_owned()
-                                ),
-                                parent:                  Vec::new(),
-                                expanded:                i == 0,
-                                read:                    i == 0,
-                                children:                vars
+                                item: ScopeOrVar::Scope(scope.to_owned()),
+                                parent: Vec::new(),
+                                expanded: i == 0,
+                                read: i == 0,
+                                children: vars
                                     .iter()
                                     .map(|var| DapVariable {
-                                        item:                    ScopeOrVar::Var(
-                                            var.to_owned()
-                                        ),
-                                        parent:                  vec![
-                                            scope.variables_reference,
-                                        ],
-                                        expanded:                false,
-                                        read:                    false,
-                                        children:                Vec::new(),
-                                        children_expanded_count: 0
+                                        item: ScopeOrVar::Var(var.to_owned()),
+                                        parent: vec![scope.variables_reference],
+                                        expanded: false,
+                                        read: false,
+                                        children: Vec::new(),
+                                        children_expanded_count: 0,
                                     })
                                     .collect(),
                                 children_expanded_count: if i == 0 {
                                     vars.len()
                                 } else {
                                     0
-                                }
+                                },
                             })
                             .collect();
                         dap_var.children_expanded_count = dap_var
@@ -876,7 +874,7 @@ impl TerminalPanelData {
                 frame_id,
                 move |(_, result)| {
                     send(result);
-                }
+                },
             );
         }
     }
@@ -884,7 +882,7 @@ impl TerminalPanelData {
 
 fn update_executable(
     run_debug: &mut RunDebugProcess,
-    raw: Arc<RwLock<RawTerminal>>
+    raw: Arc<RwLock<RawTerminal>>,
 ) {
     if run_debug.config.config_source.from_rust_code_lens() {
         let lines = raw.write_arc().output(5);
@@ -903,21 +901,21 @@ fn update_executable(
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Profile {
-    pub test: bool
+    pub test: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Target {
-    pub kind:        Vec<String>,
-    pub crate_types: Vec<String>
+    pub kind: Vec<String>,
+    pub crate_types: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RustArtifact {
-    pub reason:     String,
-    pub target:     Target,
-    pub profile:    Profile,
-    pub executable: String
+    pub reason: String,
+    pub target: Target,
+    pub profile: Profile,
+    pub executable: String,
 }
 
 impl RustArtifact {

@@ -50,7 +50,7 @@ use serde::{Deserialize, Serialize};
 pub enum PanelContainerPosition {
     Left,
     Bottom,
-    Right
+    Right,
 }
 
 impl PanelContainerPosition {
@@ -86,7 +86,7 @@ impl PanelContainerPosition {
         match self {
             PanelContainerPosition::Left => "Left Pannel Container View",
             PanelContainerPosition::Bottom => "Bottom Pannel Container View",
-            PanelContainerPosition::Right => "Right Pannel Container View"
+            PanelContainerPosition::Right => "Right Pannel Container View",
         }
     }
 }

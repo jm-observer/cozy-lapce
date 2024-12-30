@@ -50,7 +50,7 @@ pub mod workspace;
 #[cfg(windows)]
 extern crate windows_sys as windows;
 
-use floem::{View, prelude::Svg, reactive::create_effect};
+use floem::{prelude::Svg, reactive::create_effect, View};
 
 pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
     let content = svg_str();

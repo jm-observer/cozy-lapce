@@ -1,22 +1,22 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use lapce_core::{directory::Directory, meta};
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct ReleaseInfo {
-    pub tag_name:         String,
+    pub tag_name: String,
     pub target_commitish: String,
-    pub assets:           Vec<ReleaseAsset>,
+    pub assets: Vec<ReleaseAsset>,
     #[serde(skip)]
-    pub version:          String
+    pub version: String,
 }
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct ReleaseAsset {
-    pub name:                 String,
-    pub browser_download_url: String
+    pub name: String,
+    pub browser_download_url: String,
 }
 
 pub fn get_latest_release() -> Result<ReleaseInfo> {
@@ -27,7 +27,7 @@ pub fn get_latest_release() -> Result<ReleaseInfo> {
         meta::ReleaseType::Nightly => {
             "https://api.github.com/repos/lapce/lapce/releases/tags/nightly"
         },
-        _ => "https://api.github.com/repos/lapce/lapce/releases/latest"
+        _ => "https://api.github.com/repos/lapce/lapce/releases/latest",
     };
 
     let resp = lapce_proxy::get_url(url, Some("Lapce"))?;
@@ -46,7 +46,7 @@ pub fn get_latest_release() -> Result<ReleaseInfo> {
             .tag_name
             .strip_prefix('v')
             .unwrap_or(&release.tag_name)
-            .to_owned()
+            .to_owned(),
     };
 
     Ok(release)
@@ -60,13 +60,13 @@ pub fn download_release(release: &ReleaseInfo) -> Result<PathBuf> {
         "linux" => match std::env::consts::ARCH {
             "aarch64" => "lapce-linux-arm64.tar.gz",
             "x86_64" => "lapce-linux-amd64.tar.gz",
-            _ => return Err(anyhow!("arch not supported"))
+            _ => return Err(anyhow!("arch not supported")),
         },
         #[cfg(feature = "portable")]
         "windows" => "Lapce-windows-portable.zip",
         #[cfg(not(feature = "portable"))]
         "windows" => "Lapce-windows.msi",
-        _ => return Err(anyhow!("os not supported"))
+        _ => return Err(anyhow!("os not supported")),
     };
     let file_path = dir.join(name);
 
@@ -99,13 +99,13 @@ pub fn extract(src: &Path, process_path: &Path) -> Result<PathBuf> {
         &[info.mount_point.join("Lapce.app")],
         dest,
         &fs_extra::dir::CopyOptions {
-            overwrite:    true,
-            skip_exist:   false,
-            buffer_size:  64000,
-            copy_inside:  true,
+            overwrite: true,
+            skip_exist: false,
+            buffer_size: 64000,
+            copy_inside: true,
             content_only: false,
-            depth:        0
-        }
+            depth: 0,
+        },
     )?;
     Ok(dest.join("Lapce.app"))
 }

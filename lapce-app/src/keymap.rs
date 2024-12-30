@@ -1,37 +1,37 @@
 use std::{cmp::Ordering, rc::Rc, sync::Arc};
 
 use floem::{
-    View,
     event::{Event, EventListener},
     reactive::{
-        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        create_effect, create_memo, create_rw_signal, create_signal
+        create_effect, create_memo, create_rw_signal, create_signal, Memo,
+        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
     },
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, container, dyn_stack,
-        editor::core::mode::Modes, label, scroll, stack, text, virtual_stack
-    }
+        container, dyn_stack, editor::core::mode::Modes, label, scroll, stack, text,
+        virtual_stack, Decorators, VirtualDirection, VirtualItemSize,
+    },
+    View,
 };
 use itertools::Itertools;
 
 use crate::{
     command::LapceCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor, LapceConfig},
     keypress::{
+        keymap::{KeyMap, KeyMapPress},
         KeyPressData,
-        keymap::{KeyMap, KeyMapPress}
     },
     main_split::Editors,
     text_input::TextInputBuilder,
-    window_tab::CommonData
+    window_tab::CommonData,
 };
 
 #[derive(Clone)]
 pub struct KeymapPicker {
-    cmd:    RwSignal<Option<LapceCommand>>,
+    cmd: RwSignal<Option<LapceCommand>>,
     keymap: RwSignal<Option<KeyMap>>,
-    keys:   RwSignal<Vec<(KeyMapPress, bool)>>
+    keys: RwSignal<Vec<(KeyMapPress, bool)>>,
 }
 
 pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
@@ -41,9 +41,9 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
     let ui_line_height = move || ui_line_height_memo.get() * 1.2;
     let modal = create_memo(move |_| config.get().core.modal);
     let picker = KeymapPicker {
-        cmd:    create_rw_signal(None),
+        cmd: create_rw_signal(None),
         keymap: create_rw_signal(None),
-        keys:   create_rw_signal(Vec::new())
+        keys: create_rw_signal(Vec::new()),
     };
 
     let cx = Scope::current();
@@ -95,15 +95,15 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                 .sorted_by(|x, y| {
                     match (
                         x.1.as_ref().and_then(|x| x.key.first()),
-                        y.1.as_ref().and_then(|x| x.key.first())
+                        y.1.as_ref().and_then(|x| x.key.first()),
                     ) {
                         (Some(x_key), Some(y_key)) => x_key.cmp(y_key),
                         (Some(_), None) => Ordering::Greater,
                         (None, Some(_)) => Ordering::Less,
-                        _ => Ordering::Equal
+                        _ => Ordering::Equal,
                     }
                 })
-                .collect::<im::Vector<(LapceCommand, Option<KeyMap>)>>()
+                .collect::<im::Vector<(LapceCommand, Option<KeyMap>)>>(),
         };
         items.extend(keypress.commands_without_keymap.iter().filter_map(|cmd| {
             let match_pattern = cmd.kind.str().replace('_', " ").contains(&pattern)
@@ -133,7 +133,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                         cmd.kind
                             .desc()
                             .map(|desc| desc.to_string())
-                            .unwrap_or_else(|| cmd.kind.str().replace('_', " "))
+                            .unwrap_or_else(|| cmd.kind.str().replace('_', " ")),
                     )
                     .style(|s| {
                         s.text_ellipsis()
@@ -142,7 +142,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                             .min_width(0.0)
                             .padding_horiz(10.0)
                             .size_pct(100.0, 100.0)
-                    })
+                    }),
                 )
                 .style(move |s| {
                     s.height_pct(100.0)
@@ -178,10 +178,10 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                                     .border(1.0)
                                     .border_radius(3.0)
                                     .border_color(
-                                        config.get().color(LapceColor::LAPCE_BORDER)
+                                        config.get().color(LapceColor::LAPCE_BORDER),
                                     )
                             })
-                        }
+                        },
                     )
                     .style(move |s| {
                         s.items_center()
@@ -190,7 +190,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                             .height_pct(100.0)
                             .border_right(1.0)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.get().color(LapceColor::LAPCE_BORDER),
                             )
                     })
                     .debug_name("keymaps")
@@ -201,7 +201,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                         (Modes::INSERT, "Insert"),
                         (Modes::NORMAL, "Normal"),
                         (Modes::VISUAL, "Visual"),
-                        (Modes::TERMINAL, "Terminal")
+                        (Modes::TERMINAL, "Terminal"),
                     ];
                     let modes = keymap
                         .as_ref()
@@ -228,10 +228,10 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                                     .border(1.0)
                                     .border_radius(3.0)
                                     .border_color(
-                                        config.get().color(LapceColor::LAPCE_BORDER)
+                                        config.get().color(LapceColor::LAPCE_BORDER),
                                     )
                             })
-                        }
+                        },
                     )
                     .style(move |s| {
                         s.items_center()
@@ -240,7 +240,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                             .height_pct(100.0)
                             .border_right(1.0)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.get().color(LapceColor::LAPCE_BORDER),
                             )
                             .apply_if(!modal.get(), |s| s.hide())
                     })
@@ -250,7 +250,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                         keymap
                             .as_ref()
                             .and_then(|keymap| keymap.when.clone())
-                            .unwrap_or_default()
+                            .unwrap_or_default(),
                     )
                     .style(|s| {
                         s.text_ellipsis()
@@ -259,14 +259,14 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                             .min_width(0.0)
                             .padding_horiz(10.0)
                             .size_pct(100.0, 100.0)
-                    })
+                    }),
                 )
                 .style(move |s| {
                     s.height_pct(100.0)
                         .min_width(0.0)
                         .flex_basis(0.0)
                         .flex_grow(1.0)
-                })
+                }),
             ))
             .on_click_stop(move |_| {
                 let keymap = if let Some(keymap) = local_keymap.clone() {
@@ -274,9 +274,9 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                 } else {
                     KeyMap {
                         command: local_cmd.kind.str().to_string(),
-                        key:     Vec::new(),
-                        modes:   Modes::empty(),
-                        when:    None
+                        key: Vec::new(),
+                        modes: Modes::empty(),
+                        when: None,
                     }
                 };
                 picker.keymap.set(Some(keymap));
@@ -309,7 +309,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                         .border_radius(6.0)
                         .border(1.0)
                         .border_color(config.get().color(LapceColor::LAPCE_BORDER))
-                })
+                }),
         )
         .style(|s| s.padding_bottom(10.0).width_pct(100.0)),
         stack((
@@ -355,7 +355,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                     .min_width(0.0)
                     .flex_basis(0.0)
                     .flex_grow(1.0)
-            })
+            }),
         ))
         .style(move |s| {
             let config = config.get();
@@ -375,16 +375,16 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
                     key_map_items,
                     |(i, (cmd, keymap)): &(
                         usize,
-                        (LapceCommand, Option<KeyMap>)
+                        (LapceCommand, Option<KeyMap>),
                     )| { (*i, cmd.kind.str(), keymap.clone()) },
-                    view_fn
+                    view_fn,
                 )
-                .style(|s| s.flex_col().width_pct(100.0))
+                .style(|s| s.flex_col().width_pct(100.0)),
             )
-            .style(|s| s.absolute().size_pct(100.0, 100.0))
+            .style(|s| s.absolute().size_pct(100.0, 100.0)),
         )
         .style(|s| s.width_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
-        keyboard_picker_view(picker, common.ui_line_height, config)
+        keyboard_picker_view(picker, common.ui_line_height, config),
     ))
     .style(|s| {
         s.absolute()
@@ -399,7 +399,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
 fn keyboard_picker_view(
     picker: KeymapPicker,
     ui_line_height: Memo<f64>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let picker_cmd = picker.cmd;
     let view = container(
@@ -437,10 +437,10 @@ fn keyboard_picker_view(
                             .border(1.0)
                             .border_radius(6.0)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.get().color(LapceColor::LAPCE_BORDER),
                             )
                     })
-                }
+                },
             )
             .style(move |s| {
                 let config = config.get();
@@ -467,12 +467,12 @@ fn keyboard_picker_view(
                             .hover(|s| {
                                 s.cursor(CursorStyle::Pointer).background(
                                     config
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
                             })
                             .active(|s| {
                                 s.background(config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
                                 ))
                             })
                     })
@@ -486,7 +486,7 @@ fn keyboard_picker_view(
                                 &keys
                                     .iter()
                                     .map(|(key, _)| key.clone())
-                                    .collect::<Vec<KeyMapPress>>()
+                                    .collect::<Vec<KeyMapPress>>(),
                             );
                         }
                     }),
@@ -503,18 +503,18 @@ fn keyboard_picker_view(
                             .hover(|s| {
                                 s.cursor(CursorStyle::Pointer).background(
                                     config
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
                             })
                             .active(|s| {
                                 s.background(config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
                                 ))
                             })
                     })
                     .on_click_stop(move |_| {
                         picker.keymap.set(None);
-                    })
+                    }),
             ))
             .style(move |s| {
                 let config = config.get();
@@ -523,7 +523,7 @@ fn keyboard_picker_view(
                     .width_pct(100.0)
                     .margin_top(20.0)
                     .border_color(config.color(LapceColor::LAPCE_BORDER))
-            })
+            }),
         ))
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
@@ -536,7 +536,7 @@ fn keyboard_picker_view(
                 .border_radius(6.0)
                 .border_color(config.color(LapceColor::LAPCE_BORDER))
                 .background(config.color(LapceColor::PANEL_BACKGROUND))
-        })
+        }),
     )
     .keyboard_navigable()
     .on_event_stop(EventListener::KeyDown, move |event| {
@@ -590,14 +590,14 @@ fn keyboard_picker_view(
 pub enum KeyMapOrder {
     #[default]
     None,
-    OrderKey
+    OrderKey,
 }
 
 impl KeyMapOrder {
     pub fn update(&mut self) {
         match self {
             KeyMapOrder::None => *self = Self::OrderKey,
-            KeyMapOrder::OrderKey => *self = Self::None
+            KeyMapOrder::OrderKey => *self = Self::None,
         }
     }
 }

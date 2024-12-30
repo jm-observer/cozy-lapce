@@ -4,10 +4,10 @@ use std::{
     path::PathBuf,
     rc::Rc,
     sync::{
+        atomic::{AtomicU64, Ordering},
         Arc,
-        atomic::{AtomicU64, Ordering}
     },
-    time::{Instant, SystemTime}
+    time::{Instant, SystemTime},
 };
 
 use anyhow::Result;
@@ -15,18 +15,18 @@ use crossbeam_channel::{Receiver, Sender, TryRecvError};
 use doc::{
     language::LapceLanguage,
     lines::{
-        buffer::rope_text::RopeText, line_ending::LineEnding, selection::Selection
+        buffer::rope_text::RopeText, line_ending::LineEnding, selection::Selection,
     },
-    syntax::Syntax
+    syntax::Syntax,
 };
 use floem::{
     ext_event::{create_ext_action, create_signal_from_channel},
     keyboard::Modifiers,
     reactive::{
-        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        use_context
+        use_context, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate,
+        SignalWith,
     },
-    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement}
+    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement},
 };
 use im::Vector;
 use itertools::Itertools;
@@ -40,24 +40,24 @@ use strum::{EnumMessage, IntoEnumIterator};
 
 use self::{
     item::{PaletteItem, PaletteItemContent},
-    kind::PaletteKind
+    kind::PaletteKind,
 };
 use crate::{
     command::{
-        CommandExecuted, CommandKind, InternalCommand, LapceCommand, WindowCommand
+        CommandExecuted, CommandKind, InternalCommand, LapceCommand, WindowCommand,
     },
     db::LapceDb,
     debug::{RunDebugConfigs, RunDebugMode},
     editor::{
+        location::{EditorLocation, EditorPosition},
         EditorData,
-        location::{EditorLocation, EditorPosition}
     },
-    keypress::{KeyPressData, KeyPressFocus, condition::Condition},
+    keypress::{condition::Condition, KeyPressData, KeyPressFocus},
     lsp::path_from_url,
     main_split::MainSplitData,
     source_control::SourceControlData,
     window_tab::{CommonData, Focus},
-    workspace::{LapceWorkspace, LapceWorkspaceType, SshHost}
+    workspace::{LapceWorkspace, LapceWorkspaceType, SshHost},
 };
 
 pub mod item;
@@ -69,13 +69,13 @@ pub const DEFAULT_RUN_TOML: &str = include_str!("../../defaults/run.toml");
 pub enum PaletteStatus {
     Inactive,
     Started,
-    Done
+    Done,
 }
 
 #[derive(Clone, Debug)]
 pub struct PaletteInput {
     pub input: String,
-    pub kind:  PaletteKind
+    pub kind: PaletteKind,
 }
 
 impl PaletteInput {
@@ -90,32 +90,32 @@ impl PaletteInput {
 
 #[derive(Clone)]
 pub struct PaletteData {
-    run_id_counter:            Arc<AtomicU64>,
-    pub run_id:                RwSignal<u64>,
-    pub workspace:             Arc<LapceWorkspace>,
-    pub status:                RwSignal<PaletteStatus>,
-    pub index:                 RwSignal<usize>,
-    pub preselect_index:       RwSignal<Option<usize>>,
-    pub items:                 RwSignal<im::Vector<PaletteItem>>,
-    pub filtered_items:        ReadSignal<im::Vector<PaletteItem>>,
-    pub input:                 RwSignal<PaletteInput>,
-    pub kind:                  RwSignal<Option<PaletteKind>>,
-    pub input_editor:          EditorData,
-    pub preview_editor:        EditorData,
-    pub has_preview:           RwSignal<bool>,
-    pub keypress:              ReadSignal<KeyPressData>,
+    run_id_counter: Arc<AtomicU64>,
+    pub run_id: RwSignal<u64>,
+    pub workspace: Arc<LapceWorkspace>,
+    pub status: RwSignal<PaletteStatus>,
+    pub index: RwSignal<usize>,
+    pub preselect_index: RwSignal<Option<usize>>,
+    pub items: RwSignal<im::Vector<PaletteItem>>,
+    pub filtered_items: ReadSignal<im::Vector<PaletteItem>>,
+    pub input: RwSignal<PaletteInput>,
+    pub kind: RwSignal<Option<PaletteKind>>,
+    pub input_editor: EditorData,
+    pub preview_editor: EditorData,
+    pub has_preview: RwSignal<bool>,
+    pub keypress: ReadSignal<KeyPressData>,
     /// Listened on for which entry in the palette has been clicked
-    pub clicked_index:         RwSignal<Option<usize>>,
-    pub executed_commands:     Rc<RefCell<HashMap<String, Instant>>>,
-    pub executed_run_configs:  Rc<RefCell<HashMap<(RunDebugMode, String), Instant>>>,
-    pub main_split:            MainSplitData,
-    pub references:            RwSignal<Vec<EditorLocation>>,
-    pub source_control:        SourceControlData,
-    pub common:                Rc<CommonData>,
-    left_diff_path:            RwSignal<Option<PathBuf>>,
+    pub clicked_index: RwSignal<Option<usize>>,
+    pub executed_commands: Rc<RefCell<HashMap<String, Instant>>>,
+    pub executed_run_configs: Rc<RefCell<HashMap<(RunDebugMode, String), Instant>>>,
+    pub main_split: MainSplitData,
+    pub references: RwSignal<Vec<EditorLocation>>,
+    pub source_control: SourceControlData,
+    pub common: Rc<CommonData>,
+    left_diff_path: RwSignal<Option<PathBuf>>,
     pub workspace_document_id: RwSignal<Option<u64>>,
     pub document_symbol:
-        RwSignal<Option<(PathBuf, im::Vector<PaletteItem>, SystemTime)>>
+        RwSignal<Option<(PathBuf, im::Vector<PaletteItem>, SystemTime)>>,
 }
 
 impl std::fmt::Debug for PaletteData {
@@ -131,7 +131,7 @@ impl PaletteData {
         main_split: MainSplitData,
         keypress: ReadSignal<KeyPressData>,
         source_control: SourceControlData,
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Self {
         let status = cx.create_rw_signal(PaletteStatus::Inactive);
         let items = cx.create_rw_signal(im::Vector::new());
@@ -140,13 +140,13 @@ impl PaletteData {
         let references = cx.create_rw_signal(Vec::new());
         let input = cx.create_rw_signal(PaletteInput {
             input: "".to_string(),
-            kind:  PaletteKind::File
+            kind: PaletteKind::File,
         });
         let kind = cx.create_rw_signal(None);
         let input_editor = main_split.editors.make_local_with_name(
             cx,
             common.clone(),
-            "PaletteData".to_string()
+            "PaletteData".to_string(),
         );
         let preview_editor = main_split.editors.make_local(cx, common.clone());
         let has_preview = cx.create_rw_signal(false);
@@ -211,7 +211,7 @@ impl PaletteData {
                     filter_run_id,
                     filter_input,
                     new_items,
-                    preselect_index
+                    preselect_index,
                 )) = resp.get()
                 {
                     if run_id.get_untracked() == filter_run_id
@@ -252,7 +252,7 @@ impl PaletteData {
             common,
             left_diff_path,
             workspace_document_id: cx.create_rw_signal(None),
-            document_symbol: cx.create_rw_signal(None)
+            document_symbol: cx.create_rw_signal(None),
         };
 
         {
@@ -302,7 +302,7 @@ impl PaletteData {
                             let kind = input.kind;
                             input.update_input(
                                 new_input.clone(),
-                                preset_kind.get_untracked()
+                                preset_kind.get_untracked(),
                             );
                             if last_input.is_none() || kind != input.kind {
                                 Some(input.kind)
@@ -390,7 +390,7 @@ impl PaletteData {
                     "Seleft left file"
                 }
             },
-            _ => ""
+            _ => "",
         }
     }
 
@@ -451,7 +451,7 @@ impl PaletteData {
             PaletteKind::SCMReferences => {
                 self.get_scm_references();
             },
-            PaletteKind::TerminalProfile => self.get_terminal_profiles()
+            PaletteKind::TerminalProfile => self.get_terminal_profiles(),
         }
     }
 
@@ -483,10 +483,10 @@ impl PaletteData {
                     + cmd.get_message().unwrap_or("");
 
                 PaletteItem {
-                    content:     PaletteItemContent::PaletteHelp { cmd },
+                    content: PaletteItemContent::PaletteHelp { cmd },
                     filter_text: description,
-                    score:       0,
-                    indices:     vec![]
+                    score: 0,
+                    indices: vec![],
                 }
             })
             .collect()
@@ -523,7 +523,7 @@ impl PaletteData {
                             content: PaletteItemContent::File { path, full_path },
                             filter_text,
                             score: 0,
-                            indices: Vec::new()
+                            indices: Vec::new(),
                         }
                     })
                     .collect::<im::Vector<_>>();
@@ -553,7 +553,7 @@ impl PaletteData {
             Some(editor) => editor.doc(),
             None => {
                 return;
-            }
+            },
         };
 
         let buffer = doc
@@ -576,13 +576,13 @@ impl PaletteData {
                     l
                 );
                 PaletteItem {
-                    content:     PaletteItemContent::Line {
-                        line:    i,
-                        content: text.clone()
+                    content: PaletteItemContent::Line {
+                        line: i,
+                        content: text.clone(),
                     },
                     filter_text: text,
-                    score:       0,
-                    indices:     vec![]
+                    score: 0,
+                    indices: vec![],
                 }
             })
             .collect();
@@ -604,12 +604,10 @@ impl PaletteData {
                 .filter_map(|(key, _)| {
                     keypress.commands.get(key).and_then(|c| {
                         c.kind.desc().as_ref().map(|m| PaletteItem {
-                            content:     PaletteItemContent::Command {
-                                cmd: c.clone()
-                            },
+                            content: PaletteItemContent::Command { cmd: c.clone() },
                             filter_text: m.to_string(),
-                            score:       0,
-                            indices:     vec![]
+                            score: 0,
+                            indices: vec![],
                         })
                     })
                 })
@@ -627,10 +625,10 @@ impl PaletteData {
                 }
 
                 c.kind.desc().as_ref().map(|m| PaletteItem {
-                    content:     PaletteItemContent::Command { cmd: c.clone() },
+                    content: PaletteItemContent::Command { cmd: c.clone() },
                     filter_text: m.to_string(),
-                    score:       0,
-                    indices:     vec![]
+                    score: 0,
+                    indices: vec![],
                 })
             }));
 
@@ -658,13 +656,13 @@ impl PaletteData {
                     #[cfg(windows)]
                     LapceWorkspaceType::RemoteWSL(remote) => {
                         format!("[{remote}] {text}")
-                    }
+                    },
                 };
                 Some(PaletteItem {
                     content: PaletteItemContent::Workspace { workspace: w },
                     filter_text,
                     score: 0,
-                    indices: vec![]
+                    indices: vec![],
                 })
             })
             .collect();
@@ -693,7 +691,7 @@ impl PaletteData {
                     content: PaletteItemContent::Reference { path, location: l },
                     filter_text,
                     score: 0,
-                    indices: vec![]
+                    indices: vec![],
                 }
             })
             .collect();
@@ -708,7 +706,7 @@ impl PaletteData {
             None => {
                 self.items.update(|items| items.clear());
                 return;
-            }
+            },
         };
         let path = doc
             .content
@@ -718,7 +716,7 @@ impl PaletteData {
             None => {
                 self.items.update(|items| items.clear());
                 return;
-            }
+            },
         };
         if let Some((old, items, time)) = self.document_symbol.get_untracked() {
             if old == path
@@ -740,7 +738,7 @@ impl PaletteData {
                 document_symbol.set(Some((
                     doc_path,
                     items.clone(),
-                    SystemTime::now()
+                    SystemTime::now(),
                 )));
                 set_items.set(items);
             } else {
@@ -756,7 +754,7 @@ impl PaletteData {
     }
 
     fn format_document_symbol_resp(
-        resp: DocumentSymbolResponse
+        resp: DocumentSymbolResponse,
     ) -> im::Vector<PaletteItem> {
         match resp {
             DocumentSymbolResponse::Flat(symbols) => symbols
@@ -768,14 +766,14 @@ impl PaletteData {
                     }
                     PaletteItem {
                         content: PaletteItemContent::DocumentSymbol {
-                            kind:           s.kind,
-                            name:           s.name.replace('\n', "↵"),
-                            range:          s.location.range,
-                            container_name: s.container_name.clone()
+                            kind: s.kind,
+                            name: s.name.replace('\n', "↵"),
+                            range: s.location.range,
+                            container_name: s.container_name.clone(),
                         },
                         filter_text,
                         score: 0,
-                        indices: Vec::new()
+                        indices: Vec::new(),
                     }
                 })
                 .collect(),
@@ -785,25 +783,25 @@ impl PaletteData {
                     Self::format_document_symbol(&mut items, None, s)
                 }
                 items
-            }
+            },
         }
     }
 
     fn format_document_symbol(
         items: &mut im::Vector<PaletteItem>,
         parent: Option<String>,
-        s: DocumentSymbol
+        s: DocumentSymbol,
     ) {
         items.push_back(PaletteItem {
-            content:     PaletteItemContent::DocumentSymbol {
-                kind:           s.kind,
-                name:           s.name.replace('\n', "↵"),
-                range:          s.range,
-                container_name: parent
+            content: PaletteItemContent::DocumentSymbol {
+                kind: s.kind,
+                name: s.name.replace('\n', "↵"),
+                range: s.range,
+                container_name: parent,
             },
             filter_text: s.name.clone(),
-            score:       0,
-            indices:     Vec::new()
+            score: 0,
+            indices: Vec::new(),
         });
         if let Some(children) = s.children {
             let parent = Some(s.name.replace('\n', "↵"));
@@ -835,26 +833,22 @@ impl PaletteData {
                             }
                             PaletteItem {
                                 content: PaletteItemContent::WorkspaceSymbol {
-                                    kind:           s.kind,
-                                    name:           s.name.clone(),
-                                    location:       EditorLocation {
-                                        path:               path_from_url(
-                                            &s.location.uri
-                                        ),
-                                        position:           Some(
-                                            EditorPosition::Position(
-                                                s.location.range.start
-                                            )
-                                        ),
-                                        scroll_offset:      None,
+                                    kind: s.kind,
+                                    name: s.name.clone(),
+                                    location: EditorLocation {
+                                        path: path_from_url(&s.location.uri),
+                                        position: Some(EditorPosition::Position(
+                                            s.location.range.start,
+                                        )),
+                                        scroll_offset: None,
                                         ignore_unconfirmed: false,
-                                        same_editor_tab:    false
+                                        same_editor_tab: false,
                                     },
-                                    container_name: s.container_name.clone()
+                                    container_name: s.container_name.clone(),
                                 },
                                 filter_text,
                                 score: 0,
-                                indices: Vec::new()
+                                indices: Vec::new(),
                             }
                         })
                         .collect();
@@ -905,10 +899,10 @@ impl PaletteData {
         let items = hosts
             .iter()
             .map(|host| PaletteItem {
-                content:     PaletteItemContent::SshHost { host: host.clone() },
+                content: PaletteItemContent::SshHost { host: host.clone() },
                 filter_text: host.to_string(),
-                score:       0,
-                indices:     vec![]
+                score: 0,
+                indices: vec![],
             })
             .collect();
         self.items.set(items);
@@ -962,12 +956,12 @@ impl PaletteData {
         let items = hosts
             .iter()
             .map(|host| PaletteItem {
-                content:     PaletteItemContent::WslHost {
-                    host: crate::workspace::WslHost { host: host.clone() }
+                content: PaletteItemContent::WslHost {
+                    host: crate::workspace::WslHost { host: host.clone() },
                 },
                 filter_text: host.to_string(),
-                score:       0,
-                indices:     vec![]
+                score: 0,
+                indices: vec![],
             })
             .collect();
         self.items.set(items);
@@ -992,9 +986,9 @@ impl PaletteData {
                     executed_run_configs
                         .get(&(RunDebugMode::Run, config.name.clone())),
                     PaletteItem {
-                        content:     PaletteItemContent::RunAndDebug {
-                            mode:   RunDebugMode::Run,
-                            config: config.clone()
+                        content: PaletteItemContent::RunAndDebug {
+                            mode: RunDebugMode::Run,
+                            config: config.clone(),
                         },
                         filter_text: format!(
                             "Run {} {} {}",
@@ -1002,18 +996,18 @@ impl PaletteData {
                             config.program,
                             config.args.clone().unwrap_or_default().join(" ")
                         ),
-                        score:       0,
-                        indices:     vec![]
-                    }
+                        score: 0,
+                        indices: vec![],
+                    },
                 ));
                 if config.ty.is_some() {
                     items.push((
                         executed_run_configs
                             .get(&(RunDebugMode::Debug, config.name.clone())),
                         PaletteItem {
-                            content:     PaletteItemContent::RunAndDebug {
-                                mode:   RunDebugMode::Debug,
-                                config: config.clone()
+                            content: PaletteItemContent::RunAndDebug {
+                                mode: RunDebugMode::Debug,
+                                config: config.clone(),
                             },
                             filter_text: format!(
                                 "Debug {} {} {}",
@@ -1021,9 +1015,9 @@ impl PaletteData {
                                 config.program,
                                 config.args.clone().unwrap_or_default().join(" ")
                             ),
-                            score:       0,
-                            indices:     vec![]
-                        }
+                            score: 0,
+                            indices: vec![],
+                        },
                     ));
                 }
             }
@@ -1071,15 +1065,15 @@ impl PaletteData {
             .color_theme_list()
             .iter()
             .map(|name| PaletteItem {
-                content:     PaletteItemContent::ColorTheme { name: name.clone() },
+                content: PaletteItemContent::ColorTheme { name: name.clone() },
                 filter_text: name.clone(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             })
             .collect();
         self.preselect_matching(
             &items,
-            &self.common.config.get_untracked().color_theme.name
+            &self.common.config.get_untracked().color_theme.name,
         );
         self.items.set(items);
     }
@@ -1090,15 +1084,15 @@ impl PaletteData {
             .icon_theme_list()
             .iter()
             .map(|name| PaletteItem {
-                content:     PaletteItemContent::IconTheme { name: name.clone() },
+                content: PaletteItemContent::IconTheme { name: name.clone() },
                 filter_text: name.clone(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             })
             .collect();
         self.preselect_matching(
             &items,
-            &self.common.config.get_untracked().icon_theme.name
+            &self.common.config.get_untracked().icon_theme.name,
         );
         self.items.set(items);
     }
@@ -1108,12 +1102,12 @@ impl PaletteData {
         let items = langs
             .iter()
             .map(|lang| PaletteItem {
-                content:     PaletteItemContent::Language {
-                    name: lang.to_string()
+                content: PaletteItemContent::Language {
+                    name: lang.to_string(),
                 },
                 filter_text: lang.to_string(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             })
             .collect();
         if let Some(editor) = self.main_split.active_editor.get_untracked() {
@@ -1128,10 +1122,10 @@ impl PaletteData {
         let items = [LineEnding::Lf, LineEnding::CrLf]
             .iter()
             .map(|l| PaletteItem {
-                content:     PaletteItemContent::LineEnding { kind: *l },
+                content: PaletteItemContent::LineEnding { kind: *l },
                 filter_text: l.as_str().to_string(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             })
             .collect();
         if let Some(editor) = self.main_split.active_editor.get_untracked() {
@@ -1148,22 +1142,22 @@ impl PaletteData {
         let mut items: im::Vector<PaletteItem> = im::Vector::new();
         for refs in branches.into_iter() {
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::SCMReference {
-                    name: refs.to_owned()
+                content: PaletteItemContent::SCMReference {
+                    name: refs.to_owned(),
                 },
                 filter_text: refs.to_owned(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             });
         }
         for refs in tags.into_iter() {
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::SCMReference {
-                    name: refs.to_owned()
+                content: PaletteItemContent::SCMReference {
+                    name: refs.to_owned(),
                 },
                 filter_text: refs.to_owned(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             });
         }
         self.items.set(items);
@@ -1182,23 +1176,23 @@ impl PaletteData {
                 Err(e) => {
                     error!("Failed to parse uri: {e}");
                     None
-                }
+                },
             };
 
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::TerminalProfile {
-                    name:    name.to_owned(),
+                content: PaletteItemContent::TerminalProfile {
+                    name: name.to_owned(),
                     profile: lapce_rpc::terminal::TerminalProfile {
-                        name:        name.to_owned(),
-                        command:     profile.command,
-                        arguments:   profile.arguments,
-                        workdir:     uri,
-                        environment: profile.environment
-                    }
+                        name: name.to_owned(),
+                        command: profile.command,
+                        arguments: profile.arguments,
+                        workdir: uri,
+                        environment: profile.environment,
+                    },
                 },
                 filter_text: name.to_owned(),
-                score:       0,
-                indices:     Vec::new()
+                score: 0,
+                indices: Vec::new(),
             });
         }
 
@@ -1225,7 +1219,7 @@ impl PaletteData {
                 PaletteItemContent::PaletteHelp { cmd } => {
                     let cmd = LapceCommand {
                         kind: CommandKind::Workbench(cmd.clone()),
-                        data: None
+                        data: None,
                     };
 
                     self.common.lapce_command.send(cmd);
@@ -1238,8 +1232,8 @@ impl PaletteData {
                             self.common.internal_command.send(
                                 InternalCommand::OpenDiffFiles {
                                     left_path,
-                                    right_path: full_path.clone()
-                                }
+                                    right_path: full_path.clone(),
+                                },
                             );
                         } else {
                             self.left_diff_path.set(Some(full_path.clone()));
@@ -1248,8 +1242,8 @@ impl PaletteData {
                     } else {
                         self.common.internal_command.send(
                             InternalCommand::OpenFile {
-                                path: full_path.clone()
-                            }
+                                path: full_path.clone(),
+                            },
                         );
                     }
                 },
@@ -1259,14 +1253,14 @@ impl PaletteData {
                         Some(editor) => editor.doc(),
                         None => {
                             return;
-                        }
+                        },
                     };
                     let path = doc
                         .content
                         .with_untracked(|content| content.path().cloned());
                     let path = match path {
                         Some(path) => path,
-                        None => return
+                        None => return,
                     };
                     self.common.internal_command.send(
                         InternalCommand::JumpToLocation {
@@ -1275,9 +1269,9 @@ impl PaletteData {
                                 position: Some(EditorPosition::Line(*line)),
                                 scroll_offset: None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab: false
-                            }
-                        }
+                                same_editor_tab: false,
+                            },
+                        },
                     );
                 },
                 PaletteItemContent::Command { cmd } => {
@@ -1286,28 +1280,26 @@ impl PaletteData {
                 PaletteItemContent::Workspace { workspace } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: workspace.clone()
-                        }
+                            workspace: workspace.clone(),
+                        },
                     );
                 },
                 PaletteItemContent::Reference { location, .. } => {
                     self.common.internal_command.send(
                         InternalCommand::JumpToLocation {
-                            location: location.clone()
-                        }
+                            location: location.clone(),
+                        },
                     );
                 },
                 PaletteItemContent::SshHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
                             workspace: LapceWorkspace {
-                                kind:      LapceWorkspaceType::RemoteSSH(
-                                    host.clone()
-                                ),
-                                path:      None,
-                                last_open: 0
-                            }
-                        }
+                                kind: LapceWorkspaceType::RemoteSSH(host.clone()),
+                                path: None,
+                                last_open: 0,
+                            },
+                        },
                     );
                 },
                 #[cfg(windows)]
@@ -1315,13 +1307,11 @@ impl PaletteData {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
                             workspace: LapceWorkspace {
-                                kind:      LapceWorkspaceType::RemoteWSL(
-                                    host.clone()
-                                ),
-                                path:      None,
-                                last_open: 0
-                            }
-                        }
+                                kind: LapceWorkspaceType::RemoteWSL(host.clone()),
+                                path: None,
+                                last_open: 0,
+                            },
+                        },
                     );
                 },
                 PaletteItemContent::DocumentSymbol { range, .. } => {
@@ -1330,42 +1320,42 @@ impl PaletteData {
                         Some(editor) => editor.doc(),
                         None => {
                             return;
-                        }
+                        },
                     };
                     let path = doc
                         .content
                         .with_untracked(|content| content.path().cloned());
                     let path = match path {
                         Some(path) => path,
-                        None => return
+                        None => return,
                     };
                     self.common.internal_command.send(
                         InternalCommand::JumpToLocation {
                             location: EditorLocation {
                                 path,
                                 position: Some(EditorPosition::Position(
-                                    range.start
+                                    range.start,
                                 )),
                                 scroll_offset: None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab: false
-                            }
-                        }
+                                same_editor_tab: false,
+                            },
+                        },
                     );
                 },
                 PaletteItemContent::WorkspaceSymbol { location, .. } => {
                     self.common.internal_command.send(
                         InternalCommand::JumpToLocation {
-                            location: location.clone()
-                        }
+                            location: location.clone(),
+                        },
                     );
                 },
                 PaletteItemContent::RunAndDebug { mode, config } => {
                     self.common.internal_command.send(
                         InternalCommand::RunAndDebug {
-                            mode:   *mode,
-                            config: config.clone()
-                        }
+                            mode: *mode,
+                            config: config.clone(),
+                        },
                     );
                 },
                 PaletteItemContent::ColorTheme { name } => self
@@ -1373,14 +1363,14 @@ impl PaletteData {
                     .internal_command
                     .send(InternalCommand::SetColorTheme {
                         name: name.clone(),
-                        save: true
+                        save: true,
                     }),
                 PaletteItemContent::IconTheme { name } => self
                     .common
                     .internal_command
                     .send(InternalCommand::SetIconTheme {
                         name: name.clone(),
-                        save: true
+                        save: true,
                     }),
                 PaletteItemContent::Language { name } => {
                     let editor = self.main_split.active_editor.get_untracked();
@@ -1388,7 +1378,7 @@ impl PaletteData {
                         Some(editor) => editor.doc(),
                         None => {
                             return;
-                        }
+                        },
                     };
                     let queries_directory = Directory::queries_directory().unwrap();
                     let grammars_directory =
@@ -1396,12 +1386,12 @@ impl PaletteData {
                     if name.is_empty() || name.to_lowercase().eq("plain text") {
                         doc.set_syntax(Syntax::plaintext(
                             &grammars_directory,
-                            &queries_directory
+                            &queries_directory,
                         ))
                     } else {
                         let lang = match LapceLanguage::from_name(name) {
                             Some(v) => v,
-                            None => return
+                            None => return,
                         };
                         doc.set_language(lang);
                     }
@@ -1425,17 +1415,17 @@ impl PaletteData {
                         .lapce_command
                         .send(crate::command::LapceCommand {
                         kind: CommandKind::Workbench(
-                            crate::command::LapceWorkbenchCommand::CheckoutReference
+                            crate::command::LapceWorkbenchCommand::CheckoutReference,
                         ),
-                        data: Some(serde_json::json!(name.to_owned()))
+                        data: Some(serde_json::json!(name.to_owned())),
                     });
                 },
                 PaletteItemContent::TerminalProfile { name: _, profile } => self
                     .common
                     .internal_command
                     .send(InternalCommand::NewTerminal {
-                        profile: Some(profile.to_owned())
-                    })
+                        profile: Some(profile.to_owned()),
+                    }),
             }
         } else if self.kind.get_untracked() == Some(PaletteKind::SshHost) {
             let input = self.input.with_untracked(|input| input.input.clone());
@@ -1443,11 +1433,11 @@ impl PaletteData {
             self.common.window_common.window_command.send(
                 WindowCommand::SetWorkspace {
                     workspace: LapceWorkspace {
-                        kind:      LapceWorkspaceType::RemoteSSH(ssh),
-                        path:      None,
-                        last_open: 0
-                    }
-                }
+                        kind: LapceWorkspaceType::RemoteSSH(ssh),
+                        path: None,
+                        last_open: 0,
+                    },
+                },
             );
         }
     }
@@ -1471,14 +1461,14 @@ impl PaletteData {
                         Some(editor) => editor.doc(),
                         None => {
                             return;
-                        }
+                        },
                     };
                     let path = doc
                         .content
                         .with_untracked(|content| content.path().cloned());
                     let path = match path {
                         Some(path) => path,
-                        None => return
+                        None => return,
                     };
                     self.preview_editor.update_doc(doc);
                     self.preview_editor.go_to_location(
@@ -1487,10 +1477,10 @@ impl PaletteData {
                             position: Some(EditorPosition::Line(*line)),
                             scroll_offset: None,
                             ignore_unconfirmed: false,
-                            same_editor_tab: false
+                            same_editor_tab: false,
                         },
                         false,
-                        None
+                        None,
                     );
                 },
                 PaletteItemContent::Command { .. } => {},
@@ -1509,7 +1499,7 @@ impl PaletteData {
                     self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
-                        None
+                        None,
                     );
                 },
                 PaletteItemContent::DocumentSymbol { range, .. } => {
@@ -1519,14 +1509,14 @@ impl PaletteData {
                         Some(editor) => editor.doc(),
                         None => {
                             return;
-                        }
+                        },
                     };
                     let path = doc
                         .content
                         .with_untracked(|content| content.path().cloned());
                     let path = match path {
                         Some(path) => path,
-                        None => return
+                        None => return,
                     };
                     self.preview_editor.update_doc(doc);
                     self.preview_editor.go_to_location(
@@ -1535,10 +1525,10 @@ impl PaletteData {
                             position: Some(EditorPosition::Position(range.start)),
                             scroll_offset: None,
                             ignore_unconfirmed: false,
-                            same_editor_tab: false
+                            same_editor_tab: false,
                         },
                         false,
-                        None
+                        None,
                     );
                 },
                 PaletteItemContent::WorkspaceSymbol { location, .. } => {
@@ -1549,7 +1539,7 @@ impl PaletteData {
                     self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
-                        None
+                        None,
                     );
                 },
                 PaletteItemContent::ColorTheme { name } => self
@@ -1557,17 +1547,17 @@ impl PaletteData {
                     .internal_command
                     .send(InternalCommand::SetColorTheme {
                         name: name.clone(),
-                        save: false
+                        save: false,
                     }),
                 PaletteItemContent::IconTheme { name } => self
                     .common
                     .internal_command
                     .send(InternalCommand::SetIconTheme {
                         name: name.clone(),
-                        save: false
+                        save: false,
                     }),
                 PaletteItemContent::SCMReference { .. } => {},
-                PaletteItemContent::TerminalProfile { .. } => {}
+                PaletteItemContent::TerminalProfile { .. } => {},
             }
         }
     }
@@ -1646,7 +1636,7 @@ impl PaletteData {
             FocusCommand::ListSelect => {
                 self.select();
             },
-            _ => return CommandExecuted::No
+            _ => return CommandExecuted::No,
         }
         CommandExecuted::Yes
     }
@@ -1656,7 +1646,7 @@ impl PaletteData {
         current_run_id: u64,
         input: &str,
         items: im::Vector<PaletteItem>,
-        matcher: &mut nucleo::Matcher
+        matcher: &mut nucleo::Matcher,
     ) -> Option<im::Vector<PaletteItem>> {
         if input.is_empty() {
             return Some(items);
@@ -1665,7 +1655,7 @@ impl PaletteData {
         let pattern = nucleo::pattern::Pattern::parse(
             input,
             nucleo::pattern::CaseMatching::Ignore,
-            nucleo::pattern::Normalization::Smart
+            nucleo::pattern::Normalization::Smart,
         );
 
         // NOTE: We collect into a Vec to sort as we are hitting a worst-case
@@ -1697,7 +1687,7 @@ impl PaletteData {
             let order = b.score.cmp(&a.score);
             match order {
                 std::cmp::Ordering::Equal => a.filter_text.cmp(&b.filter_text),
-                _ => order
+                _ => order,
             }
         });
 
@@ -1710,15 +1700,15 @@ impl PaletteData {
     fn update_process(
         run_id: Arc<AtomicU64>,
         receiver: Receiver<(u64, String, im::Vector<PaletteItem>, Option<usize>)>,
-        resp_tx: Sender<(u64, String, im::Vector<PaletteItem>, Option<usize>)>
+        resp_tx: Sender<(u64, String, im::Vector<PaletteItem>, Option<usize>)>,
     ) {
         fn receive_batch(
             receiver: &Receiver<(
                 u64,
                 String,
                 im::Vector<PaletteItem>,
-                Option<usize>
-            )>
+                Option<usize>,
+            )>,
         ) -> Result<(u64, String, im::Vector<PaletteItem>, Option<usize>)> {
             let (mut run_id, mut input, mut items, mut preselect_index) =
                 receiver.recv()?;
@@ -1731,7 +1721,7 @@ impl PaletteData {
                         preselect_index = update.3;
                     },
                     Err(TryRecvError::Empty) => break,
-                    Err(TryRecvError::Disconnected) => break
+                    Err(TryRecvError::Disconnected) => break,
                 }
             }
             Ok((run_id, input, items, preselect_index))
@@ -1748,13 +1738,13 @@ impl PaletteData {
                     current_run_id,
                     &input,
                     items,
-                    &mut matcher
+                    &mut matcher,
                 ) {
                     if let Err(err) = resp_tx.send((
                         current_run_id,
                         input,
                         filtered_items,
-                        preselect_index
+                        preselect_index,
                     )) {
                         log::error!("{:?}", err);
                     }
@@ -1773,7 +1763,7 @@ impl KeyPressFocus for PaletteData {
 
     fn check_condition(
         &self,
-        condition: crate::keypress::condition::Condition
+        condition: crate::keypress::condition::Condition,
     ) -> bool {
         matches!(
             condition,
@@ -1785,7 +1775,7 @@ impl KeyPressFocus for PaletteData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers
+        mods: Modifiers,
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -1798,7 +1788,7 @@ impl KeyPressFocus for PaletteData {
             | CommandKind::MultiSelection(_) => {
                 self.input_editor.run_command(command, count, mods);
             },
-            CommandKind::MotionMode(_) => {}
+            CommandKind::MotionMode(_) => {},
         }
         CommandExecuted::Yes
     }

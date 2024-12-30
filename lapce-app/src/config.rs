@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc
+    sync::Arc,
 };
 
 use ::core::slice;
@@ -21,12 +21,12 @@ use self::{
     color::LapceColor,
     color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
     core::CoreConfig,
-    editor::{EditorConfig, SCALE_OR_SIZE_LIMIT, WrapStyle},
+    editor::{EditorConfig, WrapStyle, SCALE_OR_SIZE_LIMIT},
     icon::LapceIcons,
     icon_theme::IconThemeConfig,
     svg::SvgStore,
     terminal::TerminalConfig,
-    ui::UIConfig
+    ui::UIConfig,
 };
 use crate::workspace::{LapceWorkspace, LapceWorkspaceType};
 
@@ -58,7 +58,7 @@ static DEFAULT_DARK_THEME_CONFIG: Lazy<config::Config> = Lazy::new(|| {
     config::Config::builder()
         .add_source(config::File::from_str(
             DEFAULT_DARK_THEME,
-            config::FileFormat::Toml
+            config::FileFormat::Toml,
         ))
         .build()
         .unwrap()
@@ -70,7 +70,7 @@ static DEFAULT_DARK_THEME_COLOR_CONFIG: Lazy<ColorThemeConfig> = Lazy::new(|| {
         LapceConfig::load_color_theme_from_str(DEFAULT_DARK_THEME).unwrap();
     theme.get::<ColorThemeConfig>("color-theme").expect(
         "Failed to load default dark theme. This is likely due to a missing or \
-         misnamed field in dark-theme.toml"
+         misnamed field in dark-theme.toml",
     )
 });
 
@@ -78,7 +78,7 @@ static DEFAULT_ICON_THEME_CONFIG: Lazy<config::Config> = Lazy::new(|| {
     config::Config::builder()
         .add_source(config::File::from_str(
             DEFAULT_ICON_THEME,
-            config::FileFormat::Toml
+            config::FileFormat::Toml,
         ))
         .build()
         .unwrap()
@@ -88,7 +88,7 @@ static DEFAULT_ICON_THEME_ICON_CONFIG: Lazy<IconThemeConfig> = Lazy::new(|| {
         .get::<IconThemeConfig>("icon-theme")
         .expect(
             "Failed to load default icon theme. This is likely due to a missing or \
-             misnamed field in icon-theme.toml"
+             misnamed field in icon-theme.toml",
         )
 });
 
@@ -97,26 +97,26 @@ static DEFAULT_ICON_THEME_ICON_CONFIG: Lazy<IconThemeConfig> = Lazy::new(|| {
 pub struct DropdownInfo {
     /// The currently selected item.
     pub active_index: usize,
-    pub items:        im::Vector<String>
+    pub items: im::Vector<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct LapceConfig {
     #[serde(skip)]
-    pub id:                     u64,
-    pub core:                   CoreConfig,
-    pub ui:                     UIConfig,
-    pub editor:                 EditorConfig,
-    pub terminal:               TerminalConfig,
+    pub id: u64,
+    pub core: CoreConfig,
+    pub ui: UIConfig,
+    pub editor: EditorConfig,
+    pub terminal: TerminalConfig,
     #[serde(default)]
-    pub color_theme:            ColorThemeConfig,
+    pub color_theme: ColorThemeConfig,
     #[serde(default)]
-    pub icon_theme:             IconThemeConfig,
+    pub icon_theme: IconThemeConfig,
     #[serde(flatten)]
-    pub plugins:                HashMap<String, HashMap<String, serde_json::Value>>,
+    pub plugins: HashMap<String, HashMap<String, serde_json::Value>>,
     #[serde(skip)]
-    pub color:                  ThemeColor,
+    pub color: ThemeColor,
     #[serde(skip)]
     pub available_color_themes: HashMap<String, (String, config::Config)>,
     #[serde(skip)]
@@ -125,23 +125,23 @@ pub struct LapceConfig {
     // #[serde(skip)]
     // tab_layout_info: Arc<RwLock<HashMap<(FontFamily, usize), f64>>>,
     #[serde(skip)]
-    svg_store:                  Arc<RwLock<SvgStore>>,
+    svg_store: Arc<RwLock<SvgStore>>,
     /// A list of the themes that are available. This is primarily for
     /// populating the theme picker, and serves as a cache.
     #[serde(skip)]
-    color_theme_list:           im::Vector<String>,
+    color_theme_list: im::Vector<String>,
     #[serde(skip)]
-    icon_theme_list:            im::Vector<String>,
+    icon_theme_list: im::Vector<String>,
     /// The couple names for the wrap style
     #[serde(skip)]
-    wrap_style_list:            im::Vector<String>
+    wrap_style_list: im::Vector<String>,
 }
 
 impl LapceConfig {
     pub fn load(
         workspace: &LapceWorkspace,
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf]
+        extra_plugin_paths: &[PathBuf],
     ) -> Self {
         let config = Self::merge_config(workspace, None, None);
         let mut lapce_config: LapceConfig = match config.try_deserialize() {
@@ -149,7 +149,7 @@ impl LapceConfig {
             Err(error) => {
                 error!("Failed to deserialize configuration file: {error}");
                 DEFAULT_LAPCE_CONFIG.clone()
-            }
+            },
         };
 
         lapce_config.available_color_themes =
@@ -189,7 +189,7 @@ impl LapceConfig {
     fn merge_config(
         workspace: &LapceWorkspace,
         color_theme_config: Option<config::Config>,
-        icon_theme_config: Option<config::Config>
+        icon_theme_config: Option<config::Config>,
     ) -> config::Config {
         let mut config = DEFAULT_CONFIG.clone();
 
@@ -227,7 +227,7 @@ impl LapceConfig {
                     config = config::Config::builder()
                         .add_source(config.clone())
                         .add_source(
-                            config::File::from(path.as_path()).required(false)
+                            config::File::from(path.as_path()).required(false),
                         )
                         .build()
                         .unwrap_or_else(|_| config.clone());
@@ -235,7 +235,7 @@ impl LapceConfig {
             },
             LapceWorkspaceType::RemoteSSH(_) => {},
             #[cfg(windows)]
-            LapceWorkspaceType::RemoteWSL(_) => {}
+            LapceWorkspaceType::RemoteWSL(_) => {},
         }
 
         config
@@ -252,7 +252,7 @@ impl LapceConfig {
         config::Config::builder()
             .add_source(config::File::from_str(
                 DEFAULT_SETTINGS,
-                config::FileFormat::Toml
+                config::FileFormat::Toml,
             ))
             .build()
             .unwrap()
@@ -262,7 +262,7 @@ impl LapceConfig {
         let mut default_lapce_config: LapceConfig =
             DEFAULT_CONFIG.clone().try_deserialize().expect(
                 "Failed to deserialize default config, this likely indicates a \
-                 missing or misnamed field in settings.toml"
+                 missing or misnamed field in settings.toml",
             );
         default_lapce_config.color_theme = DEFAULT_DARK_THEME_COLOR_CONFIG.clone();
         default_lapce_config.icon_theme = DEFAULT_ICON_THEME_ICON_CONFIG.clone();
@@ -293,7 +293,7 @@ impl LapceConfig {
         if let Ok(new) = Self::merge_config(
             workspace,
             Some(color_theme_config.clone()),
-            Some(icon_theme_config.clone())
+            Some(icon_theme_config.clone()),
         )
         .try_deserialize::<LapceConfig>()
         {
@@ -316,7 +316,7 @@ impl LapceConfig {
 
     fn load_color_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf]
+        extra_plugin_paths: &[PathBuf],
     ) -> HashMap<String, (String, config::Config)> {
         let mut themes = Self::load_local_themes().unwrap_or_default();
 
@@ -373,7 +373,7 @@ impl LapceConfig {
             None => {
                 error!("Failed to find key: {name}");
                 Color::HOT_PINK
-            }
+            },
         }
     }
 
@@ -384,7 +384,7 @@ impl LapceConfig {
 
     pub fn completion_color(
         &self,
-        kind: Option<CompletionItemKind>
+        kind: Option<CompletionItemKind>,
     ) -> Option<Color> {
         let kind = kind?;
         let theme_str = match kind {
@@ -402,7 +402,7 @@ impl LapceConfig {
             CompletionItemKind::INTERFACE => "interface",
             CompletionItemKind::SNIPPET => "snippet",
             CompletionItemKind::MODULE => "builtinType",
-            _ => "string"
+            _ => "string",
         };
 
         self.style_color(theme_str)
@@ -418,7 +418,7 @@ impl LapceConfig {
             .resolve_ui_color(&self.color.base, default_config.map(|c| &c.color.ui));
         self.color.syntax = self.color_theme.resolve_syntax_color(
             &self.color.base,
-            default_config.map(|c| &c.color.syntax)
+            default_config.map(|c| &c.color.syntax),
         );
 
         let fg = self.color(LapceColor::EDITOR_FOREGROUND);
@@ -430,7 +430,7 @@ impl LapceConfig {
             (true, true) => ThemeColorPreference::HighContrastLight,
             (false, true) => ThemeColorPreference::HighContrastDark,
             (true, false) => ThemeColorPreference::Light,
-            (false, false) => ThemeColorPreference::Dark
+            (false, false) => ThemeColorPreference::Dark,
         };
     }
 
@@ -475,7 +475,7 @@ impl LapceConfig {
 
     fn load_icon_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf]
+        extra_plugin_paths: &[PathBuf],
     ) -> HashMap<String, (String, config::Config, Option<PathBuf>)> {
         let mut themes = HashMap::new();
 
@@ -504,7 +504,7 @@ impl LapceConfig {
 
     fn load_plugin_color_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf]
+        extra_plugin_paths: &[PathBuf],
     ) -> HashMap<String, (String, config::Config)> {
         let mut themes: HashMap<String, (String, config::Config)> = HashMap::new();
         for meta in find_all_volts(extra_plugin_paths) {
@@ -526,7 +526,7 @@ impl LapceConfig {
 
     fn load_plugin_icon_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf]
+        extra_plugin_paths: &[PathBuf],
     ) -> HashMap<String, (String, config::Config, PathBuf)> {
         let mut themes: HashMap<String, (String, config::Config, PathBuf)> =
             HashMap::new();
@@ -548,7 +548,7 @@ impl LapceConfig {
     }
 
     fn load_icon_theme(
-        path: &Path
+        path: &Path,
     ) -> Option<(String, (String, config::Config, PathBuf))> {
         if !path.is_file() {
             return None;
@@ -561,7 +561,7 @@ impl LapceConfig {
         let name = table.get("name")?.to_string();
         Some((
             name.to_lowercase(),
-            (name, config, path.parent().unwrap().to_path_buf())
+            (name, config, path.parent().unwrap().to_path_buf()),
         ))
     }
 
@@ -571,7 +571,7 @@ impl LapceConfig {
         theme.name = "".to_string();
         table.insert(
             "color-theme".to_string(),
-            toml::Value::try_from(&theme).unwrap()
+            toml::Value::try_from(&theme).unwrap(),
         );
         table.insert("ui".to_string(), toml::Value::try_from(&self.ui).unwrap());
         let value = toml::Value::Table(table);
@@ -638,7 +638,7 @@ impl LapceConfig {
         } else {
             (
                 self.ui_svg(LapceIcons::FILE),
-                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
+                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE)),
             )
         }
     }
@@ -671,7 +671,7 @@ impl LapceConfig {
             SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
             SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
             SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
-            _ => return None
+            _ => return None,
         };
 
         Some(self.ui_svg(kind_str))
@@ -701,7 +701,7 @@ impl LapceConfig {
             SymbolKind::OPERATOR => "",
             SymbolKind::TYPE_PARAMETER => "",
             SymbolKind::STRING => "string",
-            _ => return None
+            _ => return None,
         };
 
         self.style_color(theme_str)
@@ -757,7 +757,7 @@ impl LapceConfig {
     pub fn terminal_get_color(
         &self,
         color: &alacritty_terminal::vte::ansi::Color,
-        colors: &alacritty_terminal::term::color::Colors
+        colors: &alacritty_terminal::term::color::Colors,
     ) -> Color {
         match color {
             alacritty_terminal::vte::ansi::Color::Named(color) => {
@@ -786,20 +786,20 @@ impl LapceConfig {
                     alacritty_terminal::vte::ansi::NamedColor::BrightBlue,
                     alacritty_terminal::vte::ansi::NamedColor::BrightMagenta,
                     alacritty_terminal::vte::ansi::NamedColor::BrightCyan,
-                    alacritty_terminal::vte::ansi::NamedColor::BrightWhite
+                    alacritty_terminal::vte::ansi::NamedColor::BrightWhite,
                 ];
                 if (*index as usize) < NAMED_COLORS.len() {
                     self.terminal_get_named_color(&NAMED_COLORS[*index as usize])
                 } else {
                     self.terminal.indexed_colors.get(index).cloned().unwrap()
                 }
-            }
+            },
         }
     }
 
     fn terminal_get_named_color(
         &self,
-        color: &alacritty_terminal::vte::ansi::NamedColor
+        color: &alacritty_terminal::vte::ansi::NamedColor,
     ) -> Color {
         let (color, alpha) = match color {
             alacritty_terminal::vte::ansi::NamedColor::Cursor => {
@@ -904,7 +904,7 @@ impl LapceConfig {
                     .iter()
                     .position(|s| s == &self.color_theme.name)
                     .unwrap_or(0),
-                items:        self.color_theme_list.clone()
+                items: self.color_theme_list.clone(),
             }),
             ("core", "icon-theme") => Some(DropdownInfo {
                 active_index: self
@@ -912,7 +912,7 @@ impl LapceConfig {
                     .iter()
                     .position(|s| s == &self.icon_theme.name)
                     .unwrap_or(0),
-                items:        self.icon_theme_list.clone()
+                items: self.icon_theme_list.clone(),
             }),
             ("editor", "wrap-style") => Some(DropdownInfo {
                 // TODO: it would be better to have the text not be the default
@@ -925,23 +925,23 @@ impl LapceConfig {
                     .flat_map(|w| WrapStyle::try_from_str(w))
                     .position(|w| w == self.editor.wrap_style)
                     .unwrap_or(0),
-                items:        self.wrap_style_list.clone()
+                items: self.wrap_style_list.clone(),
             }),
             ("ui", "tab-close-button") => Some(DropdownInfo {
                 active_index: self.ui.tab_close_button as usize,
-                items:        ui::TabCloseButton::VARIANTS
+                items: ui::TabCloseButton::VARIANTS
                     .iter()
                     .map(|s| s.to_string())
                     .sorted()
-                    .collect()
+                    .collect(),
             }),
             ("ui", "tab-separator-height") => Some(DropdownInfo {
                 active_index: self.ui.tab_separator_height as usize,
-                items:        ui::TabSeparatorHeight::VARIANTS
+                items: ui::TabSeparatorHeight::VARIANTS
                     .iter()
                     .map(|s| s.to_string())
                     .sorted()
-                    .collect()
+                    .collect(),
             }),
             ("terminal", "default-profile") => Some(DropdownInfo {
                 active_index: self
@@ -957,9 +957,9 @@ impl LapceConfig {
                                 .unwrap_or(&String::from("default"))
                     })
                     .unwrap_or(0),
-                items:        self.terminal.profiles.clone().into_keys().collect()
+                items: self.terminal.profiles.clone().into_keys().collect(),
             }),
-            _ => None
+            _ => None,
         }
     }
 
@@ -979,7 +979,7 @@ impl LapceConfig {
             if !table.contains_key(key) {
                 table.insert(
                     key,
-                    toml_edit::Item::Table(toml_edit::Table::default())
+                    toml_edit::Item::Table(toml_edit::Table::default()),
                 );
             }
             table = table.get_mut(key)?.as_table_mut()?;
@@ -1000,7 +1000,7 @@ impl LapceConfig {
     pub fn update_file(
         parent: &str,
         key: &str,
-        value: toml_edit::Value
+        value: toml_edit::Value,
     ) -> Option<()> {
         // TODO: This is a hack to fix the fact that terminal default profile is
         // saved in a different manner than other fields. As it is
@@ -1021,7 +1021,7 @@ impl LapceConfig {
             if !table.contains_key(key) {
                 table.insert(
                     key,
-                    toml_edit::Item::Table(toml_edit::Table::default())
+                    toml_edit::Item::Table(toml_edit::Table::default()),
                 );
             }
             table = table.get_mut(key)?.as_table_mut()?;
@@ -1067,7 +1067,7 @@ impl LapceConfig {
             completion_lens_foreground: self
                 .color(LapceColor::COMPLETION_LENS_FOREGROUND),
             editor_foreground: self.color(LapceColor::EDITOR_FOREGROUND),
-            syntax: self.color.syntax.clone()
+            syntax: self.color.syntax.clone(),
         }
     }
 }

@@ -6,7 +6,7 @@ use super::{new_command, remote::Remote};
 use crate::workspace::WslHost;
 
 pub struct WslRemote {
-    pub wsl: WslHost
+    pub wsl: WslHost,
 }
 
 impl Remote for WslRemote {

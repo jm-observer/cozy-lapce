@@ -2,21 +2,21 @@ use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use doc::DiagnosticData;
 use floem::{
-    View,
     peniko::Color,
     reactive::{
-        ReadSignal, SignalGet, SignalUpdate, SignalWith, create_effect,
-        create_rw_signal
+        create_effect, create_rw_signal, ReadSignal, SignalGet, SignalUpdate,
+        SignalWith,
     },
     style::{CursorStyle, Style},
-    views::{Decorators, container, dyn_stack, label, scroll, stack}
+    views::{container, dyn_stack, label, scroll, stack, Decorators},
+    View,
 };
 use lsp_types::{DiagnosticRelatedInformation, DiagnosticSeverity};
 
 use super::{data::PanelSection, view::PanelBuilder};
 use crate::{
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
     doc::EditorDiagnostic,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -24,11 +24,11 @@ use crate::{
     panel::position::PanelContainerPosition,
     svg,
     window_tab::WindowTabData,
-    workspace::LapceWorkspace
+    workspace::LapceWorkspace,
 };
 pub fn problem_panel(
     window_tab_data: Rc<WindowTabData>,
-    position: PanelContainerPosition
+    position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let is_bottom = position.is_bottom();
@@ -41,12 +41,12 @@ pub fn problem_panel(
                 s.border_color(config.get().color(LapceColor::LAPCE_BORDER))
                     .apply_if(is_bottom, |s| s.border_right(1.0))
                     .apply_if(!is_bottom, |s| s.border_bottom(1.0))
-            }
+            },
         )
         .add(
             "Warnings",
             problem_section(window_tab_data.clone(), DiagnosticSeverity::WARNING),
-            window_tab_data.panel.section_open(PanelSection::Warn)
+            window_tab_data.panel.section_open(PanelSection::Warn),
         )
         .build()
         .debug_name("Problem Panel")
@@ -54,7 +54,7 @@ pub fn problem_panel(
 
 fn problem_section(
     window_tab_data: Rc<WindowTabData>,
-    severity: DiagnosticSeverity
+    severity: DiagnosticSeverity,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let main_split = window_tab_data.main_split.clone();
@@ -71,11 +71,11 @@ fn problem_section(
                         diagnostic_data,
                         severity,
                         internal_command,
-                        config
+                        config,
                     )
-                }
+                },
             )
-            .style(|s| s.flex_col().width_pct(100.0).line_height(1.8))
+            .style(|s| s.flex_col().width_pct(100.0).line_height(1.8)),
         )
         .style(|s| s.absolute().size_pct(100.0, 100.0))
     })
@@ -88,7 +88,7 @@ fn file_view(
     diagnostic_data: DiagnosticData,
     severity: DiagnosticSeverity,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let collpased = create_rw_signal(false);
 
@@ -100,8 +100,8 @@ fn file_view(
                 .filter_map(|(iv, diag)| {
                     if diag.severity == Some(severity) {
                         Some(EditorDiagnostic {
-                            range:      Some((iv.start, iv.end)),
-                            diagnostic: diag.to_owned()
+                            range: Some((iv.start, iv.end)),
+                            diagnostic: diag.to_owned(),
                         })
                     } else {
                         None
@@ -115,8 +115,8 @@ fn file_view(
                 .filter_map(|d| {
                     if d.severity == Some(severity) {
                         Some(EditorDiagnostic {
-                            range:      None,
-                            diagnostic: d
+                            range: None,
+                            diagnostic: d,
                         })
                     } else {
                         None
@@ -140,13 +140,13 @@ fn file_view(
 
     let icon = match severity {
         DiagnosticSeverity::ERROR => LapceIcons::ERROR,
-        _ => LapceIcons::WARNING
+        _ => LapceIcons::WARNING,
     };
     let icon_color = move || {
         let config = config.get();
         match severity {
             DiagnosticSeverity::ERROR => config.color(LapceColor::LAPCE_ERROR),
-            _ => config.color(LapceColor::LAPCE_WARN)
+            _ => config.color(LapceColor::LAPCE_WARN),
         }
     };
 
@@ -177,9 +177,9 @@ fn file_view(
                             .min_width(0.0)
                             .text_ellipsis()
                             .selectable(false)
-                    })
+                    }),
                 ))
-                .style(move |s| s.width_pct(100.0).min_width(0.0))
+                .style(move |s| s.width_pct(100.0).min_width(0.0)),
             )
             .on_click_stop(move |_| {
                 collpased.update(|collpased| *collpased = !*collpased);
@@ -192,7 +192,7 @@ fn file_view(
                     .padding_right(10.0)
                     .hover(|s| {
                         s.cursor(CursorStyle::Pointer).background(
-                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                         )
                     })
             }),
@@ -219,9 +219,9 @@ fn file_view(
                         .size(size, size)
                         .apply_opt(color, Style::color)
                 }),
-                label(|| " ".to_string()).style(move |s| s.selectable(false))
+                label(|| " ".to_string()).style(move |s| s.selectable(false)),
             ))
-            .style(|s| s.absolute().items_center().margin_left(10.0))
+            .style(|s| s.absolute().items_center().margin_left(10.0)),
         ))
         .style(move |s| s.width_pct(100.0).min_width(0.0)),
         dyn_stack(
@@ -240,11 +240,11 @@ fn file_view(
                     icon,
                     icon_color,
                     internal_command,
-                    config
+                    config,
                 )
-            }
+            },
         )
-        .style(|s| s.flex_col().width_pct(100.0).min_width_pct(0.0))
+        .style(|s| s.flex_col().width_pct(100.0).min_width_pct(0.0)),
     ))
     .style(move |s| {
         s.width_pct(100.0)
@@ -261,7 +261,7 @@ fn item_view(
     icon: &'static str,
     icon_color: impl Fn() -> Color + 'static,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let related = d.diagnostic.related_information.unwrap_or_default();
     let position = if let Some((start, _)) = d.range {
@@ -274,7 +274,7 @@ fn item_view(
         position: Some(position),
         scroll_offset: None,
         ignore_unconfirmed: false,
-        same_editor_tab: false
+        same_editor_tab: false,
     };
     stack((
         container({
@@ -283,7 +283,7 @@ fn item_view(
                     s.width_pct(100.0)
                         .min_width(0.0)
                         .padding_left(
-                            10.0 + (config.get().ui.icon_size() as f32 + 6.0) * 3.0
+                            10.0 + (config.get().ui.icon_size() as f32 + 6.0) * 3.0,
                         )
                         .padding_right(10.0)
                 }),
@@ -293,29 +293,29 @@ fn item_view(
                         let size = config.ui.icon_size() as f32;
                         s.size(size, size).color(icon_color())
                     }),
-                    label(|| " ".to_string()).style(move |s| s.selectable(false))
+                    label(|| " ".to_string()).style(move |s| s.selectable(false)),
                 ))
                 .style(move |s| {
                     s.absolute().items_center().margin_left(
-                        10.0 + (config.get().ui.icon_size() as f32 + 6.0) * 2.0
+                        10.0 + (config.get().ui.icon_size() as f32 + 6.0) * 2.0,
                     )
-                })
+                }),
             ))
             .style(move |s| {
                 s.width_pct(100.0).min_width(0.0).hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
             })
         })
         .on_click_stop(move |_| {
             internal_command.send(InternalCommand::JumpToLocation {
-                location: location.clone()
+                location: location.clone(),
             });
         })
         .style(|s| s.width_pct(100.0).min_width_pct(0.0)),
-        related_view(related, internal_command, config)
+        related_view(related, internal_command, config),
     ))
     .style(|s| s.width_pct(100.0).min_width_pct(0.0).flex_col())
 }
@@ -323,7 +323,7 @@ fn item_view(
 fn related_view(
     related: Vec<DiagnosticRelatedInformation>,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let is_empty = related.is_empty();
     stack((
@@ -344,22 +344,22 @@ fn related_view(
                     })
                     .unwrap_or_default();
                 let location = EditorLocation {
-                    path:               full_path,
-                    position:           Some(EditorPosition::Position(
-                        related.location.range.start
+                    path: full_path,
+                    position: Some(EditorPosition::Position(
+                        related.location.range.start,
                     )),
-                    scroll_offset:      None,
+                    scroll_offset: None,
                     ignore_unconfirmed: false,
-                    same_editor_tab:    false
+                    same_editor_tab: false,
                 };
                 let message = format!("{path}{}", related.message);
                 container(
                     label(move || message.clone())
-                        .style(move |s| s.width_pct(100.0).min_width(0.0))
+                        .style(move |s| s.width_pct(100.0).min_width(0.0)),
                 )
                 .on_click_stop(move |_| {
                     internal_command.send(InternalCommand::JumpToLocation {
-                        location: location.clone()
+                        location: location.clone(),
                     });
                 })
                 .style(move |s| {
@@ -370,11 +370,11 @@ fn related_view(
                         .min_width(0.0)
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
-                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                         })
                 })
-            }
+            },
         )
         .style(|s| s.width_pct(100.0).min_width(0.0).flex_col()),
         stack((
@@ -384,13 +384,13 @@ fn related_view(
                 s.size(size, size)
                     .color(config.color(LapceColor::EDITOR_DIM))
             }),
-            label(|| " ".to_string()).style(move |s| s.selectable(false))
+            label(|| " ".to_string()).style(move |s| s.selectable(false)),
         ))
         .style(move |s| {
             s.absolute()
                 .items_center()
                 .margin_left(10.0 + (config.get().ui.icon_size() as f32 + 6.0) * 3.0)
-        })
+        }),
     ))
     .style(move |s| {
         s.width_pct(100.0)

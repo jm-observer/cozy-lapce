@@ -20,5 +20,5 @@ pub struct CoreConfig {
     #[field_names(
         desc = "Enable auto-reload for the plugin when its configuration changes."
     )]
-    pub auto_reload_plugin: bool
+    pub auto_reload_plugin: bool,
 }

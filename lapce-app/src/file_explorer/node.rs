@@ -3,14 +3,14 @@ use lapce_rpc::file::{FileNodeItem, FileNodeViewData, Naming};
 
 pub struct FileNodeVirtualList {
     file_node_item: FileNodeItem,
-    naming:         Naming
+    naming: Naming,
 }
 
 impl FileNodeVirtualList {
     pub fn new(file_node_item: FileNodeItem, naming: Naming) -> Self {
         Self {
             file_node_item,
-            naming
+            naming,
         }
     }
 }
@@ -25,7 +25,7 @@ impl VirtualVector<FileNodeViewData> for FileNodeVirtualList {
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>
+        range: std::ops::Range<usize>,
     ) -> impl Iterator<Item = FileNodeViewData> {
         let naming = &self.naming;
         let root = &self.file_node_item;

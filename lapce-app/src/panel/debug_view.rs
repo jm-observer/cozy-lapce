@@ -1,32 +1,32 @@
 use std::{rc::Rc, sync::Arc};
 
 use floem::{
-    View,
     event::EventListener,
     peniko::Color,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
+        create_rw_signal, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
     },
     style::CursorStyle,
     text::Style as FontStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, container, dyn_stack, label,
-        scroll, stack, text, virtual_stack
-    }
+        container, dyn_stack, label, scroll, stack, text, virtual_stack, Decorators,
+        VirtualDirection, VirtualItemSize,
+    },
+    View,
 };
 use lapce_rpc::{
     dap_types::{DapId, ThreadId},
-    terminal::TermId
+    terminal::TermId,
 };
 
 use super::{data::PanelSection, view::PanelBuilder};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
     debug::{
-        BreakpointAction, DapVariable, RunDebugMode, StackTraceData,
-        update_breakpoints
+        update_breakpoints, BreakpointAction, DapVariable, RunDebugMode,
+        StackTraceData,
     },
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -34,12 +34,12 @@ use crate::{
     settings::checkbox,
     svg,
     terminal::panel::TerminalPanelData,
-    window_tab::WindowTabData
+    window_tab::WindowTabData,
 };
 
 pub fn debug_panel(
     window_tab_data: Rc<WindowTabData>,
-    position: PanelContainerPosition
+    position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let terminal = window_tab_data.terminal.clone();
@@ -50,23 +50,23 @@ pub fn debug_panel(
             "Processes",
             150.0,
             debug_processes(terminal.clone(), config),
-            window_tab_data.panel.section_open(PanelSection::Process)
+            window_tab_data.panel.section_open(PanelSection::Process),
         )
         .add(
             "Variables",
             variables_view(window_tab_data.clone()),
-            window_tab_data.panel.section_open(PanelSection::Variable)
+            window_tab_data.panel.section_open(PanelSection::Variable),
         )
         .add(
             "Stack Frames",
             debug_stack_traces(terminal.clone(), internal_command, config),
-            window_tab_data.panel.section_open(PanelSection::StackFrame)
+            window_tab_data.panel.section_open(PanelSection::StackFrame),
         )
         .add_height(
             "Breakpoints",
             150.0,
             breakpoints_view(window_tab_data.clone()),
-            window_tab_data.panel.section_open(PanelSection::Breakpoint)
+            window_tab_data.panel.section_open(PanelSection::Breakpoint),
         )
         .build()
         .debug_name("Debug Panel")
@@ -78,7 +78,7 @@ fn debug_process_icons(
     dap_id: DapId,
     mode: RunDebugMode,
     stopped: bool,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let paused = move || {
         let stopped = terminal
@@ -99,7 +99,7 @@ fn debug_process_icons(
                     || false,
                     || false,
                     || "Restart",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_horiz(4.0))
             },
@@ -113,7 +113,7 @@ fn debug_process_icons(
                     || false,
                     move || stopped,
                     || "Stop",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -127,10 +127,10 @@ fn debug_process_icons(
                     || false,
                     || false,
                     || "Close",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
-            }
+            },
         ))),
         RunDebugMode::Debug => container(stack((
             {
@@ -143,7 +143,7 @@ fn debug_process_icons(
                     || false,
                     move || !paused() || stopped,
                     || "Continue",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_horiz(6.0))
             },
@@ -157,7 +157,7 @@ fn debug_process_icons(
                     || false,
                     move || paused() || stopped,
                     || "Pause",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -171,7 +171,7 @@ fn debug_process_icons(
                     || false,
                     move || !paused() || stopped,
                     || "Step Over",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -185,7 +185,7 @@ fn debug_process_icons(
                     || false,
                     move || !paused() || stopped,
                     || "Step Into",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -199,7 +199,7 @@ fn debug_process_icons(
                     || false,
                     move || !paused() || stopped,
                     || "Step Out",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -213,7 +213,7 @@ fn debug_process_icons(
                     || false,
                     || false,
                     || "Restart",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -227,7 +227,7 @@ fn debug_process_icons(
                     || false,
                     move || stopped,
                     || "Stop",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
             },
@@ -241,17 +241,17 @@ fn debug_process_icons(
                     || false,
                     || false,
                     || "Close",
-                    config
+                    config,
                 )
                 .style(|s| s.margin_right(4.0))
-            }
-        )))
+            },
+        ))),
     }
 }
 
 fn debug_processes(
     terminal: TerminalPanelData,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     scroll({
         let terminal = terminal.clone();
@@ -296,11 +296,11 @@ fn debug_processes(
                         p.config.dap_id,
                         p.mode,
                         p.stopped,
-                        config
+                        config,
                     )
                     .style(move |s| {
                         s.apply_if(!is_hovered.get() && !is_active(), |s| s.hide())
-                    })
+                    }),
                 ))
                 .on_click_stop(move |_| {
                     local_terminal.debug.active_term.set(Some(term_id));
@@ -319,17 +319,17 @@ fn debug_processes(
                         .items_center()
                         .apply_if(is_active(), |s| {
                             s.background(
-                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                             )
                         })
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
                                 (config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
-                                    .multiply_alpha(0.3)
+                                    .multiply_alpha(0.3),
                             )
                         })
                 })
-            }
+            },
         )
         .style(|s| s.width_pct(100.0).flex_col())
     })
@@ -374,7 +374,7 @@ fn variables_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                         node.item.value().map(|v| v.to_string()),
                         node.item.reference(),
                         node.expanded,
-                        node.level
+                        node.level,
                     )
                 },
                 move |node| {
@@ -389,7 +389,7 @@ fn variables_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                             let config = config.get();
                             let svg_str = match node.expanded {
                                 true => LapceIcons::ITEM_OPENED,
-                                false => LapceIcons::ITEM_CLOSED
+                                false => LapceIcons::ITEM_CLOSED,
                             };
                             config.ui_svg(svg_str)
                         })
@@ -415,7 +415,7 @@ fn variables_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                 })
                         }),
                         text(format!(" = {}", node.item.value().unwrap_or("")))
-                            .style(move |s| s.apply_if(reference > 0, |s| s.hide()))
+                            .style(move |s| s.apply_if(reference > 0, |s| s.hide())),
                     ))
                     .on_click_stop(move |_| {
                         if reference > 0 {
@@ -429,14 +429,14 @@ fn variables_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                                 t.run_debug.with(|r| {
                                                     r.as_ref().map(|r| r.stopped)
                                                 })
-                                            }
+                                            },
                                         )
                                     })
                                     .unwrap_or(true);
                                 if !process_stopped {
                                     dap.toggle_expand(
                                         node.parent.clone(),
-                                        reference
+                                        reference,
                                     );
                                 }
                             }
@@ -451,17 +451,17 @@ fn variables_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                 s.apply_if(reference > 0, |s| {
                                     s.background(
                                         config.get().color(
-                                            LapceColor::PANEL_HOVERED_BACKGROUND
-                                        )
+                                            LapceColor::PANEL_HOVERED_BACKGROUND,
+                                        ),
                                     )
                                 })
                             })
                     })
-                }
+                },
             )
-            .style(|s| s.flex_col().min_width_full())
+            .style(|s| s.flex_col().min_width_full()),
         )
-        .style(|s| s.absolute().size_full())
+        .style(|s| s.absolute().size_full()),
     )
     .style(|s| s.width_full().line_height(1.6).flex_grow(1.0).flex_basis(0))
     .debug_name("debug variables")
@@ -473,7 +473,7 @@ fn debug_stack_frames(
     stack_trace: StackTraceData,
     stopped: RwSignal<bool>,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let expanded = stack_trace.expanded;
     stack((
@@ -486,7 +486,7 @@ fn debug_stack_frames(
             .style(move |s| {
                 s.padding_horiz(10.0).min_width_pct(100.0).hover(move |s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
             }),
@@ -522,7 +522,7 @@ fn debug_stack_frames(
                             s.background(
                                 config
                                     .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                         })
                     }),
@@ -531,7 +531,7 @@ fn debug_stack_frames(
                             .color(config.get().color(LapceColor::EDITOR_DIM))
                             .font_style(FontStyle::Italic)
                             .apply_if(!has_source, |s| s.hide())
-                    })
+                    }),
                 )))
                 .on_click_stop(move |_| {
                     if let Some(path) = full_path.clone() {
@@ -540,19 +540,19 @@ fn debug_stack_frames(
                                 path,
                                 position: Some(EditorPosition::Position(
                                     lsp_types::Position {
-                                        line:      line as u32,
-                                        character: col as u32
-                                    }
+                                        line: line as u32,
+                                        character: col as u32,
+                                    },
                                 )),
                                 scroll_offset: None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab: false
-                            }
+                                same_editor_tab: false,
+                            },
                         });
                     }
                     internal_command.send(InternalCommand::DapFrameScopes {
                         dap_id,
-                        frame_id: frame.id
+                        frame_id: frame.id,
                     });
                 })
                 .style(move |s| {
@@ -565,14 +565,14 @@ fn debug_stack_frames(
                         })
                         .hover(|s| {
                             s.background(
-                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                             .apply_if(has_source, |s| s.cursor(CursorStyle::Pointer))
                         })
                 })
-            }
+            },
         )
-        .style(|s| s.flex_col().min_width_pct(100.0))
+        .style(|s| s.flex_col().min_width_pct(100.0)),
     ))
     .style(|s| s.flex_col().min_width_pct(100.0))
     .debug_name("debug stack frames")
@@ -581,7 +581,7 @@ fn debug_stack_frames(
 fn debug_stack_traces(
     terminal: TerminalPanelData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     container(
         scroll({
@@ -626,13 +626,13 @@ fn debug_stack_traces(
                         stack_trace,
                         stopped,
                         internal_command,
-                        config
+                        config,
                     )
-                }
+                },
             )
             .style(|s| s.flex_col().min_width_pct(100.0))
         })
-        .style(|s| s.absolute().size_pct(100.0, 100.0))
+        .style(|s| s.absolute().size_pct(100.0, 100.0)),
     )
     .style(|s| {
         s.width_pct(100.0)
@@ -696,8 +696,8 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                     breakpoints,
                                     BreakpointAction::Remove {
                                         path: &full_path_for_close,
-                                        line
-                                    }
+                                        line,
+                                    },
                                 );
                                 // breakpoints.update(|breakpoints| {
                                 //     if let Some(breakpoints) =
@@ -711,7 +711,7 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                             || false,
                             || false,
                             || "Remove",
-                            config
+                            config,
                         )
                         .on_event_stop(EventListener::PointerDown, |_| {}),
                         checkbox(move || breakpoint.active, config)
@@ -725,8 +725,8 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                     breakpoints,
                                     BreakpointAction::Toggle {
                                         path: &full_path,
-                                        line
-                                    }
+                                        line,
+                                    },
                                 );
                                 //
                                 // breakpoints.update(|breakpoints| {
@@ -751,9 +751,9 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                         - size
                                         - 6.0
                                         - size
-                                        - 8.0
+                                        - 8.0,
                                 )
-                            }
+                            },
                         ),
                         text(folder).style(move |s| {
                             s.text_ellipsis()
@@ -763,7 +763,7 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                 .min_width(0.0)
                                 .margin_left(6.0)
                                 .apply_if(folder_empty, |s| s.hide())
-                        })
+                        }),
                     ))
                     .style(move |s| {
                         s.items_center().padding_horiz(10.0).width_pct(100.0).hover(
@@ -771,25 +771,25 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                                 s.background(
                                     config
                                         .get()
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
-                            }
+                            },
                         )
                     })
                     .on_click_stop(move |_| {
                         internal_command.send(InternalCommand::JumpToLocation {
                             location: EditorLocation {
-                                path:               full_path_for_jump.clone(),
-                                position:           Some(EditorPosition::Line(line)),
-                                scroll_offset:      None,
+                                path: full_path_for_jump.clone(),
+                                position: Some(EditorPosition::Line(line)),
+                                scroll_offset: None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab:    false
-                            }
+                                same_editor_tab: false,
+                            },
                         });
                     })
-                }
+                },
             )
-            .style(|s| s.flex_col().line_height(1.6).width_pct(100.0))
+            .style(|s| s.flex_col().line_height(1.6).width_pct(100.0)),
         )
         .on_resize(move |rect| {
             let width = rect.width();
@@ -797,7 +797,7 @@ fn breakpoints_view(window_tab_data: Rc<WindowTabData>) -> impl View {
                 available_width.set(width);
             }
         })
-        .style(|s| s.absolute().size_pct(100.0, 100.0))
+        .style(|s| s.absolute().size_pct(100.0, 100.0)),
     )
     .style(|s| s.size_pct(100.0, 100.0))
     .debug_name("debug breakpoints")

@@ -1,14 +1,14 @@
 use alacritty_terminal::{
-    Term,
     event::EventListener,
     grid::Dimensions,
     index::{Column, Direction, Line, Point},
     term::{
         cell::{Flags, LineLength},
         search::{Match, RegexIter, RegexSearch},
-        test::TermSize
+        test::TermSize,
     },
-    vte::ansi
+    vte::ansi,
+    Term,
 };
 use crossbeam_channel::Sender;
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
@@ -16,10 +16,10 @@ use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 use super::event::TermNotification;
 
 pub struct EventProxy {
-    term_id:              TermId,
-    raw_id:               u64,
-    proxy:                ProxyRpcHandler,
-    term_notification_tx: Sender<TermNotification>
+    term_id: TermId,
+    raw_id: u64,
+    proxy: ProxyRpcHandler,
+    term_notification_tx: Sender<TermNotification>,
 }
 
 impl EventListener for EventProxy {
@@ -40,22 +40,22 @@ impl EventListener for EventProxy {
                 if let Err(err) =
                     self.term_notification_tx.send(TermNotification::SetTitle {
                         term_id: self.term_id,
-                        title:   s
+                        title: s,
                     })
                 {
                     log::error!("{:?}", err);
                 }
             },
-            _ => ()
+            _ => (),
         }
     }
 }
 
 pub struct RawTerminal {
-    pub raw_id:       u64,
-    pub parser:       ansi::Processor,
-    pub term:         Term<EventProxy>,
-    pub scroll_delta: f64
+    pub raw_id: u64,
+    pub parser: ansi::Processor,
+    pub term: Term<EventProxy>,
+    pub scroll_delta: f64,
 }
 
 impl RawTerminal {
@@ -63,7 +63,7 @@ impl RawTerminal {
         term_id: TermId,
         raw_id: u64,
         proxy: ProxyRpcHandler,
-        term_notification_tx: Sender<TermNotification>
+        term_notification_tx: Sender<TermNotification>,
     ) -> Self {
         let config = alacritty_terminal::term::Config {
             semantic_escape_chars: ",│`|\"' ()[]{}<>\t".to_string(),
@@ -73,7 +73,7 @@ impl RawTerminal {
             raw_id,
             term_id,
             proxy,
-            term_notification_tx
+            term_notification_tx,
         };
 
         let size = TermSize::new(50, 30);
@@ -84,7 +84,7 @@ impl RawTerminal {
             raw_id,
             parser,
             term,
-            scroll_delta: 0.0
+            scroll_delta: 0.0,
         }
     }
 
@@ -133,7 +133,7 @@ impl RawTerminal {
 
 pub fn visible_regex_match_iter<'a, EventProxy>(
     term: &'a Term<EventProxy>,
-    regex: &'a mut RegexSearch
+    regex: &'a mut RegexSearch,
 ) -> impl Iterator<Item = Match> + 'a {
     let viewport_start = Line(-(term.grid().display_offset() as i32));
     let viewport_end = viewport_start + term.bottommost_line();

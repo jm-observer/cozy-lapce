@@ -3,7 +3,7 @@ use std::{path::PathBuf, rc::Rc};
 use floem::{
     keyboard::Modifiers,
     reactive::{RwSignal, Scope, SignalWith},
-    views::editor::core::mode::Mode
+    views::editor::core::mode::Mode,
 };
 use indexmap::IndexMap;
 use lapce_rpc::source_control::FileDiff;
@@ -11,20 +11,20 @@ use lapce_rpc::source_control::FileDiff;
 use crate::{
     command::{CommandExecuted, CommandKind},
     editor::EditorData,
-    keypress::{KeyPressFocus, condition::Condition},
+    keypress::{condition::Condition, KeyPressFocus},
     main_split::Editors,
-    window_tab::CommonData
+    window_tab::CommonData,
 };
 
 #[derive(Clone, Debug)]
 pub struct SourceControlData {
     // VCS modified files & whether they should be included in the next commit
     pub file_diffs: RwSignal<IndexMap<PathBuf, (FileDiff, bool)>>,
-    pub branch:     RwSignal<String>,
-    pub branches:   RwSignal<im::Vector<String>>,
-    pub tags:       RwSignal<im::Vector<String>>,
-    pub editor:     EditorData,
-    pub common:     Rc<CommonData>
+    pub branch: RwSignal<String>,
+    pub branches: RwSignal<im::Vector<String>>,
+    pub tags: RwSignal<im::Vector<String>>,
+    pub editor: EditorData,
+    pub common: Rc<CommonData>,
 }
 
 impl KeyPressFocus for SourceControlData {
@@ -43,7 +43,7 @@ impl KeyPressFocus for SourceControlData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers
+        mods: Modifiers,
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Edit(_)
@@ -51,7 +51,7 @@ impl KeyPressFocus for SourceControlData {
             | CommandKind::MultiSelection(_) => {
                 self.editor.run_command(command, count, mods)
             },
-            _ => CommandExecuted::No
+            _ => CommandExecuted::No,
         }
     }
 
@@ -70,9 +70,9 @@ impl SourceControlData {
             editor: editors.make_local_with_name(
                 cx,
                 common.clone(),
-                "SourceControlData".to_string()
+                "SourceControlData".to_string(),
             ),
-            common
+            common,
         }
     }
 
@@ -82,8 +82,12 @@ impl SourceControlData {
                 .iter()
                 .filter_map(
                     |(_, (diff, checked))| {
-                        if *checked { Some(diff) } else { None }
-                    }
+                        if *checked {
+                            Some(diff)
+                        } else {
+                            None
+                        }
+                    },
                 )
                 .cloned()
                 .collect()

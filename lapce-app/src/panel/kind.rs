@@ -18,7 +18,7 @@ pub enum PanelKind {
     CallHierarchy,
     DocumentSymbol,
     References,
-    Implementation
+    Implementation,
 }
 
 impl PanelKind {
@@ -34,13 +34,13 @@ impl PanelKind {
             PanelKind::CallHierarchy => LapceIcons::TYPE_HIERARCHY,
             PanelKind::DocumentSymbol => LapceIcons::DOCUMENT_SYMBOL,
             PanelKind::References => LapceIcons::REFERENCES,
-            PanelKind::Implementation => LapceIcons::IMPLEMENTATION
+            PanelKind::Implementation => LapceIcons::IMPLEMENTATION,
         }
     }
 
     pub fn position(
         &self,
-        order: &PanelOrder
+        order: &PanelOrder,
     ) -> Option<(usize, PanelContainerPosition)> {
         for (pos, panels) in order.iter() {
             let index = panels.iter().position(|k| k == self);
@@ -63,7 +63,7 @@ impl PanelKind {
             PanelKind::CallHierarchy => PanelContainerPosition::Bottom,
             PanelKind::DocumentSymbol => PanelContainerPosition::Right,
             PanelKind::References => PanelContainerPosition::Bottom,
-            PanelKind::Implementation => PanelContainerPosition::Bottom
+            PanelKind::Implementation => PanelContainerPosition::Bottom,
         }
     }
 
@@ -79,7 +79,7 @@ impl PanelKind {
             PanelKind::CallHierarchy => "Call Hierarchy",
             PanelKind::DocumentSymbol => "Document Symbol",
             PanelKind::References => "References",
-            PanelKind::Implementation => "Implementation"
+            PanelKind::Implementation => "Implementation",
         }
     }
 }

@@ -1,8 +1,8 @@
 use floem::{
-    View,
     peniko::Color,
     style::CursorStyle,
-    views::{Decorators, label}
+    views::{label, Decorators},
+    View,
 };
 
 use crate::{command::InternalCommand, listener::Listener};
@@ -11,7 +11,7 @@ pub fn web_link(
     text: impl Fn() -> String + 'static,
     uri: impl Fn() -> String + 'static,
     color: impl Fn() -> Color + 'static,
-    internal_command: Listener<InternalCommand>
+    internal_command: Listener<InternalCommand>,
 ) -> impl View {
     label(text)
         .on_click_stop(move |_| {

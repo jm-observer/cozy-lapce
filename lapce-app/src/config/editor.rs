@@ -12,7 +12,7 @@ pub enum ClickMode {
     #[serde(rename = "file")]
     DoubleClickFile,
     #[serde(rename = "all")]
-    DoubleClickAll
+    DoubleClickAll,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
@@ -26,7 +26,7 @@ pub enum WrapStyle {
     // /// Wrap at the wrap-column
     // WrapColumn,
     /// Wrap at a specific width
-    WrapWidth
+    WrapWidth,
 }
 impl WrapStyle {
     pub fn as_str(&self) -> &'static str {
@@ -34,7 +34,7 @@ impl WrapStyle {
             WrapStyle::None => "none",
             WrapStyle::EditorWidth => "editor-width",
             // WrapStyle::WrapColumn => "wrap-column",
-            WrapStyle::WrapWidth => "wrap-width"
+            WrapStyle::WrapWidth => "wrap-width",
         }
     }
 
@@ -44,7 +44,7 @@ impl WrapStyle {
             "editor-width" => Some(WrapStyle::EditorWidth),
             // "wrap-column" => Some(WrapStyle::WrapColumn),
             "wrap-width" => Some(WrapStyle::WrapWidth),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -143,78 +143,80 @@ pub struct EditorConfig {
     #[field_names(desc = "Set the inlay hint font size. If less than 5 or \
                           greater than editor font size, it uses the editor font \
                           size.")]
-    pub inlay_hint_font_size:   usize,
+    pub inlay_hint_font_size: usize,
     #[field_names(desc = "If diagnostics should be displayed inline")]
-    pub enable_error_lens:      bool,
+    pub enable_error_lens: bool,
 
     #[field_names(desc = "Only render the styling without displaying messages, \
                           provided that `Enable ErrorLens` is enabled")]
-    pub only_render_error_styling:   bool,
+    pub only_render_error_styling: bool,
     #[field_names(desc = "Whether error lens should go to the end of view line, \
                           or only to the end of the diagnostic")]
-    pub error_lens_end_of_line:      bool,
+    pub error_lens_end_of_line: bool,
     #[field_names(desc = "Whether error lens should extend over multiple lines. \
                           If false, it will have newlines stripped.")]
-    pub error_lens_multiline:        bool,
+    pub error_lens_multiline: bool,
     // TODO: Error lens but put entirely on the next line
     // TODO: error lens with indentation matching.
     #[field_names(desc = "Set error lens font family. If empty, it uses the \
                           inlay hint font family.")]
-    pub error_lens_font_family:      String,
+    pub error_lens_font_family: String,
     #[field_names(desc = "Set the error lens font size. If 0 it uses the inlay \
                           hint font size.")]
-    pub error_lens_font_size:        usize,
+    pub error_lens_font_size: usize,
     #[field_names(
         desc = "If the editor should display the completion item as phantom text"
     )]
-    pub enable_completion_lens:      bool,
+    pub enable_completion_lens: bool,
     #[field_names(desc = "If the editor should display inline completions")]
-    pub enable_inline_completion:    bool,
+    pub enable_inline_completion: bool,
     #[field_names(desc = "Set completion lens font family. If empty, it uses the \
                           inlay hint font family.")]
     pub completion_lens_font_family: String,
     #[field_names(desc = "Set the completion lens font size. If 0 it uses the \
                           inlay hint font size.")]
-    pub completion_lens_font_size:   usize,
+    pub completion_lens_font_size: usize,
     #[field_names(desc = "Set the cursor blink interval (in milliseconds). Set \
                           to 0 to completely disable.")]
-    blink_interval:                  u64,
-    #[field_names(desc = "Whether the multiple cursor selection is case sensitive.")]
-    pub multicursor_case_sensitive:  bool,
+    blink_interval: u64,
+    #[field_names(
+        desc = "Whether the multiple cursor selection is case sensitive."
+    )]
+    pub multicursor_case_sensitive: bool,
     #[field_names(
         desc = "Whether the multiple cursor selection only selects whole words."
     )]
-    pub multicursor_whole_words:     bool,
+    pub multicursor_whole_words: bool,
     #[field_names(desc = "How the editor should render whitespace \
                           characters.\nOptions: none, all, boundary, trailing.")]
-    pub render_whitespace:           RenderWhitespace,
+    pub render_whitespace: RenderWhitespace,
     #[field_names(desc = "Whether the editor show indent guide.")]
-    pub show_indent_guide:           bool,
+    pub show_indent_guide: bool,
     #[field_names(desc = "Set the auto save delay (in milliseconds), Set to 0 to \
                           completely disable")]
-    pub autosave_interval:           u64,
+    pub autosave_interval: u64,
     #[field_names(desc = "Whether the document should be formatted when an \
                           autosave is triggered (required Format on Save)")]
-    pub format_on_autosave:          bool,
+    pub format_on_autosave: bool,
     #[field_names(desc = "If enabled the cursor treats leading soft tabs as if \
                           they are hard tabs.")]
-    pub atomic_soft_tabs:            bool,
+    pub atomic_soft_tabs: bool,
     #[field_names(desc = "Use a double click to interact with the file \
                           explorer.\nOptions: single (default), file or all.")]
-    pub double_click:                ClickMode,
+    pub double_click: ClickMode,
     #[field_names(desc = "Move the focus as you type in the global search box")]
-    pub move_focus_while_search:     bool,
+    pub move_focus_while_search: bool,
     #[field_names(desc = "Set the default number of visible lines above and \
                           below the diff block (-1 for infinite)")]
-    pub diff_context_lines:          i32,
+    pub diff_context_lines: i32,
     #[field_names(desc = "Whether the editor colorizes brackets")]
-    pub bracket_pair_colorization:   bool,
+    pub bracket_pair_colorization: bool,
     #[field_names(desc = "Bracket colorization Limit")]
-    pub bracket_colorization_limit:  u64,
+    pub bracket_colorization_limit: u64,
     #[field_names(
         desc = "Glob patterns for excluding files and folders (in file explorer)"
     )]
-    pub files_exclude:               String
+    pub files_exclude: String,
 }
 
 impl EditorConfig {

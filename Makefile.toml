@@ -1,0 +1,24 @@
+# Makefile.toml
+[config]
+default_to_workspace = false # 启用工作空间支持
+
+[tasks.release.windows]
+script = '''
+cmd /c if exist "C:\Users\36225\Desktop\lapce.exe" del /f "C:\Users\36225\Desktop\lapce.exe"
+cmd /c move "target\release\lapce.exe" "C:\Users\36225\Desktop\"
+'''
+dependencies = ["_build-release"]
+
+[tasks.run-dev]
+script = '''
+cargo run --profile fastdev --bin lapce -- -w -n
+'''
+dependencies = ["_build-dev"]
+
+[tasks._build-dev]
+description = "Build the project"
+command = "cargo"
+args = ["build", "--profile", "fastdev", "--bin", "lapce"]
+[tasks._build-release]
+command = "cargo"
+args = ["build", "--release", "--bin", "lapce"]

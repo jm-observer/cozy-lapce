@@ -1,16 +1,16 @@
 use std::rc::Rc;
 
 use floem::{
-    View,
     event::EventListener,
     keyboard::Modifiers,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::{CursorStyle, Display, Position},
     views::{
-        Decorators, container,
+        container,
         editor::core::{command::FocusCommand, mode::Mode},
-        label, stack
-    }
+        label, stack, Decorators,
+    },
+    View,
 };
 use lapce_core::meta::VERSION;
 
@@ -20,7 +20,7 @@ use crate::{
     keypress::KeyPressFocus,
     svg,
     web_link::web_link,
-    window_tab::{Focus, SignalManager, WindowTabData}
+    window_tab::{Focus, SignalManager, WindowTabData},
 };
 
 struct AboutUri {}
@@ -36,7 +36,7 @@ impl AboutUri {
 #[derive(Clone, Debug)]
 pub struct AboutData {
     pub visible: RwSignal<bool>,
-    pub focus:   SignalManager<Focus>
+    pub focus: SignalManager<Focus>,
 }
 
 impl AboutData {
@@ -64,7 +64,7 @@ impl KeyPressFocus for AboutData {
 
     fn check_condition(
         &self,
-        _condition: crate::keypress::condition::Condition
+        _condition: crate::keypress::condition::Condition,
     ) -> bool {
         self.visible.get_untracked()
     }
@@ -73,7 +73,7 @@ impl KeyPressFocus for AboutData {
         &self,
         command: &crate::command::LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> crate::command::CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -86,7 +86,7 @@ impl KeyPressFocus for AboutData {
                 }
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {}
+            CommandKind::MultiSelection(_) => {},
         }
         CommandExecuted::Yes
     }
@@ -123,28 +123,28 @@ pub fn about_popup(window_tab_data: Rc<WindowTabData>) -> impl View {
                 || "Website".to_string(),
                 || AboutUri::LAPCE.to_string(),
                 move || config.get().color(LapceColor::EDITOR_LINK),
-                internal_command
+                internal_command,
             )
             .style(|s| s.margin_top(20.0)),
             web_link(
                 || "GitHub".to_string(),
                 || AboutUri::GITHUB.to_string(),
                 move || config.get().color(LapceColor::EDITOR_LINK),
-                internal_command
+                internal_command,
             )
             .style(|s| s.margin_top(10.0)),
             web_link(
                 || "Discord".to_string(),
                 || AboutUri::DISCORD.to_string(),
                 move || config.get().color(LapceColor::EDITOR_LINK),
-                internal_command
+                internal_command,
             )
             .style(|s| s.margin_top(10.0)),
             web_link(
                 || "Matrix".to_string(),
                 || AboutUri::MATRIX.to_string(),
                 move || config.get().color(LapceColor::EDITOR_LINK),
-                internal_command
+                internal_command,
             )
             .style(|s| s.margin_top(10.0)),
             label(|| "Attributions".to_string()).style(move |s| {
@@ -156,9 +156,9 @@ pub fn about_popup(window_tab_data: Rc<WindowTabData>) -> impl View {
                 || "Codicons (CC-BY-4.0)".to_string(),
                 || AboutUri::CODICONS.to_string(),
                 move || config.get().color(LapceColor::EDITOR_LINK),
-                internal_command
+                internal_command,
             )
-            .style(|s| s.margin_top(10.0))
+            .style(|s| s.margin_top(10.0)),
         ))
         .style(|s| s.flex_col().items_center())
     })
@@ -168,7 +168,7 @@ pub fn about_popup(window_tab_data: Rc<WindowTabData>) -> impl View {
 fn exclusive_popup<V: View + 'static>(
     window_tab_data: Rc<WindowTabData>,
     visibility: RwSignal<bool>,
-    content: impl FnOnce() -> V
+    content: impl FnOnce() -> V,
 ) -> impl View {
     let config = window_tab_data.common.config;
 

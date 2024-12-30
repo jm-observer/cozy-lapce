@@ -4,52 +4,52 @@ use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
-    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement}
+    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement},
 };
 use lapce_rpc::plugin::PluginId;
 use lsp_types::CodeActionOrCommand;
 
 use crate::{
     command::{CommandExecuted, CommandKind, InternalCommand},
-    keypress::{KeyPressFocus, condition::Condition},
-    window_tab::{CommonData, Focus}
+    keypress::{condition::Condition, KeyPressFocus},
+    window_tab::{CommonData, Focus},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CodeActionStatus {
     Inactive,
-    Active
+    Active,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScoredCodeActionItem {
-    pub item:      CodeActionOrCommand,
+    pub item: CodeActionOrCommand,
     pub plugin_id: PluginId,
-    pub score:     i64,
-    pub indices:   Vec<usize>
+    pub score: i64,
+    pub indices: Vec<usize>,
 }
 
 impl ScoredCodeActionItem {
     pub fn title(&self) -> &str {
         match &self.item {
             CodeActionOrCommand::Command(c) => &c.title,
-            CodeActionOrCommand::CodeAction(c) => &c.title
+            CodeActionOrCommand::CodeAction(c) => &c.title,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct CodeActionData {
-    pub status:         RwSignal<CodeActionStatus>,
-    pub active:         RwSignal<usize>,
-    pub request_id:     usize,
-    pub input_id:       usize,
-    pub offset:         usize,
-    pub items:          im::Vector<ScoredCodeActionItem>,
+    pub status: RwSignal<CodeActionStatus>,
+    pub active: RwSignal<usize>,
+    pub request_id: usize,
+    pub input_id: usize,
+    pub offset: usize,
+    pub items: im::Vector<ScoredCodeActionItem>,
     pub filtered_items: im::Vector<ScoredCodeActionItem>,
-    pub layout_rect:    Rect,
-    pub mouse_click:    bool,
-    pub common:         Rc<CommonData>
+    pub layout_rect: Rect,
+    pub mouse_click: bool,
+    pub common: Rc<CommonData>,
 }
 
 impl KeyPressFocus for CodeActionData {
@@ -65,7 +65,7 @@ impl KeyPressFocus for CodeActionData {
         &self,
         command: &crate::command::LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> crate::command::CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -76,7 +76,7 @@ impl KeyPressFocus for CodeActionData {
                 self.run_focus_command(cmd);
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {}
+            CommandKind::MultiSelection(_) => {},
         }
         CommandExecuted::Yes
     }
@@ -99,7 +99,7 @@ impl CodeActionData {
             filtered_items: im::Vector::new(),
             layout_rect: Rect::ZERO,
             mouse_click: false,
-            common
+            common,
         };
 
         {
@@ -143,7 +143,7 @@ impl CodeActionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -159,7 +159,7 @@ impl CodeActionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -169,7 +169,7 @@ impl CodeActionData {
         plugin_id: PluginId,
         code_actions: im::Vector<CodeActionOrCommand>,
         offset: usize,
-        mouse_click: bool
+        mouse_click: bool,
     ) {
         self.active.set(0);
         self.status.set(CodeActionStatus::Active);
@@ -182,7 +182,7 @@ impl CodeActionData {
                 item: code_action,
                 plugin_id,
                 score: 0,
-                indices: Vec::new()
+                indices: Vec::new(),
             })
             .collect();
         self.filtered_items = self.items.clone();
@@ -200,7 +200,7 @@ impl CodeActionData {
                 .internal_command
                 .send(InternalCommand::RunCodeAction {
                     plugin_id: item.plugin_id,
-                    action:    item.item.clone()
+                    action: item.item.clone(),
                 });
         }
         self.cancel();
@@ -226,7 +226,7 @@ impl CodeActionData {
             FocusCommand::ListSelect => {
                 self.select();
             },
-            _ => return CommandExecuted::No
+            _ => return CommandExecuted::No,
         }
         CommandExecuted::Yes
     }

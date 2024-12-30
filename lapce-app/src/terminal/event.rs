@@ -9,18 +9,18 @@ use super::raw::RawTerminal;
 /// The notifications for terminals to send back to main thread
 pub enum TermNotification {
     SetTitle { term_id: TermId, title: String },
-    RequestPaint
+    RequestPaint,
 }
 
 pub enum TermEvent {
     NewTerminal(Arc<RwLock<RawTerminal>>),
     UpdateContent(Vec<u8>),
-    CloseTerminal
+    CloseTerminal,
 }
 
 pub fn terminal_update_process(
     receiver: Receiver<(TermId, TermEvent)>,
-    term_notification_tx: Sender<TermNotification>
+    term_notification_tx: Sender<TermNotification>,
 ) {
     let mut terminals = HashMap::new();
     let mut last_redraw = Instant::now();
@@ -31,7 +31,7 @@ pub fn terminal_update_process(
         } else {
             match receiver.recv() {
                 Ok((term_id, event)) => (term_id, event),
-                Err(_) => return
+                Err(_) => return,
             }
         };
         match event {
@@ -65,7 +65,7 @@ pub fn terminal_update_process(
                         }
                     }
                 }
-            }
+            },
         }
     }
 }
