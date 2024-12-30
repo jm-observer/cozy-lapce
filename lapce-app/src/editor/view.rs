@@ -461,7 +461,7 @@ impl EditorView {
                 screen_lines.visual_line_info_of_origin_line(breakline)
             {
                 let rect = Rect::from_origin_size(
-                    (viewport.x0, info.visual_line_y),
+                    info.paint_point(),
                     (viewport.width(), line_height),
                 );
                 cx.fill(
@@ -481,15 +481,6 @@ impl EditorView {
             // Highlight the current line
             if !is_local && highlight_current_line {
                 for (_, end) in cursor.regions_iter() {
-                    // // TODO: unsure if this is correct for wrapping lines
-                    // let rvline = match ed.visual_line_of_offset(end,
-                    // cursor.affinity) {
-                    //     Ok(rs) => rs.0.rvline,
-                    //     Err(err) => {
-                    //         error!("{err:?}");
-                    //         continue;
-                    //     }
-                    // };
                     let origin_folded_line =
                         match ed.doc.get_untracked().lines.with_untracked(|x| {
                             x.cursor_position_of_buffer_offset(end, cursor.affinity)
@@ -509,7 +500,7 @@ impl EditorView {
                         .visual_line_info_of_visual_line(&origin_folded_line)
                     {
                         let rect = Rect::from_origin_size(
-                            (viewport.x0, info.visual_line_y),
+                            info.paint_point(),
                             (viewport.width(), line_height),
                         );
 

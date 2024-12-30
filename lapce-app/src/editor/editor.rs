@@ -2027,46 +2027,11 @@ pub fn paint_text(
 ) {
     let style = ed.doc();
 
-    // todo???
-    // TODO: cache indent text layout width
-    // let indent_unit = ed
-    //     .doc()
-    //     .lines
-    //     .with_untracked(|es| es.indent_style())
-    //     .as_str();
-    // // TODO: don't assume font family is the same for all lines?
-    // let family = style.font_family(0);
-    // let attrs = Attrs::new()
-    //     .family(&family)
-    //     .font_size(style.font_size(0) as f32);
-    // let attrs_list = AttrsList::new(attrs);
-    //
-    // let indent_text = TextLayout::new_with_text(&format!("{indent_unit}a"),
-    // attrs_list); let indent_text_width =
-    // indent_text.hit_position(indent_unit.len()).point.x; let base =
-    // screen_lines.base.y0; if show_indent_guide.0 {
-    //     for line_info in &screen_lines.visual_lines {
-    //         let line = line_info.visual_line.origin_line;
-    //         let y = line_info.visual_line_y + base;
-    //         let text_layout = ed.text_layout_of_visual_line(line);
-    //         let line_height = f64::from(ed.line_height(line));
-    //         let mut x = 0.0;
-    //         while x + 1.0 < text_layout.indent {
-    //             cx.stroke(
-    //                 &Line::new(Point::new(x, y), Point::new(x, y + line_height)),
-    //                 show_indent_guide.1,
-    //                 1.0,
-    //             );
-    //             x += indent_text_width;
-    //         }
-    //     }
-    // }
-    let base = screen_lines.base.y0;
     paint_cursor_caret(cx, ed, is_active, screen_lines);
 
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
-        let y = line_info.visual_line_y + base;
+        let y = line_info.paint_point().y;
         let text_layout = ed.text_layout_of_visual_line(line);
 
         paint_extra_style(cx, &text_layout.extra_style, y, viewport);
