@@ -156,7 +156,6 @@ pub fn _show_hierarchy_panel(
 ) -> impl View {
     let config = window_tab_data.common.config;
     let ui_line_height = window_tab_data.common.ui_line_height;
-    let scroll_to_line: RwSignal<Option<f64>> = RwSignal::new(None);
     scroll(
         virtual_stack(
             VirtualDirection::Vertical,
@@ -272,12 +271,4 @@ pub fn _show_hierarchy_panel(
         .style(|s| s.flex_col().absolute().min_width_full()),
     )
     .style(|s| s.size_full())
-    .scroll_to(move || {
-        if let Some(line) = scroll_to_line.get() {
-            let line_height = ui_line_height.get();
-            Some((0.0, line * line_height).into())
-        } else {
-            None
-        }
-    })
 }

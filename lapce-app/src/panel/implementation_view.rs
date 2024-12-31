@@ -42,7 +42,7 @@ pub fn implementation_panel(
         })
         .debug_name("implementation panel"),
     ))
-    .style(|x| x.flex_col().width_full().height_full())
+    .style(|x| x.flex_col().width_full())
 }
 pub fn common_reference_panel(
     window_tab_data: Rc<WindowTabData>,
@@ -189,9 +189,9 @@ pub fn common_reference_panel(
                 })
             },
         )
-        .style(|s| s.flex_col().min_width_full()),
+        .style(|s| s.flex_col().absolute().min_width_full()),
     )
-    .style(|s| s.flex_grow(1.0).size_full())
+        .style(|s| s.size_full())
 }
 
 pub fn map_to_location(resp: Option<GotoImplementationResponse>) -> Vec<Location> {
