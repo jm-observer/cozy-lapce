@@ -527,7 +527,7 @@ fn drag_line(
                     })
                     .z_index(2)
             })
-    })
+    }).debug_name("drag_line")
 }
 
 pub(crate) fn new_panel_picker(

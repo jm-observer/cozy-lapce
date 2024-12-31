@@ -1589,8 +1589,8 @@ fn editor_gutter_breakpoints(
     let daps = window_tab_data.terminal.debug.daps;
     let common = window_tab_data.common.clone();
 
-    let (ed, doc, config) = e_data
-        .with_untracked(|e| (e.editor.clone(), e.doc_signal(), e.common.config));
+    let (doc, config) = e_data
+        .with_untracked(|e| (e.doc_signal(), e.common.config));
 
     let num_display_lines = create_memo(move |_| {
         let screen_lines =
@@ -1623,15 +1623,17 @@ fn editor_gutter_breakpoints(
             )
             .style(move |s| {
                 // todo improve
-                let line_height = config.get().editor.line_height() as f64;
-                let viewport =
-                    ed.doc().lines.with_untracked(|x| x.signal_viewport());
-                let y0 = viewport.get().y0;
-                let margin_top = -(y0 % line_height) as f32 + line_height as f32;
+                // let line_height = config.get().editor.line_height() as f64;
+                // let viewport =
+                //     ed.doc().lines.with_untracked(|x| x.signal_viewport());
+                // let y0 = viewport.get().y0;
+                // ?
+                // let margin_top = -(y0 % line_height) as f32 + line_height as f32;
                 // log::info!(
                 //     "y0={y0} line_height={line_height} margin_top={margin_top}"
                 // );
-                s.absolute().flex_col().margin_top(margin_top)
+                // s.absolute().flex_col().margin_top(margin_top)
+                s.absolute().flex_col()
             })
             .debug_name("Breakpoint Dyn Stack"),
             dyn_stack(

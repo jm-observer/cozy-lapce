@@ -2208,7 +2208,7 @@ fn workbench(window_tab_data: Rc<WindowTabData>) -> impl View {
             .style(move |s| {
                 s.flex_row()
                     .height(PANEL_PICKER_SIZE)
-                    .margin_top(Auto)
+                    // .margin_top(Auto)
                     .width_pct(100.0)
                     .border_top(1.0)
                     .border_color(config.get().color(LapceColor::LAPCE_BORDER))
