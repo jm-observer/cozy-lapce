@@ -60,6 +60,7 @@ use crate::{
     window_tab::{CommonData, Focus, WindowTabData},
     workspace::LapceWorkspace,
 };
+use crate::editor::gutter_new::view::editor_gutter_new;
 
 #[derive(Clone, Debug, Default)]
 pub struct StickyHeaderInfo {
@@ -1390,7 +1391,7 @@ pub fn editor_container_view(
     stack((
         editor_breadcrumbs(workspace, editor.get_untracked(), config),
         stack((
-            editor_gutter(window_tab_data.clone(), editor),
+            editor_gutter_new(window_tab_data.clone(), editor),
             editor_gutter_folding_range(window_tab_data.clone(), doc),
             editor_content(editor, debug_breakline, is_active),
             empty().style(move |s| {
@@ -1421,7 +1422,7 @@ pub fn editor_container_view(
             )
             .debug_name("find view"),
         ))
-        .style(|s| s.width_full().flex_basis(0).flex_grow(1.0)),
+        .style(|s| s.width_full().flex_grow(1.0)),
     ))
     .on_cleanup(move || {
         let editor = editor.get_untracked();
@@ -1805,7 +1806,7 @@ fn editor_gutter_folding_range(
     .style(move |s| {
         let config = config.get();
         let width = config.ui.icon_size() as f32;
-        s.width(width).height_full().margin_left(-width / 2.0)
+        s.width(width).height_full()
     })
     .debug_name("Folding Range Stack")
 }

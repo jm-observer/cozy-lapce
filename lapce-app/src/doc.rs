@@ -52,7 +52,7 @@ use itertools::Itertools;
 use lapce_core::directory::Directory;
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{spans::SpansBuilder, Interval, Rope, RopeDelta, Transformer};
-use log::{error, info};
+use log::{debug, error, info};
 use lsp_types::{CodeActionOrCommand, CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -912,7 +912,7 @@ impl Doc {
                         return;
                     }
 
-                    info!(
+                    debug!(
                         "get_semantic_full_styles {}",
                         serde_json::to_string(&styles).unwrap()
                     );

@@ -60,6 +60,8 @@ name = "Lapce Codicons"
 
 "palette.menu" = "chevron-down.svg"
 
+"empty" = "empty.svg"
+
 "fold" = "fold.svg"
 "fold.up" = "fold-up.svg"
 "fold.down" = "fold-down.svg"

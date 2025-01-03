@@ -2226,7 +2226,7 @@ impl WindowTabData {
                     .collect();
 
                 if !diagnostics.is_empty() {
-                    info!(
+                    debug!(
                         "PublishDiagnostics {:?} {}",
                         path,
                         serde_json::to_string(diagnostic_params).unwrap()

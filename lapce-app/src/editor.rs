@@ -88,6 +88,7 @@ pub mod location;
 pub mod view;
 
 pub mod movement;
+pub mod gutter_new;
 
 #[derive(Clone, Debug)]
 pub enum InlineFindDirection {
