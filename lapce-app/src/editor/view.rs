@@ -1693,10 +1693,10 @@ fn editor_gutter_code_lens_view(
 
 fn editor_gutter_folding_view(
     window_tab_data: Rc<WindowTabData>,
-    folding_display_item: FoldingDisplayItem,
+    folding_display_item: FoldingDisplayItem, doc: DocSignal,
 ) -> impl View {
     let config = window_tab_data.common.config;
-    let view = container(
+    container(
         svg(move || {
             let icon_str = match folding_display_item.ty {
                 FoldingDisplayType::UnfoldStart => LapceIcons::EDITOR_FOLDING_START,
@@ -1708,14 +1708,18 @@ fn editor_gutter_folding_view(
         .style(move |s| {
             let config = config.get();
             let size = config.ui.icon_size() as f32;
-            s.size(size, size)
+            s.size(size , size)
                 .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
         }),
-    )
-    .style(move |s| {
+    ).style(move |s| {
         let config = config.get();
-        s.padding(4.0)
-            .border_radius(6.0)
+        let icon_size = config.ui.icon_size();
+        let width = icon_size as f32;
+        s.absolute()
+            .height(config.editor.line_height() as f32)
+            .justify_center().width(width * 2.0)
+            .items_center().margin_left(width * -1.0)
+            .margin_top(folding_display_item.y as f32)
             .hover(|s| {
                 s.cursor(CursorStyle::Pointer)
                     .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
@@ -1725,18 +1729,16 @@ fn editor_gutter_folding_view(
                     config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
                 )
             })
-    });
-    container(view).style(move |s| {
-        let config = config.get();
-        let icon_size = config.ui.icon_size();
-        let width = icon_size as f32 + 4.0;
-        s.absolute()
-            .width(width / 2.0)
-            .height(config.editor.line_height() as f32)
-            .justify_center()
-            .items_center()
-            .margin_top(folding_display_item.y as f32)
-    })
+    }).on_click_stop(
+            move |_| {
+                let lines = doc.get_untracked().lines;
+                lines.update(|x| {
+                    if let Err(err) = x.update_folding_ranges(folding_display_item.into()) {
+                        error!("{:?}", err);
+                    }
+                });
+            }
+    )
 }
 
 fn editor_gutter_code_lens(
@@ -1789,23 +1791,12 @@ fn editor_gutter_folding_range(
         },
         move |item| *item,
         move |item| {
-            editor_gutter_folding_view(window_tab_data.clone(), item).on_click_stop(
-                {
-                    let lines = doc.get_untracked().lines;
-                    move |_| {
-                        lines.update(|x| {
-                            if let Err(err) = x.update_folding_ranges(item.into()) {
-                                error!("{:?}", err);
-                            }
-                        });
-                    }
-                },
-            )
+            editor_gutter_folding_view(window_tab_data.clone(), item, doc)
         },
     )
     .style(move |s| {
         let config = config.get();
-        let width = config.ui.icon_size() as f32;
+        let width = config.ui.icon_size() as f32 * 2.0;
         s.width(width).height_full()
     })
     .debug_name("Folding Range Stack")

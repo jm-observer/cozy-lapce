@@ -116,7 +116,7 @@ fn gutter_data_view(data: &GutterData, window_tab_data: &Rc<WindowTabData>, doc:
             let doc = doc.get();
             let width = doc.lines
                 .with_untracked(|x| x.signal_last_line())
-                .get().1 + 6.0;
+                .get().1 + 8.0;
             let config = config.get();
             let color = if data.is_current_line {
                 config.color(LapceColor::EDITOR_FOREGROUND)
@@ -127,7 +127,7 @@ fn gutter_data_view(data: &GutterData, window_tab_data: &Rc<WindowTabData>, doc:
                 .height_full()
                 .width(width).color(config.color(LapceColor::EDITOR_DIM))
                 .font_size(config.editor.font_size() as f32)
-                .color(color).padding_horiz(2.0)
+                .color(color).padding_horiz(4.0)
                 .font_family(StyleValue::Val(config.editor.font_family.clone()))
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
@@ -157,8 +157,9 @@ fn marker_view(data: &GutterData, window_tab_data: Rc<WindowTabData>, config: Re
     };
     container(svg)
         .style(move |s| {
-            // let config = config.get();
-            s.padding_vert(2.0).padding_horiz(4.0)
+            let config = config.get();
+            let size = config.ui.icon_size() as f64;
+            s.padding_horiz(4.0).width(size + 8.0)
                 .border_radius(6.0)
                 .justify_center()
                 .items_center()
