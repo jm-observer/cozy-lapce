@@ -1,10 +1,9 @@
 use std::rc::Rc;
 use std::sync::Arc;
-use floem::prelude::{clip, Color, container, Decorators, RwSignal, SignalGet, SignalWith, static_label, Svg};
+use floem::prelude::{clip, container, Decorators, RwSignal, SignalGet, SignalWith, static_label, Svg};
 use floem::reactive::{ReadSignal};
 use floem::style::{CursorStyle, StyleValue};
 use floem::taffy::{AlignItems, JustifyContent};
-use floem::text::{Attrs, AttrsList, FamilyOwned};
 use floem::View;
 use floem::views::dyn_stack;
 use log::{error, warn};

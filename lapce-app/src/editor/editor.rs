@@ -902,7 +902,7 @@ impl Editor {
         visual_line_index: usize,
         line_offset: usize,
         _affinity: CursorAffinity,
-    ) -> (VisualLine, usize, bool) {
+    ) -> Result<(VisualLine, usize, bool)> {
         self.doc().lines.with_untracked(|x| {
             x.previous_visual_line(visual_line_index, line_offset, _affinity)
         })
@@ -982,7 +982,7 @@ impl Editor {
         affinity: CursorAffinity,
     ) -> Result<Point> {
         let (line, col) = self.offset_to_line_col(offset)?;
-        Ok(self.line_point_of_visual_line_col(line, col, affinity, false))
+        Ok(self.line_point_of_visual_line_col(line, col, affinity, false)?)
     }
 
     /// Returns the point into the text layout of the line at the given line and
@@ -994,7 +994,7 @@ impl Editor {
         col: usize,
         affinity: CursorAffinity,
         _force_affinity: bool,
-    ) -> Point {
+    ) -> Result<Point> {
         self.doc().lines.with_untracked(|x| {
             x.line_point_of_visual_line_col(
                 visual_line,
@@ -1217,10 +1217,10 @@ impl Editor {
     }
 
     /// ~~视觉~~行的text_layout信息
-    pub fn text_layout_of_visual_line(&self, line: usize) -> TextLayoutLine {
+    pub fn text_layout_of_visual_line(&self, line: usize) -> Result<TextLayoutLine> {
         self.doc()
             .lines
-            .with_untracked(|x| x.text_layout_of_visual_line(line).clone())
+            .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
     }
 
     // pub fn lines(&self) -> DocLinesManager {
@@ -2024,7 +2024,7 @@ pub fn paint_text(
     is_active: bool,
     screen_lines: &ScreenLines,
     _show_indent_guide: (bool, Color),
-) {
+) -> Result<()>{
     let style = ed.doc();
 
     paint_cursor_caret(cx, ed, is_active, screen_lines);
@@ -2032,7 +2032,7 @@ pub fn paint_text(
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
         let y = line_info.paint_point().y;
-        let text_layout = ed.text_layout_of_visual_line(line);
+        let text_layout = ed.text_layout_of_visual_line(line)?;
 
         paint_extra_style(cx, &text_layout.extra_style, y, viewport);
 
@@ -2068,6 +2068,7 @@ pub fn paint_text(
 
         cx.draw_text_with_layout(text_layout.text.layout_runs(), Point::new(0.0, y));
     }
+    Ok(())
 }
 
 pub fn paint_extra_style(

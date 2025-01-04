@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::Result;
 use doc::lines::{
@@ -8,7 +8,6 @@ use doc::lines::{
     screen_lines::ScreenLines,
     selection::SelRegion,
 };
-use doc::lines::screen_lines::VisualLineInfo;
 use floem::{
     action::{set_ime_allowed, set_ime_cursor_area},
     context::{PaintCx, StyleCx},
@@ -26,7 +25,7 @@ use floem::{
     style::{CursorColor, CursorStyle, Style, TextColor},
     taffy::prelude::NodeId,
     views::{
-        clip, container, dyn_stack,
+        container, dyn_stack,
         editor::{
             text::WrapMethod,
             view::{DiffSectionKind, EditorViewClass},
@@ -42,22 +41,19 @@ use floem::{
     },
     Renderer, View, ViewId,
 };
-use lapce_rpc::{dap_types::DapId, plugin::PluginId};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
-use lsp_types::CodeLens;
 
-use super::{gutter::editor_gutter_view, DocSignal, EditorData};
+use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
     config::{color::LapceColor, editor::WrapStyle, icon::LapceIcons, LapceConfig},
-    debug::{update_breakpoints, DapData, LapceBreakpoint},
     doc::DocContent,
     editor::editor::{cursor_origin_position, paint_selection, paint_text, Editor},
     svg,
     text_input::TextInputBuilder,
-    window_tab::{CommonData, Focus, WindowTabData},
+    window_tab::{Focus, WindowTabData},
     workspace::LapceWorkspace,
 };
 use crate::editor::gutter_new::view::editor_gutter_new;
@@ -656,18 +652,18 @@ impl EditorView {
         cx: &mut PaintCx,
         viewport: Rect,
         screen_lines: &ScreenLines,
-    ) {
+    ) -> Result<()> {
         let config = self.editor.common.config.get_untracked();
         if !config.editor.sticky_header {
-            return;
+            return Ok(());
         }
         if !self.editor.kind().get_untracked().is_normal() {
-            return;
+            return Ok(());
         }
 
         let line_height = config.editor.line_height();
         let Some(start_vline) = screen_lines.visual_lines.first() else {
-            return;
+            return Ok(());
         };
         // let start_info = screen_lines.vline_info(*start_vline).unwrap();
         let start_line = start_vline.visual_line.origin_line;
@@ -688,7 +684,7 @@ impl EditorView {
         };
 
         if total_sticky_lines == 0 {
-            return;
+            return Ok(());
         }
 
         let scroll_offset = if sticky_header_info.last_sticky_should_scroll {
@@ -704,8 +700,13 @@ impl EditorView {
             .iter()
             .copied()
             .map(|line| {
-                let layout = self.editor.editor.text_layout_of_visual_line(line);
-                layout.line_count() * line_height
+                match self.editor.editor.text_layout_of_visual_line(line) {
+                    Ok(layout) => {layout.line_count() * line_height}
+                    Err(err) => {
+                        error!("{:?}", err);
+                        0
+                    }
+                }
             })
             .sum::<usize>() as f64
             - scroll_offset;
@@ -736,7 +737,7 @@ impl EditorView {
                 0.0
             };
 
-            let text_layout = self.editor.editor.text_layout_of_visual_line(line);
+            let text_layout = self.editor.editor.text_layout_of_visual_line(line)?;
 
             let text_height = (text_layout.line_count() * line_height) as f64;
             let height = text_height - y_diff;
@@ -759,6 +760,7 @@ impl EditorView {
 
             cx.restore();
         }
+        Ok(())
     }
 
     fn paint_scroll_bar(
@@ -1344,9 +1346,13 @@ fn get_sticky_header_info(
             // } else {
             //     0.0
             // };
-
-            let layout = editor.text_layout_of_visual_line(*line);
-            layout.line_count() as f64 * line_height
+            match editor.text_layout_of_visual_line(*line) {
+                Ok(layout) => {layout.line_count() as f64 * line_height}
+                Err(err) => {
+                    error!("{:?}", err);
+                    0.0
+                }
+            }
         })
         .sum();
     // info!(
@@ -1453,243 +1459,243 @@ pub fn editor_container_view(
     .debug_name("Editor Container")
 }
 
-fn editor_gutter_breakpoint_view(
-    i: VisualLineInfo,
-    doc: DocSignal,
-    daps: RwSignal<im::HashMap<DapId, DapData>>,
-    breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
-    common: Rc<CommonData>,
-    icon_padding: f32,
-) -> impl View {
-    let hovered = create_rw_signal(false);
-    let config = common.config;
-    container(
-        svg(move || config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(
-            move |s| {
-                let config = config.get();
-                let size = config.ui.icon_size() as f32 + 2.0;
-                s.size(size, size)
-                    .color(config.color(LapceColor::DEBUG_BREAKPOINT_HOVER))
-                    .apply_if(!hovered.get(), |s| s.hide())
-            },
-        ),
-    )
-    .on_click_stop(move |_| {
-        let doc = doc.get_untracked();
-        let offset = i.visual_line.origin_interval.start;
-        let line = i.visual_line.origin_line;
-        // let offset = doc.buffer.with_untracked(|b| b.offset_of_line(line));
-        log::info!("click breakpoint line={:?}", i);
-        if let Some(path) = doc.content.get_untracked().path() {
-            update_breakpoints(
-                daps,
-                common.proxy.clone(),
-                breakpoints,
-                crate::debug::BreakpointAction::Add { path, line, offset },
-            );
-            // let path_breakpoints = breakpoints
-            //     .try_update(|breakpoints| {
-            //         let breakpoints =
-            // breakpoints.entry(path.clone()).or_default();
-            //         if let std::collections::btree_map::Entry::Vacant(e) =
-            //             breakpoints.entry(line)
-            //         {
-            //             e.insert(LapceBreakpoint {
-            //                 id: None,
-            //                 verified: false,
-            //                 message: None,
-            //                 line,
-            //                 offset,
-            //                 dap_line: None,
-            //                 active: true,
-            //             });
-            //         } else {
-            //             let mut toggle_active = false;
-            //             if let Some(breakpint) = breakpoints.get_mut(&line) {
-            //                 if !breakpint.active {
-            //                     breakpint.active = true;
-            //                     toggle_active = true;
-            //                 }
-            //             }
-            //             if !toggle_active {
-            //                 breakpoints.remove(&line);
-            //             }
-            //         }
-            //         breakpoints.clone()
-            //     })
-            //     .unwrap();
-            // let source_breakpoints: Vec<SourceBreakpoint> = path_breakpoints
-            //     .iter()
-            //     .filter_map(|(_, b)| {
-            //         if b.active {
-            //             Some(SourceBreakpoint {
-            //                 line: b.line + 1,
-            //                 column: None,
-            //                 condition: None,
-            //                 hit_condition: None,
-            //                 log_message: None,
-            //             })
-            //         } else {
-            //             None
-            //         }
-            //     })
-            //     .collect();
-            // let daps: Vec<DapId> =
-            //     daps.with_untracked(|daps| daps.keys().cloned().collect());
-            // for dap_id in daps {
-            //     common.proxy.dap_set_breakpoints(
-            //         dap_id,
-            //         path.to_path_buf(),
-            //         source_breakpoints.clone(),
-            //     );
-            // }
-        }
-    })
-    .on_event_stop(EventListener::PointerEnter, move |_| {
-        hovered.set(true);
-    })
-    .on_event_stop(EventListener::PointerLeave, move |_| {
-        hovered.set(false);
-    })
-    .style(move |s| {
-        let config = config.get();
-        s.width(config.ui.icon_size() as f32 + icon_padding * 2.0)
-            .height(config.editor.line_height() as f32)
-            .justify_center()
-            .items_center()
-            .cursor(CursorStyle::Pointer)
-    })
-}
+// fn editor_gutter_breakpoint_view(
+//     i: VisualLineInfo,
+//     doc: DocSignal,
+//     daps: RwSignal<im::HashMap<DapId, DapData>>,
+//     breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+//     common: Rc<CommonData>,
+//     icon_padding: f32,
+// ) -> impl View {
+//     let hovered = create_rw_signal(false);
+//     let config = common.config;
+//     container(
+//         svg(move || config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(
+//             move |s| {
+//                 let config = config.get();
+//                 let size = config.ui.icon_size() as f32 + 2.0;
+//                 s.size(size, size)
+//                     .color(config.color(LapceColor::DEBUG_BREAKPOINT_HOVER))
+//                     .apply_if(!hovered.get(), |s| s.hide())
+//             },
+//         ),
+//     )
+//     .on_click_stop(move |_| {
+//         let doc = doc.get_untracked();
+//         let offset = i.visual_line.origin_interval.start;
+//         let line = i.visual_line.origin_line;
+//         // let offset = doc.buffer.with_untracked(|b| b.offset_of_line(line));
+//         log::info!("click breakpoint line={:?}", i);
+//         if let Some(path) = doc.content.get_untracked().path() {
+//             update_breakpoints(
+//                 daps,
+//                 common.proxy.clone(),
+//                 breakpoints,
+//                 crate::debug::BreakpointAction::Add { path, line, offset },
+//             );
+//             // let path_breakpoints = breakpoints
+//             //     .try_update(|breakpoints| {
+//             //         let breakpoints =
+//             // breakpoints.entry(path.clone()).or_default();
+//             //         if let std::collections::btree_map::Entry::Vacant(e) =
+//             //             breakpoints.entry(line)
+//             //         {
+//             //             e.insert(LapceBreakpoint {
+//             //                 id: None,
+//             //                 verified: false,
+//             //                 message: None,
+//             //                 line,
+//             //                 offset,
+//             //                 dap_line: None,
+//             //                 active: true,
+//             //             });
+//             //         } else {
+//             //             let mut toggle_active = false;
+//             //             if let Some(breakpint) = breakpoints.get_mut(&line) {
+//             //                 if !breakpint.active {
+//             //                     breakpint.active = true;
+//             //                     toggle_active = true;
+//             //                 }
+//             //             }
+//             //             if !toggle_active {
+//             //                 breakpoints.remove(&line);
+//             //             }
+//             //         }
+//             //         breakpoints.clone()
+//             //     })
+//             //     .unwrap();
+//             // let source_breakpoints: Vec<SourceBreakpoint> = path_breakpoints
+//             //     .iter()
+//             //     .filter_map(|(_, b)| {
+//             //         if b.active {
+//             //             Some(SourceBreakpoint {
+//             //                 line: b.line + 1,
+//             //                 column: None,
+//             //                 condition: None,
+//             //                 hit_condition: None,
+//             //                 log_message: None,
+//             //             })
+//             //         } else {
+//             //             None
+//             //         }
+//             //     })
+//             //     .collect();
+//             // let daps: Vec<DapId> =
+//             //     daps.with_untracked(|daps| daps.keys().cloned().collect());
+//             // for dap_id in daps {
+//             //     common.proxy.dap_set_breakpoints(
+//             //         dap_id,
+//             //         path.to_path_buf(),
+//             //         source_breakpoints.clone(),
+//             //     );
+//             // }
+//         }
+//     })
+//     .on_event_stop(EventListener::PointerEnter, move |_| {
+//         hovered.set(true);
+//     })
+//     .on_event_stop(EventListener::PointerLeave, move |_| {
+//         hovered.set(false);
+//     })
+//     .style(move |s| {
+//         let config = config.get();
+//         s.width(config.ui.icon_size() as f32 + icon_padding * 2.0)
+//             .height(config.editor.line_height() as f32)
+//             .justify_center()
+//             .items_center()
+//             .cursor(CursorStyle::Pointer)
+//     })
+// }
 
-fn editor_gutter_breakpoints(
-    window_tab_data: Rc<WindowTabData>,
-    e_data: RwSignal<EditorData>,
-    icon_padding: f32,
-) -> impl View {
-    let breakpoints = window_tab_data.terminal.debug.breakpoints;
-    let (doc, config) = e_data
-        .with_untracked(|e| (e.doc_signal(), e.common.config));
+// fn editor_gutter_breakpoints(
+//     window_tab_data: Rc<WindowTabData>,
+//     e_data: RwSignal<EditorData>,
+//     icon_padding: f32,
+// ) -> impl View {
+//     let breakpoints = window_tab_data.terminal.debug.breakpoints;
+//     let (doc, config) = e_data
+//         .with_untracked(|e| (e.doc_signal(), e.common.config));
+//
+//     clip(
+//         dyn_stack(
+//             move || {
+//                 let e_data = e_data.get();
+//                 let doc = e_data.doc_signal().get();
+//                 let content = doc.content.get();
+//                 let breakpoints = if let Some(path) = content.path() {
+//                     breakpoints
+//                         .with(|b| b.get(path).cloned())
+//                         .unwrap_or_default()
+//                 } else {
+//                     Default::default()
+//                 };
+//                 breakpoints.into_iter()
+//             },
+//             move |(line, b)| (*line, b.active),
+//             move |(line, breakpoint)| {
+//                 let active = breakpoint.active;
+//                 container(
+//                     svg(move || {
+//                         config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)
+//                     })
+//                     .style(move |s| {
+//                         let config = config.get();
+//                         let size = config.ui.icon_size() as f32 + 2.0;
+//                         let color = if active {
+//                             LapceColor::DEBUG_BREAKPOINT
+//                         } else {
+//                             LapceColor::EDITOR_DIM
+//                         };
+//                         let color = config.color(color);
+//                         s.size(size, size).color(color)
+//                     }),
+//                 )
+//                 .style(move |s| {
+//                     // todo improve
+//                     let config = config.get();
+//                     let screen_lines = doc
+//                         .get()
+//                         .lines
+//                         .with_untracked(|x| x.signal_screen_lines())
+//                         .get_untracked();
+//                     let line_y = screen_lines
+//                         .visual_line_info_of_origin_line(line)
+//                         .map(|l| l.folded_line_y)
+//                         .unwrap_or_default();
+//                     s.absolute()
+//                         .width(config.ui.icon_size() as f32 + icon_padding * 2.0)
+//                         .height(config.editor.line_height() as f32)
+//                         .justify_center()
+//                         .items_center()
+//                         .margin_top(line_y as f32 - screen_lines.base.y0 as f32)
+//                 })
+//             },
+//         )
+//         .style(|s| s.absolute().size_pct(100.0, 100.0)),
+//     )
+//     .style(move |s| {
+//         s.absolute().size_pct(100.0, 100.0)
+//         // .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+//     })
+//     .debug_name("Breakpoint Clip")
+// }
 
-    clip(
-        dyn_stack(
-            move || {
-                let e_data = e_data.get();
-                let doc = e_data.doc_signal().get();
-                let content = doc.content.get();
-                let breakpoints = if let Some(path) = content.path() {
-                    breakpoints
-                        .with(|b| b.get(path).cloned())
-                        .unwrap_or_default()
-                } else {
-                    Default::default()
-                };
-                breakpoints.into_iter()
-            },
-            move |(line, b)| (*line, b.active),
-            move |(line, breakpoint)| {
-                let active = breakpoint.active;
-                container(
-                    svg(move || {
-                        config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)
-                    })
-                    .style(move |s| {
-                        let config = config.get();
-                        let size = config.ui.icon_size() as f32 + 2.0;
-                        let color = if active {
-                            LapceColor::DEBUG_BREAKPOINT
-                        } else {
-                            LapceColor::EDITOR_DIM
-                        };
-                        let color = config.color(color);
-                        s.size(size, size).color(color)
-                    }),
-                )
-                .style(move |s| {
-                    // todo improve
-                    let config = config.get();
-                    let screen_lines = doc
-                        .get()
-                        .lines
-                        .with_untracked(|x| x.signal_screen_lines())
-                        .get_untracked();
-                    let line_y = screen_lines
-                        .visual_line_info_of_origin_line(line)
-                        .map(|l| l.folded_line_y)
-                        .unwrap_or_default();
-                    s.absolute()
-                        .width(config.ui.icon_size() as f32 + icon_padding * 2.0)
-                        .height(config.editor.line_height() as f32)
-                        .justify_center()
-                        .items_center()
-                        .margin_top(line_y as f32 - screen_lines.base.y0 as f32)
-                })
-            },
-        )
-        .style(|s| s.absolute().size_pct(100.0, 100.0)),
-    )
-    .style(move |s| {
-        s.absolute().size_pct(100.0, 100.0)
-        // .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
-    })
-    .debug_name("Breakpoint Clip")
-}
-
-fn editor_gutter_code_lens_view(
-    window_tab_data: Rc<WindowTabData>,
-    line: usize,
-    lens: (PluginId, usize, im::Vector<CodeLens>),
-    screen_lines: ReadSignal<ScreenLines>,
-    viewport: ReadSignal<Rect>,
-    icon_padding: f32,
-) -> impl View {
-    let config = window_tab_data.common.config;
-    let view = container(svg(move || config.get().ui_svg(LapceIcons::START)).style(
-        move |s| {
-            let config = config.get();
-            let size = config.ui.icon_size() as f32;
-            s.size(size, size)
-                .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-        },
-    ))
-    .style(move |s| {
-        let config = config.get();
-        s.padding(4.0)
-            .border_radius(6.0)
-            .hover(|s| {
-                s.cursor(CursorStyle::Pointer)
-                    .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
-            })
-            .active(|s| {
-                s.background(
-                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-                )
-            })
-    })
-    .on_click_stop({
-        move |_| {
-            let (plugin_id, offset, lens) = lens.clone();
-            window_tab_data.show_code_lens(true, plugin_id, offset, lens);
-        }
-    });
-    container(view).style(move |s| {
-        let line_y = screen_lines.with(|s| {
-            s.visual_line_info_of_origin_line(line)
-                .map(|x| x.folded_line_y)
-                .unwrap_or(-100.0)
-        });
-        // let line_y = line_info.clone().map(|l| l.y).unwrap_or(-100.0);
-        let rect = viewport.get();
-        let config = config.get();
-        let icon_size = config.ui.icon_size();
-        let width = icon_size as f32 + icon_padding * 2.0;
-        s.absolute()
-            .width(width)
-            .height(config.editor.line_height() as f32)
-            .justify_center()
-            .items_center()
-            .margin_top(line_y as f32 - rect.y0 as f32)
-    })
-}
+// fn editor_gutter_code_lens_view(
+//     window_tab_data: Rc<WindowTabData>,
+//     line: usize,
+//     lens: (PluginId, usize, im::Vector<CodeLens>),
+//     screen_lines: ReadSignal<ScreenLines>,
+//     viewport: ReadSignal<Rect>,
+//     icon_padding: f32,
+// ) -> impl View {
+//     let config = window_tab_data.common.config;
+//     let view = container(svg(move || config.get().ui_svg(LapceIcons::START)).style(
+//         move |s| {
+//             let config = config.get();
+//             let size = config.ui.icon_size() as f32;
+//             s.size(size, size)
+//                 .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+//         },
+//     ))
+//     .style(move |s| {
+//         let config = config.get();
+//         s.padding(4.0)
+//             .border_radius(6.0)
+//             .hover(|s| {
+//                 s.cursor(CursorStyle::Pointer)
+//                     .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
+//             })
+//             .active(|s| {
+//                 s.background(
+//                     config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+//                 )
+//             })
+//     })
+//     .on_click_stop({
+//         move |_| {
+//             let (plugin_id, offset, lens) = lens.clone();
+//             window_tab_data.show_code_lens(true, plugin_id, offset, lens);
+//         }
+//     });
+//     container(view).style(move |s| {
+//         let line_y = screen_lines.with(|s| {
+//             s.visual_line_info_of_origin_line(line)
+//                 .map(|x| x.folded_line_y)
+//                 .unwrap_or(-100.0)
+//         });
+//         // let line_y = line_info.clone().map(|l| l.y).unwrap_or(-100.0);
+//         let rect = viewport.get();
+//         let config = config.get();
+//         let icon_size = config.ui.icon_size();
+//         let width = icon_size as f32 + icon_padding * 2.0;
+//         s.absolute()
+//             .width(width)
+//             .height(config.editor.line_height() as f32)
+//             .justify_center()
+//             .items_center()
+//             .margin_top(line_y as f32 - rect.y0 as f32)
+//     })
+// }
 
 fn editor_gutter_folding_view(
     window_tab_data: Rc<WindowTabData>,
@@ -1741,42 +1747,42 @@ fn editor_gutter_folding_view(
     )
 }
 
-fn editor_gutter_code_lens(
-    window_tab_data: Rc<WindowTabData>,
-    doc: DocSignal,
-    screen_lines: ReadSignal<ScreenLines>,
-    viewport: ReadSignal<Rect>,
-    icon_padding: f32,
-) -> impl View {
-    let config = window_tab_data.common.config;
-
-    dyn_stack(
-        move || {
-            let doc = doc.get();
-            doc.code_lens.get()
-        },
-        move |(line, _)| (*line, doc.with_untracked(|doc| doc.rev())),
-        move |(line, lens)| {
-            editor_gutter_code_lens_view(
-                window_tab_data.clone(),
-                line,
-                lens,
-                screen_lines,
-                viewport,
-                icon_padding,
-            )
-        },
-    )
-    .style(move |s| {
-        let config = config.get();
-        let width = config.ui.icon_size() as f32 + icon_padding * 2.0;
-        s.absolute()
-            .width(width)
-            .height_full()
-            .margin_left(width - 8.0)
-    })
-    .debug_name("CodeLens Stack")
-}
+// fn editor_gutter_code_lens(
+//     window_tab_data: Rc<WindowTabData>,
+//     doc: DocSignal,
+//     screen_lines: ReadSignal<ScreenLines>,
+//     viewport: ReadSignal<Rect>,
+//     icon_padding: f32,
+// ) -> impl View {
+//     let config = window_tab_data.common.config;
+//
+//     dyn_stack(
+//         move || {
+//             let doc = doc.get();
+//             doc.code_lens.get()
+//         },
+//         move |(line, _)| (*line, doc.with_untracked(|doc| doc.rev())),
+//         move |(line, lens)| {
+//             editor_gutter_code_lens_view(
+//                 window_tab_data.clone(),
+//                 line,
+//                 lens,
+//                 screen_lines,
+//                 viewport,
+//                 icon_padding,
+//             )
+//         },
+//     )
+//     .style(move |s| {
+//         let config = config.get();
+//         let width = config.ui.icon_size() as f32 + icon_padding * 2.0;
+//         s.absolute()
+//             .width(width)
+//             .height_full()
+//             .margin_left(width - 8.0)
+//     })
+//     .debug_name("CodeLens Stack")
+// }
 
 fn editor_gutter_folding_range(
     window_tab_data: Rc<WindowTabData>,
@@ -1887,81 +1893,81 @@ fn editor_gutter_folding_range(
 //     .debug_name("Code Action LightBulb")
 // }
 
-fn editor_gutter(
-    window_tab_data: Rc<WindowTabData>,
-    e_data: RwSignal<EditorData>,
-) -> impl View {
-    let icon_padding = 6.0;
-
-    let (ed, doc, config) = e_data
-        .with_untracked(|e| (e.editor.clone(), e.doc_signal(), e.common.config));
-    let (viewport, screen_lines) = ed
-        .doc()
-        .lines
-        .with_untracked(|x| (x.signal_viewport(), x.signal_screen_lines()));
-    let scroll_delta = ed.scroll_delta;
-
-    let gutter_rect = create_rw_signal(Rect::ZERO);
-    // let gutter_width = create_memo(move |_| gutter_rect.get().width());
-
-    let icon_total_width = move || {
-        let icon_size = config.get().ui.icon_size() as f32;
-        icon_size + icon_padding * 2.0
-    };
-
-    let gutter_padding_right = create_memo(move |_| icon_total_width() + 6.0);
-
-    stack((
-        // 根据行最大值来确认左侧宽度
-        stack((
-            empty().style(move |s| s.width(icon_total_width() * 2.0 - 8.0)),
-            label(move || {
-                "".to_string()
-            })
-            .style(move |x| {
-                let doc = doc.get();
-                let width = doc.lines
-                    .with_untracked(|x| x.signal_last_line())
-                    .get().1;
-                x.width(width)
-            }),
-            empty().style(move |s| s.width(gutter_padding_right.get())),
-        ))
-        .debug_name("Centered Last Line Count")
-        .style(|s| s.height_pct(100.0)),
-        editor_gutter_breakpoints(window_tab_data.clone(), e_data, icon_padding),
-        clip(
-            stack((
-                editor_gutter_code_lens(
-                    window_tab_data.clone(),
-                    doc,
-                    screen_lines,
-                    viewport,
-                    icon_padding,
-                ),
-                editor_gutter_view(e_data.get_untracked(), gutter_padding_right)
-                    .on_resize(move |rect| {
-                        gutter_rect.set(rect);
-                    })
-                    .on_event_stop(EventListener::PointerWheel, move |event| {
-                        if let Event::PointerWheel(pointer_event) = event {
-                            scroll_delta.set(pointer_event.delta);
-                        }
-                    })
-                    .style(|s| s.size_pct(100.0, 100.0))
-                    .debug_name("line number"), // editor_gutter_code_actions(e_data, gutter_width, icon_padding),
-            ))
-            .style(|s| s.size_pct(100.0, 100.0)),
-        )
-        .style(move |s| s.absolute().size_pct(100.0, 100.0)),
-    ))
-    .style(move |s| {
-        let config = config.get();
-        s.height_pct(100.0)
-            .background(config.color(LapceColor::PANEL_BACKGROUND))
-    })
-    .debug_name("Editor Gutter")
-}
+// fn editor_gutter(
+//     window_tab_data: Rc<WindowTabData>,
+//     e_data: RwSignal<EditorData>,
+// ) -> impl View {
+//     let icon_padding = 6.0;
+//
+//     let (ed, doc, config) = e_data
+//         .with_untracked(|e| (e.editor.clone(), e.doc_signal(), e.common.config));
+//     let (viewport, screen_lines) = ed
+//         .doc()
+//         .lines
+//         .with_untracked(|x| (x.signal_viewport(), x.signal_screen_lines()));
+//     let scroll_delta = ed.scroll_delta;
+//
+//     let gutter_rect = create_rw_signal(Rect::ZERO);
+//     // let gutter_width = create_memo(move |_| gutter_rect.get().width());
+//
+//     let icon_total_width = move || {
+//         let icon_size = config.get().ui.icon_size() as f32;
+//         icon_size + icon_padding * 2.0
+//     };
+//
+//     let gutter_padding_right = create_memo(move |_| icon_total_width() + 6.0);
+//
+//     stack((
+//         // 根据行最大值来确认左侧宽度
+//         stack((
+//             empty().style(move |s| s.width(icon_total_width() * 2.0 - 8.0)),
+//             label(move || {
+//                 "".to_string()
+//             })
+//             .style(move |x| {
+//                 let doc = doc.get();
+//                 let width = doc.lines
+//                     .with_untracked(|x| x.signal_last_line())
+//                     .get().1;
+//                 x.width(width)
+//             }),
+//             empty().style(move |s| s.width(gutter_padding_right.get())),
+//         ))
+//         .debug_name("Centered Last Line Count")
+//         .style(|s| s.height_pct(100.0)),
+//         editor_gutter_breakpoints(window_tab_data.clone(), e_data, icon_padding),
+//         clip(
+//             stack((
+//                 editor_gutter_code_lens(
+//                     window_tab_data.clone(),
+//                     doc,
+//                     screen_lines,
+//                     viewport,
+//                     icon_padding,
+//                 ),
+//                 editor_gutter_view(e_data.get_untracked(), gutter_padding_right)
+//                     .on_resize(move |rect| {
+//                         gutter_rect.set(rect);
+//                     })
+//                     .on_event_stop(EventListener::PointerWheel, move |event| {
+//                         if let Event::PointerWheel(pointer_event) = event {
+//                             scroll_delta.set(pointer_event.delta);
+//                         }
+//                     })
+//                     .style(|s| s.size_pct(100.0, 100.0))
+//                     .debug_name("line number"), // editor_gutter_code_actions(e_data, gutter_width, icon_padding),
+//             ))
+//             .style(|s| s.size_pct(100.0, 100.0)),
+//         )
+//         .style(move |s| s.absolute().size_pct(100.0, 100.0)),
+//     ))
+//     .style(move |s| {
+//         let config = config.get();
+//         s.height_pct(100.0)
+//             .background(config.color(LapceColor::PANEL_BACKGROUND))
+//     })
+//     .debug_name("Editor Gutter")
+// }
 
 fn editor_breadcrumbs(
     workspace: Arc<LapceWorkspace>,
@@ -2220,13 +2226,14 @@ fn editor_content(
             rect
         } else {
             // from click maybe
-            let rect = Rect::from_origin_size(origin_point, (line_height, 0.0));
-            log::info!(
-                "{:?} visual_line_index={visual_line_index} {rect:?} \
-                 offset={offset}",
-                e_data.doc().content.get_untracked().path()
-            );
-            rect
+            Rect::from_origin_size(origin_point, (line_height, 0.0))
+            // let rect = Rect::from_origin_size(origin_point, (line_height, 0.0));
+            // log::info!(
+            //     "{:?} visual_line_index={visual_line_index} {rect:?} \
+            //      offset={offset}",
+            //     e_data.doc().content.get_untracked().path()
+            // );
+            // rect
         }
     })
     .style(|s| s.size_full().set(PropagatePointerWheel, false))
