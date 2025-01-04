@@ -2,8 +2,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use floem::prelude::{clip, Color, container, Decorators, RwSignal, SignalGet, SignalWith, static_label, Svg};
 use floem::reactive::{ReadSignal};
-use floem::style::CursorStyle;
+use floem::style::{CursorStyle, StyleValue};
 use floem::taffy::{AlignItems, JustifyContent};
+use floem::text::{Attrs, AttrsList, FamilyOwned};
 use floem::View;
 use floem::views::dyn_stack;
 use log::{error, warn};
@@ -100,7 +101,7 @@ pub fn editor_gutter_new(window_tab_data: Rc<WindowTabData>,
         let size = config.get().ui.icon_size() as f64;
         let width = doc.lines
             .with_untracked(|x| x.signal_last_line())
-            .get().1 + size * 2.0;
+            .get().1 + size * 2.0 + 8.0;
         style
             .width(width) // 父组件宽度
             .height_full()
@@ -115,11 +116,19 @@ fn gutter_data_view(data: &GutterData, window_tab_data: &Rc<WindowTabData>, doc:
             let doc = doc.get();
             let width = doc.lines
                 .with_untracked(|x| x.signal_last_line())
-                .get().1;
+                .get().1 + 6.0;
+            let config = config.get();
+            let color = if data.is_current_line {
+                config.color(LapceColor::EDITOR_FOREGROUND)
+            } else {
+                config.color(LapceColor::EDITOR_DIM)
+            };
             style
                 .height_full()
-                .width(width)
-                .color(Color::rgb8(255, 0, 0))
+                .width(width).color(config.color(LapceColor::EDITOR_DIM))
+                .font_size(config.editor.font_size() as f32)
+                .color(color).padding_horiz(2.0)
+                .font_family(StyleValue::Val(config.editor.font_family.clone()))
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
         }),

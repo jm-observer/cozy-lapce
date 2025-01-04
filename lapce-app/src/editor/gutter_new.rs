@@ -2,6 +2,7 @@ pub mod view;
 
 use std::hash::{Hash};
 use std::rc::Rc;
+use doc::lines::buffer::rope_text::RopeText;
 use doc::lines::screen_lines::VisualLineInfo;
 use floem::prelude::{RwSignal, SignalGet, SignalWith};
 use crate::editor::EditorData;
@@ -21,30 +22,37 @@ pub fn gutter_data(window_tab_data: Rc<WindowTabData>,
         Default::default()
     };
     let code_lens = doc.code_lens.get();
-    let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines()).get();
+    let offset= e_data.editor.cursor.get().offset();
+    let (current_line, screen_lines) = doc.lines.with_untracked(|x| {
+        (x.buffer().line_of_offset(offset),
+        x.signal_screen_lines())
+    });
+    let screen_lines = screen_lines.get();
 
     screen_lines.visual_lines.into_iter().map(|vl_info| {
         if vl_info.visual_line.origin_folded_line_sub_index == 0 {
+            let is_current_line = vl_info.visual_line.origin_line == current_line;
             if code_lens.get(&vl_info.visual_line.origin_line).is_some() {
                 GutterData {
                     vl_info,
-                    marker: GutterMarker::CodeLen,
+                    marker: GutterMarker::CodeLen, is_current_line
                 }
             } else if breakpoints.get(&vl_info.visual_line.origin_line).is_some() {
                 GutterData {
                     vl_info,
-                    marker: GutterMarker::Breakpoint,
+                    marker: GutterMarker::Breakpoint,is_current_line
                 }
             } else {
                 GutterData {
                     vl_info,
-                    marker: GutterMarker::None,
+                    marker: GutterMarker::None,is_current_line
                 }
             }
         } else {
             GutterData {
                 vl_info,
                 marker: GutterMarker::None,
+                is_current_line: false,
             }
         }
     }).collect()
@@ -54,12 +62,13 @@ pub fn gutter_data(window_tab_data: Rc<WindowTabData>,
 pub struct GutterData {
     vl_info: VisualLineInfo,
     marker: GutterMarker,
+    is_current_line: bool
 }
 
 impl GutterData {
     pub fn display_line_num(&self) -> String {
         if self.vl_info.visual_line.origin_folded_line_sub_index == 0 {
-            self.vl_info.visual_line.origin_line.to_string()
+            (self.vl_info.visual_line.origin_line + 1).to_string()
         } else {
             "".to_string()
         }

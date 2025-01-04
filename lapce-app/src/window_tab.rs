@@ -2647,12 +2647,9 @@ impl WindowTabData {
         let tab_size = self.layout_rect.get().size();
         let code_action_size = code_action.layout_rect.size();
 
-        let editor_data =
-            if let Some(editor) = self.main_split.active_editor.get_untracked() {
-                editor
-            } else {
-                return Ok(Point::ZERO);
-            };
+        let Some(editor_data) = self.main_split.active_editor.get_untracked() else {
+            return Ok(Point::ZERO);
+        };
 
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
