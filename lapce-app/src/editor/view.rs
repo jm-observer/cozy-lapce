@@ -1232,16 +1232,20 @@ impl View for EditorView {
         }
         // let screen_lines = ed.screen_lines.get_untracked();
 
-        paint_text(
+        if let Err(err) = paint_text(
             cx,
             ed,
             viewport,
             is_active,
             &screen_lines,
             show_indent_guide,
-        );
+        ) {
+            error!("{err:?}");
+        }
         // let screen_lines = ed.screen_lines.get_untracked();
-        self.paint_sticky_headers(cx, viewport, &screen_lines);
+        if let Err(err) =  self.paint_sticky_headers(cx, viewport, &screen_lines) {
+            error!("{err:?}");
+        }
         self.paint_scroll_bar(cx, viewport, is_local, config);
     }
 }
