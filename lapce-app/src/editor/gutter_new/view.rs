@@ -55,13 +55,13 @@ fn gutter_marker_code_len_svg_view(
                 .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer)
-                        .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
+                        // .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
                 })
-                .active(|s| {
-                    s.background(
-                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-                    )
-                })
+                // .active(|s| {
+                //     s.background(
+                //         config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                //     )
+                // })
         },
     )
         .on_click_stop({
@@ -158,7 +158,11 @@ fn marker_view(data: &GutterData, window_tab_data: Rc<WindowTabData>, config: Re
         .style(move |s| {
             let config = config.get();
             let size = config.ui.icon_size() as f64;
-            s.padding_horiz(4.0).width(size + 8.0)
+            let padding_left = 4.0;
+            let padding_right = 10.0;
+            let width = padding_left + padding_right + size;
+            s.padding_right(padding_right).padding_left(padding_left)
+                .width(width)
                 .border_radius(6.0)
                 .justify_center()
                 .items_center()
