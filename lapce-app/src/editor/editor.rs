@@ -2028,11 +2028,11 @@ pub fn paint_text(
     let style = ed.doc();
 
     paint_cursor_caret(cx, ed, is_active, screen_lines);
-
+    // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
         let y = line_info.paint_point().y;
-        let text_layout = ed.text_layout_of_visual_line(line)?;
+        let text_layout = ed.text_layout_of_visual_line(line_info.visual_line.line_index)?;
 
         paint_extra_style(cx, &text_layout.extra_style, y, viewport);
 
