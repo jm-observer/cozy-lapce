@@ -60,8 +60,8 @@ wasmtime-wasi = "14.0.0"
 wasi-common   = "14.0.0"
 
 [dependencies.wasi-experimental-http-wasmtime]
-git = "https://github.com/lapce/wasi-experimental-http"
-rev = "21419eb785cb583ead180f25a9685fa16de7f326"
+git = "https://github.com/jm-observer/wasi-experimental-http.git"
+#rev = "21419eb785cb583ead180f25a9685fa16de7f326"
 # path = "../../wasi-experimental-http/crates/wasi-experimental-http-wasmtime"
 
 [target.'cfg(target_os = "macos")'.dependencies.locale_config]

@@ -87,20 +87,20 @@ floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork", 
 
 doc = {git = "https://github.com/jm-observer/doc.git"}
 log = "0.4.22"
-custom-utils = "0.10.16"
+custom-utils = "0.10.17"
 
 [patch.crates-io]
 # Temporarily patch lsp-types with a version that adds message-type debug
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
-custom-utils = {path="../custom-utils"}
+#custom-utils = {path="../custom-utils"}
 
-[patch."https://github.com/jm-observer/doc.git"]
-doc = {path = "../doc"}
-[patch."https://github.com/jm-observer/xi-editor.git"]
-lapce-xi-rope = {path = "../xi-editor"}
-[patch."https://github.com/jm-observer/floem.git"]
-floem = { path="../floem" }
+#[patch."https://github.com/jm-observer/doc.git"]
+#doc = {path = "../doc"}
+#[patch."https://github.com/jm-observer/xi-editor.git"]
+#lapce-xi-rope = {path = "../xi-editor"}
+#[patch."https://github.com/jm-observer/floem.git"]
+#floem = { path="../floem" }
 #[patch."https://github.com/lapce/floem"]
 ## Temporarily patch lsp-types with a version that adds message-type debug
 #floem = { path="../floem" }
