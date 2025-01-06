@@ -1495,6 +1495,7 @@ dependencies = [
 [[package]]
 name = "doc"
 version = "0.1.0"
+source = "git+https://github.com/jm-observer/doc.git#b0f5bf5832069eb428d4ba14373488fc166507ee"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1790,6 +1791,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "bitflags 2.6.0",
  "clipboard-win",
@@ -1831,6 +1833,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "bitflags 2.6.0",
  "itertools 0.12.1",
@@ -1907,6 +1910,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "smallvec",
 ]
@@ -1914,6 +1918,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "cosmic-text",
  "crossbeam",
@@ -1931,6 +1936,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1947,6 +1953,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem.git?branch=main-fork#65bc7b626e23ab9d2fc0cf8c13485c28091d5da7"
 dependencies = [
  "anyhow",
  "floem-vger",
