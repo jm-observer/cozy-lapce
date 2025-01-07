@@ -9,6 +9,11 @@ command = "palette.command"
 # command = "quit"
 
 # --------------------------------- Basic editing ---------------------------------------
+[[keymaps]]
+key = ""
+command = "fold_code"
+mode = "i"
+
 
 [[keymaps]]
 key = "alt+up"
