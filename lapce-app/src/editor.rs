@@ -3057,10 +3057,6 @@ impl EditorData {
         let hover_delay = self.common.config.get_untracked().editor.hover_delay;
         if hover_delay > 0 {
             if is_inside {
-                let end_offset = self.doc().lines.with_untracked(|buffer| {
-                    buffer.buffer().next_code_boundary(offset)
-                });
-
                 let editor = self.clone();
                 let mouse_hover_timer = self.common.mouse_hover_timer;
                 let timer_token =
@@ -3068,6 +3064,9 @@ impl EditorData {
                         if mouse_hover_timer.try_get_untracked() == Some(token)
                             && editor.editor_tab_id.try_get_untracked().is_some()
                         {
+                            let end_offset = editor.doc().lines.with_untracked(|buffer| {
+                                buffer.buffer().next_code_boundary(offset)
+                            });
                             editor.update_hover(end_offset);
                         }
                     });
