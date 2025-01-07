@@ -85,7 +85,7 @@ floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork", 
 # floem = { path = "../floem", features = ["editor", "serde", "default-image-formats", "rfd-async-std"] }
 # floem-editor-core = { path = "../floem/editor-core/", features = ["serde"] }
 
-doc = {git = "https://github.com/jm-observer/doc.git", rev = "b0f5bf5"}
+doc = {git = "https://github.com/jm-observer/doc.git"}
 log = "0.4.22"
 custom-utils = "0.10.17"
 
@@ -95,8 +95,8 @@ lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
 #custom-utils = {path="../custom-utils"}
 
-#[patch."https://github.com/jm-observer/doc.git"]
-#doc = {path = "../doc"}
+[patch."https://github.com/jm-observer/doc.git"]
+doc = {path = "../doc"}
 #[patch."https://github.com/jm-observer/xi-editor.git"]
 #lapce-xi-rope = {path = "../xi-editor"}
 #[patch."https://github.com/jm-observer/floem.git"]

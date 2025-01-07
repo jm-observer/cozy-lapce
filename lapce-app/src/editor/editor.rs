@@ -2078,20 +2078,20 @@ pub fn paint_extra_style(
     viewport: Rect,
 ) {
     for style in extra_styles {
-        let height = style.height;
+        let height = style.height - 2.0;
         if let Some(bg) = style.bg_color {
-            let width = style.width.unwrap_or_else(|| viewport.width());
+            let width = style.width.unwrap_or_else(|| viewport.width()) - 2.0;
             let base = if style.width.is_none() {
                 viewport.x0
             } else {
                 0.0
             };
-            let x = style.x + base;
+            let x = style.x + base + 1.0;
             let y = y + style.y + 1.0;
 
             cx.fill(
                 &Rect::ZERO
-                    .with_size(Size::new(width, height - 2.0))
+                    .with_size(Size::new(width, height))
                     .with_origin(Point::new(x, y)).to_rounded_rect(2.0),
                 bg,
                 0.0,
