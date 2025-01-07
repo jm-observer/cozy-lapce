@@ -2087,11 +2087,12 @@ pub fn paint_extra_style(
                 0.0
             };
             let x = style.x + base;
-            let y = y + style.y;
+            let y = y + style.y + 1.0;
+
             cx.fill(
                 &Rect::ZERO
-                    .with_size(Size::new(width, height))
-                    .with_origin(Point::new(x, y)),
+                    .with_size(Size::new(width, height - 2.0))
+                    .with_origin(Point::new(x, y)).to_rounded_rect(2.0),
                 bg,
                 0.0,
             );
