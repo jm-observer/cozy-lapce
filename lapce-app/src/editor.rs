@@ -1496,6 +1496,19 @@ impl EditorData {
         Ok(())
     }
 
+    pub fn fold_code(&self) -> Result<()> {
+        let doc = self.doc();
+        if !doc.content.get_untracked().is_file() {
+            return Ok(())
+        }
+
+        let offset = self.cursor().with_untracked(|c| c.offset());
+        doc.lines.update(|x| if let Err(e) = x.update_folding_ranges(offset.into()) {
+            error!("{:?}", e);
+        });
+        Ok(())
+    }
+
     pub fn find_refenrence(&self, window_tab_data: WindowTabData) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
