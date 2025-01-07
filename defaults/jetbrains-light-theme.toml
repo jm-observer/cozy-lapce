@@ -26,9 +26,6 @@ yellow = "#C18401"
 
 [color-theme.syntax]
 attribute = "$yellow"
-"bracket.color.1" = "$blue"
-"bracket.color.2" = "$yellow"
-"bracket.color.3" = "$purple"
 "bracket.unpaired" = "$red"
 builtinType = "#123fb8"
 comment = "$dim-text"
@@ -92,6 +89,8 @@ variable = "$text"
 "editor.selection" = "$grey"
 "editor.sticky_header_background" = "$primary-background"
 "editor.visible_whitespace" = "$grey"
+"editor.bracket" = "#C5E1C5"
+
 "error_lens.error.background" = "#E06C7515"
 "error_lens.error.foreground" = "$red"
 "error_lens.other.background" = "#A0A1A720"

@@ -156,4 +156,5 @@ impl LapceColor {
     pub const TERMINAL_YELLOW: &'static str = "terminal.yellow";
     pub const TOOLTIP_BACKGROUND: &'static str = "tooltip.background";
     pub const TOOLTIP_FOREGROUND: &'static str = "tooltip.foreground";
+    pub const EDITOR_BRACKET: &'static str = "editor.bracket";
 }

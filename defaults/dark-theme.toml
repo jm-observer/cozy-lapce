@@ -75,10 +75,6 @@ dim-text = "#5C6370"
 "markup.link.url" = "$blue"
 "markup.link.label" = "$purple"
 "markup.link.text" = "$purple"
-
-"bracket.color.1" = "$blue"
-"bracket.color.2" = "$yellow"
-"bracket.color.3" = "$purple"
 "bracket.unpaired" = "$red"
 
 [color-theme.ui]
@@ -129,6 +125,7 @@ dim-text = "#5C6370"
 "editor.drag_drop_background" = "#79c1fc55"
 "editor.drag_drop_tab_background" = "#0b0e1455"
 "editor.sticky_header_background" = "$primary-background"
+"editor.bracket" = "#C5E1C5"
 
 "inlay_hint.foreground" = "$text"
 "inlay_hint.background" = "#528abF37"

@@ -44,7 +44,7 @@ use floem::{
 use floem::peniko::Brush;
 use floem::prelude::SvgColor;
 use lapce_xi_rope::find::CaseMatching;
-use log::error;
+use log::{error, info, warn};
 
 use super::{DocSignal, EditorData};
 use crate::{
@@ -1042,10 +1042,10 @@ impl EditorView {
 
             if config.editor.highlight_matching_brackets {
                 for bracket in bracket_offsets_start {
-                    cx.fill(&bracket, config.color(LapceColor::EDITOR_DIM), 0.0);
+                    cx.fill(&bracket, config.color(LapceColor::EDITOR_BRACKET), 0.0);
                 }
                 for bracket in bracket_offsets_end {
-                    cx.fill(&bracket, config.color(LapceColor::EDITOR_DIM), 0.0);
+                    cx.fill(&bracket, config.color(LapceColor::EDITOR_BRACKET), 0.0);
                 }
             }
             // todo
