@@ -44,7 +44,7 @@ use floem::{
 use floem::peniko::Brush;
 use floem::prelude::SvgColor;
 use lapce_xi_rope::find::CaseMatching;
-use log::{error, info, warn};
+use log::{error};
 
 use super::{DocSignal, EditorData};
 use crate::{

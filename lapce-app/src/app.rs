@@ -2044,12 +2044,12 @@ pub fn clickable_icon<S: std::fmt::Display + 'static>(
     )
 }
 
-pub fn clickable_icon_base(
+pub fn clickable_icon_base_with_color(
     icon: impl Fn() -> &'static str + 'static,
     on_click: Option<impl Fn() + 'static>,
     active_fn: impl Fn() -> bool + 'static,
     disabled_fn: impl Fn() -> bool + 'static + Copy,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>, color: Option<Color>
 ) -> impl View {
     let view = container(
         svg(move || config.get().ui_svg(icon()))
@@ -2057,34 +2057,33 @@ pub fn clickable_icon_base(
                 let config = config.get();
                 let size = config.ui.icon_size() as f32;
                 s.size(size, size)
-                    .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
                     .disabled(|s| {
                         s.color(config.color(LapceColor::LAPCE_ICON_INACTIVE))
                             .cursor(CursorStyle::Default)
-                    })
+                    }).color(color.unwrap_or(config.color(LapceColor::LAPCE_ICON_ACTIVE)))
             })
             .disabled(disabled_fn),
     )
-    .disabled(disabled_fn)
-    .style(move |s| {
-        let config = config.get();
-        s.padding(4.0)
-            .border_radius(6.0)
-            .border(1.0)
-            .border_color(Color::TRANSPARENT)
-            .apply_if(active_fn(), |s| {
-                s.border_color(config.color(LapceColor::EDITOR_CARET))
-            })
-            .hover(|s| {
-                s.cursor(CursorStyle::Pointer)
-                    .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
-            })
-            .active(|s| {
-                s.background(
-                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-                )
-            })
-    });
+        .disabled(disabled_fn)
+        .style(move |s| {
+            let config = config.get();
+            s.padding(4.0)
+                .border_radius(6.0)
+                .border(1.0)
+                .border_color(Color::TRANSPARENT)
+                .apply_if(active_fn(), |s| {
+                    s.border_color(config.color(LapceColor::EDITOR_CARET))
+                })
+                .hover(|s| {
+                    s.cursor(CursorStyle::Pointer)
+                        .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
+                })
+                .active(|s| {
+                    s.background(
+                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                    )
+                })
+        });
 
     if let Some(on_click) = on_click {
         view.on_click_stop(move |_| {
@@ -2093,6 +2092,16 @@ pub fn clickable_icon_base(
     } else {
         view
     }
+}
+
+pub fn clickable_icon_base(
+    icon: impl Fn() -> &'static str + 'static,
+    on_click: Option<impl Fn() + 'static>,
+    active_fn: impl Fn() -> bool + 'static,
+    disabled_fn: impl Fn() -> bool + 'static + Copy,
+    config: ReadSignal<Arc<LapceConfig>>,
+) -> impl View {
+    clickable_icon_base_with_color(icon, on_click, active_fn, disabled_fn, config, None)
 }
 
 /// A tooltip with a label inside.  
@@ -2508,7 +2517,7 @@ fn palette_item(
                         s.min_width(size)
                             .size(size, size)
                             .margin_right(5.0)
-                            .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                            .color(Color::GREEN)
                     }),
                     focus_text(
                         move || text.clone(),

@@ -281,7 +281,7 @@ fn debug_processes(
                             s.size(size, size)
                                 .margin_vert(5.0)
                                 .margin_horiz(10.0)
-                                .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                                .color(Color::GREEN)
                         })
                     },
                     label(move || p.config.name.clone()).style(|s| {

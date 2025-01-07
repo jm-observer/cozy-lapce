@@ -25,6 +25,8 @@ use crate::{
     window_tab::WindowTabData,
     workspace::LapceWorkspace,
 };
+use crate::app::{clickable_icon_base_with_color};
+
 fn left(
     workspace: Arc<LapceWorkspace>,
     lapce_command: Listener<LapceCommand>,
@@ -275,16 +277,15 @@ fn middle(
                 .background(config.color(LapceColor::EDITOR_BACKGROUND))
         }),
         stack((
-            clickable_icon(
+            tooltip_label(config, clickable_icon_base_with_color(
                 || LapceIcons::START,
-                move || {
+                Some(move || {
                     workbench_command.send(LapceWorkbenchCommand::PaletteRunAndDebug)
-                },
+                }),
                 || false,
                 || false,
-                || "Run and Debug",
-                config,
-            )
+                config, Some(Color::GREEN)
+            ), || "Run and Debug",)
             .style(move |s| s.margin_horiz(6.0)),
             drag_window_area(empty())
                 .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0)),

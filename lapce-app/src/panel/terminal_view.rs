@@ -13,6 +13,7 @@ use floem::{
     },
     View, ViewId,
 };
+use floem::peniko::{Color};
 
 use super::kind::PanelKind;
 use crate::{
@@ -104,10 +105,7 @@ fn terminal_tab_header(window_tab_data: Rc<WindowTabData>) -> impl View {
                                     .style(move |s| {
                                         let config = config.get();
                                         let size = config.ui.icon_size() as f32;
-                                        s.size(size, size).color(
-                                            config.color(
-                                                LapceColor::LAPCE_ICON_ACTIVE,
-                                            ),
+                                        s.size(size, size).color(Color::GREEN
                                         )
                                     }),
                             )

@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::sync::Arc;
+use floem::peniko::{Color};
 use floem::prelude::{clip, container, Decorators, RwSignal, SignalGet, SignalWith, static_label, Svg};
 use floem::reactive::{ReadSignal};
 use floem::style::{CursorStyle, StyleValue};
@@ -52,16 +53,10 @@ fn gutter_marker_code_len_svg_view(
             let config = config.get();
             let size = config.ui.icon_size() as f64;
             s.size(size, size)
-                .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                .color(Color::GREEN)
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer)
-                        // .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
                 })
-                // .active(|s| {
-                //     s.background(
-                //         config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-                //     )
-                // })
         },
     )
         .on_click_stop({
