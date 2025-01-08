@@ -112,7 +112,7 @@ use crate::{
     text_input::TextInputBuilder,
     title::{title},
     update::ReleaseInfo,
-    window::{TabsInfo, WindowData, WindowInfo},
+    window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData},
     workspace::{LapceWorkspace, LapceWorkspaceType},
 };
@@ -251,9 +251,7 @@ impl AppData {
                         size: Size::ZERO,
                         pos: Point::ZERO,
                         maximised: false,
-                        tabs: TabsInfo {
-                            workspaces: workspace,
-                        },
+                        workspace,
                     },
                 )
             },
@@ -343,13 +341,11 @@ impl AppData {
                     size,
                     pos,
                     maximised: false,
-                    tabs: TabsInfo {
-                        workspaces: LapceWorkspace {
+                    workspace: LapceWorkspace {
                             kind: workspace_type,
                             path: Some(dir.path.to_owned()),
                             last_open: 0,
                         },
-                    },
                 };
 
                 pos += (50.0, 50.0);
@@ -402,17 +398,12 @@ impl AppData {
         }
 
         if self.windows.with_untracked(|windows| windows.is_empty()) {
-            let mut info = db.get_window().unwrap_or_else(|_| WindowInfo {
+            let info = db.get_window().unwrap_or_else(|_| WindowInfo {
                 size: Size::new(800.0, 600.0),
                 pos: Point::ZERO,
                 maximised: false,
-                tabs: TabsInfo {
-                    workspaces: LapceWorkspace::default(),
-                },
+                workspace: LapceWorkspace::default(),
             });
-            info.tabs = TabsInfo {
-                workspaces: LapceWorkspace::default(),
-            };
             let config = self
                 .default_window_config()
                 .size(info.size)

@@ -912,10 +912,10 @@ impl Doc {
                         return;
                     }
 
-                    debug!(
-                        "get_semantic_full_styles {}",
-                        serde_json::to_string(&styles).unwrap()
-                    );
+                    // debug!(
+                    //     "get_semantic_full_styles {}",
+                    //     serde_json::to_string(&styles).unwrap()
+                    // );
                     std::thread::spawn(move || {
                         let mut styles_span = SpansBuilder::new(len);
                         for style in styles.styles {

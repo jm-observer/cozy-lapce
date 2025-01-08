@@ -26,16 +26,12 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TabsInfo {
-    pub workspaces: LapceWorkspace,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
     pub size: Size,
     pub pos: Point,
     pub maximised: bool,
-    pub tabs: TabsInfo,
+    #[serde(default)]
+    pub workspace: LapceWorkspace,
 }
 
 #[derive(Clone)]
@@ -121,14 +117,14 @@ impl WindowData {
             app_view_id,
             extra_plugin_paths,
         });
-        let w = info.tabs.workspaces.clone();
+        let w = info.workspace.clone();
         log::info!("WindowData {:?}", w);
         w.watch_project_setting(&watcher);
-        let window_tabs = cx.create_rw_signal( WindowWorkspaceData::new(
-                cx,
-                Arc::new(LapceWorkspace::default()),
-                common.clone(),
-            ));
+        let window_tabs = cx.create_rw_signal(WindowWorkspaceData::new(
+            cx,
+            Arc::new(w),
+            common.clone(),
+        ));
 
         // for w in info.tabs.workspaces {
         //     log::info!("WindowData {:?}", w);
@@ -209,12 +205,11 @@ impl WindowData {
                 if let Err(err) = db.update_recent_workspace(&workspace) {
                     log::error!("{:?}", err);
                 }
-
-                        if let Err(err) =
-                            db.insert_window_tab(self.window_tabs.get_untracked().clone())
-                        {
-                            log::error!("{:?}", err);
-                        }
+                if let Err(err) =
+                    db.insert_window_tab(self.window_tabs.get_untracked().clone())
+                {
+                    log::error!("{:?}", err);
+                }
                 log::info!("SetWorkspace {:?}", workspace);
                 let workspace = Arc::new(workspace);
                 let window_tab = WindowWorkspaceData::new(
@@ -225,7 +220,7 @@ impl WindowData {
 
                 self.window_tabs.set(window_tab);
                 workspace.watch_project_setting(&self.watcher);
-            },
+            }
             WindowCommand::NewWorkspaceTab { workspace, end: _end } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
                 if let Err(err) = db.update_recent_workspace(&workspace) {
@@ -260,7 +255,7 @@ impl WindowData {
                 //     })
                 //     .unwrap();
                 // self.active.set(active);
-            },
+            }
             WindowCommand::CloseWorkspaceTab { index: _index } => {
                 // let active = self.active.get_untracked();
                 // let index = index.unwrap_or(active);
@@ -286,7 +281,7 @@ impl WindowData {
                 // } else if active >= tabs_len.saturating_sub(1) {
                 //     self.active.set(tabs_len.saturating_sub(1));
                 // }
-            },
+            }
             WindowCommand::NextWorkspaceTab => {
                 // let active = self.active.get_untracked();
                 // let tabs_len = self.window_tabs.with_untracked(|tabs| tabs.len());
@@ -298,7 +293,7 @@ impl WindowData {
                 //     };
                 //     self.active.set(active);
                 // }
-            },
+            }
             WindowCommand::PreviousWorkspaceTab => {
                 // let active = self.active.get_untracked();
                 // let tabs_len = self.window_tabs.with_untracked(|tabs| tabs.len());
@@ -310,15 +305,15 @@ impl WindowData {
                 //     };
                 //     self.active.set(active);
                 // }
-            },
+            }
             WindowCommand::NewWindow => {
                 self.app_command
                     .send(AppCommand::NewWindow { folder: None });
-            },
+            }
             WindowCommand::CloseWindow => {
                 self.app_command
                     .send(AppCommand::CloseWindow(self.window_id));
-            },
+            }
         }
         self.app_command.send(AppCommand::SaveApp);
     }
@@ -328,16 +323,14 @@ impl WindowData {
     }
 
     pub fn info(&self) -> WindowInfo {
-        let workspaces: LapceWorkspace = self
+        let workspace: LapceWorkspace = self
             .window_tabs
             .get_untracked().workspace.as_ref().clone();
         WindowInfo {
             size: self.common.size.get_untracked(),
             pos: self.position.get_untracked(),
             maximised: false,
-            tabs: TabsInfo {
-                workspaces,
-            },
+            workspace,
         }
     }
 
