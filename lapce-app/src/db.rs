@@ -15,7 +15,7 @@ use crate::{
     doc::DocInfo,
     panel::{data::PanelOrder, kind::PanelKind},
     window::{WindowData, WindowInfo},
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
     workspace::{LapceWorkspace, WorkspaceInfo},
 };
 
@@ -219,7 +219,7 @@ impl LapceDb {
         Ok(())
     }
 
-    pub fn save_window_tab(&self, data: WindowTabData) -> Result<()> {
+    pub fn save_window_tab(&self, data: WindowWorkspaceData) -> Result<()> {
         let workspace = (*data.workspace).clone();
         let workspace_info = data.workspace_info();
 
@@ -351,7 +351,7 @@ impl LapceDb {
         Ok(())
     }
 
-    pub fn insert_window_tab(&self, data: WindowTabData) -> Result<()> {
+    pub fn insert_window_tab(&self, data: WindowWorkspaceData) -> Result<()> {
         let workspace = (*data.workspace).clone();
         let workspace_info = data.workspace_info();
 

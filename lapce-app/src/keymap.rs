@@ -24,7 +24,7 @@ use crate::{
     },
     main_split::Editors,
     text_input::TextInputBuilder,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 #[derive(Clone)]

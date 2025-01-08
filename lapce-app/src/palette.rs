@@ -56,7 +56,7 @@ use crate::{
     lsp::path_from_url,
     main_split::MainSplitData,
     source_control::SourceControlData,
-    window_tab::{CommonData, Focus},
+    window_workspace::{CommonData, Focus},
     workspace::{LapceWorkspace, LapceWorkspaceType, SshHost},
 };
 

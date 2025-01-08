@@ -22,12 +22,12 @@ use crate::{
         LapceConfig,
     },
     svg,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 pub fn common_tab_header<T: Clone + 'static>(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     tabs: Tabs<T>,
 ) -> impl View {
     let config = window_tab_data.common.config;

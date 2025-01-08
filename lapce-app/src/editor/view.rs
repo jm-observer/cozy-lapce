@@ -55,7 +55,7 @@ use crate::{
     editor::editor::{cursor_origin_position, paint_selection, paint_text, Editor},
     svg,
     text_input::TextInputBuilder,
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
     workspace::LapceWorkspace,
 };
 use crate::editor::gutter_new::view::editor_gutter_new;
@@ -1375,7 +1375,7 @@ fn get_sticky_header_info(
 }
 
 pub fn editor_container_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     workspace: Arc<LapceWorkspace>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: RwSignal<EditorData>,
@@ -1705,7 +1705,7 @@ pub fn editor_container_view(
 // }
 
 fn editor_gutter_folding_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     folding_display_item: FoldingDisplayItem,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -1794,7 +1794,7 @@ fn editor_gutter_folding_view(
 // }
 
 fn editor_gutter_folding_range(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     doc: DocSignal,
 ) -> impl View {
     let config = window_tab_data.common.config;

@@ -29,11 +29,11 @@ use crate::{
     panel::{kind::PanelKind, position::PanelContainerPosition},
     source_control::SourceControlData,
     svg,
-    window_tab::{WindowTabData, WorkProgress},
+    window_workspace::{WindowWorkspaceData, WorkProgress},
 };
 
 pub fn status(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     source_control: SourceControlData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     status_height: RwSignal<f64>,

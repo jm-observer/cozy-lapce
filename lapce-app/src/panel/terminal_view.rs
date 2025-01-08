@@ -25,9 +25,9 @@ use crate::{
     terminal::{
         panel::TerminalPanelData, tab::TerminalTabData, view::terminal_view,
     },
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
 };
-pub fn terminal_panel(window_tab_data: WindowTabData) -> impl View {
+pub fn terminal_panel(window_tab_data: WindowWorkspaceData) -> impl View {
     let focus = window_tab_data.common.focus;
     stack((
         terminal_tab_header(window_tab_data.clone()),
@@ -42,7 +42,7 @@ pub fn terminal_panel(window_tab_data: WindowTabData) -> impl View {
     .debug_name("Terminal Panel")
 }
 
-fn terminal_tab_header(window_tab_data: WindowTabData) -> impl View {
+fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
     let terminal = window_tab_data.terminal.clone();
     let config = window_tab_data.common.config;
     let focus = window_tab_data.common.focus;
@@ -290,7 +290,7 @@ fn terminal_tab_split(
     })
 }
 
-fn terminal_tab_content(window_tab_data: WindowTabData) -> impl View {
+fn terminal_tab_content(window_tab_data: WindowWorkspaceData) -> impl View {
     let terminal = window_tab_data.terminal.clone();
     tab(
         move || {

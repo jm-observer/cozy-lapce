@@ -78,7 +78,7 @@ use crate::{
         kind::PanelKind,
     },
     snippet::Snippet,
-    window_tab::{CommonData, Focus, WindowTabData},
+    window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
 
 pub mod diff;
@@ -363,7 +363,7 @@ impl EditorData {
         self.editor.id()
     }
 
-    pub fn editor_info(&self, _data: &WindowTabData) -> EditorInfo {
+    pub fn editor_info(&self, _data: &WindowWorkspaceData) -> EditorInfo {
         let offset = self.cursor().get_untracked().offset();
         let scroll_offset = self.viewport().origin();
         let doc = self.doc();
@@ -1421,7 +1421,7 @@ impl EditorData {
         Ok(())
     }
 
-    pub fn call_hierarchy(&self, window_tab_data: WindowTabData) -> Result<()> {
+    pub fn call_hierarchy(&self, window_tab_data: WindowWorkspaceData) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -1509,7 +1509,7 @@ impl EditorData {
         Ok(())
     }
 
-    pub fn find_refenrence(&self, window_tab_data: WindowTabData) -> Result<()> {
+    pub fn find_refenrence(&self, window_tab_data: WindowWorkspaceData) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -1574,7 +1574,7 @@ impl EditorData {
 
     pub fn go_to_implementation(
         &self,
-        window_tab_data: WindowTabData,
+        window_tab_data: WindowWorkspaceData,
     ) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {

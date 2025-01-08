@@ -28,7 +28,7 @@ use crate::{
     main_split::MainSplitData,
     panel::kind::PanelKind,
     terminal::{event::TermEvent, raw::RawTerminal},
-    window_tab::{CommonData, Focus},
+    window_workspace::{CommonData, Focus},
     workspace::LapceWorkspace,
 };
 

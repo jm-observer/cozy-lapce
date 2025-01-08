@@ -5,9 +5,9 @@ use doc::lines::buffer::rope_text::RopeText;
 use doc::lines::screen_lines::VisualLineInfo;
 use floem::prelude::{RwSignal, SignalGet, SignalWith};
 use crate::editor::EditorData;
-use crate::window_tab::WindowTabData;
+use crate::window_workspace::WindowWorkspaceData;
 
-pub fn gutter_data(window_tab_data: WindowTabData,
+pub fn gutter_data(window_tab_data: WindowWorkspaceData,
                    e_data: RwSignal<EditorData>, ) -> Vec<GutterData> {
     let breakpoints = window_tab_data.terminal.debug.breakpoints;
     let e_data = e_data.get();

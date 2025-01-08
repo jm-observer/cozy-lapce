@@ -28,7 +28,7 @@ use crate::{
     plugin::{AvailableVoltData, InstalledVoltData, PluginData, VoltIcon},
     svg,
     text_input::TextInputBuilder,
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 pub const VOLT_DEFAULT_PNG: &[u8] = include_bytes!("../../../extra/images/volt.png");
 
@@ -65,7 +65,7 @@ impl<K: Clone + 'static, V: Clone + 'static> VirtualVector<(usize, K, V)>
 }
 
 pub fn plugin_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;

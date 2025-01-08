@@ -113,7 +113,7 @@ use crate::{
     title::{title},
     update::ReleaseInfo,
     window::{TabsInfo, WindowData, WindowInfo},
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
     workspace::{LapceWorkspace, LapceWorkspaceType},
 };
 
@@ -190,7 +190,7 @@ impl AppData {
         }
     }
 
-    pub fn active_window_tab(&self) -> Option<WindowTabData> {
+    pub fn active_window_tab(&self) -> Option<WindowWorkspaceData> {
         if let Some(window) = self.active_window() {
             return Some(window.active_window_tab());
         }
@@ -649,7 +649,7 @@ impl AppData {
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 fn editor_tab_header(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     active_editor_tab: ReadSignal<Option<EditorTabId>>,
     editor_tab: RwSignal<EditorTabData>,
     dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>>,
@@ -1179,7 +1179,7 @@ fn editor_tab_header(
 }
 
 fn editor_tab_content(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
     active_editor_tab: ReadSignal<Option<EditorTabId>>,
     editor_tab: RwSignal<EditorTabData>,
@@ -1386,7 +1386,7 @@ enum DragOverPosition {
 }
 
 fn editor_tab(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
     active_editor_tab: ReadSignal<Option<EditorTabId>>,
     editor_tab: RwSignal<EditorTabData>,
@@ -1841,7 +1841,7 @@ fn split_border(
 
 fn split_list(
     split: ReadSignal<SplitData>,
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
     dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>>,
 ) -> impl View {
@@ -1965,7 +1965,7 @@ fn split_list(
     .debug_name("Split List")
 }
 
-fn main_split(window_tab_data: WindowTabData) -> impl View {
+fn main_split(window_tab_data: WindowWorkspaceData) -> impl View {
     let root_split = window_tab_data.main_split.root_split;
     let root_split = window_tab_data
         .main_split
@@ -2134,7 +2134,7 @@ fn tooltip_tip<V: View + 'static>(
     })
 }
 
-fn workbench(window_tab_data: WindowTabData) -> impl View {
+fn workbench(window_tab_data: WindowWorkspaceData) -> impl View {
     let workbench_size = window_tab_data.common.workbench_size;
     let main_split_width = window_tab_data.main_split.width;
     let config = window_tab_data.common.config;
@@ -2625,7 +2625,7 @@ fn palette_item(
     })
 }
 
-fn palette_input(window_tab_data: WindowTabData) -> impl View {
+fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
     let editor = window_tab_data.palette.input_editor.clone();
     let pallete_kind = window_tab_data.palette.kind.write_only();
     let config = window_tab_data.common.config;
@@ -2679,7 +2679,7 @@ impl VirtualVector<(usize, PaletteItem)> for PaletteItems {
 }
 
 fn palette_content(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     layout_rect: ReadSignal<Rect>,
 ) -> impl View {
     let items = window_tab_data.palette.filtered_items;
@@ -2781,7 +2781,7 @@ fn palette_content(
     })
 }
 
-fn palette_preview(window_tab_data: WindowTabData) -> impl View {
+fn palette_preview(window_tab_data: WindowWorkspaceData) -> impl View {
     let palette_data = window_tab_data.palette.clone();
     let workspace = palette_data.workspace.clone();
     let preview_editor = palette_data.preview_editor;
@@ -2814,7 +2814,7 @@ fn palette_preview(window_tab_data: WindowTabData) -> impl View {
     })
 }
 
-fn palette(window_tab_data: WindowTabData) -> impl View {
+fn palette(window_tab_data: WindowWorkspaceData) -> impl View {
     let layout_rect = window_tab_data.layout_rect.read_only();
     let palette_data = window_tab_data.palette.clone();
     let status = palette_data.status.read_only();
@@ -3016,7 +3016,7 @@ fn completion_kind_to_str(kind: CompletionItemKind) -> &'static str {
     }
 }
 
-fn hover(window_tab_data: WindowTabData) -> impl View {
+fn hover(window_tab_data: WindowWorkspaceData) -> impl View {
     let hover_data = window_tab_data.common.hover.clone();
     let config = window_tab_data.common.config;
     let id = AtomicU64::new(0);
@@ -3074,7 +3074,7 @@ fn hover(window_tab_data: WindowTabData) -> impl View {
     .debug_name("Hover Layer")
 }
 
-fn completion(window_tab_data: WindowTabData) -> impl View {
+fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
     let completion_data = window_tab_data.common.completion;
     let active_editor = window_tab_data.main_split.active_editor;
     let config = window_tab_data.common.config;
@@ -3205,7 +3205,7 @@ fn completion(window_tab_data: WindowTabData) -> impl View {
     .debug_name("Completion Layer")
 }
 
-fn code_action(window_tab_data: WindowTabData) -> impl View {
+fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
     let config = window_tab_data.common.config;
     let code_action = window_tab_data.code_action;
     let (status, active) = code_action
@@ -3298,7 +3298,7 @@ fn code_action(window_tab_data: WindowTabData) -> impl View {
     .debug_name("Code Action Layer")
 }
 
-fn rename(window_tab_data: WindowTabData) -> impl View {
+fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
     let editor = window_tab_data.rename.editor.clone();
     let active = window_tab_data.rename.active;
     let layout_rect = window_tab_data.rename.layout_rect;
@@ -3345,7 +3345,7 @@ fn rename(window_tab_data: WindowTabData) -> impl View {
     .debug_name("Rename Layer")
 }
 
-fn window_tab(window_tab_data: ReadSignal<WindowTabData>) -> impl View {
+fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
     let window_tab_data = window_tab_data.get();
     let source_control = window_tab_data.source_control.clone();
     let window_origin = window_tab_data.common.window_origin;

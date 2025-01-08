@@ -23,11 +23,11 @@ use crate::{
     lsp::path_from_url,
     panel::position::PanelContainerPosition,
     svg,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
     workspace::LapceWorkspace,
 };
 pub fn problem_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -53,7 +53,7 @@ pub fn problem_panel(
 }
 
 fn problem_section(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     severity: DiagnosticSeverity,
 ) -> impl View {
     let config = window_tab_data.common.config;

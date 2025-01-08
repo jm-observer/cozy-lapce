@@ -37,7 +37,7 @@ use crate::{
     editor::{view::editor_style, DocSignal, EditorData},
     keypress::KeyPressFocus,
     main_split::Editors,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 prop_extractor! {

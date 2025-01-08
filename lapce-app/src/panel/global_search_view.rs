@@ -24,11 +24,11 @@ use crate::{
     panel::position::PanelContainerPosition,
     svg,
     text_input::TextInputBuilder,
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
     workspace::LapceWorkspace,
 };
 pub fn global_search_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
 ) -> impl View {
     let global_search = window_tab_data.global_search.clone();

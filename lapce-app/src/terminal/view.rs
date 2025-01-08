@@ -39,7 +39,7 @@ use crate::{
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     panel::kind::PanelKind,
-    window_tab::Focus,
+    window_workspace::Focus,
     workspace::LapceWorkspace,
 };
 

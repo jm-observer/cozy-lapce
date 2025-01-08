@@ -4,7 +4,7 @@ use lapce_rpc::dap_types::{ConfigSource, RunDebugConfig, RunDebugProgram};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{command::InternalCommand, debug::RunDebugMode, window_tab::CommonData};
+use crate::{command::InternalCommand, debug::RunDebugMode, window_workspace::CommonData};
 
 #[derive(Serialize, Deserialize)]
 struct CargoArgs {

@@ -34,11 +34,11 @@ use crate::{
     settings::checkbox,
     svg,
     terminal::panel::TerminalPanelData,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 
 pub fn debug_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -336,7 +336,7 @@ fn debug_processes(
     .debug_name("debug processes")
 }
 
-fn variables_view(window_tab_data: WindowTabData) -> impl View {
+fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
     let terminal = window_tab_data.terminal.clone();
     let local_terminal = window_tab_data.terminal.clone();
     let ui_line_height = window_tab_data.common.ui_line_height;
@@ -643,7 +643,7 @@ fn debug_stack_traces(
     .debug_name("debug stack traces")
 }
 
-fn breakpoints_view(window_tab_data: WindowTabData) -> impl View {
+fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
     let breakpoints = window_tab_data.terminal.debug.breakpoints;
     let proxy = window_tab_data.common.proxy.clone();
     let daps = window_tab_data.terminal.debug.daps;

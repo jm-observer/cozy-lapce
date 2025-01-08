@@ -5,7 +5,7 @@ use lapce_rpc::terminal::TerminalProfile;
 
 use super::data::TerminalData;
 use crate::{
-    debug::RunDebugProcess, id::TerminalTabId, window_tab::CommonData,
+    debug::RunDebugProcess, id::TerminalTabId, window_workspace::CommonData,
     workspace::LapceWorkspace,
 };
 

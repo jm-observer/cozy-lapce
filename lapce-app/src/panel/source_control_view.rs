@@ -26,10 +26,10 @@ use crate::{
     settings::checkbox,
     source_control::SourceControlData,
     svg,
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 pub fn source_control_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;

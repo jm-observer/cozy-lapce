@@ -32,7 +32,7 @@ use crate::{
     main_split::{Editors, MainSplitData},
     svg,
     wave::wave_box,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 // #[derive(Clone)]

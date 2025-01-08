@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     command::InternalCommand,
     editor::location::{EditorLocation, EditorPosition},
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

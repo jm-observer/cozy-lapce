@@ -72,7 +72,7 @@ use crate::{
     panel::document_symbol::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData,
     },
-    window_tab::{CommonData, Focus, SignalManager},
+    window_workspace::{CommonData, Focus, SignalManager},
     workspace::LapceWorkspace,
 };
 

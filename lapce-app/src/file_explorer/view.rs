@@ -36,7 +36,7 @@ use crate::{
     source_control::SourceControlData,
     svg,
     text_input::TextInputBuilder,
-    window_tab::{Focus, WindowTabData},
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 
 /// Blends `foreground` with `background`.
@@ -73,7 +73,7 @@ fn blend_colors(background: Color, foreground: Color) -> Color {
 }
 
 pub fn file_explorer_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -508,7 +508,7 @@ fn file_explorer_view(
     })
 }
 
-fn open_editors_view(window_tab_data: WindowTabData) -> impl View {
+fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
     let diff_editors = window_tab_data.main_split.diff_editors;
     let editors = window_tab_data.main_split.editors;
     let editor_tabs = window_tab_data.main_split.editor_tabs;

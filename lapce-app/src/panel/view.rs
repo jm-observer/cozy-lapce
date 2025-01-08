@@ -31,7 +31,7 @@ use crate::{
         document_symbol::symbol_panel, implementation_view::implementation_panel,
         references_view::references_panel,
     },
-    window_tab::{DragContent, WindowTabData},
+    window_workspace::{DragContent, WindowWorkspaceData},
 };
 
 pub(crate) const PANEL_PICKER_SIZE: f32 = 40.0;
@@ -210,7 +210,7 @@ impl PanelBuilder {
 }
 
 pub fn new_left_panel_container_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -268,7 +268,7 @@ pub fn new_left_panel_container_view(
 }
 
 pub fn new_bottom_panel_container_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -317,7 +317,7 @@ pub fn new_bottom_panel_container_view(
 }
 
 pub fn new_right_panel_container_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     container_position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -381,7 +381,7 @@ pub fn new_right_panel_container_view(
 
 fn panel_view_by_kind(
     kind: PanelKind,
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     match kind {
@@ -531,7 +531,7 @@ fn drag_line(
 }
 
 pub(crate) fn new_panel_picker(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();

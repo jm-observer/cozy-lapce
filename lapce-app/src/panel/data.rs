@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use super::{kind::PanelKind, position::PanelContainerPosition, style::PanelStyle};
 use crate::{
     db::LapceDb,
-    window_tab::{CommonData, Focus},
+    window_workspace::{CommonData, Focus},
 };
 
 pub type PanelOrder = im::HashMap<PanelContainerPosition, im::Vector<PanelKind>>;

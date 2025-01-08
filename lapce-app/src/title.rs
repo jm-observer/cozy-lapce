@@ -22,7 +22,7 @@ use crate::{
     main_split::MainSplitData,
     svg,
     update::ReleaseInfo,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
     workspace::LapceWorkspace,
 };
 use crate::app::{clickable_icon_base_with_color};
@@ -407,7 +407,7 @@ fn right(
     .debug_name("Right of top bar")
 }
 
-pub fn title(window_tab_data: WindowTabData) -> impl View {
+pub fn title(window_tab_data: WindowWorkspaceData) -> impl View {
     let workspace = window_tab_data.workspace.clone();
     let lapce_command = window_tab_data.common.lapce_command;
     let workbench_command = window_tab_data.common.workbench_command;

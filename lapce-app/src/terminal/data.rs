@@ -36,7 +36,7 @@ use crate::{
     command::{CommandExecuted, CommandKind},
     debug::{RunDebugMode, RunDebugProcess},
     keypress::{condition::Condition, KeyPressFocus},
-    window_tab::CommonData,
+    window_workspace::CommonData,
     workspace::LapceWorkspace,
 };
 

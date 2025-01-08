@@ -18,7 +18,7 @@ use crate::{
     keypress::KeyPressFocus,
     svg,
     web_link::web_link,
-    window_tab::{Focus, SignalManager, WindowTabData},
+    window_workspace::{Focus, SignalManager, WindowWorkspaceData},
 };
 
 struct AboutUri {}
@@ -96,7 +96,7 @@ impl KeyPressFocus for AboutData {
     }
 }
 
-pub fn about_popup(window_tab_data: WindowTabData) -> impl View {
+pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
     let about_data = window_tab_data.about_data.clone();
     let config = window_tab_data.common.config;
     let internal_command = window_tab_data.common.internal_command;
@@ -164,7 +164,7 @@ pub fn about_popup(window_tab_data: WindowTabData) -> impl View {
 }
 
 fn exclusive_popup<V: View + 'static>(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     visibility: RwSignal<bool>,
     content: impl FnOnce() -> V,
 ) -> impl View {

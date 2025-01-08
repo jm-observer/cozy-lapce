@@ -13,7 +13,7 @@ use crate::{
     editor::EditorData,
     keypress::{condition::Condition, KeyPressFocus},
     main_split::Editors,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 #[derive(Clone, Debug)]

@@ -12,7 +12,7 @@ use lsp_types::CodeActionOrCommand;
 use crate::{
     command::{CommandExecuted, CommandKind, InternalCommand},
     keypress::{condition::Condition, KeyPressFocus},
-    window_tab::{CommonData, Focus},
+    window_workspace::{CommonData, Focus},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]

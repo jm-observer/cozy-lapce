@@ -21,11 +21,11 @@ use crate::{
     editor::location::EditorLocation,
     panel::position::PanelContainerPosition,
     svg,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 
 pub fn implementation_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
 ) -> impl View {
     stack((
@@ -45,7 +45,7 @@ pub fn implementation_panel(
     .style(|x| x.flex_col().width_full())
 }
 pub fn common_reference_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
     each_fn: impl Fn() -> ReferencesRoot + 'static,
 ) -> impl View {

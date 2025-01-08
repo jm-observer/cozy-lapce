@@ -32,7 +32,7 @@ use crate::{
     },
     main_split::{Editors, MainSplitData},
     plugin::PluginData,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -169,7 +169,7 @@ impl EditorTabChild {
         matches!(self, EditorTabChild::Settings(_))
     }
 
-    pub fn child_info(&self, data: &WindowTabData) -> EditorTabChildInfo {
+    pub fn child_info(&self, data: &WindowWorkspaceData) -> EditorTabChildInfo {
         match &self {
             EditorTabChild::Editor(editor_id) => {
                 let editor_data = data
@@ -469,7 +469,7 @@ impl EditorTabData {
         None
     }
 
-    pub fn tab_info(&self, data: &WindowTabData) -> EditorTabInfo {
+    pub fn tab_info(&self, data: &WindowWorkspaceData) -> EditorTabInfo {
         let info = EditorTabInfo {
             active: self.active,
             is_focus: data.main_split.active_editor_tab.get_untracked()

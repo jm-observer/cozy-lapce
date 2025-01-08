@@ -19,7 +19,7 @@ use crate::{
     editor::location::EditorLocation,
     panel::position::PanelContainerPosition,
     svg,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 
 #[derive(Clone, Debug)]
@@ -295,7 +295,7 @@ impl
 }
 
 pub fn symbol_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;

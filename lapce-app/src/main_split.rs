@@ -61,7 +61,7 @@ use crate::{
     panel::{
         call_hierarchy_view::CallHierarchyData, implementation_view::ReferencesRoot,
     },
-    window_tab::{CommonData, Focus, WindowTabData},
+    window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -105,7 +105,7 @@ impl SplitContent {
         }
     }
 
-    pub fn content_info(&self, data: &WindowTabData) -> SplitContentInfo {
+    pub fn content_info(&self, data: &WindowWorkspaceData) -> SplitContentInfo {
         match &self {
             SplitContent::EditorTab(editor_tab_id) => {
                 let editor_tab_data = data
@@ -215,7 +215,7 @@ impl SplitContentInfo {
 }
 
 impl SplitData {
-    pub fn split_info(&self, data: &WindowTabData) -> SplitInfo {
+    pub fn split_info(&self, data: &WindowWorkspaceData) -> SplitInfo {
         let info = SplitInfo {
             direction: self.direction,
             children: self

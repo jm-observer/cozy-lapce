@@ -21,7 +21,7 @@ use crate::{
     keypress::EventRef,
     listener::Listener,
     update::ReleaseInfo,
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
     workspace::LapceWorkspace,
 };
 
@@ -69,7 +69,7 @@ pub struct WindowData {
     pub scope: Scope,
     /// The set of tabs within the window. These tabs are high-level
     /// constructs for workspaces, in particular they are not **editor tabs**.
-    pub window_tabs: RwSignal<WindowTabData>,
+    pub window_tabs: RwSignal<WindowWorkspaceData>,
     /// The index of the active window tab.
     // pub active: RwSignal<usize>,
     pub app_command: Listener<AppCommand>,
@@ -124,7 +124,7 @@ impl WindowData {
         let w = info.tabs.workspaces.clone();
         log::info!("WindowData {:?}", w);
         w.watch_project_setting(&watcher);
-        let window_tabs = cx.create_rw_signal( WindowTabData::new(
+        let window_tabs = cx.create_rw_signal( WindowWorkspaceData::new(
                 cx,
                 Arc::new(LapceWorkspace::default()),
                 common.clone(),
@@ -217,7 +217,7 @@ impl WindowData {
                         }
                 log::info!("SetWorkspace {:?}", workspace);
                 let workspace = Arc::new(workspace);
-                let window_tab = WindowTabData::new(
+                let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace.clone(),
                     self.common.clone(),
@@ -233,7 +233,7 @@ impl WindowData {
                 }
                 log::info!("NewWorkspaceTab {:?}", workspace);
                 workspace.watch_project_setting(&self.watcher);
-                let window_tab = WindowTabData::new(
+                let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     Arc::new(workspace),
                     self.common.clone(),
@@ -341,7 +341,7 @@ impl WindowData {
         }
     }
 
-    pub fn active_window_tab(&self) -> WindowTabData {
+    pub fn active_window_tab(&self) -> WindowWorkspaceData {
         self.window_tabs.get_untracked()
     }
 

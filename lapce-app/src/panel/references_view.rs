@@ -9,11 +9,11 @@ use crate::{
         implementation_view::common_reference_panel,
         position::PanelContainerPosition,
     },
-    window_tab::WindowTabData,
+    window_workspace::WindowWorkspaceData,
 };
 
 pub fn references_panel(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
 ) -> impl View {
     stack((

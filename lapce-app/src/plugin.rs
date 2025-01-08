@@ -45,7 +45,7 @@ use crate::{
     panel::plugin_view::VOLT_DEFAULT_PNG,
     svg,
     web_link::web_link,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 type PluginInfo = Option<(

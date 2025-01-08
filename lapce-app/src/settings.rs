@@ -40,7 +40,7 @@ use crate::{
     plugin::InstalledVoltData,
     svg,
     text_input::TextInputBuilder,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 #[derive(Debug, Clone)]

@@ -15,7 +15,7 @@ use floem::{
 use crate::{
     config::{color::LapceColor, icon::LapceIcons, LapceConfig},
     svg,
-    window_tab::CommonData,
+    window_workspace::CommonData,
 };
 
 #[derive(Clone)]

@@ -227,7 +227,7 @@ impl std::fmt::Debug for CommonData {
 }
 
 #[derive(Clone)]
-pub struct WindowTabData {
+pub struct WindowWorkspaceData {
     pub scope: Scope,
     pub window_tab_id: WindowTabId,
     pub workspace: Arc<LapceWorkspace>,
@@ -256,7 +256,7 @@ pub struct WindowTabData {
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
 }
 
-impl std::fmt::Debug for WindowTabData {
+impl std::fmt::Debug for WindowWorkspaceData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("WindowTabData")
             .field("window_tab_id", &self.window_tab_id)
@@ -264,7 +264,7 @@ impl std::fmt::Debug for WindowTabData {
     }
 }
 
-impl KeyPressFocus for WindowTabData {
+impl KeyPressFocus for WindowWorkspaceData {
     fn get_mode(&self) -> Mode {
         Mode::Normal
     }
@@ -342,7 +342,7 @@ impl KeyPressFocus for WindowTabData {
     fn receive_char(&self, _c: &str) {}
 }
 
-impl WindowTabData {
+impl WindowWorkspaceData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         cx: Scope,
@@ -2226,13 +2226,13 @@ impl WindowTabData {
                     .sorted_by_key(|d| d.range.start)
                     .collect();
 
-                if !diagnostics.is_empty() {
-                    debug!(
-                        "PublishDiagnostics {:?} {}",
-                        path,
-                        serde_json::to_string(diagnostic_params).unwrap()
-                    );
-                }
+                // if !diagnostics.is_empty() {
+                //     debug!(
+                //         "PublishDiagnostics {:?} {}",
+                //         path,
+                //         serde_json::to_string(diagnostic_params).unwrap()
+                //     );
+                // }
 
                 self.main_split
                     .get_diagnostic_data(&path)

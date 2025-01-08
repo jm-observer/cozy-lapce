@@ -13,7 +13,7 @@ use crate::config::LapceConfig;
 use crate::editor::{DocSignal, EditorData};
 use crate::editor::gutter_new::{gutter_data, GutterData, GutterMarker};
 use crate::svg;
-use crate::window_tab::WindowTabData;
+use crate::window_workspace::WindowWorkspaceData;
 
 fn gutter_marker_none_svg_view(
     config: ReadSignal<Arc<LapceConfig>>
@@ -42,7 +42,7 @@ fn gutter_marker_breakpoint_svg_view(
 }
 
 fn gutter_marker_code_len_svg_view(
-    window_tab_data: WindowTabData,
+    window_tab_data: WindowWorkspaceData,
     line: usize,
     doc: DocSignal,
 ) -> Svg {
@@ -69,7 +69,7 @@ fn gutter_marker_code_len_svg_view(
         })
 }
 
-pub fn editor_gutter_new(window_tab_data: WindowTabData,
+pub fn editor_gutter_new(window_tab_data: WindowWorkspaceData,
                          e_data: RwSignal<EditorData>,
 ) -> impl View {
     let (doc, config) = e_data
@@ -102,7 +102,7 @@ pub fn editor_gutter_new(window_tab_data: WindowTabData,
 }
 
 
-fn gutter_data_view(data: &GutterData, window_tab_data: &WindowTabData, doc: DocSignal, config: ReadSignal<Arc<LapceConfig>>) -> impl View {
+fn gutter_data_view(data: &GutterData, window_tab_data: &WindowWorkspaceData, doc: DocSignal, config: ReadSignal<Arc<LapceConfig>>) -> impl View {
     let data = data.clone();
     container((
         static_label(data.display_line_num()).style(move |style| {
@@ -136,7 +136,7 @@ fn gutter_data_view(data: &GutterData, window_tab_data: &WindowTabData, doc: Doc
         })
 }
 
-fn marker_view(data: &GutterData, window_tab_data: WindowTabData, config: ReadSignal<Arc<LapceConfig>>, doc_signal: DocSignal) -> impl View {
+fn marker_view(data: &GutterData, window_tab_data: WindowWorkspaceData, config: ReadSignal<Arc<LapceConfig>>, doc_signal: DocSignal) -> impl View {
     let svg = match data.marker {
         GutterMarker::None => {
             gutter_marker_none_svg_view(config)
