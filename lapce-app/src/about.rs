@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use floem::{
     event::EventListener,
     keyboard::Modifiers,
@@ -98,7 +96,7 @@ impl KeyPressFocus for AboutData {
     }
 }
 
-pub fn about_popup(window_tab_data: Rc<WindowTabData>) -> impl View {
+pub fn about_popup(window_tab_data: WindowTabData) -> impl View {
     let about_data = window_tab_data.about_data.clone();
     let config = window_tab_data.common.config;
     let internal_command = window_tab_data.common.internal_command;
@@ -166,7 +164,7 @@ pub fn about_popup(window_tab_data: Rc<WindowTabData>) -> impl View {
 }
 
 fn exclusive_popup<V: View + 'static>(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     visibility: RwSignal<bool>,
     content: impl FnOnce() -> V,
 ) -> impl View {

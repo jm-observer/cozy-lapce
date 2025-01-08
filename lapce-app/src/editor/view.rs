@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use doc::lines::{
@@ -1375,7 +1375,7 @@ fn get_sticky_header_info(
 }
 
 pub fn editor_container_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     workspace: Arc<LapceWorkspace>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: RwSignal<EditorData>,
@@ -1575,7 +1575,7 @@ pub fn editor_container_view(
 // }
 
 // fn editor_gutter_breakpoints(
-//     window_tab_data: Rc<WindowTabData>,
+//     window_tab_data: WindowTabData,
 //     e_data: RwSignal<EditorData>,
 //     icon_padding: f32,
 // ) -> impl View {
@@ -1648,7 +1648,7 @@ pub fn editor_container_view(
 // }
 
 // fn editor_gutter_code_lens_view(
-//     window_tab_data: Rc<WindowTabData>,
+//     window_tab_data: WindowTabData,
 //     line: usize,
 //     lens: (PluginId, usize, im::Vector<CodeLens>),
 //     screen_lines: ReadSignal<ScreenLines>,
@@ -1705,7 +1705,7 @@ pub fn editor_container_view(
 // }
 
 fn editor_gutter_folding_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     folding_display_item: FoldingDisplayItem,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -1757,7 +1757,7 @@ fn editor_gutter_folding_view(
 }
 
 // fn editor_gutter_code_lens(
-//     window_tab_data: Rc<WindowTabData>,
+//     window_tab_data: WindowTabData,
 //     doc: DocSignal,
 //     screen_lines: ReadSignal<ScreenLines>,
 //     viewport: ReadSignal<Rect>,
@@ -1794,7 +1794,7 @@ fn editor_gutter_folding_view(
 // }
 
 fn editor_gutter_folding_range(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     doc: DocSignal,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -1914,7 +1914,7 @@ fn editor_gutter_folding_range(
 // }
 
 // fn editor_gutter(
-//     window_tab_data: Rc<WindowTabData>,
+//     window_tab_data: WindowTabData,
 //     e_data: RwSignal<EditorData>,
 // ) -> impl View {
 //     let icon_padding = 6.0;

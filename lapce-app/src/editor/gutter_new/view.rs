@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 use floem::peniko::{Color};
 use floem::prelude::{clip, container, Decorators, RwSignal, SignalGet, SignalWith, static_label, Svg};
@@ -43,7 +42,7 @@ fn gutter_marker_breakpoint_svg_view(
 }
 
 fn gutter_marker_code_len_svg_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     line: usize,
     doc: DocSignal,
 ) -> Svg {
@@ -70,7 +69,7 @@ fn gutter_marker_code_len_svg_view(
         })
 }
 
-pub fn editor_gutter_new(window_tab_data: Rc<WindowTabData>,
+pub fn editor_gutter_new(window_tab_data: WindowTabData,
                          e_data: RwSignal<EditorData>,
 ) -> impl View {
     let (doc, config) = e_data
@@ -103,7 +102,7 @@ pub fn editor_gutter_new(window_tab_data: Rc<WindowTabData>,
 }
 
 
-fn gutter_data_view(data: &GutterData, window_tab_data: &Rc<WindowTabData>, doc: DocSignal, config: ReadSignal<Arc<LapceConfig>>) -> impl View {
+fn gutter_data_view(data: &GutterData, window_tab_data: &WindowTabData, doc: DocSignal, config: ReadSignal<Arc<LapceConfig>>) -> impl View {
     let data = data.clone();
     container((
         static_label(data.display_line_num()).style(move |style| {
@@ -137,7 +136,7 @@ fn gutter_data_view(data: &GutterData, window_tab_data: &Rc<WindowTabData>, doc:
         })
 }
 
-fn marker_view(data: &GutterData, window_tab_data: Rc<WindowTabData>, config: ReadSignal<Arc<LapceConfig>>, doc_signal: DocSignal) -> impl View {
+fn marker_view(data: &GutterData, window_tab_data: WindowTabData, config: ReadSignal<Arc<LapceConfig>>, doc_signal: DocSignal) -> impl View {
     let svg = match data.marker {
         GutterMarker::None => {
             gutter_marker_none_svg_view(config)

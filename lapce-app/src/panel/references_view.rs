@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use floem::{
     views::{stack, Decorators},
     View,
@@ -15,7 +13,7 @@ use crate::{
 };
 
 pub fn references_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
 ) -> impl View {
     stack((

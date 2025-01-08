@@ -295,7 +295,7 @@ impl
 }
 
 pub fn symbol_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;

@@ -128,7 +128,7 @@ impl VirtualVector<(usize, usize, RwSignal<CallHierarchyItemData>)> for VirtualL
 }
 
 pub fn show_hierarchy_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
 ) -> impl View {
     stack((
@@ -150,7 +150,7 @@ pub fn show_hierarchy_panel(
     .style(|x| x.flex_col().width_full().height_full())
 }
 pub fn _show_hierarchy_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
     each_fn: impl Fn() -> VirtualList + 'static,
 ) -> impl View {

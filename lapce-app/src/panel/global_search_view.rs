@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use floem::{
     event::EventListener,
@@ -28,7 +28,7 @@ use crate::{
     workspace::LapceWorkspace,
 };
 pub fn global_search_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
 ) -> impl View {
     let global_search = window_tab_data.global_search.clone();

@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{sync::Arc};
 
 use floem::{
     kurbo::{Rect, Size},
@@ -27,7 +27,7 @@ use crate::{
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 pub fn common_tab_header<T: Clone + 'static>(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     tabs: Tabs<T>,
 ) -> impl View {
     let config = window_tab_data.common.config;

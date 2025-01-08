@@ -1,11 +1,11 @@
-use std::{rc::Rc, sync::Arc};
+use std::{sync::Arc};
 
 use floem::{
     event::EventListener,
     menu::{Menu, MenuItem},
     peniko::Color,
     reactive::{
-        create_memo, Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
+        create_memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
     },
     style::{AlignItems, CursorStyle, JustifyContent},
     views::{container, drag_window_area, empty, label, stack, Decorators},
@@ -33,19 +33,11 @@ fn left(
     workbench_command: Listener<LapceWorkbenchCommand>,
     config: ReadSignal<Arc<LapceConfig>>,
     proxy_status: RwSignal<Option<ProxyStatus>>,
-    num_window_tabs: Memo<usize>,
+    // num_window_tabs: Memo<usize>,
 ) -> impl View {
     let is_local = workspace.kind.is_local();
     let is_macos = cfg!(target_os = "macos");
     stack((
-        empty().style(move |s| {
-            let should_hide = if is_macos {
-                num_window_tabs.get() > 1
-            } else {
-                true
-            };
-            s.width(75.0).apply_if(should_hide, |s| s.hide())
-        }),
         container(svg(move || config.get().ui_svg(LapceIcons::LOGO)).style(
             move |s| {
                 let config = config.get();
@@ -310,7 +302,7 @@ fn right(
     workbench_command: Listener<LapceWorkbenchCommand>,
     latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
     update_in_progress: RwSignal<bool>,
-    num_window_tabs: Memo<usize>,
+    // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
     config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
@@ -403,8 +395,6 @@ fn right(
         .style(move |s| s.margin_horiz(6.0)),
         window_controls_view(
             window_command,
-            true,
-            num_window_tabs,
             window_maximized,
             config,
         ),
@@ -417,14 +407,14 @@ fn right(
     .debug_name("Right of top bar")
 }
 
-pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
+pub fn title(window_tab_data: WindowTabData) -> impl View {
     let workspace = window_tab_data.workspace.clone();
     let lapce_command = window_tab_data.common.lapce_command;
     let workbench_command = window_tab_data.common.workbench_command;
     let window_command = window_tab_data.common.window_common.window_command;
     let latest_release = window_tab_data.common.window_common.latest_release;
     let proxy_status = window_tab_data.common.proxy_status;
-    let num_window_tabs = window_tab_data.common.window_common.num_window_tabs;
+    // let num_window_tabs = window_tab_data.common.window_common.num_window_tabs;
     let window_maximized = window_tab_data.common.window_common.window_maximized;
     let title_height = window_tab_data.title_height;
     let update_in_progress = window_tab_data.update_in_progress;
@@ -436,7 +426,6 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
             workbench_command,
             config,
             proxy_status,
-            num_window_tabs,
         ),
         middle(
             workspace,
@@ -449,7 +438,6 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
             workbench_command,
             latest_release,
             update_in_progress,
-            num_window_tabs,
             window_maximized,
             config,
         ),
@@ -474,8 +462,8 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
 
 pub fn window_controls_view(
     window_command: Listener<WindowCommand>,
-    is_title: bool,
-    num_window_tabs: Memo<usize>,
+    // is_title: bool,
+    // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
     config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
@@ -525,8 +513,7 @@ pub fn window_controls_view(
     .style(move |s| {
         s.apply_if(
             cfg!(target_os = "macos")
-                || !config.get_untracked().core.custom_titlebar
-                || (is_title && num_window_tabs.get() > 1),
+                || !config.get_untracked().core.custom_titlebar,
             |s| s.hide(),
         )
     })

@@ -1,6 +1,5 @@
 use std::{
     path::{Path, PathBuf},
-    rc::Rc,
     sync::Arc,
 };
 
@@ -220,7 +219,7 @@ impl LapceDb {
         Ok(())
     }
 
-    pub fn save_window_tab(&self, data: Rc<WindowTabData>) -> Result<()> {
+    pub fn save_window_tab(&self, data: WindowTabData) -> Result<()> {
         let workspace = (*data.workspace).clone();
         let workspace_info = data.workspace_info();
 
@@ -336,27 +335,23 @@ impl LapceDb {
     }
 
     pub fn save_window(&self, data: WindowData) -> Result<()> {
-        for (_, window_tab) in data.window_tabs.get_untracked().into_iter() {
-            if let Err(err) = self.save_window_tab(window_tab) {
-                log::error!("{:?}", err);
-            }
+        if let Err(err) = self.save_window_tab(data.window_tabs.get_untracked()) {
+            log::error!("{:?}", err);
         }
         Ok(())
     }
 
     pub fn insert_window(&self, data: WindowData) -> Result<()> {
-        for (_, window_tab) in data.window_tabs.get_untracked().into_iter() {
-            if let Err(err) = self.insert_window_tab(window_tab) {
+            if let Err(err) = self.insert_window_tab(data.window_tabs.get_untracked()) {
                 log::error!("{:?}", err);
             }
-        }
         let info = data.info();
         let info = serde_json::to_string_pretty(&info)?;
         std::fs::write(self.folder.join(WINDOW), info)?;
         Ok(())
     }
 
-    pub fn insert_window_tab(&self, data: Rc<WindowTabData>) -> Result<()> {
+    pub fn insert_window_tab(&self, data: WindowTabData) -> Result<()> {
         let workspace = (*data.workspace).clone();
         let workspace_info = data.workspace_info();
 

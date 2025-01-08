@@ -1,14 +1,13 @@
 pub mod view;
 
 use std::hash::{Hash};
-use std::rc::Rc;
 use doc::lines::buffer::rope_text::RopeText;
 use doc::lines::screen_lines::VisualLineInfo;
 use floem::prelude::{RwSignal, SignalGet, SignalWith};
 use crate::editor::EditorData;
 use crate::window_tab::WindowTabData;
 
-pub fn gutter_data(window_tab_data: Rc<WindowTabData>,
+pub fn gutter_data(window_tab_data: WindowTabData,
                    e_data: RwSignal<EditorData>, ) -> Vec<GutterData> {
     let breakpoints = window_tab_data.terminal.debug.breakpoints;
     let e_data = e_data.get();

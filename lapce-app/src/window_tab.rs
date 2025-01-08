@@ -498,18 +498,12 @@ impl WindowTabData {
         let panel_available_size = cx.create_memo(move |_| {
             let title_height = title_height.get();
             let status_height = status_height.get();
-            let num_window_tabs = window_common.num_window_tabs.get();
             let window_size = window_common.size.get();
             Size::new(
                 window_size.width,
                 window_size.height
                     - title_height
                     - status_height
-                    - if num_window_tabs > 1 {
-                        window_common.window_tab_header_height.get()
-                    } else {
-                        0.0
-                    },
             )
         });
         let panel = workspace_info

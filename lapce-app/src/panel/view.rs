@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{sync::Arc};
 
 use floem::{
     event::{Event, EventListener, EventPropagation},
@@ -210,7 +210,7 @@ impl PanelBuilder {
 }
 
 pub fn new_left_panel_container_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -268,7 +268,7 @@ pub fn new_left_panel_container_view(
 }
 
 pub fn new_bottom_panel_container_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -317,7 +317,7 @@ pub fn new_bottom_panel_container_view(
 }
 
 pub fn new_right_panel_container_view(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     container_position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
@@ -381,7 +381,7 @@ pub fn new_right_panel_container_view(
 
 fn panel_view_by_kind(
     kind: PanelKind,
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     match kind {
@@ -531,7 +531,7 @@ fn drag_line(
 }
 
 pub(crate) fn new_panel_picker(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     let panel = window_tab_data.panel.clone();

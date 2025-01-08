@@ -1,5 +1,4 @@
 use std::{
-    rc::Rc,
     sync::{atomic::AtomicU64, Arc},
 };
 
@@ -34,7 +33,7 @@ use crate::{
 };
 
 pub fn status(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     source_control: SourceControlData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     status_height: RwSignal<f64>,

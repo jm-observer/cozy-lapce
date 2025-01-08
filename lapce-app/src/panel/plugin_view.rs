@@ -1,4 +1,4 @@
-use std::{ops::Range, rc::Rc};
+use std::{ops::Range};
 
 use floem::{
     event::EventListener,
@@ -65,7 +65,7 @@ impl<K: Clone + 'static, V: Clone + 'static> VirtualVector<(usize, K, V)>
 }
 
 pub fn plugin_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;

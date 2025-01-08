@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use doc::DiagnosticData;
 use floem::{
@@ -27,7 +27,7 @@ use crate::{
     workspace::LapceWorkspace,
 };
 pub fn problem_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
@@ -53,7 +53,7 @@ pub fn problem_panel(
 }
 
 fn problem_section(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     severity: DiagnosticSeverity,
 ) -> impl View {
     let config = window_tab_data.common.config;

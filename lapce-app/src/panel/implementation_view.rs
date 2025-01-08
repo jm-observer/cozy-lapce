@@ -1,4 +1,4 @@
-use std::{ops::AddAssign, path::PathBuf, rc::Rc};
+use std::{ops::AddAssign, path::PathBuf};
 
 use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
@@ -25,7 +25,7 @@ use crate::{
 };
 
 pub fn implementation_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
 ) -> impl View {
     stack((
@@ -45,7 +45,7 @@ pub fn implementation_panel(
     .style(|x| x.flex_col().width_full())
 }
 pub fn common_reference_panel(
-    window_tab_data: Rc<WindowTabData>,
+    window_tab_data: WindowTabData,
     _position: PanelContainerPosition,
     each_fn: impl Fn() -> ReferencesRoot + 'static,
 ) -> impl View {
