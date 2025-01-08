@@ -61,7 +61,7 @@ use lapce_rpc::{
     file::PathObject,
     RpcMessage,
 };
-use log::{error, trace};
+use log::{error, info, trace};
 use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use notify::Watcher;
 use parking_lot::RwLock;
@@ -84,9 +84,9 @@ use crate::{
         location::{EditorLocation, EditorPosition},
         view::editor_container_view,
     },
-    editor_tab::{EditorTabChild, EditorTabData},
+    editor_tab::{EditorTabChildId, EditorTabManageData},
     focus_text::focus_text,
-    id::{EditorTabId, SplitId},
+    id::{EditorTabManageId, SplitId},
     keymap::keymap_view,
     keypress::keymap::KeyMap,
     listener::Listener,
@@ -116,6 +116,7 @@ use crate::{
     window_workspace::{Focus, WindowWorkspaceData},
     workspace::{LapceWorkspace, LapceWorkspaceType},
 };
+use crate::editor_tab::{EditorTabChildSimple, EditorTabDraging};
 
 mod grammars;
 mod logging;
@@ -641,9 +642,9 @@ impl AppData {
 /// scroll bar and the new split and tab close all button.
 fn editor_tab_header(
     window_tab_data: WindowWorkspaceData,
-    active_editor_tab: ReadSignal<Option<EditorTabId>>,
-    editor_tab: RwSignal<EditorTabData>,
-    dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>>,
+    active_editor_tab: ReadSignal<Option<EditorTabManageId>>,
+    editor_tab: RwSignal<EditorTabManageData>,
+    dragging: RwSignal<Option<EditorTabDraging>>,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
     let plugin = window_tab_data.plugin.clone();
@@ -654,36 +655,38 @@ fn editor_tab_header(
     let internal_command = window_tab_data.common.internal_command;
     let workbench_command = window_tab_data.common.workbench_command;
     let editor_tab_id =
-        editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+        editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
 
     let editor_tab_active =
         create_memo(move |_| editor_tab.with(|editor_tab| editor_tab.active));
     let items = move || {
         let editor_tab = editor_tab.get();
-        for (i, (index, _, _)) in editor_tab.children.iter().enumerate() {
-            if index.get_untracked() != i {
-                index.set(i);
-            }
+        for (i, child) in editor_tab.children.iter().enumerate() {
+            child.update_index_with_judgment(i);
         }
         editor_tab.children
     };
-    let key = |(_, _, child): &(RwSignal<usize>, RwSignal<Rect>, EditorTabChild)| {
-        child.id()
+    let key = |child: &EditorTabChildSimple| {
+        child.id().id()
     };
     let is_focused = move || {
         if let Focus::Workbench = focus.get() {
-            editor_tab.with_untracked(|e| Some(e.editor_tab_id))
+            editor_tab.with_untracked(|e| Some(e.editor_tab_manage_id))
                 == active_editor_tab.get()
         } else {
             false
         }
     };
 
-    let view_fn = move |(i, layout_rect, child): (
-        RwSignal<usize>,
-        RwSignal<Rect>,
-        EditorTabChild,
-    )| {
+    let view_fn = move |child_simple: EditorTabChildSimple| {
+        // (i, layout_rect, child): (
+        //     RwSignal<usize>,
+        //     RwSignal<Rect>,
+        //     EditorTabChildId,
+        // )
+        let i = child_simple.read_index();
+        let layout_rect = child_simple.write_layout();
+        let child = child_simple.id();
         let local_child = child.clone();
         let child_for_close = child.clone();
         let child_for_mouse_close = child.clone();
@@ -745,7 +748,7 @@ fn editor_tab_header(
                 },
                 move || {
                     let editor_tab_id =
-                        editor_tab.with_untracked(|t| t.editor_tab_id);
+                        editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                     internal_command.send(InternalCommand::EditorTabChildClose {
                         editor_tab_id,
                         child: child_for_close.clone(),
@@ -816,10 +819,10 @@ fn editor_tab_header(
         };
 
         let confirmed = match local_child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 editors.editor_untracked(editor_id).map(|e| e.confirmed)
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => diff_editors
+            EditorTabChildId::DiffEditor(diff_editor_id) => diff_editors
                 .with_untracked(|diff_editors| {
                     diff_editors
                         .get(&diff_editor_id)
@@ -841,7 +844,7 @@ fn editor_tab_header(
                     if let Event::PointerDown(pointer_event) = event {
                         if pointer_event.button.is_auxiliary() {
                             let editor_tab_id =
-                                editor_tab.with_untracked(|t| t.editor_tab_id);
+                                editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                             internal_command.send(
                                 InternalCommand::EditorTabChildClose {
                                     editor_tab_id,
@@ -861,7 +864,7 @@ fn editor_tab_header(
                 })
                 .on_secondary_click_stop(move |_| {
                     let editor_tab_id =
-                        editor_tab.with_untracked(|t| t.editor_tab_id);
+                        editor_tab.with_untracked(|t| t.editor_tab_manage_id);
 
                     tab_secondary_click(
                         internal_command,
@@ -870,7 +873,7 @@ fn editor_tab_header(
                     );
                 })
                 .on_event_stop(EventListener::DragStart, move |_| {
-                    dragging.set(Some((i, editor_tab_id)));
+                    dragging.set(Some(EditorTabDraging::new(i, editor_tab_id)));
                 })
                 .on_event_stop(EventListener::DragEnd, move |_| {
                     dragging.set(None);
@@ -888,7 +891,7 @@ fn editor_tab_header(
                 })
                 .on_event(EventListener::Drop, move |event| {
                     if let Some((from_index, from_editor_tab_id)) =
-                        dragging.get_untracked()
+                        dragging.get_untracked().map(|x| x.data())
                     {
                         drag_over_left.set(None);
                         if let Event::PointerUp(pointer_event) = event {
@@ -899,7 +902,7 @@ fn editor_tab_header(
                             main_split.move_editor_tab_child(
                                 from_editor_tab_id,
                                 editor_tab_id,
-                                from_index.get_untracked(),
+                                from_index,
                                 new_index,
                             );
                         }
@@ -976,6 +979,7 @@ fn editor_tab_header(
                 .debug_name("Active Tab Indicator"),
         ))
         .on_resize(move |rect| {
+            info!("on_resize {rect:?}");
             layout_rect.set(rect);
         })
         .style(move |s| {
@@ -1066,8 +1070,7 @@ fn editor_tab_header(
             .ensure_visible(move || {
                 let active = editor_tab_active.get();
                 editor_tab
-                    .with_untracked(|editor_tab| editor_tab.children[active].1)
-                    .get_untracked()
+                    .with_untracked(|editor_tab| editor_tab.children[active].layout_tracing())
             })
             .scroll_style(|s| s.hide_bars(true))
             .style(|s| {
@@ -1077,7 +1080,7 @@ fn editor_tab_header(
             }),
         )
         .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.).min_width(10.))
-        .debug_name("Tab scroll"),
+        .debug_name("editor_tab_header scroll"),
         stack({
             let size = create_rw_signal(Size::ZERO);
             (
@@ -1111,7 +1114,7 @@ fn editor_tab_header(
                         || LapceIcons::SPLIT_HORIZONTAL,
                         move || {
                             let editor_tab_id =
-                                editor_tab.with_untracked(|t| t.editor_tab_id);
+                                editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                             internal_command.send(InternalCommand::Split {
                                 direction: SplitDirection::Vertical,
                                 editor_tab_id,
@@ -1127,7 +1130,7 @@ fn editor_tab_header(
                         || LapceIcons::CLOSE,
                         move || {
                             let editor_tab_id =
-                                editor_tab.with_untracked(|t| t.editor_tab_id);
+                                editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                             internal_command.send(InternalCommand::EditorTabClose {
                                 editor_tab_id,
                             });
@@ -1172,8 +1175,8 @@ fn editor_tab_header(
 fn editor_tab_content(
     window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
-    active_editor_tab: ReadSignal<Option<EditorTabId>>,
-    editor_tab: RwSignal<EditorTabData>,
+    active_editor_tab: ReadSignal<Option<EditorTabManageId>>,
+    editor_tab: RwSignal<EditorTabManageData>,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
     let common = main_split.common.clone();
@@ -1187,13 +1190,13 @@ fn editor_tab_content(
             .get()
             .children
             .into_iter()
-            .map(|(_, _, child)| child)
+            .map(|child| child.id().clone())
     };
-    let key = |child: &EditorTabChild| child.id();
+    let key = |child: &EditorTabChildId| child.id();
     let view_fn = move |child| {
         let common = common.clone();
         let child = match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 if let Some(editor_data) = editors.editor_untracked(editor_id) {
                     let editor_scope = editor_data.scope;
                     let editor_tab_id = editor_data.editor_tab_id;
@@ -1232,7 +1235,7 @@ fn editor_tab_content(
                     text("empty editor").into_any()
                 }
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let diff_editor_data = diff_editors.with_untracked(|diff_editors| {
                     diff_editors.get(&diff_editor_id).cloned()
                 });
@@ -1347,14 +1350,14 @@ fn editor_tab_content(
                     text("empty diff editor").into_any()
                 }
             },
-            EditorTabChild::Settings(_) => {
+            EditorTabChildId::Settings(_) => {
                 settings_view(plugin.installed, editors, common).into_any()
             },
-            EditorTabChild::ThemeColorSettings(_) => {
+            EditorTabChildId::ThemeColorSettings(_) => {
                 theme_color_settings_view(editors, common).into_any()
             },
-            EditorTabChild::Keymap(_) => keymap_view(editors, common).into_any(),
-            EditorTabChild::Volt(_, id) => {
+            EditorTabChildId::Keymap(_) => keymap_view(editors, common).into_any(),
+            EditorTabChildId::Volt(_, id) => {
                 plugin_info_view(plugin.clone(), id).into_any()
             },
         };
@@ -1379,15 +1382,15 @@ enum DragOverPosition {
 fn editor_tab(
     window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
-    active_editor_tab: ReadSignal<Option<EditorTabId>>,
-    editor_tab: RwSignal<EditorTabData>,
-    dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>>,
+    active_editor_tab: ReadSignal<Option<EditorTabManageId>>,
+    editor_tab: RwSignal<EditorTabManageData>,
+    dragging: RwSignal<Option<EditorTabDraging>>,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
     let common = main_split.common.clone();
     let editor_tabs = main_split.editor_tabs;
     let editor_tab_id =
-        editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+        editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
     let config = common.config;
     let focus = common.focus;
     let internal_command = main_split.common.internal_command;
@@ -1491,14 +1494,14 @@ fn editor_tab(
                 })
                 .on_event(EventListener::Drop, move |_| {
                     if let Some((from_index, from_editor_tab_id)) =
-                        dragging.get_untracked()
+                        dragging.get_untracked().map(|x| x.data())
                     {
                         if let Some(pos) = drag_over.get_untracked() {
                             match pos {
                                 DragOverPosition::Top => {
                                     main_split.move_editor_tab_child_to_new_split(
                                         from_editor_tab_id,
-                                        from_index.get_untracked(),
+                                        from_index,
                                         editor_tab_id,
                                         SplitMoveDirection::Up,
                                     );
@@ -1506,7 +1509,7 @@ fn editor_tab(
                                 DragOverPosition::Bottom => {
                                     main_split.move_editor_tab_child_to_new_split(
                                         from_editor_tab_id,
-                                        from_index.get_untracked(),
+                                        from_index,
                                         editor_tab_id,
                                         SplitMoveDirection::Down,
                                     );
@@ -1514,7 +1517,7 @@ fn editor_tab(
                                 DragOverPosition::Left => {
                                     main_split.move_editor_tab_child_to_new_split(
                                         from_editor_tab_id,
-                                        from_index.get_untracked(),
+                                        from_index,
                                         editor_tab_id,
                                         SplitMoveDirection::Left,
                                     );
@@ -1522,7 +1525,7 @@ fn editor_tab(
                                 DragOverPosition::Right => {
                                     main_split.move_editor_tab_child_to_new_split(
                                         from_editor_tab_id,
-                                        from_index.get_untracked(),
+                                        from_index,
                                         editor_tab_id,
                                         SplitMoveDirection::Right,
                                     );
@@ -1531,7 +1534,7 @@ fn editor_tab(
                                     main_split.move_editor_tab_child(
                                         from_editor_tab_id,
                                         editor_tab_id,
-                                        from_index.get_untracked(),
+                                        from_index,
                                         editor_tab.with_untracked(|editor_tab| {
                                             editor_tab.active + 1
                                         }),
@@ -1557,7 +1560,7 @@ fn editor_tab(
         if focus.get_untracked() != Focus::Workbench {
             focus.set(Focus::Workbench);
         }
-        let editor_tab_id = editor_tab.with_untracked(|t| t.editor_tab_id);
+        let editor_tab_id = editor_tab.with_untracked(|t| t.editor_tab_manage_id);
         internal_command.send(InternalCommand::FocusEditorTab { editor_tab_id });
     })
     .on_cleanup(move || {
@@ -1576,7 +1579,7 @@ fn editor_tab(
 
 fn split_resize_border(
     splits: ReadSignal<im::HashMap<SplitId, RwSignal<SplitData>>>,
-    editor_tabs: ReadSignal<im::HashMap<EditorTabId, RwSignal<EditorTabData>>>,
+    editor_tabs: ReadSignal<im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>>,
     split: ReadSignal<SplitData>,
     config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
@@ -1760,7 +1763,7 @@ fn split_resize_border(
 
 fn split_border(
     splits: ReadSignal<im::HashMap<SplitId, RwSignal<SplitData>>>,
-    editor_tabs: ReadSignal<im::HashMap<EditorTabId, RwSignal<EditorTabData>>>,
+    editor_tabs: ReadSignal<im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>>,
     split: ReadSignal<SplitData>,
     config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
@@ -1834,7 +1837,7 @@ fn split_list(
     split: ReadSignal<SplitData>,
     window_tab_data: WindowWorkspaceData,
     plugin: PluginData,
-    dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>>,
+    dragging: RwSignal<Option<EditorTabDraging>>,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
     let editor_tabs = main_split.editor_tabs.read_only();
@@ -1968,7 +1971,7 @@ fn main_split(window_tab_data: WindowWorkspaceData) -> impl View {
     let config = window_tab_data.main_split.common.config;
     // let panel = window_tab_data.panel.clone();
     let plugin = window_tab_data.plugin.clone();
-    let dragging: RwSignal<Option<(RwSignal<usize>, EditorTabId)>> =
+    let dragging: RwSignal<Option<EditorTabDraging>> =
         create_rw_signal(None);
     split_list(
         root_split,
@@ -4310,8 +4313,8 @@ pub fn window_menu(
 }
 fn tab_secondary_click(
     internal_command: Listener<InternalCommand>,
-    editor_tab_id: EditorTabId,
-    child: EditorTabChild,
+    editor_tab_id: EditorTabManageId,
+    child: EditorTabChildId,
 ) {
     let mut menu = Menu::new("");
     let child_other = child.clone();

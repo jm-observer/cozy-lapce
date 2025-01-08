@@ -728,7 +728,7 @@ impl Doc {
 
     fn on_update(&self, edits: Option<SmallVec<[SyntaxEdit; 3]>>) {
         if self.content.get_untracked().is_local() {
-            log::debug!("on_update cancle because doc is local");
+            debug!("on_update cancle because doc is local");
             batch(|| {
                 self.clear_text_cache();
                 // self.lines.update(|x| x.on_update_buffer());

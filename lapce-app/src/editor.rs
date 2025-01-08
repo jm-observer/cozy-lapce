@@ -63,8 +63,8 @@ use crate::{
         editor::{do_motion_mode, Editor},
         movement::{do_multi_selection, move_cursor},
     },
-    editor_tab::EditorTabChild,
-    id::{DiffEditorId, EditorTabId},
+    editor_tab::EditorTabChildId,
+    id::{DiffEditorId, EditorTabManageId},
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
     keypress::{condition::Condition, KeyPressFocus},
     lsp::path_from_url,
@@ -108,7 +108,7 @@ impl EditorInfo {
     pub fn to_data(
         &self,
         data: MainSplitData,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     ) -> EditorId {
         let editors = &data.editors;
         let common = data.common.clone();
@@ -209,8 +209,8 @@ pub type SnippetIndex = Vec<(usize, (usize, usize))>;
 #[derive(Clone, Debug)]
 pub struct EditorData {
     pub scope: Scope,
-    pub editor_tab_id: RwSignal<Option<EditorTabId>>,
-    pub diff_editor_id: RwSignal<Option<(EditorTabId, DiffEditorId)>>,
+    pub editor_tab_id: RwSignal<Option<EditorTabManageId>>,
+    pub diff_editor_id: RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
     pub confirmed: RwSignal<bool>,
     pub snippet: RwSignal<Option<SnippetIndex>>,
     pub inline_find: RwSignal<Option<InlineFindDirection>>,
@@ -235,8 +235,8 @@ impl EditorData {
     fn new(
         cx: Scope,
         editor: Editor,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
         common: Rc<CommonData>,
     ) -> Self {
@@ -307,8 +307,8 @@ impl EditorData {
     pub fn new_doc(
         cx: Scope,
         doc: Rc<Doc>,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
         common: Rc<CommonData>,
     ) -> Self {
@@ -325,8 +325,8 @@ impl EditorData {
     pub fn copy(
         &self,
         cx: Scope,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
     ) -> Self {
         let cx = cx.create_child();
@@ -943,7 +943,7 @@ impl EditorData {
                     self.common.internal_command.send(
                         InternalCommand::EditorTabChildClose {
                             editor_tab_id,
-                            child: EditorTabChild::Editor(self.id()),
+                            child: EditorTabChildId::Editor(self.id()),
                         },
                     );
                 } else if let Some((editor_tab_id, diff_editor_id)) =
@@ -952,7 +952,7 @@ impl EditorData {
                     self.common.internal_command.send(
                         InternalCommand::EditorTabChildClose {
                             editor_tab_id,
-                            child: EditorTabChild::DiffEditor(diff_editor_id),
+                            child: EditorTabChildId::DiffEditor(diff_editor_id),
                         },
                     );
                 } else {

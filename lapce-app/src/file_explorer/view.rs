@@ -27,7 +27,7 @@ use crate::{
     app::clickable_icon,
     command::InternalCommand,
     config::{color::LapceColor, icon::LapceIcons, LapceConfig},
-    editor_tab::{EditorTabChild, EditorTabData},
+    editor_tab::{EditorTabChildId, EditorTabManageData},
     panel::{
         data::PanelSection, kind::PanelKind, position::PanelContainerPosition,
         view::PanelBuilder,
@@ -518,11 +518,11 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
     let plugin = window_tab_data.plugin.clone();
 
     let child_view = move |plugin: PluginData,
-                           editor_tab: RwSignal<EditorTabData>,
-                           child_index: RwSignal<usize>,
-                           child: EditorTabChild| {
+                           editor_tab: RwSignal<EditorTabManageData>,
+                           child_index: ReadSignal<usize>,
+                           child: EditorTabChildId| {
         let editor_tab_id =
-            editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+            editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
         let child_for_close = child.clone();
         let info = child.view_info(editors, diff_editors, plugin, config);
         let hovered = create_rw_signal(false);
@@ -538,7 +538,7 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                 },
                 move || {
                     let editor_tab_id =
-                        editor_tab.with_untracked(|t| t.editor_tab_id);
+                        editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                     internal_command.send(InternalCommand::EditorTabChildClose {
                         editor_tab_id,
                         child: child_for_close.clone(),
@@ -612,13 +612,15 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                         .style(|s| s.margin_left(10.0)),
                     dyn_stack(
                         move || editor_tab.get().children,
-                        move |(_, _, child)| child.id(),
-                        move |(child_index, _, child)| {
+                        move |child| child.id().id(),
+                        move |child| {
+                            let child_index = child.read_index();
+                            let child_id = child.id().clone();
                             child_view(
                                 plugin.clone(),
                                 editor_tab,
                                 child_index,
-                                child,
+                                child_id,
                             )
                         },
                     )

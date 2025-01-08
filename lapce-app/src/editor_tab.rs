@@ -15,6 +15,7 @@ use floem::{
     },
     views::editor::id::EditorId,
 };
+use floem::reactive::WriteSignal;
 use lapce_rpc::plugin::VoltID;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +28,7 @@ use crate::{
         EditorData, EditorInfo,
     },
     id::{
-        DiffEditorId, EditorTabId, KeymapId, SettingsId, SplitId,
+        DiffEditorId, EditorTabManageId, KeymapId, SettingsId, SplitId,
         ThemeColorSettingsId, VoltViewId,
     },
     main_split::{Editors, MainSplitData},
@@ -49,26 +50,26 @@ impl EditorTabChildInfo {
     pub fn to_data(
         &self,
         data: MainSplitData,
-        editor_tab_id: EditorTabId,
-    ) -> EditorTabChild {
+        editor_tab_id: EditorTabManageId,
+    ) -> EditorTabChildId {
         match &self {
             EditorTabChildInfo::Editor(editor_info) => {
                 let editor_id = editor_info.to_data(data, editor_tab_id);
-                EditorTabChild::Editor(editor_id)
+                EditorTabChildId::Editor(editor_id)
             },
             EditorTabChildInfo::DiffEditor(diff_editor_info) => {
                 let diff_editor_data = diff_editor_info.to_data(data, editor_tab_id);
-                EditorTabChild::DiffEditor(diff_editor_data.id)
+                EditorTabChildId::DiffEditor(diff_editor_data.id)
             },
             EditorTabChildInfo::Settings => {
-                EditorTabChild::Settings(SettingsId::next())
+                EditorTabChildId::Settings(SettingsId::next())
             },
             EditorTabChildInfo::ThemeColorSettings => {
-                EditorTabChild::ThemeColorSettings(ThemeColorSettingsId::next())
+                EditorTabChildId::ThemeColorSettings(ThemeColorSettingsId::next())
             },
-            EditorTabChildInfo::Keymap => EditorTabChild::Keymap(KeymapId::next()),
+            EditorTabChildInfo::Keymap => EditorTabChildId::Keymap(KeymapId::next()),
             EditorTabChildInfo::Volt(id) => {
-                EditorTabChild::Volt(VoltViewId::next(), id.to_owned())
+                EditorTabChildId::Volt(VoltViewId::next(), id.to_owned())
             },
         }
     }
@@ -86,20 +87,20 @@ impl EditorTabInfo {
         &self,
         data: MainSplitData,
         split: SplitId,
-    ) -> RwSignal<EditorTabData> {
-        let editor_tab_id = EditorTabId::next();
+    ) -> RwSignal<EditorTabManageData> {
+        let editor_tab_id = EditorTabManageId::next();
         let editor_tab_data = {
             let cx = data.scope.create_child();
-            let editor_tab_data = EditorTabData {
+            let editor_tab_data = EditorTabManageData {
                 scope: cx,
-                editor_tab_id,
+                editor_tab_manage_id: editor_tab_id,
                 split,
                 active: self.active,
                 children: self
                     .children
                     .iter()
                     .map(|child| {
-                        (
+                        EditorTabChildSimple::new(
                             cx.create_rw_signal(0),
                             cx.create_rw_signal(Rect::ZERO),
                             child.to_data(data.clone(), editor_tab_id),
@@ -134,7 +135,7 @@ pub enum EditorTabChildSource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EditorTabChild {
+pub enum EditorTabChildId {
     Editor(EditorId),
     DiffEditor(DiffEditorId),
     Settings(SettingsId),
@@ -153,25 +154,25 @@ pub struct EditorTabChildViewInfo {
     pub is_pristine: bool,
 }
 
-impl EditorTabChild {
+impl EditorTabChildId {
     pub fn id(&self) -> u64 {
         match self {
-            EditorTabChild::Editor(id) => id.to_raw(),
-            EditorTabChild::DiffEditor(id) => id.to_raw(),
-            EditorTabChild::Settings(id) => id.to_raw(),
-            EditorTabChild::ThemeColorSettings(id) => id.to_raw(),
-            EditorTabChild::Keymap(id) => id.to_raw(),
-            EditorTabChild::Volt(id, _) => id.to_raw(),
+            EditorTabChildId::Editor(id) => id.to_raw(),
+            EditorTabChildId::DiffEditor(id) => id.to_raw(),
+            EditorTabChildId::Settings(id) => id.to_raw(),
+            EditorTabChildId::ThemeColorSettings(id) => id.to_raw(),
+            EditorTabChildId::Keymap(id) => id.to_raw(),
+            EditorTabChildId::Volt(id, _) => id.to_raw(),
         }
     }
 
     pub fn is_settings(&self) -> bool {
-        matches!(self, EditorTabChild::Settings(_))
+        matches!(self, EditorTabChildId::Settings(_))
     }
 
     pub fn child_info(&self, data: &WindowWorkspaceData) -> EditorTabChildInfo {
         match &self {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 let editor_data = data
                     .main_split
                     .editors
@@ -179,7 +180,7 @@ impl EditorTabChild {
                     .unwrap();
                 EditorTabChildInfo::Editor(editor_data.editor_info(data))
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let diff_editor_data = data
                     .main_split
                     .diff_editors
@@ -189,12 +190,12 @@ impl EditorTabChild {
                     .unwrap();
                 EditorTabChildInfo::DiffEditor(diff_editor_data.diff_editor_info())
             },
-            EditorTabChild::Settings(_) => EditorTabChildInfo::Settings,
-            EditorTabChild::ThemeColorSettings(_) => {
+            EditorTabChildId::Settings(_) => EditorTabChildInfo::Settings,
+            EditorTabChildId::ThemeColorSettings(_) => {
                 EditorTabChildInfo::ThemeColorSettings
             },
-            EditorTabChild::Keymap(_) => EditorTabChildInfo::Keymap,
-            EditorTabChild::Volt(_, id) => EditorTabChildInfo::Volt(id.to_owned()),
+            EditorTabChildId::Keymap(_) => EditorTabChildInfo::Keymap,
+            EditorTabChildId::Volt(_, id) => EditorTabChildInfo::Volt(id.to_owned()),
         }
     }
 
@@ -206,7 +207,7 @@ impl EditorTabChild {
         config: ReadSignal<Arc<LapceConfig>>,
     ) -> Memo<EditorTabChildViewInfo> {
         match self.clone() {
-            EditorTabChild::Editor(editor_id) => create_memo(move |_| {
+            EditorTabChildId::Editor(editor_id) => create_memo(move |_| {
                 let config = config.get();
                 let editor_data = editors.editor(editor_id);
                 let path = if let Some(editor_data) = editor_data {
@@ -259,7 +260,7 @@ impl EditorTabChild {
                     is_pristine,
                 }
             }),
-            EditorTabChild::DiffEditor(diff_editor_id) => create_memo(move |_| {
+            EditorTabChildId::DiffEditor(diff_editor_id) => create_memo(move |_| {
                 let config = config.get();
                 let diff_editor_data = diff_editors
                     .with(|diff_editors| diff_editors.get(&diff_editor_id).cloned());
@@ -341,7 +342,7 @@ impl EditorTabChild {
                     is_pristine,
                 }
             }),
-            EditorTabChild::Settings(_) => create_memo(move |_| {
+            EditorTabChildId::Settings(_) => create_memo(move |_| {
                 let config = config.get();
                 EditorTabChildViewInfo {
                     icon: config.ui_svg(LapceIcons::SETTINGS),
@@ -352,7 +353,7 @@ impl EditorTabChild {
                     is_pristine: true,
                 }
             }),
-            EditorTabChild::ThemeColorSettings(_) => create_memo(move |_| {
+            EditorTabChildId::ThemeColorSettings(_) => create_memo(move |_| {
                 let config = config.get();
                 EditorTabChildViewInfo {
                     icon: config.ui_svg(LapceIcons::SYMBOL_COLOR),
@@ -363,7 +364,7 @@ impl EditorTabChild {
                     is_pristine: true,
                 }
             }),
-            EditorTabChild::Keymap(_) => create_memo(move |_| {
+            EditorTabChildId::Keymap(_) => create_memo(move |_| {
                 let config = config.get();
                 EditorTabChildViewInfo {
                     icon: config.ui_svg(LapceIcons::KEYBOARD),
@@ -374,7 +375,7 @@ impl EditorTabChild {
                     is_pristine: true,
                 }
             }),
-            EditorTabChild::Volt(_, id) => create_memo(move |_| {
+            EditorTabChildId::Volt(_, id) => create_memo(move |_| {
                 let config = config.get();
                 let display_name = plugin
                     .installed
@@ -401,28 +402,86 @@ impl EditorTabChild {
         }
     }
 }
+#[derive(Clone, Debug,)]
+pub struct EditorTabChildSimple {
+    index: RwSignal<usize>,
+    position: RwSignal<Rect>,
+    id: EditorTabChildId
+}
+
+impl EditorTabChildSimple {
+    pub fn new(index: RwSignal<usize>,
+               position: RwSignal<Rect>,
+               id: EditorTabChildId) -> Self {
+        Self {
+            index, position, id
+        }
+    }
+    pub fn update_index_with_judgment(&self, index: usize, ) {
+        if self.index.get_untracked() != index {
+            self.index.set(index);
+        }
+    }
+
+    pub fn layout_untracted(&self, ) -> Rect {
+        self.position.get_untracked()
+    }
+
+    pub fn layout_tracing(&self, ) -> Rect {
+        self.position.get()
+    }
+
+    pub fn write_layout(&self) -> WriteSignal<Rect> {
+        self.position.write_only()
+    }
+
+    pub fn read_index(&self, ) -> ReadSignal<usize> {
+        self.index.read_only()
+    }
+    pub fn id(&self) -> &EditorTabChildId {
+        &self.id
+    }
+}
 
 #[derive(Clone)]
-pub struct EditorTabData {
+pub struct EditorTabDraging {
+    editor_tab_child_index: ReadSignal<usize>,
+    editor_tab_manage_id: EditorTabManageId,
+}
+
+impl EditorTabDraging {
+    pub fn new(editor_tab_child_index: ReadSignal<usize>,
+               editor_tab_manage_id: EditorTabManageId) -> Self {
+        Self {
+            editor_tab_child_index, editor_tab_manage_id
+        }
+    }
+    pub fn data(&self) -> (usize, EditorTabManageId) {
+        (self.editor_tab_child_index.get_untracked(), self.editor_tab_manage_id)
+    }
+}
+
+#[derive(Clone)]
+pub struct EditorTabManageData {
     pub scope: Scope,
     pub split: SplitId,
-    pub editor_tab_id: EditorTabId,
+    pub editor_tab_manage_id: EditorTabManageId,
     pub active: usize,
-    pub children: Vec<(RwSignal<usize>, RwSignal<Rect>, EditorTabChild)>,
+    pub children: Vec<EditorTabChildSimple>,
     pub window_origin: Point,
     pub layout_rect: Rect,
     pub locations: RwSignal<im::Vector<EditorLocation>>,
     pub current_location: RwSignal<usize>,
 }
 
-impl EditorTabData {
+impl EditorTabManageData {
     pub fn get_editor(
         &self,
         editors: Editors,
         path: &Path,
     ) -> Option<(usize, EditorData)> {
         for (i, child) in self.children.iter().enumerate() {
-            if let (_, _, EditorTabChild::Editor(editor_id)) = child {
+            if let  EditorTabChildId::Editor(editor_id) = child.id() {
                 if let Some(editor) = editors.editor_untracked(*editor_id) {
                     let is_path = editor.doc().content.with_untracked(|content| {
                         if let DocContent::File { path: p, .. } = content {
@@ -444,22 +503,22 @@ impl EditorTabData {
         &self,
         editors: Editors,
         diff_editors: &im::HashMap<EditorId, DiffEditorData>,
-    ) -> Option<(usize, EditorTabChild)> {
-        for (i, (_, _, child)) in self.children.iter().enumerate() {
-            match child {
-                EditorTabChild::Editor(editor_id) => {
+    ) -> Option<(usize, EditorTabChildId)> {
+        for (i, child) in self.children.iter().enumerate() {
+            match child.id() {
+                EditorTabChildId::Editor(editor_id) => {
                     if let Some(editor) = editors.editor_untracked(*editor_id) {
                         let confirmed = editor.confirmed.get_untracked();
                         if !confirmed {
-                            return Some((i, child.clone()));
+                            return Some((i, child.id().clone()));
                         }
                     }
                 },
-                EditorTabChild::DiffEditor(diff_editor_id) => {
+                EditorTabChildId::DiffEditor(diff_editor_id) => {
                     if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
                         let confirmed = diff_editor.confirmed.get_untracked();
                         if !confirmed {
-                            return Some((i, child.clone()));
+                            return Some((i, child.id().clone()));
                         }
                     }
                 },
@@ -473,11 +532,11 @@ impl EditorTabData {
         let info = EditorTabInfo {
             active: self.active,
             is_focus: data.main_split.active_editor_tab.get_untracked()
-                == Some(self.editor_tab_id),
+                == Some(self.editor_tab_manage_id),
             children: self
                 .children
                 .iter()
-                .map(|(_, _, child)| child.child_info(data))
+                .map(|child| child.id().child_info(data))
                 .collect(),
         };
         info

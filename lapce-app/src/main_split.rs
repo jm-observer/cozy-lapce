@@ -51,10 +51,10 @@ use crate::{
         EditorData,
     },
     editor_tab::{
-        EditorTabChild, EditorTabChildSource, EditorTabData, EditorTabInfo,
+        EditorTabChildId, EditorTabChildSource, EditorTabManageData, EditorTabInfo,
     },
     id::{
-        DiffEditorId, EditorTabId, KeymapId, SettingsId, SplitId,
+        DiffEditorId, EditorTabManageId, KeymapId, SettingsId, SplitId,
         ThemeColorSettingsId, VoltViewId,
     },
     keypress::{EventRef, KeyPressData, KeyPressHandle},
@@ -63,6 +63,7 @@ use crate::{
     },
     window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
+use crate::editor_tab::EditorTabChildSimple;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SplitDirection {
@@ -93,7 +94,7 @@ impl SplitMoveDirection {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SplitContent {
-    EditorTab(EditorTabId),
+    EditorTab(EditorTabManageId),
     Split(SplitId),
 }
 
@@ -202,7 +203,7 @@ impl SplitContentInfo {
             SplitContentInfo::EditorTab(tab_info) => {
                 let tab_data = tab_info.to_data(data, parent_split);
                 SplitContent::EditorTab(
-                    tab_data.with_untracked(|tab_data| tab_data.editor_tab_id),
+                    tab_data.with_untracked(|tab_data| tab_data.editor_tab_manage_id),
                 )
             },
             SplitContentInfo::Split(split_info) => {
@@ -227,7 +228,7 @@ impl SplitData {
         info
     }
 
-    pub fn editor_tab_index(&self, editor_tab_id: EditorTabId) -> Option<usize> {
+    pub fn editor_tab_index(&self, editor_tab_id: EditorTabManageId) -> Option<usize> {
         self.children
             .iter()
             .position(|(_, c)| c == &SplitContent::EditorTab(editor_tab_id))
@@ -299,8 +300,8 @@ impl Editors {
         &self,
         cx: Scope,
         doc: Rc<Doc>,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
         common: Rc<CommonData>,
     ) -> EditorId {
@@ -322,8 +323,8 @@ impl Editors {
         &self,
         cx: Scope,
         doc: Rc<Doc>,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
         common: Rc<CommonData>,
     ) -> EditorData {
@@ -343,8 +344,8 @@ impl Editors {
         &self,
         editor_id: EditorId,
         cx: Scope,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
     ) -> Option<EditorId> {
         let editor = self.editor_untracked(editor_id)?;
@@ -357,8 +358,8 @@ impl Editors {
         &self,
         editor_id: EditorId,
         cx: Scope,
-        editor_tab_id: Option<EditorTabId>,
-        diff_editor_id: Option<(EditorTabId, DiffEditorId)>,
+        editor_tab_id: Option<EditorTabManageId>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
     ) -> Option<EditorData> {
         let editor_id =
@@ -420,9 +421,9 @@ impl Editors {
 pub struct MainSplitData {
     pub scope: Scope,
     pub root_split: SplitId,
-    pub active_editor_tab: RwSignal<Option<EditorTabId>>,
+    pub active_editor_tab: RwSignal<Option<EditorTabManageId>>,
     pub splits: RwSignal<im::HashMap<SplitId, RwSignal<SplitData>>>,
-    pub editor_tabs: RwSignal<im::HashMap<EditorTabId, RwSignal<EditorTabData>>>,
+    pub editor_tabs: RwSignal<im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>>,
     pub editors: Editors,
     pub diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>>,
     pub docs: RwSignal<im::HashMap<PathBuf, Rc<Doc>>>,
@@ -454,7 +455,7 @@ impl MainSplitData {
         let splits = cx.create_rw_signal(im::HashMap::new());
         let active_editor_tab = cx.create_rw_signal(None);
         let editor_tabs: RwSignal<
-            im::HashMap<EditorTabId, RwSignal<EditorTabData>>,
+            im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>,
         > = cx.create_rw_signal(im::HashMap::new());
         let editors = Editors::new(cx);
         let diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>> =
@@ -475,13 +476,13 @@ impl MainSplitData {
             let active_editor_tab = active_editor_tab.get()?;
             let editor_tab = editor_tabs
                 .with(|editor_tabs| editor_tabs.get(&active_editor_tab).copied())?;
-            let (_, _, child) = editor_tab.with(|editor_tab| {
-                editor_tab.children.get(editor_tab.active).cloned()
+            let child = editor_tab.with(|editor_tab| {
+                editor_tab.children.get(editor_tab.active).map(|x| x.id().clone())
             })?;
 
             let editor = match child {
-                EditorTabChild::Editor(editor_id) => editors.editor(editor_id)?,
-                EditorTabChild::DiffEditor(diff_editor_id) => {
+                EditorTabChildId::Editor(editor_id) => editors.editor(editor_id)?,
+                EditorTabChildId::DiffEditor(diff_editor_id) => {
                     let diff_editor = diff_editors.with(|diff_editors| {
                         diff_editors.get(&diff_editor_id).cloned()
                     })?;
@@ -543,17 +544,17 @@ impl MainSplitData {
         let editor_tab = self.editor_tabs.with_untracked(|editor_tabs| {
             editor_tabs.get(&active_editor_tab).copied()
         })?;
-        let (_, _, child) = editor_tab.with_untracked(|editor_tab| {
-            editor_tab.children.get(editor_tab.active).cloned()
+        let child = editor_tab.with_untracked(|editor_tab| {
+            editor_tab.children.get(editor_tab.active).map(|x| x.id().clone())
         })?;
         match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 let editor = self.editors.editor_untracked(editor_id)?;
                 let handle = keypress.key_down(event, &editor);
                 editor.get_code_actions();
                 Some(handle)
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let diff_editor =
                     self.diff_editors.with_untracked(|diff_editors| {
                         diff_editors.get(&diff_editor_id).cloned()
@@ -567,10 +568,10 @@ impl MainSplitData {
                 editor.get_code_actions();
                 Some(handle)
             },
-            EditorTabChild::Settings(_) => None,
-            EditorTabChild::ThemeColorSettings(_) => None,
-            EditorTabChild::Keymap(_) => None,
-            EditorTabChild::Volt(_, _) => None,
+            EditorTabChildId::Settings(_) => None,
+            EditorTabChildId::ThemeColorSettings(_) => None,
+            EditorTabChildId::Keymap(_) => None,
+            EditorTabChildId::Volt(_, _) => None,
         }
     }
 
@@ -773,7 +774,7 @@ impl MainSplitData {
             location.ignore_unconfirmed,
             location.same_editor_tab,
         );
-        if let EditorTabChild::Editor(editor_id) = child {
+        if let EditorTabChildId::Editor(editor_id) = child {
             if let Some(editor) = self.editors.editor_untracked(editor_id) {
                 batch(|| {
                     editor.offset_line_from_top.set(Some(off_top_line));
@@ -830,16 +831,16 @@ impl MainSplitData {
 
     fn new_editor_tab(
         &self,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
         split_id: SplitId,
-    ) -> RwSignal<EditorTabData> {
+    ) -> RwSignal<EditorTabManageData> {
         let editor_tab = {
             let cx = self.scope.create_child();
-            let editor_tab = EditorTabData {
+            let editor_tab = EditorTabManageData {
                 scope: cx,
                 split: split_id,
                 active: 0,
-                editor_tab_id,
+                editor_tab_manage_id: editor_tab_id,
                 children: vec![],
                 window_origin: Point::ZERO,
                 layout_rect: Rect::ZERO,
@@ -859,7 +860,7 @@ impl MainSplitData {
         source: EditorTabChildSource,
         ignore_unconfirmed: bool,
         same_editor_tab: bool,
-    ) -> EditorTabChild {
+    ) -> EditorTabChildId {
         let config = self.common.config.get_untracked();
 
         let active_editor_tab_id = self.active_editor_tab.get_untracked();
@@ -874,7 +875,7 @@ impl MainSplitData {
         let active_editor_tab = if let Some(editor_tab) = active_editor_tab {
             editor_tab
         } else if editor_tabs.is_empty() {
-            let editor_tab_id = EditorTabId::next();
+            let editor_tab_id = EditorTabManageId::next();
             let editor_tab = self.new_editor_tab(editor_tab_id, self.root_split);
             let root_split = self.splits.with_untracked(|splits| {
                 splits.get(&self.root_split).cloned().unwrap()
@@ -908,9 +909,9 @@ impl MainSplitData {
 
         let selected = if !config.editor.show_tab {
             active_editor_tab.with_untracked(|editor_tab| {
-                for (i, (_, _, child)) in editor_tab.children.iter().enumerate() {
-                    let can_be_selected = match child {
-                        EditorTabChild::Editor(editor_id) => {
+                for (i, child) in editor_tab.children.iter().enumerate() {
+                    let can_be_selected = match child.id() {
+                        EditorTabChildId::Editor(editor_id) => {
                             if let Some(editor) =
                                 editors.editor_untracked(*editor_id)
                             {
@@ -939,7 +940,7 @@ impl MainSplitData {
                                 false
                             }
                         },
-                        EditorTabChild::DiffEditor(diff_editor_id) => {
+                        EditorTabChildId::DiffEditor(diff_editor_id) => {
                             if let EditorTabChildSource::DiffEditor { left, right } =
                                 &source
                             {
@@ -958,10 +959,10 @@ impl MainSplitData {
                                 false
                             }
                         },
-                        EditorTabChild::Settings(_) => true,
-                        EditorTabChild::ThemeColorSettings(_) => true,
-                        EditorTabChild::Keymap(_) => true,
-                        EditorTabChild::Volt(_, _) => true,
+                        EditorTabChildId::Settings(_) => true,
+                        EditorTabChildId::ThemeColorSettings(_) => true,
+                        EditorTabChildId::Keymap(_) => true,
+                        EditorTabChildId::Volt(_, _) => true,
                     };
 
                     if can_be_selected {
@@ -993,9 +994,9 @@ impl MainSplitData {
                 EditorTabChildSource::DiffEditor { left, right } => {
                     if let Some(index) =
                         active_editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children.iter().position(|(_, _, child)| {
-                                if let EditorTabChild::DiffEditor(diff_editor_id) =
-                                    child
+                            editor_tab.children.iter().position(|child| {
+                                if let EditorTabChildId::DiffEditor(diff_editor_id) =
+                                    child.id()
                                 {
                                     is_same_diff_editor(diff_editor_id, left, right)
                                 } else {
@@ -1035,8 +1036,8 @@ impl MainSplitData {
                 EditorTabChildSource::Settings => {
                     if let Some(index) =
                         active_editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children.iter().position(|(_, _, child)| {
-                                matches!(child, EditorTabChild::Settings(_))
+                            editor_tab.children.iter().position(|child| {
+                                matches!(child.id(), EditorTabChildId::Settings(_))
                             })
                         })
                     {
@@ -1057,10 +1058,10 @@ impl MainSplitData {
                 EditorTabChildSource::ThemeColorSettings => {
                     if let Some(index) =
                         active_editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children.iter().position(|(_, _, child)| {
+                            editor_tab.children.iter().position(|child| {
                                 matches!(
-                                    child,
-                                    EditorTabChild::ThemeColorSettings(_)
+                                    child.id(),
+                                    EditorTabChildId::ThemeColorSettings(_)
                                 )
                             })
                         })
@@ -1082,8 +1083,8 @@ impl MainSplitData {
                 EditorTabChildSource::Keymap => {
                     if let Some(index) =
                         active_editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children.iter().position(|(_, _, child)| {
-                                matches!(child, EditorTabChild::Keymap(_))
+                            editor_tab.children.iter().position(|child| {
+                                matches!(child.id(), EditorTabChildId::Keymap(_))
                             })
                         })
                     {
@@ -1104,8 +1105,8 @@ impl MainSplitData {
                 EditorTabChildSource::Volt(id) => {
                     if let Some(index) =
                         active_editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children.iter().position(|(_, _, child)| {
-                                if let EditorTabChild::Volt(_, current_id) = child {
+                            editor_tab.children.iter().position(|child| {
+                                if let EditorTabChildId::Volt(_, current_id) = child.id() {
                                     current_id == id
                                 } else {
                                     false
@@ -1131,7 +1132,7 @@ impl MainSplitData {
         };
 
         let new_child_from_source =
-            |editor_tab_id: EditorTabId, source: &EditorTabChildSource| match source
+            |editor_tab_id: EditorTabManageId, source: &EditorTabChildSource| match source
             {
                 EditorTabChildSource::Editor { doc, .. } => {
                     let editor_id = editors.new_from_doc(
@@ -1143,7 +1144,7 @@ impl MainSplitData {
                         self.common.clone(),
                     );
 
-                    EditorTabChild::Editor(editor_id)
+                    EditorTabChildId::Editor(editor_id)
                 },
                 EditorTabChildSource::NewFileEditor => {
                     let name = self.get_name_for_new_file();
@@ -1171,19 +1172,19 @@ impl MainSplitData {
                         self.common.clone(),
                     );
 
-                    EditorTabChild::Editor(editor_id)
+                    EditorTabChildId::Editor(editor_id)
                 },
                 EditorTabChildSource::Settings => {
-                    EditorTabChild::Settings(SettingsId::next())
+                    EditorTabChildId::Settings(SettingsId::next())
                 },
                 EditorTabChildSource::ThemeColorSettings => {
-                    EditorTabChild::ThemeColorSettings(SettingsId::next())
+                    EditorTabChildId::ThemeColorSettings(SettingsId::next())
                 },
                 EditorTabChildSource::Keymap => {
-                    EditorTabChild::Keymap(KeymapId::next())
+                    EditorTabChildId::Keymap(KeymapId::next())
                 },
                 EditorTabChildSource::Volt(id) => {
-                    EditorTabChild::Volt(VoltViewId::next(), id.to_owned())
+                    EditorTabChildId::Volt(VoltViewId::next(), id.to_owned())
                 },
                 EditorTabChildSource::DiffEditor { left, right } => {
                     let diff_editor_id = DiffEditorId::next();
@@ -1199,28 +1200,28 @@ impl MainSplitData {
                     self.diff_editors.update(|diff_editors| {
                         diff_editors.insert(diff_editor_id, diff_editor);
                     });
-                    EditorTabChild::DiffEditor(diff_editor_id)
+                    EditorTabChildId::DiffEditor(diff_editor_id)
                 },
             };
 
         if let Some(selected) = selected {
             let (editor_tab_id, current_child) =
                 active_editor_tab.with_untracked(|editor_tab| {
-                    let editor_tab_id = editor_tab.editor_tab_id;
-                    let (_, _, current_child) = &editor_tab.children[selected];
+                    let editor_tab_id = editor_tab.editor_tab_manage_id;
+                    let current_child = editor_tab.children[selected].id();
                     match current_child {
-                        EditorTabChild::Editor(editor_id) => {
+                        EditorTabChildId::Editor(editor_id) => {
                             if let Some(editor) =
                                 editors.editor_untracked(*editor_id)
                             {
                                 editor.save_doc_position();
                             }
                         },
-                        EditorTabChild::DiffEditor(_) => {},
-                        EditorTabChild::Settings(_) => {},
-                        EditorTabChild::ThemeColorSettings(_) => {},
-                        EditorTabChild::Keymap(_) => {},
-                        EditorTabChild::Volt(_, _) => {},
+                        EditorTabChildId::DiffEditor(_) => {},
+                        EditorTabChildId::Settings(_) => {},
+                        EditorTabChildId::ThemeColorSettings(_) => {},
+                        EditorTabChildId::Keymap(_) => {},
+                        EditorTabChildId::Volt(_, _) => {},
                     }
                     (editor_tab_id, current_child.clone())
                 });
@@ -1229,7 +1230,7 @@ impl MainSplitData {
             // old editor
             let is_same = match (&current_child, &source) {
                 (
-                    EditorTabChild::Editor(editor_id),
+                    EditorTabChildId::Editor(editor_id),
                     EditorTabChildSource::Editor { path, doc },
                 ) => {
                     if let Some(editor) = editors.editor_untracked(*editor_id) {
@@ -1252,7 +1253,7 @@ impl MainSplitData {
                     true
                 },
                 (
-                    EditorTabChild::DiffEditor(diff_editor_id),
+                    EditorTabChildId::DiffEditor(diff_editor_id),
                     EditorTabChildSource::DiffEditor { left, right },
                 ) => {
                     if !is_same_diff_editor(diff_editor_id, left, right) {
@@ -1263,14 +1264,14 @@ impl MainSplitData {
                     }
                     true
                 },
-                (EditorTabChild::Settings(_), EditorTabChildSource::Settings) => {
+                (EditorTabChildId::Settings(_), EditorTabChildSource::Settings) => {
                     true
                 },
                 _ => false,
             };
             if is_same {
-                let (_, _, child) = active_editor_tab.with_untracked(|editor_tab| {
-                    editor_tab.children[selected].clone()
+                let child = active_editor_tab.with_untracked(|editor_tab| {
+                    editor_tab.children[selected].id().clone()
                 });
                 active_editor_tab.update(|editor_tab| {
                     editor_tab.active = selected;
@@ -1280,24 +1281,24 @@ impl MainSplitData {
 
             // We're loading a different kind of child, clean up the old resources
             match &current_child {
-                EditorTabChild::Editor(editor_id) => {
+                EditorTabChildId::Editor(editor_id) => {
                     self.remove_editor(*editor_id);
                 },
-                EditorTabChild::DiffEditor(diff_editor_id) => {
+                EditorTabChildId::DiffEditor(diff_editor_id) => {
                     self.diff_editors.update(|diff_editors| {
                         diff_editors.remove(diff_editor_id);
                     });
                 },
-                EditorTabChild::Settings(_) => {},
-                EditorTabChild::ThemeColorSettings(_) => {},
-                EditorTabChild::Keymap(_) => {},
-                EditorTabChild::Volt(_, _) => {},
+                EditorTabChildId::Settings(_) => {},
+                EditorTabChildId::ThemeColorSettings(_) => {},
+                EditorTabChildId::Keymap(_) => {},
+                EditorTabChildId::Volt(_, _) => {},
             }
 
             // Now loading the new child
             let child = new_child_from_source(editor_tab_id, &source);
             active_editor_tab.update(|editor_tab| {
-                editor_tab.children[selected] = (
+                editor_tab.children[selected] = EditorTabChildSimple::new(
                     editor_tab.scope.create_rw_signal(0),
                     editor_tab.scope.create_rw_signal(Rect::ZERO),
                     child.clone(),
@@ -1318,10 +1319,10 @@ impl MainSplitData {
                                 .map(|(index, _)| index),
                             EditorTabChildSource::DiffEditor { left, right } => {
                                 editor_tab.children.iter().position(
-                                    |(_, _, child)| {
-                                        if let EditorTabChild::DiffEditor(
+                                    |child| {
+                                        if let EditorTabChildId::DiffEditor(
                                             diff_editor_id,
-                                        ) = child
+                                        ) = child.id()
                                         {
                                             is_same_diff_editor(
                                                 diff_editor_id,
@@ -1337,30 +1338,30 @@ impl MainSplitData {
                             EditorTabChildSource::Settings => editor_tab
                                 .children
                                 .iter()
-                                .position(|(_, _, child)| {
-                                    matches!(child, EditorTabChild::Settings(_))
+                                .position(|child| {
+                                    matches!(child.id(), EditorTabChildId::Settings(_))
                                 }),
                             EditorTabChildSource::ThemeColorSettings => editor_tab
                                 .children
                                 .iter()
-                                .position(|(_, _, child)| {
+                                .position(|child| {
                                     matches!(
-                                        child,
-                                        EditorTabChild::ThemeColorSettings(_)
+                                        child.id(),
+                                        EditorTabChildId::ThemeColorSettings(_)
                                     )
                                 }),
                             EditorTabChildSource::Keymap => editor_tab
                                 .children
                                 .iter()
-                                .position(|(_, _, child)| {
-                                    matches!(child, EditorTabChild::Keymap(_))
+                                .position(|child| {
+                                    matches!(child.id(), EditorTabChildId::Keymap(_))
                                 }),
                             EditorTabChildSource::Volt(id) => editor_tab
                                 .children
                                 .iter()
-                                .position(|(_, _, child)| {
-                                    if let EditorTabChild::Volt(_, current_id) =
-                                        child
+                                .position(|child| {
+                                    if let EditorTabChildId::Volt(_, current_id) =
+                                        child.id()
                                     {
                                         current_id == id
                                     } else {
@@ -1374,9 +1375,9 @@ impl MainSplitData {
                         editor_tab.update(|editor_tab| {
                             editor_tab.active = index;
                         });
-                        let (_, _, child) =
+                        let child =
                             editor_tab.with_untracked(|editor_tab| {
-                                editor_tab.children[index].clone()
+                                editor_tab.children[index].id().clone()
                             });
                         return child;
                     }
@@ -1385,7 +1386,7 @@ impl MainSplitData {
         }
 
         let editor_tab_id =
-            active_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+            active_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
         let child = new_child_from_source(editor_tab_id, &source);
 
         active_editor_tab.update(|editor_tab| {
@@ -1399,7 +1400,7 @@ impl MainSplitData {
             };
             editor_tab.children.insert(
                 new_active,
-                (
+                EditorTabChildSimple::new(
                     self.scope.create_rw_signal(0),
                     self.scope.create_rw_signal(Rect::ZERO),
                     child.clone(),
@@ -1533,7 +1534,7 @@ impl MainSplitData {
     pub fn split(
         &self,
         direction: SplitDirection,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
@@ -1556,7 +1557,7 @@ impl MainSplitData {
                 self.split_editor_tab(self.scope, split_id, editor_tab)
             })?;
             let new_editor_tab_id =
-                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
             split.update(|split| {
                 for (size, _) in &split.children {
                     size.set(1.0);
@@ -1574,7 +1575,7 @@ impl MainSplitData {
                 self.split_editor_tab(self.scope, split_id, editor_tab)
             })?;
             let new_editor_tab_id =
-                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
             split.update(|split| {
                 split.direction = direction;
                 for (size, _) in &split.children {
@@ -1595,7 +1596,7 @@ impl MainSplitData {
                 self.split_editor_tab(self.scope, new_split_id, editor_tab)
             })?;
             let new_editor_tab_id =
-                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_id);
+                new_editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
 
             let new_split = {
                 let cx = self.scope.create_child();
@@ -1638,53 +1639,53 @@ impl MainSplitData {
         &self,
         cx: Scope,
         split_id: SplitId,
-        editor_tab: &EditorTabData,
-    ) -> Option<RwSignal<EditorTabData>> {
-        let (_, _, child) = editor_tab.children.get(editor_tab.active)?;
+        editor_tab: &EditorTabManageData,
+    ) -> Option<RwSignal<EditorTabManageData>> {
+        let child = editor_tab.children.get(editor_tab.active)?.id().clone();
 
-        let editor_tab_id = EditorTabId::next();
+        let editor_tab_id = EditorTabManageId::next();
 
         let new_child = match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 let editor_id = self
                     .editors
-                    .copy(*editor_id, cx, Some(editor_tab_id), None, None)
+                    .copy(editor_id, cx, Some(editor_tab_id), None, None)
                     .unwrap();
 
-                EditorTabChild::Editor(editor_id)
+                EditorTabChildId::Editor(editor_id)
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let new_diff_editor_id = DiffEditorId::next();
                 let diff_editor = self
                     .diff_editors
                     .get_untracked()
-                    .get(diff_editor_id)?
+                    .get(&diff_editor_id)?
                     .copy(cx, editor_tab_id, new_diff_editor_id, self.editors);
                 self.diff_editors.update(|diff_editors| {
                     diff_editors.insert(new_diff_editor_id, diff_editor);
                 });
-                EditorTabChild::DiffEditor(new_diff_editor_id)
+                EditorTabChildId::DiffEditor(new_diff_editor_id)
             },
-            EditorTabChild::Settings(_) => {
-                EditorTabChild::Settings(SettingsId::next())
+            EditorTabChildId::Settings(_) => {
+                EditorTabChildId::Settings(SettingsId::next())
             },
-            EditorTabChild::ThemeColorSettings(_) => {
-                EditorTabChild::ThemeColorSettings(ThemeColorSettingsId::next())
+            EditorTabChildId::ThemeColorSettings(_) => {
+                EditorTabChildId::ThemeColorSettings(ThemeColorSettingsId::next())
             },
-            EditorTabChild::Keymap(_) => EditorTabChild::Keymap(KeymapId::next()),
-            EditorTabChild::Volt(_, id) => {
-                EditorTabChild::Volt(VoltViewId::next(), id.to_owned())
+            EditorTabChildId::Keymap(_) => EditorTabChildId::Keymap(KeymapId::next()),
+            EditorTabChildId::Volt(_, id) => {
+                EditorTabChildId::Volt(VoltViewId::next(), id.to_owned())
             },
         };
 
         let editor_tab = {
             let cx = self.scope.create_child();
-            let editor_tab = EditorTabData {
+            let editor_tab = EditorTabManageData {
                 scope: cx,
                 split: split_id,
-                editor_tab_id,
+                editor_tab_manage_id: editor_tab_id,
                 active: 0,
-                children: vec![(
+                children: vec![EditorTabChildSimple::new(
                     cx.create_rw_signal(0),
                     cx.create_rw_signal(Rect::ZERO),
                     new_child,
@@ -1706,7 +1707,7 @@ impl MainSplitData {
     pub fn split_move(
         &self,
         direction: SplitMoveDirection,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
@@ -1726,7 +1727,7 @@ impl MainSplitData {
                         && rect.x0 < current_rect.x1
                     {
                         let new_editor_tab_id =
-                            e.with_untracked(|e| e.editor_tab_id);
+                            e.with_untracked(|e| e.editor_tab_manage_id);
                         self.active_editor_tab.set(Some(new_editor_tab_id));
                         return Some(());
                     }
@@ -1742,7 +1743,7 @@ impl MainSplitData {
                         && rect.x0 < current_rect.x1
                     {
                         let new_editor_tab_id =
-                            e.with_untracked(|e| e.editor_tab_id);
+                            e.with_untracked(|e| e.editor_tab_manage_id);
                         self.active_editor_tab.set(Some(new_editor_tab_id));
                         return Some(());
                     }
@@ -1758,7 +1759,7 @@ impl MainSplitData {
                         && rect.y0 < current_rect.y1
                     {
                         let new_editor_tab_id =
-                            e.with_untracked(|e| e.editor_tab_id);
+                            e.with_untracked(|e| e.editor_tab_manage_id);
                         self.active_editor_tab.set(Some(new_editor_tab_id));
                         return Some(());
                     }
@@ -1774,7 +1775,7 @@ impl MainSplitData {
                         && rect.y0 < current_rect.y1
                     {
                         let new_editor_tab_id =
-                            e.with_untracked(|e| e.editor_tab_id);
+                            e.with_untracked(|e| e.editor_tab_manage_id);
                         self.active_editor_tab.set(Some(new_editor_tab_id));
                         return Some(());
                     }
@@ -1785,7 +1786,7 @@ impl MainSplitData {
         Some(())
     }
 
-    pub fn split_exchange(&self, editor_tab_id: EditorTabId) -> Option<()> {
+    pub fn split_exchange(&self, editor_tab_id: EditorTabManageId) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
 
@@ -1876,7 +1877,7 @@ impl MainSplitData {
         Some(())
     }
 
-    fn editor_tab_remove(&self, editor_tab_id: EditorTabId) -> Option<()> {
+    fn editor_tab_remove(&self, editor_tab_id: EditorTabManageId) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
         self.editor_tabs.update(|editor_tabs| {
@@ -1964,12 +1965,12 @@ impl MainSplitData {
         Some(())
     }
 
-    pub fn editor_tab_close(&self, editor_tab_id: EditorTabId) -> Option<()> {
+    pub fn editor_tab_close(&self, editor_tab_id: EditorTabManageId) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
         let editor_tab = editor_tab.get_untracked();
-        for (_, _, child) in editor_tab.children {
-            self.editor_tab_child_close(editor_tab_id, child, false);
+        for child in editor_tab.children {
+            self.editor_tab_child_close(editor_tab_id, child.id().clone(), false);
         }
 
         Some(())
@@ -1977,10 +1978,10 @@ impl MainSplitData {
 
     fn editor_tab_child_close_warning(
         &self,
-        child: &EditorTabChild,
+        child: &EditorTabChildId,
     ) -> Option<(String, Rc<Doc>, EditorData)> {
         match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 let editor = self.editors.editor_untracked(*editor_id)?;
                 let doc = editor.doc();
                 let doc_content = doc.content.get_untracked();
@@ -2012,11 +2013,11 @@ impl MainSplitData {
                 }
                 None
             },
-            EditorTabChild::DiffEditor(_) => None,
-            EditorTabChild::Settings(_) => None,
-            EditorTabChild::ThemeColorSettings(_) => None,
-            EditorTabChild::Keymap(_) => None,
-            EditorTabChild::Volt(_, _) => None,
+            EditorTabChildId::DiffEditor(_) => None,
+            EditorTabChildId::Settings(_) => None,
+            EditorTabChildId::ThemeColorSettings(_) => None,
+            EditorTabChildId::Keymap(_) => None,
+            EditorTabChildId::Volt(_, _) => None,
         }
     }
 
@@ -2043,8 +2044,8 @@ impl MainSplitData {
         let editor_tab = self.editor_tabs.with_untracked(|editor_tabs| {
             editor_tabs.get(&active_editor_tab).copied()
         })?;
-        let (_, _, child) = editor_tab.with_untracked(|editor_tab| {
-            editor_tab.children.get(editor_tab.active).cloned()
+        let child = editor_tab.with_untracked(|editor_tab| {
+            editor_tab.children.get(editor_tab.active).map(|x| x.id().clone())
         })?;
         self.editor_tab_child_close(active_editor_tab, child, false);
         Some(())
@@ -2052,11 +2053,11 @@ impl MainSplitData {
 
     pub fn editor_tab_child_close_by_kind(
         &self,
-        editor_tab_id: EditorTabId,
-        child: EditorTabChild,
+        editor_tab_id: EditorTabManageId,
+        child: EditorTabChildId,
         kind: TabCloseKind,
     ) -> Option<()> {
-        let tabs_to_close: Vec<EditorTabChild> = {
+        let tabs_to_close: Vec<EditorTabChildId> = {
             let editor_tabs = self.editor_tabs.get_untracked();
 
             let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
@@ -2066,8 +2067,8 @@ impl MainSplitData {
                     .children
                     .iter()
                     .filter_map(|x| {
-                        if x.2 != child {
-                            Some(x.2.clone())
+                        if x.id() != &child {
+                            Some(x.id().clone())
                         } else {
                             None
                         }
@@ -2076,8 +2077,8 @@ impl MainSplitData {
                 TabCloseKind::CloseToLeft => {
                     let mut tabs_to_close = Vec::new();
                     for child_tab in &editor_tab.children {
-                        if child_tab.2 != child {
-                            tabs_to_close.push(child_tab.2.clone());
+                        if child_tab.id() != &child {
+                            tabs_to_close.push(child_tab.id().clone());
                         } else {
                             break;
                         }
@@ -2088,8 +2089,8 @@ impl MainSplitData {
                     let mut tabs_to_close = Vec::new();
                     let mut add_to_tabs = false;
                     for child_tab in &editor_tab.children {
-                        if child_tab.2 != child && add_to_tabs {
-                            tabs_to_close.push(child_tab.2.clone());
+                        if child_tab.id() != &child && add_to_tabs {
+                            tabs_to_close.push(child_tab.id().clone());
                         } else {
                             add_to_tabs = true;
                         }
@@ -2106,8 +2107,8 @@ impl MainSplitData {
 
     pub fn editor_tab_child_close(
         &self,
-        editor_tab_id: EditorTabId,
-        child: EditorTabChild,
+        editor_tab_id: EditorTabManageId,
+        child: EditorTabChildId,
         force: bool,
     ) -> Option<()> {
         if !force {
@@ -2226,7 +2227,7 @@ impl MainSplitData {
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
 
         let index = editor_tab.with_untracked(|editor_tab| {
-            editor_tab.children.iter().position(|(_, _, c)| c == &child)
+            editor_tab.children.iter().position(|c| c.id() == &child)
         })?;
 
         let editor_tab_children_len = editor_tab
@@ -2239,10 +2240,10 @@ impl MainSplitData {
             .unwrap();
 
         match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 self.remove_editor(editor_id);
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let removed_diff_editor = self
                     .diff_editors
                     .try_update(|diff_editors| diff_editors.remove(&diff_editor_id))
@@ -2251,10 +2252,10 @@ impl MainSplitData {
                     diff_editor.right.save_doc_position();
                 }
             },
-            EditorTabChild::Settings(_) => {},
-            EditorTabChild::ThemeColorSettings(_) => {},
-            EditorTabChild::Keymap(_) => {},
-            EditorTabChild::Volt(_, _) => {},
+            EditorTabChildId::Settings(_) => {},
+            EditorTabChildId::ThemeColorSettings(_) => {},
+            EditorTabChildId::Keymap(_) => {},
+            EditorTabChildId::Volt(_, _) => {},
         }
 
         if editor_tab_children_len == 0 {
@@ -2266,7 +2267,7 @@ impl MainSplitData {
 
     pub fn editor_tab_update_layout(
         &self,
-        editor_tab_id: &EditorTabId,
+        editor_tab_id: &EditorTabManageId,
         window_origin: Option<Point>,
         rect: Option<Rect>,
     ) -> Option<()> {
@@ -2491,7 +2492,7 @@ impl MainSplitData {
                 if let Some(tab_id) = self.editor_tabs.with_untracked(|x| {
                     for (tab_id, tab_data) in x {
                         if tab_data.with_untracked(|x| {
-                            x.children.iter().any(|(_, _, child)| child.id() == id)
+                            x.children.iter().any(|child| child.id().id() == id)
                         }) {
                             return Some(*tab_id);
                         }
@@ -2542,7 +2543,7 @@ impl MainSplitData {
         self.get_editor_tab_child(EditorTabChildSource::Keymap, false, false);
     }
 
-    pub fn new_file(&self) -> EditorTabChild {
+    pub fn new_file(&self) -> EditorTabChildId {
         self.get_editor_tab_child(EditorTabChildSource::NewFileEditor, false, false)
     }
 
@@ -2745,8 +2746,8 @@ impl MainSplitData {
 
     pub fn move_editor_tab_child(
         &self,
-        from_tab: EditorTabId,
-        to_tab: EditorTabId,
+        from_tab: EditorTabManageId,
+        to_tab: EditorTabManageId,
         from_index: usize,
         to_index: usize,
     ) -> Option<()> {
@@ -2775,7 +2776,7 @@ impl MainSplitData {
                 .editor_tabs
                 .with_untracked(|editor_tabs| editor_tabs.get(&to_tab).cloned())?;
 
-            let (_, _, child) = from_editor_tab
+            let child = from_editor_tab
                 .try_update(|tab| {
                     let child = tab.children.remove(from_index);
                     tab.active =
@@ -2784,14 +2785,14 @@ impl MainSplitData {
                 })
                 .unwrap();
 
-            self.editor_tab_child_set_parent(&child, to_tab);
+            self.editor_tab_child_set_parent(child.id(), to_tab);
             to_editor_tab.update(|tab| {
                 tab.children.insert(
                     to_index,
-                    (
+                    EditorTabChildSimple::new(
                         tab.scope.create_rw_signal(to_index),
                         tab.scope.create_rw_signal(Rect::ZERO),
-                        child,
+                        child.id().clone(),
                     ),
                 );
                 tab.active = to_index;
@@ -2834,15 +2835,15 @@ impl MainSplitData {
 
     fn editor_tab_child_set_parent(
         &self,
-        child: &EditorTabChild,
-        editor_tab_id: EditorTabId,
+        child: &EditorTabChildId,
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         match child {
-            EditorTabChild::Editor(editor_id) => {
+            EditorTabChildId::Editor(editor_id) => {
                 let editor = self.editors.editor(*editor_id)?;
                 editor.editor_tab_id.set(Some(editor_tab_id));
             },
-            EditorTabChild::DiffEditor(diff_editor_id) => {
+            EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let diff_editor =
                     self.diff_editors.with_untracked(|diff_editors| {
                         diff_editors.get(diff_editor_id).cloned()
@@ -2857,19 +2858,19 @@ impl MainSplitData {
                     .diff_editor_id
                     .set(Some((editor_tab_id, *diff_editor_id)));
             },
-            EditorTabChild::Settings(_) => {},
-            EditorTabChild::ThemeColorSettings(_) => {},
-            EditorTabChild::Keymap(_) => {},
-            EditorTabChild::Volt(_, _) => {},
+            EditorTabChildId::Settings(_) => {},
+            EditorTabChildId::ThemeColorSettings(_) => {},
+            EditorTabChildId::Keymap(_) => {},
+            EditorTabChildId::Volt(_, _) => {},
         }
         Some(())
     }
 
     pub fn move_editor_tab_child_to_new_split(
         &self,
-        from_tab: EditorTabId,
+        from_tab: EditorTabManageId,
         from_index: usize,
-        to_tab: EditorTabId,
+        to_tab: EditorTabManageId,
         split: SplitMoveDirection,
     ) -> Option<()> {
         let from_editor_tab = self
@@ -2907,9 +2908,9 @@ impl MainSplitData {
                 SplitMoveDirection::Right => index + 1,
                 SplitMoveDirection::Left => index,
             };
-            let new_editor_tab_id = EditorTabId::next();
+            let new_editor_tab_id = EditorTabManageId::next();
 
-            let (_, _, child) = from_editor_tab
+            let child = from_editor_tab
                 .try_update(|tab| {
                     let child = tab.children.remove(from_index);
                     tab.active =
@@ -2918,18 +2919,18 @@ impl MainSplitData {
                 })
                 .unwrap();
 
-            self.editor_tab_child_set_parent(&child, new_editor_tab_id);
+            self.editor_tab_child_set_parent(child.id(), new_editor_tab_id);
 
             let cx = self.scope.create_child();
-            let new_editor_tab = EditorTabData {
+            let new_editor_tab = EditorTabManageData {
                 scope: cx,
                 split: to_split_id,
-                editor_tab_id: new_editor_tab_id,
+                editor_tab_manage_id: new_editor_tab_id,
                 active: 0,
-                children: vec![(
+                children: vec![EditorTabChildSimple::new(
                     cx.create_rw_signal(0),
                     cx.create_rw_signal(Rect::ZERO),
-                    child,
+                    child.id().clone(),
                 )],
                 window_origin: Point::ZERO,
                 layout_rect: Rect::ZERO,
@@ -2938,7 +2939,7 @@ impl MainSplitData {
             };
             self.editor_tabs.update(|editor_tabs| {
                 editor_tabs.insert(
-                    new_editor_tab.editor_tab_id,
+                    new_editor_tab.editor_tab_manage_id,
                     new_editor_tab.scope.create_rw_signal(new_editor_tab),
                 );
             });
@@ -2975,9 +2976,9 @@ impl MainSplitData {
                 });
             }
 
-            let new_editor_tab_id = EditorTabId::next();
+            let new_editor_tab_id = EditorTabManageId::next();
 
-            let (_, _, child) = from_editor_tab
+            let child = from_editor_tab
                 .try_update(|tab| {
                     let child = tab.children.remove(from_index);
                     tab.active =
@@ -2985,19 +2986,19 @@ impl MainSplitData {
                     child
                 })
                 .unwrap();
-            self.editor_tab_child_set_parent(&child, new_editor_tab_id);
+            self.editor_tab_child_set_parent(child.id(), new_editor_tab_id);
 
             let new_editor_tab = {
                 let cx = self.scope.create_child();
-                EditorTabData {
+                EditorTabManageData {
                     scope: cx,
                     split: new_split_id,
-                    editor_tab_id: new_editor_tab_id,
+                    editor_tab_manage_id: new_editor_tab_id,
                     active: 0,
-                    children: vec![(
+                    children: vec![EditorTabChildSimple::new(
                         cx.create_rw_signal(0),
                         cx.create_rw_signal(Rect::ZERO),
-                        child,
+                        child.id().clone(),
                     )],
                     window_origin: Point::ZERO,
                     layout_rect: Rect::ZERO,
@@ -3007,7 +3008,7 @@ impl MainSplitData {
             };
             self.editor_tabs.update(|editor_tabs| {
                 editor_tabs.insert(
-                    new_editor_tab.editor_tab_id,
+                    new_editor_tab.editor_tab_manage_id,
                     new_editor_tab.scope.create_rw_signal(new_editor_tab),
                 );
             });
@@ -3069,7 +3070,7 @@ impl MainSplitData {
 
     pub fn export_theme(&self) {
         let child = self.new_file();
-        if let EditorTabChild::Editor(id) = child {
+        if let EditorTabChildId::Editor(id) = child {
             if let Some(editor) = self.editors.editor_untracked(id) {
                 let doc = editor.doc();
                 doc.reload(
@@ -3082,7 +3083,7 @@ impl MainSplitData {
 
     pub fn show_env(&self) {
         let child = self.new_file();
-        if let EditorTabChild::Editor(id) = child {
+        if let EditorTabChildId::Editor(id) = child {
             if let Some(editor) = self.editors.editor_untracked(id) {
                 let doc = editor.doc();
                 doc.reload(
@@ -3100,11 +3101,11 @@ impl MainSplitData {
         let editor_tabs = self.editor_tabs;
         let editor_tab = editor_tabs
             .with(|editor_tabs| editor_tabs.get(&active_editor_tab).copied())?;
-        let (_, _, child) = editor_tab.with(|editor_tab| {
+        let child = editor_tab.with(|editor_tab| {
             editor_tab.children.get(editor_tab.active).cloned()
         })?;
-        match child {
-            EditorTabChild::Editor(editor_id) => self.editors.editor(editor_id),
+        match child.id() {
+            EditorTabChildId::Editor(editor_id) => self.editors.editor(editor_id.clone()),
             _ => None,
         }
     }
@@ -3115,12 +3116,12 @@ impl MainSplitData {
         let editor_tab = editor_tabs.with_untracked(|editor_tabs| {
             editor_tabs.get(&active_editor_tab).copied()
         })?;
-        let (_, _, child) = editor_tab.with_untracked(|editor_tab| {
+        let child = editor_tab.with_untracked(|editor_tab| {
             editor_tab.children.get(editor_tab.active).cloned()
         })?;
-        match child {
-            EditorTabChild::Editor(editor_id) => {
-                self.editors.editor_untracked(editor_id)
+        match child.id() {
+            EditorTabChildId::Editor(editor_id) => {
+                self.editors.editor_untracked(editor_id.clone())
             },
             _ => None,
         }

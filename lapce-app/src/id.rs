@@ -3,7 +3,7 @@ use lapce_rpc::terminal::TermId;
 
 pub type SplitId = Id;
 pub type WindowTabId = Id;
-pub type EditorTabId = Id;
+pub type EditorTabManageId = Id;
 pub type SettingsId = Id;
 pub type KeymapId = Id;
 pub type ThemeColorSettingsId = Id;

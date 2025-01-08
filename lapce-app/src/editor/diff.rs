@@ -28,7 +28,7 @@ use super::EditorData;
 use crate::{
     config::{color::LapceColor, icon::LapceIcons},
     doc::{Doc, DocContent},
-    id::{DiffEditorId, EditorTabId},
+    id::{DiffEditorId, EditorTabManageId},
     main_split::{Editors, MainSplitData},
     svg,
     wave::wave_box,
@@ -51,7 +51,7 @@ impl DiffEditorInfo {
     pub fn to_data(
         &self,
         data: MainSplitData,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     ) -> DiffEditorData {
         let cx = data.scope.create_child();
 
@@ -143,7 +143,7 @@ impl DiffEditorInfo {
 #[derive(Clone)]
 pub struct DiffEditorData {
     pub id: DiffEditorId,
-    pub editor_tab_id: RwSignal<EditorTabId>,
+    pub editor_tab_id: RwSignal<EditorTabManageId>,
     pub scope: Scope,
     pub left: EditorData,
     pub right: EditorData,
@@ -155,7 +155,7 @@ impl DiffEditorData {
     pub fn new(
         cx: Scope,
         id: DiffEditorId,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
         left_doc: Rc<Doc>,
         right_doc: Rc<Doc>,
         editors: Editors,
@@ -201,7 +201,7 @@ impl DiffEditorData {
     pub fn copy(
         &self,
         cx: Scope,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
         diff_editor_id: EditorId,
         editors: Editors,
     ) -> Self {

@@ -31,8 +31,8 @@ use crate::{
     debug::RunDebugMode,
     doc::Doc,
     editor::location::EditorLocation,
-    editor_tab::EditorTabChild,
-    id::{EditorTabId, TerminalTabId},
+    editor_tab::EditorTabChildId,
+    id::{EditorTabManageId, TerminalTabId},
     main_split::{SplitDirection, SplitMoveDirection, TabCloseKind},
     workspace::LapceWorkspace,
 };
@@ -664,14 +664,14 @@ pub enum InternalCommand {
     },
     Split {
         direction: SplitDirection,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     },
     SplitMove {
         direction: SplitMoveDirection,
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     },
     SplitExchange {
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     },
     NewTerminal {
         profile: Option<TerminalProfile>,
@@ -689,15 +689,15 @@ pub enum InternalCommand {
     //     term_id: TermId,
     // },
     EditorTabClose {
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     },
     EditorTabChildClose {
-        editor_tab_id: EditorTabId,
-        child: EditorTabChild,
+        editor_tab_id: EditorTabManageId,
+        child: EditorTabChildId,
     },
     EditorTabCloseByKind {
-        editor_tab_id: EditorTabId,
-        child: EditorTabChild,
+        editor_tab_id: EditorTabManageId,
+        child: EditorTabChildId,
         kind: TabCloseKind,
     },
     ShowCodeActions {
@@ -743,7 +743,7 @@ pub enum InternalCommand {
         mods: Modifiers,
     },
     FocusEditorTab {
-        editor_tab_id: EditorTabId,
+        editor_tab_id: EditorTabManageId,
     },
 
     SetColorTheme {

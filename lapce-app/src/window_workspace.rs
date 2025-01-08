@@ -63,7 +63,7 @@ use crate::{
     debug::{DapData, LapceBreakpoint, RunDebugMode, RunDebugProcess},
     doc::DocContent,
     editor::location::{EditorLocation, EditorPosition},
-    editor_tab::EditorTabChild,
+    editor_tab::EditorTabChildId,
     file_explorer::data::FileExplorerData,
     find::Find,
     global_search::GlobalSearchData,
@@ -170,7 +170,7 @@ pub enum Focus {
 #[derive(Clone)]
 pub enum DragContent {
     Panel(PanelKind),
-    EditorTab(EditorTabChild),
+    EditorTab(EditorTabChildId),
 }
 
 impl DragContent {
