@@ -1,4 +1,5 @@
 use floem::keyboard::{Key, KeyLocation, NamedKey, PhysicalKey};
+use floem::pointer::PointerButton;
 
 use super::keymap::KeyMapKey;
 
@@ -34,7 +35,7 @@ impl KeyInput {
         }
 
         Some(match self {
-            KeyInput::Pointer(b) => KeyMapKey::Pointer(*b),
+            KeyInput::Pointer(PointerButton::Mouse(b)) => KeyMapKey::Pointer(*b),
             KeyInput::Keyboard {
                 physical,
                 key_without_modifiers,
@@ -69,6 +70,9 @@ impl KeyInput {
                     Key::Dead(_) => KeyMapKey::Physical(*physical),
                 }
             },
+            _ => {
+                return None;
+            }
         })
     }
 }

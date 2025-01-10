@@ -40,6 +40,7 @@ use floem::{
     },
     ViewId,
 };
+use floem::pointer::MouseButton;
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::error;
@@ -2918,7 +2919,7 @@ impl EditorData {
             self.find_focus.set(false);
         }
         match pointer_event.button {
-            PointerButton::Primary => {
+            PointerButton::Mouse(MouseButton::Primary) => {
                 self.active().set(true);
                 self.left_click(pointer_event);
 
@@ -2990,7 +2991,7 @@ impl EditorData {
                     }
                 }
             }
-            PointerButton::Secondary => {
+            PointerButton::Mouse(MouseButton::Secondary) => {
                 self.right_click(pointer_event);
             }
             _ => {}

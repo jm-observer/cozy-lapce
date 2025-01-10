@@ -35,6 +35,7 @@ use floem::{
     },
     Renderer, ViewId,
 };
+use floem::pointer::MouseButton;
 use lapce_xi_rope::Rope;
 use log::{error, info};
 
@@ -382,11 +383,11 @@ impl Editor {
     /// Default handler for `PointerDown` event
     pub fn pointer_down(&self, pointer_event: &PointerInputEvent) {
         match pointer_event.button {
-            PointerButton::Primary => {
+            PointerButton::Mouse(MouseButton::Primary) => {
                 self.active.set(true);
                 self.left_click(pointer_event);
             },
-            PointerButton::Secondary => {
+            PointerButton::Mouse(MouseButton::Secondary) => {
                 self.right_click(pointer_event);
             },
             _ => {},
