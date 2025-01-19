@@ -3378,9 +3378,9 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
         about::about_popup(window_tab_data.clone()),
         alert::alert_box(window_tab_data.alert_data.clone()),
     ))
-    .on_cleanup(move || {
-        window_tab_scope.dispose();
-    })
+    // .on_cleanup(move || {
+    //     window_tab_scope.dispose();
+    // })
     .on_event_cont(EventListener::PointerMove, move |_| {
         if hover_active.get_untracked() {
             hover_active.set(false);
