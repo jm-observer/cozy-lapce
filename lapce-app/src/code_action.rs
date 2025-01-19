@@ -14,6 +14,7 @@ use crate::{
     keypress::{condition::Condition, KeyPressFocus},
     window_workspace::{CommonData, Focus},
 };
+use crate::command::LapceWorkbenchCommand;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CodeActionStatus {
@@ -68,7 +69,11 @@ impl KeyPressFocus for CodeActionData {
         _mods: Modifiers,
     ) -> crate::command::CommandExecuted {
         match &command.kind {
-            CommandKind::Workbench(_) => {},
+            CommandKind::Workbench(cmd) => {
+                if matches!(LapceWorkbenchCommand::OpenUIInspector, cmd) {
+                    self.common.view_id.get_untracked().inspect();
+                }
+            },
             CommandKind::Edit(_) => {},
             CommandKind::Move(_) => {},
             CommandKind::Scroll(_) => {},
