@@ -60,8 +60,9 @@ fn gutter_marker_code_len_svg_view(
     )
         .on_click_stop({
             move |_| {
-                let Some((plugin_id, offset, lens)) = doc.get_untracked().code_lens.get_untracked().get(&line).cloned() else {
-                    error!("code_lens is empty: {}", line);
+                let code_lens = doc.get_untracked().code_lens.get_untracked();
+                let Some((plugin_id, offset, lens)) = code_lens.get(&line).cloned() else {
+                    error!("code_lens is empty: {} {:?}", line, code_lens);
                     return;
                 };
                 window_tab_data.show_code_lens(true, plugin_id, offset, lens);
@@ -142,7 +143,7 @@ fn marker_view(data: &GutterData, window_tab_data: WindowWorkspaceData, config: 
             gutter_marker_none_svg_view(config)
         }
         GutterMarker::CodeLen => {
-            gutter_marker_code_len_svg_view(window_tab_data, 0, doc_signal)
+            gutter_marker_code_len_svg_view(window_tab_data, data.vl_info.visual_line.origin_line, doc_signal)
         }
         GutterMarker::Breakpoint => {
             gutter_marker_breakpoint_svg_view(config)
@@ -162,6 +163,6 @@ fn marker_view(data: &GutterData, window_tab_data: WindowWorkspaceData, config: 
                 .items_center()
         })
         .on_click_stop(|_| {
-            warn!("todo");
+            warn!("todo add/delete breakpoint");
         })
 }
