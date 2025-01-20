@@ -18,15 +18,17 @@ use floem::{
 use indexmap::IndexMap;
 use log::error;
 use lsp_types::{DiagnosticSeverity, ProgressToken};
+use lapce_core::doc::DocContent;
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind};
 
 use crate::{
     app::clickable_icon,
     command::LapceWorkbenchCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     editor::EditorData,
     listener::Listener,
     palette::kind::PaletteKind,
-    panel::{kind::PanelKind, position::PanelContainerPosition},
     source_control::SourceControlData,
     svg,
     window_workspace::{WindowWorkspaceData, WorkProgress},
@@ -459,7 +461,6 @@ fn status_text<S: std::fmt::Display + 'static>(
             .get()
             .map(|editor| {
                 editor.doc_signal().get().content.with(|c| {
-                    use crate::doc::DocContent;
                     matches!(c, DocContent::File { .. } | DocContent::Scratch { .. })
                 })
             })

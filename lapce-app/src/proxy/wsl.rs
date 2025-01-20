@@ -1,9 +1,9 @@
 use std::{path::Path, process::Command};
 
 use anyhow::Result;
+use lapce_core::workspace::WslHost;
 
 use super::{new_command, remote::Remote};
-use crate::workspace::WslHost;
 
 pub struct WslRemote {
     pub wsl: WslHost,

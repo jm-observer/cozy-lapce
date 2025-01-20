@@ -1,9 +1,8 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    fmt::Display,
-    path::{Path, PathBuf},
-    rc::Rc,
-    time::Instant,
+    path::PathBuf,
+    rc::Rc
+    ,
 };
 
 use floem::{
@@ -11,52 +10,22 @@ use floem::{
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     views::VirtualVector,
 };
+
+use lapce_core::debug::{BreakpointAction, DapVariableViewdata, LapceBreakpoint, ScopeOrVar};
 use lapce_rpc::{
     dap_types::{
-        self, DapId, RunDebugConfig, SourceBreakpoint, StackFrame, Stopped,
+        self, DapId, SourceBreakpoint, StackFrame, Stopped,
         ThreadId, Variable,
     },
     proxy::{ProxyResponse, ProxyRpcHandler},
     terminal::TermId,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     command::InternalCommand,
     editor::location::{EditorLocation, EditorPosition},
     window_workspace::CommonData,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RunDebugMode {
-    Run,
-    Debug,
-}
-
-impl Display for RunDebugMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            RunDebugMode::Run => "Run",
-            RunDebugMode::Debug => "Debug",
-        };
-        f.write_str(s)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct RunDebugProcess {
-    pub mode: RunDebugMode,
-    pub origin_config: RunDebugConfig,
-    pub config: RunDebugConfig,
-    pub stopped: bool,
-    pub created: Instant,
-    pub is_prelaunch: bool,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct RunDebugConfigs {
-    pub configs: Vec<RunDebugConfig>,
-}
 
 #[derive(Clone)]
 pub struct RunDebugData {
@@ -115,60 +84,6 @@ pub struct StackTraceData {
     pub expanded: RwSignal<bool>,
     pub frames: RwSignal<im::Vector<StackFrame>>,
     pub frames_shown: usize,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct LapceBreakpoint {
-    pub id: Option<usize>,
-    pub verified: bool,
-    pub message: Option<String>,
-    pub line: usize,
-    pub offset: usize,
-    pub dap_line: Option<usize>,
-    pub active: bool,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
-pub enum ScopeOrVar {
-    Scope(dap_types::Scope),
-    Var(dap_types::Variable),
-}
-
-impl Default for ScopeOrVar {
-    fn default() -> Self {
-        ScopeOrVar::Scope(dap_types::Scope::default())
-    }
-}
-
-impl ScopeOrVar {
-    pub fn name(&self) -> &str {
-        match self {
-            ScopeOrVar::Scope(scope) => &scope.name,
-            ScopeOrVar::Var(var) => &var.name,
-        }
-    }
-
-    pub fn value(&self) -> Option<&str> {
-        match self {
-            ScopeOrVar::Scope(_) => None,
-            ScopeOrVar::Var(var) => Some(&var.value),
-        }
-    }
-
-    pub fn ty(&self) -> Option<&str> {
-        match self {
-            ScopeOrVar::Scope(_) => None,
-            ScopeOrVar::Var(var) => var.ty.as_deref(),
-        }
-    }
-
-    pub fn reference(&self) -> usize {
-        match self {
-            ScopeOrVar::Scope(scope) => scope.variables_reference,
-            ScopeOrVar::Var(var) => var.variables_reference,
-        }
-    }
 }
 
 #[derive(Clone, Default)]
@@ -397,13 +312,6 @@ impl DapData {
     }
 }
 
-pub struct DapVariableViewdata {
-    pub item: ScopeOrVar,
-    pub parent: Vec<usize>,
-    pub expanded: bool,
-    pub level: usize,
-}
-
 impl VirtualVector<DapVariableViewdata> for DapVariable {
     fn total_len(&self) -> usize {
         self.children_expanded_count
@@ -412,7 +320,7 @@ impl VirtualVector<DapVariableViewdata> for DapVariable {
     fn slice(
         &mut self,
         range: std::ops::Range<usize>,
-    ) -> impl Iterator<Item = DapVariableViewdata> {
+    ) -> impl Iterator<Item=DapVariableViewdata> {
         let min = range.start;
         let max = range.end;
         let mut i = 0;
@@ -516,21 +424,6 @@ impl DapVariable {
     }
 }
 
-pub enum BreakpointAction<'a> {
-    Remove {
-        path: &'a Path,
-        line: usize,
-    },
-    Add {
-        path: &'a Path,
-        line: usize,
-        offset: usize,
-    },
-    Toggle {
-        path: &'a Path,
-        line: usize,
-    },
-}
 pub fn update_breakpoints(
     daps: RwSignal<im::HashMap<DapId, DapData>>,
     proxy: ProxyRpcHandler,
@@ -618,6 +511,7 @@ pub fn update_breakpoints(
         );
     }
 }
+
 #[cfg(test)]
 mod tests {
     use lapce_rpc::dap_types::{Scope, Variable};
@@ -725,16 +619,16 @@ mod tests {
                 ..Default::default()
             },
         ]
-        .iter()
-        .map(|var| DapVariable {
-            item: ScopeOrVar::Var(var.to_owned()),
-            parent: vec![0, 3],
-            expanded: false,
-            read: false,
-            children: Vec::new(),
-            children_expanded_count: 0,
-        })
-        .collect();
+            .iter()
+            .map(|var| DapVariable {
+                item: ScopeOrVar::Var(var.to_owned()),
+                parent: vec![0, 3],
+                expanded: false,
+                read: false,
+                children: Vec::new(),
+                children_expanded_count: 0,
+            })
+            .collect();
         root.update_count_recursive(&[0], 3);
         let var = root.get_var_mut(&[0], 3).unwrap();
         assert_eq!(var.children_expanded_count, 2);

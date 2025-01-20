@@ -66,6 +66,12 @@ use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use notify::Watcher;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use lapce_core::debug::RunDebugMode;
+use lapce_core::icon::LapceIcons;
+use lapce_core::id::*;
+use lapce_core::main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind};
+use lapce_core::panel::PanelContainerPosition;
+use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType, WslHost};
 
 use crate::{
     about, alert,
@@ -74,11 +80,10 @@ use crate::{
         CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand,
     },
     config::{
-        color::LapceColor, icon::LapceIcons, ui::TabSeparatorHeight,
+        color::LapceColor, ui::TabSeparatorHeight,
         watcher::ConfigWatcher, LapceConfig,
     },
     db::LapceDb,
-    debug::RunDebugMode,
     editor::{
         diff::diff_show_more_section_view,
         location::{EditorLocation, EditorPosition},
@@ -86,12 +91,11 @@ use crate::{
     },
     editor_tab::{EditorTabChildId, EditorTabManageData},
     focus_text::focus_text,
-    id::{EditorTabManageId, SplitId},
     keymap::keymap_view,
     keypress::keymap::KeyMap,
     listener::Listener,
     main_split::{
-        SplitContent, SplitData, SplitDirection, SplitMoveDirection, TabCloseKind,
+        SplitData,
     },
     markdown::MarkdownContent,
     palette::{
@@ -99,7 +103,6 @@ use crate::{
         PaletteStatus,
     },
     panel::{
-        position::PanelContainerPosition,
         view::{
             new_bottom_panel_container_view, new_left_panel_container_view,
             new_panel_picker, new_right_panel_container_view, PANEL_PICKER_SIZE,
@@ -114,7 +117,6 @@ use crate::{
     update::ReleaseInfo,
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData},
-    workspace::{LapceWorkspace, LapceWorkspaceType},
 };
 use crate::editor_tab::{EditorTabChildSimple, EditorTabDraging};
 
@@ -329,7 +331,7 @@ impl AppData {
                     .is_empty()
                     || !std::env::var("WSL_INTEROP").unwrap_or_default().is_empty()
                 {
-                    LapceWorkspaceType::RemoteWSL(crate::workspace::WslHost {
+                    LapceWorkspaceType::RemoteWSL(WslHost {
                         host: String::new(),
                     })
                 } else {

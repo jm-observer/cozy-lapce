@@ -1,8 +1,8 @@
 use floem::{
     peniko::kurbo::Rect,
     reactive::{RwSignal, Scope},
-    views::editor::id::EditorId,
 };
+use lapce_core::id::EditorId;
 
 use crate::markdown::MarkdownContent;
 

@@ -6,18 +6,20 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        container, editor::id::Id, label, scroll, stack, virtual_stack, Decorators,
+        container, label, scroll, stack, virtual_stack, Decorators,
         VirtualDirection, VirtualItemSize, VirtualVector,
     },
     View,
 };
 use lsp_types::{DocumentSymbol, Position, Range, SymbolKind};
+use lapce_core::icon::LapceIcons;
+use lapce_core::id::Id;
+use lapce_core::panel::PanelContainerPosition;
 
 use crate::{
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, },
     editor::location::EditorLocation,
-    panel::position::PanelContainerPosition,
     svg,
     window_workspace::WindowWorkspaceData,
 };
@@ -232,7 +234,7 @@ impl DocumentSymbolViewData {
     pub fn new(cx: Scope) -> Self {
         Self {
             virtual_list: cx.create_rw_signal(
-                crate::panel::document_symbol::VirtualList::default(),
+                VirtualList::default(),
             ),
             scroll_to: cx.create_rw_signal(None),
             select: cx.create_rw_signal(None),

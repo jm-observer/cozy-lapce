@@ -21,15 +21,16 @@ use lapce_rpc::{
     source_control::FileDiffKind,
 };
 use lapce_xi_rope::Rope;
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind, PanelSection};
 
 use super::{data::FileExplorerData, node::FileNodeVirtualList};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     editor_tab::{EditorTabChildId, EditorTabManageData},
     panel::{
-        data::PanelSection, kind::PanelKind, position::PanelContainerPosition,
         view::PanelBuilder,
     },
     plugin::PluginData,

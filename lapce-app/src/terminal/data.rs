@@ -27,6 +27,8 @@ use lapce_rpc::{
 };
 use parking_lot::RwLock;
 use url::Url;
+use lapce_core::debug::{RunDebugMode, RunDebugProcess};
+use lapce_core::workspace::LapceWorkspace;
 
 use super::{
     event::TermEvent,
@@ -34,10 +36,8 @@ use super::{
 };
 use crate::{
     command::{CommandExecuted, CommandKind},
-    debug::{RunDebugMode, RunDebugProcess},
     keypress::{condition::Condition, KeyPressFocus},
     window_workspace::CommonData,
-    workspace::LapceWorkspace,
 };
 
 #[derive(Clone, Debug)]

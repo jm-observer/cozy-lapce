@@ -6,75 +6,15 @@ use floem::{
         use_context, Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
     },
 };
-use serde::{Deserialize, Serialize};
+use lapce_core::panel::*;
 
-use super::{kind::PanelKind, position::PanelContainerPosition, style::PanelStyle};
 use crate::{
     db::LapceDb,
     window_workspace::{CommonData, Focus},
 };
 
-pub type PanelOrder = im::HashMap<PanelContainerPosition, im::Vector<PanelKind>>;
 
-pub fn default_panel_order() -> PanelOrder {
-    let mut order = PanelOrder::new();
-    order.insert(
-        PanelContainerPosition::Left,
-        im::vector![
-            PanelKind::FileExplorer,
-            PanelKind::Plugin,
-            PanelKind::SourceControl,
-            PanelKind::Debug,
-        ],
-    );
-    order.insert(
-        PanelContainerPosition::Bottom,
-        im::vector![
-            PanelKind::Terminal,
-            PanelKind::Search,
-            PanelKind::Problem,
-            PanelKind::CallHierarchy,
-            PanelKind::References,
-            PanelKind::Implementation
-        ],
-    );
-    order.insert(
-        PanelContainerPosition::Right,
-        im::vector![PanelKind::DocumentSymbol,],
-    );
 
-    order
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub enum PanelSection {
-    OpenEditor,
-    FileExplorer,
-    Error,
-    Warn,
-    Changes,
-    Installed,
-    Available,
-    Process,
-    Variable,
-    StackFrame,
-    Breakpoint,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct PanelSize {
-    pub left: f64,
-    pub bottom: f64,
-    pub right: f64,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct PanelInfo {
-    pub panels: PanelOrder,
-    pub styles: im::HashMap<PanelContainerPosition, PanelStyle>,
-    pub size: PanelSize,
-    pub sections: im::HashMap<PanelSection, bool>,
-}
 
 #[derive(Clone)]
 pub struct PanelData {

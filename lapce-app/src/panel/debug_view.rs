@@ -14,23 +14,25 @@ use floem::{
     },
     View,
 };
+use lapce_core::debug::{BreakpointAction, RunDebugMode};
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelSection};
 use lapce_rpc::{
     dap_types::{DapId, ThreadId},
     terminal::TermId,
 };
 
-use super::{data::PanelSection, view::PanelBuilder};
+use super::{view::PanelBuilder};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     debug::{
-        update_breakpoints, BreakpointAction, DapVariable, RunDebugMode,
+        update_breakpoints, DapVariable,
         StackTraceData,
     },
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
-    panel::position::PanelContainerPosition,
     settings::checkbox,
     svg,
     terminal::panel::TerminalPanelData,

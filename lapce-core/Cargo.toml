@@ -31,7 +31,9 @@ ahash       = "0.8.11"
 remain      = "0.2"
 hashbrown   = { version = "0.14.5", features = ["raw"] }
 
-
+notify             = { workspace = true }
+parking_lot        = { workspace = true }
+serde        = { workspace = true }
 
 [features]
 default      = []

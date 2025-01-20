@@ -50,6 +50,12 @@ use lsp_types::{
     ProgressToken, ShowMessageParams,
 };
 use serde_json::Value;
+use lapce_core::debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess};
+use lapce_core::doc::DocContent;
+use lapce_core::id::{TerminalTabId, WindowTabId};
+use lapce_core::main_split::{SplitDirection, SplitMoveDirection};
+use lapce_core::panel::{default_panel_order, PanelContainerPosition, PanelKind, PanelSection};
+use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo};
 
 use crate::{
     about::AboutData,
@@ -62,27 +68,23 @@ use crate::{
     completion::{CompletionData, CompletionStatus},
     config::LapceConfig,
     db::LapceDb,
-    debug::{DapData, LapceBreakpoint, RunDebugMode, RunDebugProcess},
-    doc::DocContent,
+    debug::{DapData},
     editor::location::{EditorLocation, EditorPosition},
     editor_tab::EditorTabChildId,
     file_explorer::data::FileExplorerData,
     find::Find,
     global_search::GlobalSearchData,
     hover::HoverData,
-    id::{TerminalTabId, WindowTabId},
     inline_completion::InlineCompletionData,
     keypress::{condition::Condition, EventRef, KeyPressData, KeyPressFocus},
     listener::Listener,
     lsp::path_from_url,
-    main_split::{MainSplitData, SplitData, SplitDirection, SplitMoveDirection},
+    main_split::{MainSplitData, SplitData, },
     palette::{kind::PaletteKind, PaletteData, PaletteStatus, DEFAULT_RUN_TOML},
     panel::{
         call_hierarchy_view::CallHierarchyItemData,
-        data::{default_panel_order, PanelData, PanelSection},
+        data::{PanelData},
         document_symbol::MatchDocumentSymbol,
-        kind::PanelKind,
-        position::PanelContainerPosition,
     },
     plugin::PluginData,
     proxy::{new_proxy, ProxyData},
@@ -93,7 +95,6 @@ use crate::{
         panel::TerminalPanelData,
     },
     window::WindowCommonData,
-    workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo},
 };
 
 #[derive(Clone, Debug)]

@@ -11,19 +11,20 @@ use floem::{
     views::{container, drag_window_area, empty, label, stack, Decorators},
     View,
 };
+use lapce_core::icon::LapceIcons;
 use lapce_core::meta;
+use lapce_core::workspace::LapceWorkspace;
 use lapce_rpc::proxy::ProxyStatus;
 
 use crate::{
     app::{clickable_icon, not_clickable_icon, tooltip_label, window_menu},
     command::{LapceCommand, LapceWorkbenchCommand, WindowCommand},
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     listener::Listener,
     main_split::MainSplitData,
     svg,
     update::ReleaseInfo,
     window_workspace::WindowWorkspaceData,
-    workspace::LapceWorkspace,
 };
 use crate::app::{clickable_icon_base_with_color};
 

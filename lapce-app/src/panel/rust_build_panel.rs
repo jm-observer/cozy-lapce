@@ -1,7 +1,7 @@
 use cozy_floem::views::tree_with_panel::tree_with_panel;
 use floem::prelude::{Decorators};
 use floem::View;
-use crate::panel::position::PanelContainerPosition;
+use lapce_core::panel::PanelContainerPosition;
 use crate::window_workspace::WindowWorkspaceData;
 
 pub fn build_panel(

@@ -16,20 +16,19 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        clip, dyn_stack, editor::id::EditorId, empty, label, stack, Decorators,
+        clip, dyn_stack, empty, label, stack, Decorators,
     },
     View,
 };
-use lapce_rpc::{buffer::BufferId, proxy::ProxyResponse};
-use lapce_xi_rope::Rope;
-use serde::{Deserialize, Serialize};
+use lapce_core::editor_tab::DiffEditorInfo;
+use lapce_core::icon::LapceIcons;
+use lapce_core::id::{DiffEditorId, EditorId, EditorTabManageId};
 
 use super::EditorData;
 use crate::{
-    config::{color::LapceColor, icon::LapceIcons},
-    doc::{Doc, DocContent},
-    id::{DiffEditorId, EditorTabManageId},
-    main_split::{Editors, MainSplitData},
+    config::{color::LapceColor, },
+    doc::{Doc,},
+    main_split::{Editors,},
     svg,
     wave::wave_box,
     window_workspace::CommonData,
@@ -41,104 +40,7 @@ use crate::{
 //     pub changes: Vec<DiffLines>,
 // }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct DiffEditorInfo {
-    pub left_content: DocContent,
-    pub right_content: DocContent,
-}
 
-impl DiffEditorInfo {
-    pub fn to_data(
-        &self,
-        data: MainSplitData,
-        editor_tab_id: EditorTabManageId,
-    ) -> DiffEditorData {
-        let cx = data.scope.create_child();
-
-        let diff_editor_id = DiffEditorId::next();
-
-        let new_doc = {
-            let data = data.clone();
-            let common = data.common.clone();
-            move |content: &DocContent| match content {
-                DocContent::File { path, .. } => {
-                    let (doc, _) = data.get_doc(path.clone(), None, false);
-                    doc
-                },
-                DocContent::Local => {
-                    Rc::new(Doc::new_local(cx, data.editors, common.clone(), None))
-                },
-                DocContent::History(history) => {
-                    let doc = Doc::new_history(
-                        cx,
-                        content.clone(),
-                        data.editors,
-                        common.clone(),
-                    );
-                    let doc = Rc::new(doc);
-
-                    {
-                        let doc = doc.clone();
-                        let send = create_ext_action(cx, move |result| {
-                            if let Ok(ProxyResponse::BufferHeadResponse {
-                                content,
-                                ..
-                            }) = result
-                            {
-                                doc.init_content(Rope::from(content));
-                            }
-                        });
-                        common.proxy.get_buffer_head(
-                            history.path.clone(),
-                            move |(_, result)| {
-                                send(result);
-                            },
-                        );
-                    }
-
-                    doc
-                },
-                DocContent::Scratch { name, .. } => {
-                    let doc_content = DocContent::Scratch {
-                        id: BufferId::next(),
-                        name: name.to_string(),
-                    };
-                    let doc = Doc::new_content(
-                        cx,
-                        doc_content,
-                        data.editors,
-                        common.clone(),
-                        None,
-                    );
-                    let doc = Rc::new(doc);
-                    data.scratch_docs.update(|scratch_docs| {
-                        scratch_docs.insert(name.to_string(), doc.clone());
-                    });
-                    doc
-                },
-            }
-        };
-
-        let left_doc = new_doc(&self.left_content);
-        let right_doc = new_doc(&self.right_content);
-
-        let diff_editor_data = DiffEditorData::new(
-            cx,
-            diff_editor_id,
-            editor_tab_id,
-            left_doc,
-            right_doc,
-            data.editors,
-            data.common.clone(),
-        );
-
-        data.diff_editors.update(|diff_editors| {
-            diff_editors.insert(diff_editor_id, diff_editor_data.clone());
-        });
-
-        diff_editor_data
-    }
-}
 
 #[derive(Clone)]
 pub struct DiffEditorData {
@@ -202,8 +104,8 @@ impl DiffEditorData {
         &self,
         cx: Scope,
         editor_tab_id: EditorTabManageId,
-        diff_editor_id: EditorId,
         editors: Editors,
+        diff_editor_id: EditorId,
     ) -> Self {
         let cx = cx.create_child();
         let confirmed = cx.create_rw_signal(true);

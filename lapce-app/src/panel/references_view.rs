@@ -2,12 +2,12 @@ use floem::{
     views::{stack, Decorators},
     View,
 };
+use lapce_core::panel::PanelContainerPosition;
 
 use crate::{
     common::common_tab_header,
     panel::{
         implementation_view::common_reference_panel,
-        position::PanelContainerPosition,
     },
     window_workspace::WindowWorkspaceData,
 };

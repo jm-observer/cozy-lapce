@@ -10,11 +10,11 @@ use lapce_rpc::{
     terminal::TermId,
 };
 use log::error;
+use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType};
 
 use self::{remote::start_remote, ssh::SshRemote};
 use crate::{
     terminal::event::TermEvent,
-    workspace::{LapceWorkspace, LapceWorkspaceType},
 };
 
 mod remote;

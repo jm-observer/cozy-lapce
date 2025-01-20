@@ -12,19 +12,20 @@ use floem::{
     View,
 };
 use lsp_types::{DiagnosticRelatedInformation, DiagnosticSeverity};
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelSection};
+use lapce_core::workspace::LapceWorkspace;
 
-use super::{data::PanelSection, view::PanelBuilder};
+use super::{view::PanelBuilder};
 use crate::{
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     doc::EditorDiagnostic,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     lsp::path_from_url,
-    panel::position::PanelContainerPosition,
     svg,
     window_workspace::WindowWorkspaceData,
-    workspace::LapceWorkspace,
 };
 pub fn problem_panel(
     window_tab_data: WindowWorkspaceData,

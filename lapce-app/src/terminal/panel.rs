@@ -16,20 +16,20 @@ use lapce_rpc::{
 use log::{debug, error};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use lapce_core::debug::{RunDebugConfigs, RunDebugMode, RunDebugProcess, ScopeOrVar};
+use lapce_core::id::TerminalTabId;
+use lapce_core::panel::PanelKind;
+use lapce_core::workspace::LapceWorkspace;
 
 use super::{data::TerminalData, tab::TerminalTabData};
 use crate::{
     debug::{
-        DapData, DapVariable, RunDebugConfigs, RunDebugData, RunDebugMode,
-        RunDebugProcess, ScopeOrVar,
+        DapData, DapVariable, RunDebugData,
     },
-    id::TerminalTabId,
     keypress::{EventRef, KeyPressData, KeyPressFocus, KeyPressHandle},
     main_split::MainSplitData,
-    panel::kind::PanelKind,
     terminal::{event::TermEvent, raw::RawTerminal},
     window_workspace::{CommonData, Focus},
-    workspace::LapceWorkspace,
 };
 
 pub struct TerminalTabInfo {

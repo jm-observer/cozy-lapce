@@ -1,12 +1,13 @@
 use std::{rc::Rc, sync::Arc};
 
 use floem::reactive::{RwSignal, Scope, SignalWith};
+use lapce_core::debug::RunDebugProcess;
+use lapce_core::id::TerminalTabId;
+use lapce_core::workspace::LapceWorkspace;
 use lapce_rpc::terminal::TerminalProfile;
 
 use super::data::TerminalData;
-use crate::{
-    debug::RunDebugProcess, id::TerminalTabId, window_workspace::CommonData,
-    workspace::LapceWorkspace,
+use crate::{window_workspace::CommonData,
 };
 
 #[derive(Clone)]

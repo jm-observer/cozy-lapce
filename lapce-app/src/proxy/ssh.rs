@@ -2,9 +2,10 @@ use std::{path::Path, process::Command};
 
 use anyhow::Result;
 use log::debug;
+use lapce_core::workspace::SshHost;
 
 use super::remote::Remote;
-use crate::{proxy::new_command, workspace::SshHost};
+use crate::{proxy::new_command, };
 
 pub struct SshRemote {
     pub ssh: SshHost,

@@ -11,21 +11,21 @@ use floem::{
     View,
 };
 use lapce_xi_rope::find::CaseMatching;
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind};
+use lapce_core::workspace::LapceWorkspace;
 
-use super::kind::PanelKind;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     editor::location::{EditorLocation, EditorPosition},
     focus_text::focus_text,
     global_search::{GlobalSearchData, SearchMatchData},
     listener::Listener,
-    panel::position::PanelContainerPosition,
     svg,
     text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData},
-    workspace::LapceWorkspace,
 };
 pub fn global_search_panel(
     window_tab_data: WindowWorkspaceData,

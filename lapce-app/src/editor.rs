@@ -36,7 +36,6 @@ use floem::{
             mode::{Mode, MotionMode},
             movement::Movement,
         },
-        id::EditorId,
     },
     ViewId,
 };
@@ -50,6 +49,8 @@ use lsp_types::{
 };
 use nucleo::Utf32Str;
 use serde::{Deserialize, Serialize};
+use lapce_core::doc::DocContent;
+use lapce_core::editor_tab::EditorInfo;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -58,28 +59,29 @@ use crate::{
     completion::CompletionStatus,
     config::LapceConfig,
     db::LapceDb,
-    doc::{Doc, DocContent},
+    doc::{Doc},
     editor::{
         editor::{do_motion_mode, Editor},
         movement::{do_multi_selection, move_cursor},
     },
     editor_tab::EditorTabChildId,
-    id::{DiffEditorId, EditorTabManageId},
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
     keypress::{condition::Condition, KeyPressFocus},
     lsp::path_from_url,
-    main_split::{Editors, MainSplitData, SplitDirection, SplitMoveDirection},
+    main_split::{Editors, MainSplitData},
     markdown::{
         from_marked_string, from_plaintext, parse_markdown, MarkdownContent,
     },
     panel::{
         call_hierarchy_view::{CallHierarchyData, CallHierarchyItemData},
         implementation_view::{init_implementation_root, map_to_location},
-        kind::PanelKind,
     },
     snippet::Snippet,
     window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
+use lapce_core::id::*;
+use lapce_core::main_split::{SplitDirection, SplitMoveDirection};
+use lapce_core::panel::PanelKind;
 
 pub mod diff;
 pub mod editor;
@@ -96,92 +98,6 @@ pub enum InlineFindDirection {
     Right,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct EditorInfo {
-    pub content: DocContent,
-    pub unsaved: Option<String>,
-    pub offset: usize,
-    pub scroll_offset: (f64, f64),
-}
-
-impl EditorInfo {
-    pub fn to_data(
-        &self,
-        data: MainSplitData,
-        editor_tab_id: EditorTabManageId,
-    ) -> EditorId {
-        let editors = &data.editors;
-        let common = data.common.clone();
-        match &self.content {
-            DocContent::File { path, .. } => {
-                let (doc, new_doc) =
-                    data.get_doc(path.clone(), self.unsaved.clone(), true);
-                let editor = editors.make_from_doc(
-                    data.scope,
-                    doc,
-                    Some(editor_tab_id),
-                    None,
-                    None,
-                    common,
-                );
-                editor.go_to_location(
-                    EditorLocation {
-                        path: path.clone(),
-                        position: Some(EditorPosition::Offset(self.offset)),
-                        scroll_offset: Some(Vec2::new(
-                            self.scroll_offset.0,
-                            self.scroll_offset.1,
-                        )),
-                        ignore_unconfirmed: false,
-                        same_editor_tab: false,
-                    },
-                    new_doc,
-                    None,
-                );
-
-                editor.id()
-            }
-            DocContent::Local => editors.new_local(data.scope, common, None),
-            DocContent::History(_) => editors.new_local(data.scope, common, None),
-            DocContent::Scratch { name, .. } => {
-                let doc = data
-                    .scratch_docs
-                    .try_update(|scratch_docs| {
-                        if let Some(doc) = scratch_docs.get(name) {
-                            return doc.clone();
-                        }
-                        let content = DocContent::Scratch {
-                            id: BufferId::next(),
-                            name: name.to_string(),
-                        };
-                        let doc = Doc::new_content(
-                            data.scope,
-                            content,
-                            data.editors,
-                            data.common.clone(),
-                            None,
-                        );
-                        let doc = Rc::new(doc);
-                        if let Some(unsaved) = &self.unsaved {
-                            doc.reload(Rope::from(unsaved), false);
-                        }
-                        scratch_docs.insert(name.to_string(), doc.clone());
-                        doc
-                    })
-                    .unwrap();
-
-                editors.new_from_doc(
-                    data.scope,
-                    doc,
-                    Some(editor_tab_id),
-                    None,
-                    None,
-                    common,
-                )
-            }
-        }
-    }
-}
 
 // #[derive(Clone)]
 // pub enum EditorViewKind {

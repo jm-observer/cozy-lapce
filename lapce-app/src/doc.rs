@@ -10,24 +10,24 @@ use std::{
 
 use anyhow::Result;
 use doc::{
+    DiagnosticData,
+    EditorViewKind,
     language::LapceLanguage,
     lines::{
         buffer::{
-            diff::{rope_diff, DiffLines},
-            rope_text::{RopeText, RopeTextVal},
-            Buffer, InvalLines,
+            Buffer,
+            diff::{DiffLines, rope_diff},
+            InvalLines, rope_text::{RopeText, RopeTextVal},
         },
         cursor::Cursor,
+        DocLinesManager,
         edit::EditType,
         fold::FoldingRange,
         line_ending::LineEnding,
+        RopeTextPosition,
         screen_lines::ScreenLines,
-        selection::{InsertDrift, Selection},
-        word::WordCursor,
-        DocLinesManager, RopeTextPosition,
-    },
-    syntax::{edit::SyntaxEdit, BracketParser, Syntax},
-    DiagnosticData, EditorViewKind,
+        selection::{InsertDrift, Selection}, word::WordCursor,
+    }, syntax::{BracketParser, edit::SyntaxEdit, Syntax},
 };
 use floem::{
     ext_event::create_ext_action,
@@ -35,35 +35,38 @@ use floem::{
     kurbo::Rect,
     reactive::{batch, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     text::FamilyOwned,
+    ViewId,
     views::editor::{
         command::{Command, CommandExecuted},
         core::{
             char_buffer::CharBuffer, command::EditCommand, mode::MotionMode,
             register::Register,
         },
-        id::EditorId,
+        EditorStyle,
         text::PreeditData,
         view::ScreenLinesBase,
-        EditorStyle,
     },
-    ViewId,
 };
 use itertools::Itertools;
-use lapce_core::directory::Directory;
-use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
-use lapce_xi_rope::{spans::SpansBuilder, Interval, Rope, RopeDelta, Transformer};
+use lapce_xi_rope::{Interval, Rope, RopeDelta, spans::SpansBuilder, Transformer};
 use log::{debug, error};
 use lsp_types::{CodeActionOrCommand, CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use lapce_core::debug::LapceBreakpoint;
+
+use lapce_core::directory::Directory;
+use lapce_core::doc::DocContent;
+use lapce_core::id::EditorId;
+use lapce_core::workspace::LapceWorkspace;
+use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
-    debug::LapceBreakpoint,
     editor::{
         editor::{CommonAction, CursorInfo, Editor},
-        location::{EditorLocation, EditorPosition},
         EditorData,
+        location::{EditorLocation, EditorPosition},
     },
     find::{Find, FindProgress, FindResult},
     history::DocumentHistory,
@@ -73,7 +76,6 @@ use crate::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData,
     },
     window_workspace::{CommonData, Focus, SignalManager},
-    workspace::LapceWorkspace,
 };
 
 // #[derive(Clone, Debug)]
@@ -89,52 +91,6 @@ pub struct EditorDiagnostic {
     pub diagnostic: Diagnostic,
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
-pub struct DocHistory {
-    pub path: PathBuf,
-    pub version: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
-pub enum DocContent {
-    /// A file at some location. This can be a remote path.
-    File { path: PathBuf, read_only: bool },
-    /// A local document, which doens't need to be sync to the disk.
-    Local,
-    /// A document of an old version in the source control
-    History(DocHistory),
-    /// A new file which doesn't exist in the file system
-    Scratch { id: BufferId, name: String },
-}
-
-impl DocContent {
-    pub fn is_local(&self) -> bool {
-        matches!(self, DocContent::Local)
-    }
-
-    pub fn is_file(&self) -> bool {
-        matches!(self, DocContent::File { .. })
-    }
-
-    pub fn read_only(&self) -> bool {
-        match self {
-            DocContent::File { read_only, .. } => *read_only,
-            DocContent::Local => false,
-            DocContent::History(_) => true,
-            DocContent::Scratch { .. } => false,
-        }
-    }
-
-    pub fn path(&self) -> Option<&PathBuf> {
-        match self {
-            DocContent::File { path, .. } => Some(path),
-            DocContent::Local => None,
-            DocContent::History(_) => None,
-            DocContent::Scratch { .. } => None,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DocInfo {
     pub workspace: LapceWorkspace,
@@ -145,7 +101,7 @@ pub struct DocInfo {
 
 /// (Offset -> (Plugin the code actions are from, Code Actions))
 pub type CodeActions =
-    im::HashMap<usize, (PluginId, im::Vector<CodeActionOrCommand>)>;
+im::HashMap<usize, (PluginId, im::Vector<CodeActionOrCommand>)>;
 
 pub type AllCodeLens = im::HashMap<usize, (PluginId, usize, im::Vector<CodeLens>)>;
 
@@ -208,6 +164,7 @@ pub struct Doc {
     // pub viewport: RwSignal<Rect>,
     pub lines: DocLinesManager, // pub screen_lines: RwSignal<ScreenLines>,
 }
+
 impl Doc {
     pub fn new(
         cx: Scope,
@@ -241,7 +198,7 @@ impl Doc {
             buffer,
             kind,
         )
-        .unwrap();
+            .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.get().get_doc_editor_config();
@@ -330,7 +287,7 @@ impl Doc {
             buffer,
             kind,
         )
-        .unwrap();
+            .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.get().get_doc_editor_config();
@@ -406,7 +363,7 @@ impl Doc {
             buffer,
             kind,
         )
-        .unwrap();
+            .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.get().get_doc_editor_config();
@@ -582,7 +539,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            },
+            }
         };
         self.apply_deltas(&[delta]);
     }
@@ -610,7 +567,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return vec![];
-            },
+            }
         };
         self.apply_deltas(&deltas);
         deltas
@@ -634,7 +591,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return None;
-            },
+            }
         };
         self.apply_deltas(&[(text.clone(), delta.clone(), inval_lines.clone())]);
         Some((text, delta, inval_lines))
@@ -659,12 +616,12 @@ impl Doc {
             None => {
                 error!("None");
                 return vec![];
-            },
+            }
             Some(Ok(rs)) => rs,
             Some(Err(err)) => {
                 error!("{err:?}");
                 return vec![];
-            },
+            }
         };
         if !deltas.is_empty() {
             self.apply_deltas(&deltas);
@@ -701,7 +658,7 @@ impl Doc {
                     Err(err) => {
                         error!("{err:?}");
                         None
-                    },
+                    }
                 }
             })
             .collect();
@@ -792,13 +749,13 @@ impl Doc {
                         doc.clear_sticky_headers_cache();
                         doc.clear_text_cache();
                     }
-                },
+                }
                 Some(Err(err)) => {
                     error!("{err:?}");
-                },
+                }
                 None => {
                     error!("None");
-                },
+                }
             };
         });
 
@@ -889,11 +846,11 @@ impl Doc {
                 }) {
                     Some(Ok(true)) => {
                         doc.clear_style_cache();
-                    },
+                    }
                     Some(Err(err)) => {
                         error!("{err:?}");
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         });
@@ -1037,7 +994,7 @@ impl Doc {
                                 Err(err) => {
                                     error!("{err:?}");
                                     continue;
-                                },
+                                }
                             };
                             let entry = code_lens
                                 .entry(codelens.range.start.line as usize)
@@ -1071,7 +1028,7 @@ impl Doc {
                             match resp {
                                 DocumentSymbolResponse::Flat(_symbols) => {
                                     Vec::with_capacity(0)
-                                },
+                                }
                                 DocumentSymbolResponse::Nested(symbols) => symbols
                                     .into_iter()
                                     .map(|x| {
@@ -1145,9 +1102,9 @@ impl Doc {
                         Err(err) => {
                             error!("{err:?}");
                             continue;
-                        },
+                        }
                     }
-                    .min(len);
+                        .min(len);
                     hints_span.add_span(
                         Interval::new(offset, (offset + 1).min(len)),
                         hint,
@@ -1192,8 +1149,8 @@ impl Doc {
                         return;
                     }
                     if let Ok(ProxyResponse::LspFoldingRangeResponse {
-                        resp, ..
-                    }) = result
+                                  resp, ..
+                              }) = result
                     {
                         let folding: Vec<FoldingRange> = resp
                             .unwrap_or_default()
@@ -1271,7 +1228,7 @@ impl Doc {
                                     Err(err) => {
                                         error!("{err:?}");
                                         None
-                                    },
+                                    }
                                 },
                             )
                             .collect();
@@ -1391,7 +1348,7 @@ impl Doc {
                 Err(err) => {
                     error!("{err:?}");
                     return None;
-                },
+                }
             };
             self.syntax().sticky_headers(offset).map(|offsets| {
                 offsets
@@ -1427,8 +1384,8 @@ impl Doc {
                 let doc = self.clone();
                 create_ext_action(self.scope, move |result| {
                     if let Ok(ProxyResponse::BufferHeadResponse {
-                        content, ..
-                    }) = result
+                                  content, ..
+                              }) = result
                     {
                         let hisotry = DocumentHistory::new(
                             path.clone(),
@@ -1509,11 +1466,11 @@ impl Doc {
                     match lines.try_update(|x| x.set_pristine(rev)) {
                         Some(Ok(true)) => {
                             after_action();
-                        },
+                        }
                         Some(Err(err)) => {
                             error!("{err:?}");
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
             });
@@ -1585,6 +1542,7 @@ impl Doc {
             })
     }
 }
+
 impl Doc {
     pub fn text(&self) -> Rope {
         self.lines
@@ -1774,12 +1732,12 @@ impl CommonAction for Doc {
             None => {
                 error!("None");
                 return;
-            },
+            }
             Some(Ok(rs)) => rs,
             Some(Err(err)) => {
                 error!("{err:?}");
                 return;
-            },
+            }
         };
         self.apply_deltas(&deltas);
     }

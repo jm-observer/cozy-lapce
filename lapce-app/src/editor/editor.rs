@@ -29,7 +29,6 @@ use floem::{
             movement::Movement,
             register::Register,
         },
-        id::EditorId,
         text::{Preedit, PreeditData, Styling},
         view::EditorView,
     },
@@ -37,6 +36,7 @@ use floem::{
 };
 use lapce_xi_rope::Rope;
 use log::{error, info};
+use lapce_core::id::EditorId;
 
 use crate::doc::Doc;
 

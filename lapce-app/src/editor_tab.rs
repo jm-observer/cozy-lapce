@@ -6,123 +6,34 @@ use std::{
 
 use floem::{
     peniko::{
-        kurbo::{Point, Rect},
         Color,
+        kurbo::{Point, Rect},
     },
     reactive::{
         create_memo, create_rw_signal, Memo, ReadSignal, RwSignal, Scope, SignalGet,
         SignalUpdate, SignalWith,
     },
-    views::editor::id::EditorId,
 };
 use floem::reactive::WriteSignal;
+use lapce_core::doc::DocContent;
+
+use lapce_core::editor_tab::{EditorTabChildInfo, EditorTabInfo};
+use lapce_core::icon::LapceIcons;
+use lapce_core::id::{DiffEditorId, EditorId, EditorTabManageId, KeymapId, SettingsId, SplitId, ThemeColorSettingsId, VoltViewId};
 use lapce_rpc::plugin::VoltID;
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
-    doc::{Doc, DocContent},
+    config::{color::LapceColor, LapceConfig},
+    doc::{Doc},
     editor::{
-        diff::{DiffEditorData, DiffEditorInfo},
+        diff::DiffEditorData,
+        EditorData,
         location::EditorLocation,
-        EditorData, EditorInfo,
     },
-    id::{
-        DiffEditorId, EditorTabManageId, KeymapId, SettingsId, SplitId,
-        ThemeColorSettingsId, VoltViewId,
-    },
-    main_split::{Editors, MainSplitData},
+    main_split::Editors,
     plugin::PluginData,
     window_workspace::WindowWorkspaceData,
 };
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum EditorTabChildInfo {
-    Editor(EditorInfo),
-    DiffEditor(DiffEditorInfo),
-    Settings,
-    ThemeColorSettings,
-    Keymap,
-    Volt(VoltID),
-}
-
-impl EditorTabChildInfo {
-    pub fn to_data(
-        &self,
-        data: MainSplitData,
-        editor_tab_id: EditorTabManageId,
-    ) -> EditorTabChildId {
-        match &self {
-            EditorTabChildInfo::Editor(editor_info) => {
-                let editor_id = editor_info.to_data(data, editor_tab_id);
-                EditorTabChildId::Editor(editor_id)
-            },
-            EditorTabChildInfo::DiffEditor(diff_editor_info) => {
-                let diff_editor_data = diff_editor_info.to_data(data, editor_tab_id);
-                EditorTabChildId::DiffEditor(diff_editor_data.id)
-            },
-            EditorTabChildInfo::Settings => {
-                EditorTabChildId::Settings(SettingsId::next())
-            },
-            EditorTabChildInfo::ThemeColorSettings => {
-                EditorTabChildId::ThemeColorSettings(ThemeColorSettingsId::next())
-            },
-            EditorTabChildInfo::Keymap => EditorTabChildId::Keymap(KeymapId::next()),
-            EditorTabChildInfo::Volt(id) => {
-                EditorTabChildId::Volt(VoltViewId::next(), id.to_owned())
-            },
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct EditorTabInfo {
-    pub active: usize,
-    pub is_focus: bool,
-    pub children: Vec<EditorTabChildInfo>,
-}
-
-impl EditorTabInfo {
-    pub fn to_data(
-        &self,
-        data: MainSplitData,
-        split: SplitId,
-    ) -> RwSignal<EditorTabManageData> {
-        let editor_tab_id = EditorTabManageId::next();
-        let editor_tab_data = {
-            let cx = data.scope.create_child();
-            let editor_tab_data = EditorTabManageData {
-                scope: cx,
-                editor_tab_manage_id: editor_tab_id,
-                split,
-                active: self.active,
-                children: self
-                    .children
-                    .iter()
-                    .map(|child| {
-                        EditorTabChildSimple::new(
-                            cx.create_rw_signal(0),
-                            cx.create_rw_signal(Rect::ZERO),
-                            child.to_data(data.clone(), editor_tab_id),
-                        )
-                    })
-                    .collect(),
-                layout_rect: Rect::ZERO,
-                window_origin: Point::ZERO,
-                locations: cx.create_rw_signal(im::Vector::new()),
-                current_location: cx.create_rw_signal(0),
-            };
-            cx.create_rw_signal(editor_tab_data)
-        };
-        if self.is_focus {
-            data.active_editor_tab.set(Some(editor_tab_id));
-        }
-        data.editor_tabs.update(|editor_tabs| {
-            editor_tabs.insert(editor_tab_id, editor_tab_data);
-        });
-        editor_tab_data
-    }
-}
 
 pub enum EditorTabChildSource {
     Editor { path: PathBuf, doc: Rc<Doc> },
@@ -179,7 +90,7 @@ impl EditorTabChildId {
                     .editor_untracked(*editor_id)
                     .unwrap();
                 EditorTabChildInfo::Editor(editor_data.editor_info(data))
-            },
+            }
             EditorTabChildId::DiffEditor(diff_editor_id) => {
                 let diff_editor_data = data
                     .main_split
@@ -189,11 +100,11 @@ impl EditorTabChildId {
                     .cloned()
                     .unwrap();
                 EditorTabChildInfo::DiffEditor(diff_editor_data.diff_editor_info())
-            },
+            }
             EditorTabChildId::Settings(_) => EditorTabChildInfo::Settings,
             EditorTabChildId::ThemeColorSettings(_) => {
                 EditorTabChildInfo::ThemeColorSettings
-            },
+            }
             EditorTabChildId::Keymap(_) => EditorTabChildInfo::Keymap,
             EditorTabChildId::Volt(_, id) => EditorTabChildInfo::Volt(id.to_owned()),
         }
@@ -219,12 +130,12 @@ impl EditorTabChildId {
                     match content {
                         DocContent::File { path, .. } => {
                             Some((path, confirmed, is_pristine))
-                        },
+                        }
                         DocContent::Local => None,
                         DocContent::History(_) => None,
                         DocContent::Scratch { name, .. } => {
                             Some((PathBuf::from(name), confirmed, is_pristine))
-                        },
+                        }
                     }
                 } else {
                     None
@@ -242,7 +153,7 @@ impl EditorTabChildId {
                             confirmed,
                             is_pritine,
                         )
-                    },
+                    }
                     None => (
                         config.ui_svg(LapceIcons::FILE),
                         Some(config.color(LapceColor::LAPCE_ICON_ACTIVE)),
@@ -282,12 +193,12 @@ impl EditorTabChildId {
                             match content {
                                 DocContent::File { path, .. } => {
                                     Some((path, is_pristine))
-                                },
+                                }
                                 DocContent::Local => None,
                                 DocContent::History(_) => None,
                                 DocContent::Scratch { name, .. } => {
                                     Some((PathBuf::from(name), is_pristine))
-                                },
+                                }
                             }
                         })
                     })
@@ -308,24 +219,24 @@ impl EditorTabChildId {
                             ),
                             is_pristine,
                         )
-                    },
+                    }
                     [Some((left_path, left_is_pristine)), Some((right_path, right_is_pristine))] =>
-                    {
-                        let (svg, color) =
-                            config.files_svg(&[&left_path, &right_path]);
-                        let [left_file_name, right_file_name] =
-                            [&left_path, &right_path].map(|path| {
-                                path.file_name()
-                                    .unwrap_or_default()
-                                    .to_string_lossy()
-                            });
-                        (
-                            svg,
-                            color,
-                            format!("{left_file_name} - {right_file_name} (Diff)"),
-                            left_is_pristine && right_is_pristine,
-                        )
-                    },
+                        {
+                            let (svg, color) =
+                                config.files_svg(&[&left_path, &right_path]);
+                            let [left_file_name, right_file_name] =
+                                [&left_path, &right_path].map(|path| {
+                                    path.file_name()
+                                        .unwrap_or_default()
+                                        .to_string_lossy()
+                                });
+                            (
+                                svg,
+                                color,
+                                format!("{left_file_name} - {right_file_name} (Diff)"),
+                                left_is_pristine && right_is_pristine,
+                            )
+                        }
                     [None, None] => (
                         config.ui_svg(LapceIcons::FILE),
                         Some(config.color(LapceColor::LAPCE_ICON_ACTIVE)),
@@ -402,11 +313,12 @@ impl EditorTabChildId {
         }
     }
 }
-#[derive(Clone, Debug,)]
+
+#[derive(Clone, Debug, )]
 pub struct EditorTabChildSimple {
     index: RwSignal<usize>,
     position: RwSignal<Rect>,
-    id: EditorTabChildId
+    id: EditorTabChildId,
 }
 
 impl EditorTabChildSimple {
@@ -414,20 +326,22 @@ impl EditorTabChildSimple {
                position: RwSignal<Rect>,
                id: EditorTabChildId) -> Self {
         Self {
-            index, position, id
+            index,
+            position,
+            id,
         }
     }
-    pub fn update_index_with_judgment(&self, index: usize, ) {
+    pub fn update_index_with_judgment(&self, index: usize) {
         if self.index.get_untracked() != index {
             self.index.set(index);
         }
     }
 
-    pub fn layout_untracted(&self, ) -> Rect {
+    pub fn layout_untracted(&self) -> Rect {
         self.position.get_untracked()
     }
 
-    pub fn layout_tracing(&self, ) -> Rect {
+    pub fn layout_tracing(&self) -> Rect {
         self.position.get()
     }
 
@@ -435,7 +349,7 @@ impl EditorTabChildSimple {
         self.position.write_only()
     }
 
-    pub fn read_index(&self, ) -> ReadSignal<usize> {
+    pub fn read_index(&self) -> ReadSignal<usize> {
         self.index.read_only()
     }
     pub fn id(&self) -> &EditorTabChildId {
@@ -453,7 +367,8 @@ impl EditorTabDraging {
     pub fn new(editor_tab_child_index: ReadSignal<usize>,
                editor_tab_manage_id: EditorTabManageId) -> Self {
         Self {
-            editor_tab_child_index, editor_tab_manage_id
+            editor_tab_child_index,
+            editor_tab_manage_id,
         }
     }
     pub fn data(&self) -> (usize, EditorTabManageId) {
@@ -481,7 +396,7 @@ impl EditorTabManageData {
         path: &Path,
     ) -> Option<(usize, EditorData)> {
         for (i, child) in self.children.iter().enumerate() {
-            if let  EditorTabChildId::Editor(editor_id) = child.id() {
+            if let EditorTabChildId::Editor(editor_id) = child.id() {
                 if let Some(editor) = editors.editor_untracked(*editor_id) {
                     let is_path = editor.doc().content.with_untracked(|content| {
                         if let DocContent::File { path: p, .. } = content {
@@ -513,7 +428,7 @@ impl EditorTabManageData {
                             return Some((i, child.id().clone()));
                         }
                     }
-                },
+                }
                 EditorTabChildId::DiffEditor(diff_editor_id) => {
                     if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
                         let confirmed = diff_editor.confirmed.get_untracked();
@@ -521,7 +436,7 @@ impl EditorTabManageData {
                             return Some((i, child.id().clone()));
                         }
                     }
-                },
+                }
                 _ => (),
             }
         }

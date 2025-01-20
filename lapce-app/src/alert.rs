@@ -11,9 +11,10 @@ use floem::{
     views::{container, dyn_stack, label, stack, Decorators},
     View,
 };
+use lapce_core::icon::LapceIcons;
 
 use crate::{
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     svg,
     window_workspace::CommonData,
 };

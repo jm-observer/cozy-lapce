@@ -45,18 +45,19 @@ use floem::peniko::Brush;
 use floem::prelude::SvgColor;
 use lapce_xi_rope::find::CaseMatching;
 use log::{error};
+use lapce_core::doc::DocContent;
+use lapce_core::icon::LapceIcons;
+use lapce_core::workspace::LapceWorkspace;
 
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, editor::WrapStyle, icon::LapceIcons, LapceConfig},
-    doc::DocContent,
+    config::{color::LapceColor, editor::WrapStyle, LapceConfig},
     editor::editor::{cursor_origin_position, paint_selection, paint_text, Editor},
     svg,
     text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData},
-    workspace::LapceWorkspace,
 };
 use crate::editor::gutter_new::view::editor_gutter_new;
 

@@ -44,49 +44,5 @@
 //     }
 // }
 
-use serde::{Deserialize, Serialize};
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum PanelContainerPosition {
-    Left,
-    Bottom,
-    Right,
-}
 
-impl PanelContainerPosition {
-    pub fn is_bottom(&self) -> bool {
-        matches!(self, PanelContainerPosition::Bottom)
-    }
-
-    pub fn is_right(&self) -> bool {
-        matches!(self, PanelContainerPosition::Right)
-    }
-
-    pub fn is_left(&self) -> bool {
-        matches!(self, PanelContainerPosition::Left)
-    }
-
-    // pub fn first(&self) -> PanelPosition {
-    //     match self {
-    //         PanelContainerPosition::Left => PanelPosition::LeftTop,
-    //         PanelContainerPosition::Bottom => PanelPosition::BottomLeft,
-    //         PanelContainerPosition::Right => PanelPosition::RightTop,
-    //     }
-    // }
-    //
-    // pub fn second(&self) -> PanelPosition {
-    //     match self {
-    //         PanelContainerPosition::Left => PanelPosition::LeftBottom,
-    //         PanelContainerPosition::Bottom => PanelPosition::BottomRight,
-    //         PanelContainerPosition::Right => PanelPosition::RightBottom,
-    //     }
-    // }
-
-    pub fn debug_name(&self) -> &'static str {
-        match self {
-            PanelContainerPosition::Left => "Left Pannel Container View",
-            PanelContainerPosition::Bottom => "Bottom Pannel Container View",
-            PanelContainerPosition::Right => "Right Pannel Container View",
-        }
-    }
-}

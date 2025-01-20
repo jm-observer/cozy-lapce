@@ -14,17 +14,18 @@ use floem::{
     IntoView, View,
 };
 use indexmap::IndexMap;
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind, PanelSection};
 use lapce_rpc::{
     core::CoreRpcHandler,
     plugin::{VoltID, VoltInfo},
 };
 
-use super::{data::PanelSection, kind::PanelKind, view::PanelBuilder};
+use super::{view::PanelBuilder};
 use crate::{
     app::not_clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor, icon::LapceIcons},
-    panel::position::PanelContainerPosition,
+    config::{color::LapceColor, },
     plugin::{AvailableVoltData, InstalledVoltData, PluginData, VoltIcon},
     svg,
     text_input::TextInputBuilder,
@@ -158,7 +159,8 @@ fn installed_view(plugin: PluginData) -> impl View {
                             .min_width(0.0)
                     }),
                     not_clickable_icon(
-                        || LapceIcons::SETTINGS,
+                        ||
+                        LapceIcons::SETTINGS,
                         || false,
                         || false,
                         || "Options",

@@ -10,13 +10,14 @@ use floem::{
     IntoView, View, ViewId,
 };
 use lsp_types::{CallHierarchyItem, Range};
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::PanelContainerPosition;
 
 use crate::{
     command::InternalCommand,
     common::common_tab_header,
-    config::{color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, },
     editor::location::EditorLocation,
-    panel::position::PanelContainerPosition,
     svg,
     window_workspace::WindowWorkspaceData,
 };

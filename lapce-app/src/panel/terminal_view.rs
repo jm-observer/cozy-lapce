@@ -12,14 +12,15 @@ use floem::{
     View, ViewId,
 };
 use floem::peniko::{Color};
+use lapce_core::debug::RunDebugMode;
+use lapce_core::icon::LapceIcons;
+use lapce_core::id::TerminalTabId;
+use lapce_core::panel::PanelKind;
 
-use super::kind::PanelKind;
 use crate::{
     app::clickable_icon,
     command::{InternalCommand, LapceWorkbenchCommand},
-    config::{color::LapceColor, icon::LapceIcons},
-    debug::RunDebugMode,
-    id::TerminalTabId,
+    config::{color::LapceColor},
     listener::Listener,
     svg,
     terminal::{
@@ -230,7 +231,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
     .on_double_click(move |_| {
         window_tab_data
             .panel
-            .toggle_maximize(&crate::panel::kind::PanelKind::Terminal);
+            .toggle_maximize(&PanelKind::Terminal);
         EventPropagation::Stop
     })
     .style(move |s| {

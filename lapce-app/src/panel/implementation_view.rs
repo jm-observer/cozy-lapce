@@ -13,13 +13,14 @@ use im::HashMap;
 use itertools::Itertools;
 use lapce_rpc::file_line::FileLine;
 use lsp_types::{request::GotoImplementationResponse, Location, SymbolKind};
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::PanelContainerPosition;
 
 use crate::{
     command::InternalCommand,
     common::common_tab_header,
-    config::{color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor, },
     editor::location::EditorLocation,
-    panel::position::PanelContainerPosition,
     svg,
     window_workspace::WindowWorkspaceData,
 };

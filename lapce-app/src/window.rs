@@ -12,6 +12,7 @@ use floem::{
 };
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use lapce_core::workspace::LapceWorkspace;
 
 use crate::{
     app::AppCommand,
@@ -22,7 +23,6 @@ use crate::{
     listener::Listener,
     update::ReleaseInfo,
     window_workspace::WindowWorkspaceData,
-    workspace::LapceWorkspace,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -15,14 +15,15 @@ use floem::{
     views::{container, dyn_stack, label, scroll, stack, text, Decorators},
     View,
 };
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind, PanelSection};
 use lapce_rpc::source_control::FileDiff;
 
-use super::{data::PanelSection, kind::PanelKind, view::foldable_panel_section};
+use super::{view::foldable_panel_section};
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
-    config::{color::LapceColor, icon::LapceIcons},
+    config::{color::LapceColor},
     editor::{editor::cursor_caret_v2, view::editor_view},
-    panel::position::PanelContainerPosition,
     settings::checkbox,
     source_control::SourceControlData,
     svg,

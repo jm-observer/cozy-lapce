@@ -37,6 +37,8 @@ use log::error;
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse};
 use nucleo::Utf32Str;
 use strum::{EnumMessage, IntoEnumIterator};
+use lapce_core::debug::{RunDebugConfigs, RunDebugMode};
+use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType, SshHost, WslHost};
 
 use self::{
     item::{PaletteItem, PaletteItemContent},
@@ -47,7 +49,6 @@ use crate::{
         CommandExecuted, CommandKind, InternalCommand, LapceCommand, WindowCommand,
     },
     db::LapceDb,
-    debug::{RunDebugConfigs, RunDebugMode},
     editor::{
         location::{EditorLocation, EditorPosition},
         EditorData,
@@ -57,7 +58,6 @@ use crate::{
     main_split::MainSplitData,
     source_control::SourceControlData,
     window_workspace::{CommonData, Focus},
-    workspace::{LapceWorkspace, LapceWorkspaceType, SshHost},
 };
 
 pub mod item;
@@ -957,7 +957,7 @@ impl PaletteData {
             .iter()
             .map(|host| PaletteItem {
                 content: PaletteItemContent::WslHost {
-                    host: crate::workspace::WslHost { host: host.clone() },
+                    host: WslHost { host: host.clone() },
                 },
                 filter_text: host.to_string(),
                 score: 0,

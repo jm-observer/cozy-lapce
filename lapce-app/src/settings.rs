@@ -28,11 +28,12 @@ use lapce_rpc::plugin::VoltID;
 use lapce_xi_rope::Rope;
 use serde::Serialize;
 use serde_json::Value;
+use lapce_core::icon::LapceIcons;
 
 use crate::{
     command::CommandExecuted,
     config::{
-        color::LapceColor, core::CoreConfig, editor::EditorConfig, icon::LapceIcons,
+        color::LapceColor, core::CoreConfig, editor::EditorConfig,
         terminal::TerminalConfig, ui::UIConfig, DropdownInfo, LapceConfig,
     },
     keypress::KeyPressFocus,

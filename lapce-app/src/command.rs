@@ -25,17 +25,17 @@ use lsp_types::{CodeActionOrCommand, Position, WorkspaceEdit};
 use serde_json::Value;
 use strum::{EnumMessage, IntoEnumIterator};
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+use lapce_core::debug::RunDebugMode;
 
 use crate::{
     alert::AlertButton,
-    debug::RunDebugMode,
     doc::Doc,
     editor::location::EditorLocation,
     editor_tab::EditorTabChildId,
-    id::{EditorTabManageId, TerminalTabId},
-    main_split::{SplitDirection, SplitMoveDirection, TabCloseKind},
-    workspace::LapceWorkspace,
 };
+use lapce_core::id::*;
+use lapce_core::main_split::{SplitDirection, SplitMoveDirection, TabCloseKind};
+use lapce_core::workspace::LapceWorkspace;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LapceCommand {

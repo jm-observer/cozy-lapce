@@ -30,17 +30,17 @@ use lsp_types::Position;
 use parking_lot::RwLock;
 use regex::Regex;
 use unicode_width::UnicodeWidthChar;
+use lapce_core::debug::RunDebugProcess;
+use lapce_core::panel::PanelKind;
+use lapce_core::workspace::LapceWorkspace;
 
 use super::{panel::TerminalPanelData, raw::RawTerminal};
 use crate::{
     command::InternalCommand,
     config::{color::LapceColor, LapceConfig},
-    debug::RunDebugProcess,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
-    panel::kind::PanelKind,
     window_workspace::Focus,
-    workspace::LapceWorkspace,
 };
 
 /// Threshold used for double_click/triple_click.

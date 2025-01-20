@@ -15,16 +15,18 @@ use floem::{
     },
     AnyView, IntoView, View,
 };
+use lapce_core::icon::LapceIcons;
+use lapce_core::panel::{PanelContainerPosition, PanelKind};
 
 use super::{
     debug_view::debug_panel, global_search_view::global_search_panel,
-    kind::PanelKind, plugin_view::plugin_panel, position::PanelContainerPosition,
+    plugin_view::plugin_panel,
     problem_view::problem_panel, source_control_view::source_control_panel,
     terminal_view::terminal_panel,
 };
 use crate::{
     app::{clickable_icon, clickable_icon_base},
-    config::{color::LapceColor, icon::LapceIcons, LapceConfig},
+    config::{color::LapceColor, LapceConfig},
     file_explorer::view::file_explorer_panel,
     panel::{
         call_hierarchy_view::show_hierarchy_panel, data::PanelData,

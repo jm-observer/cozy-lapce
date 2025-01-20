@@ -12,12 +12,12 @@ use floem::{
     views::{scroll::VerticalScrollAsHorizontal, *},
     *,
 };
+use lapce_core::icon::LapceIcons;
 
 use crate::{
     app::clickable_icon,
     config::{
         color::LapceColor,
-        icon::LapceIcons,
         ui::{TabCloseButton, TabSeparatorHeight},
         LapceConfig,
     },

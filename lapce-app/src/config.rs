@@ -16,19 +16,19 @@ use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
+use lapce_core::icon::LapceIcons;
+use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType};
 
 use self::{
     color::LapceColor,
     color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
     core::CoreConfig,
     editor::{EditorConfig, WrapStyle, SCALE_OR_SIZE_LIMIT},
-    icon::LapceIcons,
     icon_theme::IconThemeConfig,
     svg::SvgStore,
     terminal::TerminalConfig,
     ui::UIConfig,
 };
-use crate::workspace::{LapceWorkspace, LapceWorkspaceType};
 
 pub mod color;
 pub mod color_theme;
