@@ -357,6 +357,11 @@ pub enum ProxyNotification {
         dap_id:      DapId,
         path:        PathBuf,
         breakpoints: Vec<SourceBreakpoint>
+    },
+    RustBuild {
+        rev: u64,
+        command:     String,
+        arguments:   Option<Vec<String>>,
     }
 }
 

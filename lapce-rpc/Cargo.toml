@@ -19,6 +19,8 @@ url               = { workspace = true }
 lsp-types     = { workspace = true }
 lapce-xi-rope = { workspace = true }
 log = { workspace = true }
+
+cozy-floem = { workspace = true }
 [dependencies.human-sort]
 git = "https://github.com/dragazo/human-sort"
 rev = "1e74db1e09e8194ba88ad983723cf6f8b0c365da"

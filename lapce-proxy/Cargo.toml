@@ -37,6 +37,12 @@ lapce-rpc         = { workspace = true }
 #floem-editor-core = { workspace = true }
 log = { workspace = true }
 doc = { workspace = true }
+
+tokio = { workspace = true }
+cargo_metadata = { workspace = true }
+vte = { workspace = true }
+cozy-floem = { workspace = true }
+
 # proxy specific dependencies
 
 dyn-clone    = "1.0.16"

@@ -6,6 +6,7 @@ pub mod dispatch;
 pub mod plugin;
 pub mod terminal;
 pub mod watcher;
+pub mod rust_build;
 
 use std::{
     io::{BufReader, stdin, stdout},

@@ -10,6 +10,8 @@ use std::{
 
 use alacritty_terminal::vte::ansi::Handler;
 use anyhow::{anyhow, Result};
+use cozy_floem::views::panel::DocStyle;
+use cozy_floem::views::tree_with_panel::data::TreePanelData;
 use crossbeam_channel::Sender;
 use doc::lines::{buffer::rope_text::RopeText, cursor::CursorAffinity};
 use floem::{
@@ -254,6 +256,7 @@ pub struct WindowWorkspaceData {
     pub messages: RwSignal<Vec<(String, ShowMessageParams)>>,
     pub common: Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
+    pub build_data: TreePanelData
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -598,6 +601,7 @@ impl WindowWorkspaceData {
 
         let about_data = AboutData::new(cx, common.focus);
         let alert_data = AlertBoxData::new(cx, common.clone());
+        let build_data = TreePanelData::new(cx, DocStyle::default());
 
         let window_tab_data = Self {
             scope: cx,
@@ -626,6 +630,7 @@ impl WindowWorkspaceData {
             messages: cx.create_rw_signal(Vec::new()),
             common,
             document_symbol_scroll_to: cx.create_rw_signal(None),
+            build_data,
         };
 
         {
@@ -2776,7 +2781,7 @@ impl WindowWorkspaceData {
             | PanelKind::CallHierarchy
             | PanelKind::DocumentSymbol
             | PanelKind::References
-            | PanelKind::Implementation => {
+            | PanelKind::Implementation | PanelKind::Build => {
                 // Some panels don't accept focus (yet). Fall back to visibility
                 // check in those cases.
                 self.panel.is_panel_visible(&kind)

@@ -13,3 +13,4 @@ pub mod source_control_view;
 pub mod style;
 pub mod terminal_view;
 pub mod view;
+mod rust_build_panel;

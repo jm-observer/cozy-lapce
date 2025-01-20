@@ -33,6 +33,7 @@ use crate::{
     },
     window_workspace::{DragContent, WindowWorkspaceData},
 };
+use crate::panel::rust_build_panel::build_panel;
 
 pub(crate) const PANEL_PICKER_SIZE: f32 = 40.0;
 
@@ -415,6 +416,9 @@ fn panel_view_by_kind(
         },
         PanelKind::Implementation => {
             implementation_panel(window_tab_data.clone(), position).into_any()
+        },
+        PanelKind::Build => {
+            build_panel(window_tab_data.clone(), position).into_any()
         },
     }
 }

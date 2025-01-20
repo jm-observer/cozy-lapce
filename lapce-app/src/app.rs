@@ -3346,7 +3346,7 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
     let layout_rect = window_tab_data.layout_rect;
     let config = window_tab_data.common.config;
     let workbench_command = window_tab_data.common.workbench_command;
-    let window_tab_scope = window_tab_data.scope;
+    // let window_tab_scope = window_tab_data.scope;
     let hover_active = window_tab_data.common.hover.active;
     let status_height = window_tab_data.status_height;
 

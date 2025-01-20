@@ -77,7 +77,8 @@ lapce-core  = { path = "./lapce-core" }
 lapce-rpc   = { path = "./lapce-rpc" }
 lapce-proxy = { path = "./lapce-proxy" }
 lapce-xi-rope = {git = "https://github.com/jm-observer/xi-editor.git", features = ["serde"]}
-floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vger"], default-features = false }
+floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vger", "track-panic"], default-features = false }
+cozy-floem = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "c5f47d7"}
 #lapce-xi-rope = {path = "../xi-editor", features = ["serde"]}
 #floem = { version = "0.2.0" , features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vello"], default-features = false}
 #floem = { git = "https://github.com/lapce/floem", rev = "4510c4b", features = ["editor", "serde", "default-image-formats", "rfd-async-std"] }
@@ -89,6 +90,11 @@ doc = {git = "https://github.com/jm-observer/doc.git"}
 log = "0.4.22"
 custom-utils = "0.10.17"
 
+tokio = { version = "1.43.0", features = ["io-std", "io-util", "macros", "rt", "sync", "process", "rt-multi-thread", "time"] }
+cargo_metadata = "0.19.1"
+vte = "=0.14.1"
+
+
 [patch.crates-io]
 # Temporarily patch lsp-types with a version that adds message-type debug
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
@@ -99,8 +105,10 @@ regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://g
 doc = {path = "../doc"}
 #[patch."https://github.com/jm-observer/xi-editor.git"]
 #lapce-xi-rope = {path = "../xi-editor"}
-#[patch."https://github.com/jm-observer/floem.git"]
-#floem = { path="../floem" }
+[patch."https://github.com/jm-observer/floem.git"]
+floem = { path="../floem" }
+[patch."https://github.com/jm-observer/cozy-floem.git"]
+cozy-floem = {path = "../cozy-floem"}
 #[patch."https://github.com/lapce/floem"]
 ## Temporarily patch lsp-types with a version that adds message-type debug
 #floem = { path="../floem" }

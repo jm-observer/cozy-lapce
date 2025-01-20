@@ -329,6 +329,11 @@ impl ProxyHandler for Dispatcher {
                     false
                 );
             }
+            RustBuild {
+                command, arguments, rev
+            } => {
+
+            }
         }
     }
 

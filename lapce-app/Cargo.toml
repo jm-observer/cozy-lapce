@@ -45,6 +45,7 @@ toml_edit          = { workspace = true }
 url                = { workspace = true }
 zstd               = { workspace = true }
 floem              = { workspace = true }
+cozy-floem  = { workspace = true }
 #floem-editor-core = { workspace = true }
 log = { workspace = true }
 custom-utils = { workspace = true }
