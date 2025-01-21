@@ -3330,6 +3330,7 @@ dependencies = [
  "doc",
  "git2",
  "hashbrown 0.14.5",
+ "im",
  "include_dir",
  "itertools 0.12.1",
  "lapce-rpc",

@@ -29,11 +29,11 @@ use lsp_types::{
     CodeAction, CodeActionOrCommand, DiagnosticSeverity, DocumentChangeOperation,
     DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use lapce_core::directory::Directory;
 use lapce_core::doc::{DocContent, DocHistory};
+use lapce_core::editor_tab::{DiffEditorInfo, EditorInfo, EditorTabChildInfo, EditorTabInfo};
 use lapce_core::id::*;
 use lapce_core::main_split::{SplitContent, SplitContentInfo, SplitDirection, SplitInfo, SplitMoveDirection, TabCloseKind};
 use lapce_rpc::{
@@ -96,7 +96,7 @@ impl SplitData {
                     .map(|child| {
                         (
                             cx.create_rw_signal(1.0),
-                            child.to_data(data.clone(), split_id),
+                            data.clone().generate_split_content(child, split_id),
                         )
                     })
                     .collect(),
@@ -119,7 +119,7 @@ impl SplitData {
             children: self
                 .children
                 .iter()
-                .map(|(_, child)| child.content_info(data))
+                .map(|(_, child)| data.content_info(child))
                 .collect(),
         };
         info
@@ -430,26 +430,6 @@ impl MainSplitData {
             references,
             implementations,
             hierarchy,
-        }
-    }
-
-    pub fn generate_split_content(
-        &self,
-        info: &SplitContentInfo,
-        parent_split: SplitId,
-    ) -> SplitContent {
-        match info {
-            SplitContentInfo::EditorTab(tab_info) => {
-                let tab_data = tab_info.to_data(self, parent_split);
-                SplitContent::EditorTab(
-                    tab_data.with_untracked(|tab_data| tab_data.editor_tab_manage_id),
-                )
-            }
-            SplitContentInfo::Split(split_info) => {
-                let split_id = SplitId::next();
-                split_info.to_data(self, Some(parent_split), split_id);
-                SplitContent::Split(split_id)
-            }
         }
     }
 
@@ -3044,6 +3024,263 @@ impl MainSplitData {
             _ => None,
         }
     }
+
+
+    pub fn generate_split_content(
+        &self,
+        info: &SplitContentInfo,
+        parent_split: SplitId,
+    ) -> SplitContent {
+        match info {
+            SplitContentInfo::EditorTab(tab_info) => {
+                let tab_data = self.clone().generate_editor_tab_manage_data(tab_info, parent_split);
+                SplitContent::EditorTab(
+                    tab_data.with_untracked(|tab_data| tab_data.editor_tab_manage_id),
+                )
+            }
+            SplitContentInfo::Split(split_info) => {
+                let split_id = SplitId::next();
+                SplitData::to_data(split_info, self.clone(), Some(parent_split), split_id);
+                SplitContent::Split(split_id)
+            }
+        }
+    }
+
+    pub fn generate_editor_tab_manage_data(
+        self,
+        datas: &EditorTabInfo,
+        split: SplitId,
+    ) -> RwSignal<EditorTabManageData> {
+        let editor_tab_id = EditorTabManageId::next();
+        let editor_tab_data = {
+            let cx = self.scope.create_child();
+            let editor_tab_data = EditorTabManageData {
+                scope: cx,
+                editor_tab_manage_id: editor_tab_id,
+                split,
+                active: datas.active,
+                children: datas
+                    .children
+                    .iter()
+                    .map(|child| {
+                        EditorTabChildSimple::new(
+                            cx.create_rw_signal(0),
+                            cx.create_rw_signal(Rect::ZERO),
+                            self.clone().generate_editor_tab_child_id(child, editor_tab_id)
+                        )
+                    })
+                    .collect(),
+                layout_rect: Rect::ZERO,
+                window_origin: Point::ZERO,
+                locations: cx.create_rw_signal(im::Vector::new()),
+                current_location: cx.create_rw_signal(0),
+            };
+            cx.create_rw_signal(editor_tab_data)
+        };
+        if datas.is_focus {
+            self.active_editor_tab.set(Some(editor_tab_id));
+        }
+        self.editor_tabs.update(|editor_tabs| {
+            editor_tabs.insert(editor_tab_id, editor_tab_data);
+        });
+        editor_tab_data
+    }
+
+    pub fn generate_editor_tab_child_id(
+        self,
+        data: &EditorTabChildInfo,
+        editor_tab_id: EditorTabManageId,
+    ) -> EditorTabChildId {
+        match data {
+            EditorTabChildInfo::Editor(editor_info) => {
+                let editor_id = self.generate_editor_id(editor_info, editor_tab_id);
+                EditorTabChildId::Editor(editor_id)
+            },
+            EditorTabChildInfo::DiffEditor(diff_editor_info) => {
+                let diff_editor_data = self.generate_diff_editor_data(diff_editor_info, editor_tab_id);
+                EditorTabChildId::DiffEditor(diff_editor_data.id)
+            },
+            EditorTabChildInfo::Settings => {
+                EditorTabChildId::Settings(SettingsId::next())
+            },
+            EditorTabChildInfo::ThemeColorSettings => {
+                EditorTabChildId::ThemeColorSettings(ThemeColorSettingsId::next())
+            },
+            EditorTabChildInfo::Keymap => EditorTabChildId::Keymap(KeymapId::next()),
+            EditorTabChildInfo::Volt(id) => {
+                EditorTabChildId::Volt(VoltViewId::next(), id.to_owned())
+            },
+        }
+    }
+
+    pub fn generate_editor_id(
+        self,
+        data: &EditorInfo,
+        editor_tab_id: EditorTabManageId,
+    ) -> EditorId {
+        let editors = &self.editors;
+        let common = self.common.clone();
+        match &data.content {
+            DocContent::File { path, .. } => {
+                let (doc, new_doc) =
+                    self.get_doc(path.clone(), data.unsaved.clone(), true);
+                let editor = editors.make_from_doc(
+                    self.scope,
+                    doc,
+                    Some(editor_tab_id),
+                    None,
+                    None,
+                    common,
+                );
+                editor.go_to_location(
+                    EditorLocation {
+                        path: path.clone(),
+                        position: Some(EditorPosition::Offset(data.offset)),
+                        scroll_offset: Some(Vec2::new(
+                            data.scroll_offset.0,
+                            data.scroll_offset.1,
+                        )),
+                        ignore_unconfirmed: false,
+                        same_editor_tab: false,
+                    },
+                    new_doc,
+                    None,
+                );
+
+                editor.id()
+            }
+            DocContent::Local => editors.new_local(self.scope, common, None),
+            DocContent::History(_) => editors.new_local(self.scope, common, None),
+            DocContent::Scratch { name, .. } => {
+                let doc = self
+                    .scratch_docs
+                    .try_update(|scratch_docs| {
+                        if let Some(doc) = scratch_docs.get(name) {
+                            return doc.clone();
+                        }
+                        let content = DocContent::Scratch {
+                            id: BufferId::next(),
+                            name: name.to_string(),
+                        };
+                        let doc = Doc::new_content(
+                            self.scope,
+                            content,
+                            self.editors,
+                            self.common.clone(),
+                            None,
+                        );
+                        let doc = Rc::new(doc);
+                        if let Some(unsaved) = &data.unsaved {
+                            doc.reload(Rope::from(unsaved), false);
+                        }
+                        scratch_docs.insert(name.to_string(), doc.clone());
+                        doc
+                    })
+                    .unwrap();
+
+                editors.new_from_doc(
+                    self.scope,
+                    doc,
+                    Some(editor_tab_id),
+                    None,
+                    None,
+                    common,
+                )
+            }
+        }
+    }
+
+    pub fn generate_diff_editor_data(
+        self,
+        data: &DiffEditorInfo,
+        editor_tab_id: EditorTabManageId,
+    ) -> DiffEditorData {
+        let cx = self.scope.create_child();
+
+        let diff_editor_id = DiffEditorId::next();
+
+        let new_doc = {
+            let data = self.clone();
+            let common = data.common.clone();
+            move |content: &DocContent| match content {
+                DocContent::File { path, .. } => {
+                    let (doc, _) = data.get_doc(path.clone(), None, false);
+                    doc
+                },
+                DocContent::Local => {
+                    Rc::new(Doc::new_local(cx, data.editors, common.clone(), None))
+                },
+                DocContent::History(history) => {
+                    let doc = Doc::new_history(
+                        cx,
+                        content.clone(),
+                        data.editors,
+                        common.clone(),
+                    );
+                    let doc = Rc::new(doc);
+
+                    {
+                        let doc = doc.clone();
+                        let send = create_ext_action(cx, move |result| {
+                            if let Ok(ProxyResponse::BufferHeadResponse {
+                                          content,
+                                          ..
+                                      }) = result
+                            {
+                                doc.init_content(Rope::from(content));
+                            }
+                        });
+                        common.proxy.get_buffer_head(
+                            history.path.clone(),
+                            move |(_, result)| {
+                                send(result);
+                            },
+                        );
+                    }
+
+                    doc
+                },
+                DocContent::Scratch { name, .. } => {
+                    let doc_content = DocContent::Scratch {
+                        id: BufferId::next(),
+                        name: name.to_string(),
+                    };
+                    let doc = Doc::new_content(
+                        cx,
+                        doc_content,
+                        data.editors,
+                        common.clone(),
+                        None,
+                    );
+                    let doc = Rc::new(doc);
+                    data.scratch_docs.update(|scratch_docs| {
+                        scratch_docs.insert(name.to_string(), doc.clone());
+                    });
+                    doc
+                },
+            }
+        };
+
+        let left_doc = new_doc(&data.left_content);
+        let right_doc = new_doc(&data.right_content);
+
+        let diff_editor_data = DiffEditorData::new(
+            cx,
+            diff_editor_id,
+            editor_tab_id,
+            left_doc,
+            right_doc,
+            self.editors,
+            self.common.clone(),
+        );
+
+        self.diff_editors.update(|diff_editors| {
+            diff_editors.insert(diff_editor_id, diff_editor_data.clone());
+        });
+
+        diff_editor_data
+    }
+
 }
 
 fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url, Vec<TextEdit>>> {

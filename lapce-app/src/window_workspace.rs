@@ -53,7 +53,7 @@ use serde_json::Value;
 use lapce_core::debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess};
 use lapce_core::doc::DocContent;
 use lapce_core::id::{TerminalTabId, WindowTabId};
-use lapce_core::main_split::{SplitDirection, SplitMoveDirection};
+use lapce_core::main_split::{SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection};
 use lapce_core::panel::{default_panel_order, PanelContainerPosition, PanelKind, PanelSection};
 use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo};
 
@@ -467,7 +467,7 @@ impl WindowWorkspaceData {
 
         if let Some(info) = workspace_info.as_ref() {
             let root_split = main_split.root_split;
-            info.split.to_data(main_split.clone(), None, root_split);
+            SplitData::to_data(&info.split, main_split.clone(), None, root_split);
         } else {
             let root_split = main_split.root_split;
             let root_split_data = {
@@ -3182,6 +3182,33 @@ impl WindowWorkspaceData {
             item.get_untracked().item.as_ref().clone(),
             send,
         );
+    }
+
+    pub fn content_info(&self, data: &SplitContent) -> SplitContentInfo {
+        match data {
+            SplitContent::EditorTab(editor_tab_id) => {
+                let editor_tab_data = self
+                    .main_split
+                    .editor_tabs
+                    .get_untracked()
+                    .get(editor_tab_id)
+                    .cloned()
+                    .unwrap();
+                SplitContentInfo::EditorTab(
+                    editor_tab_data.get_untracked().tab_info(self),
+                )
+            },
+            SplitContent::Split(split_id) => {
+                let split_data = self
+                    .main_split
+                    .splits
+                    .get_untracked()
+                    .get(split_id)
+                    .cloned()
+                    .unwrap();
+                SplitContentInfo::Split(split_data.get_untracked().split_info(self))
+            },
+        }
     }
 }
 

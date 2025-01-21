@@ -1,9 +1,3 @@
-use std::collections::HashMap;
-
-use lsp_types::{
-    DocumentChangeOperation,
-    DocumentChanges, OneOf, TextEdit, Url, WorkspaceEdit,
-};
 use serde::{Deserialize, Serialize};
 
 use crate::editor_tab::EditorTabInfo;
@@ -49,33 +43,6 @@ impl SplitContent {
             SplitContent::Split(id) => id.to_raw(),
         }
     }
-
-    // pub fn content_info(&self, data: &WindowWorkspaceData) -> SplitContentInfo {
-    //     match &self {
-    //         SplitContent::EditorTab(editor_tab_id) => {
-    //             let editor_tab_data = data
-    //                 .main_split
-    //                 .editor_tabs
-    //                 .get_untracked()
-    //                 .get(editor_tab_id)
-    //                 .cloned()
-    //                 .unwrap();
-    //             SplitContentInfo::EditorTab(
-    //                 editor_tab_data.get_untracked().tab_info(data),
-    //             )
-    //         },
-    //         SplitContent::Split(split_id) => {
-    //             let split_data = data
-    //                 .main_split
-    //                 .splits
-    //                 .get_untracked()
-    //                 .get(split_id)
-    //                 .cloned()
-    //                 .unwrap();
-    //             SplitContentInfo::Split(split_data.get_untracked().split_info(data))
-    //         },
-    //     }
-    // }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -90,69 +57,47 @@ pub enum SplitContentInfo {
     Split(SplitInfo),
 }
 
-impl SplitContentInfo {
-    // pub fn to_data(
-    //     &self,
-    //     data: MainSplitData,
-    //     parent_split: SplitId,
-    // ) -> SplitContent {
-    //     match &self {
-    //         SplitContentInfo::EditorTab(tab_info) => {
-    //             let tab_data = tab_info.to_data(data, parent_split);
-    //             SplitContent::EditorTab(
-    //                 tab_data.with_untracked(|tab_data| tab_data.editor_tab_manage_id),
-    //             )
-    //         },
-    //         SplitContentInfo::Split(split_info) => {
-    //             let split_id = SplitId::next();
-    //             split_info.to_data(data, Some(parent_split), split_id);
-    //             SplitContent::Split(split_id)
-    //         },
-    //     }
-    // }
-}
-
-fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url, Vec<TextEdit>>> {
-    if let Some(changes) = edit.changes.as_ref() {
-        return Some(changes.clone());
-    }
-
-    let changes = edit.document_changes.as_ref()?;
-    let edits = match changes {
-        DocumentChanges::Edits(edits) => edits
-            .iter()
-            .map(|e| {
-                (
-                    e.text_document.uri.clone(),
-                    e.edits
-                        .iter()
-                        .map(|e| match e {
-                            OneOf::Left(e) => e.clone(),
-                            OneOf::Right(e) => e.text_edit.clone(),
-                        })
-                        .collect(),
-                )
-            })
-            .collect::<HashMap<Url, Vec<TextEdit>>>(),
-        DocumentChanges::Operations(ops) => ops
-            .iter()
-            .filter_map(|o| match o {
-                DocumentChangeOperation::Op(_op) => None,
-                DocumentChangeOperation::Edit(e) => Some((
-                    e.text_document.uri.clone(),
-                    e.edits
-                        .iter()
-                        .map(|e| match e {
-                            OneOf::Left(e) => e.clone(),
-                            OneOf::Right(e) => e.text_edit.clone(),
-                        })
-                        .collect(),
-                )),
-            })
-            .collect::<HashMap<Url, Vec<TextEdit>>>(),
-    };
-    Some(edits)
-}
+// fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url, Vec<TextEdit>>> {
+//     if let Some(changes) = edit.changes.as_ref() {
+//         return Some(changes.clone());
+//     }
+//
+//     let changes = edit.document_changes.as_ref()?;
+//     let edits = match changes {
+//         DocumentChanges::Edits(edits) => edits
+//             .iter()
+//             .map(|e| {
+//                 (
+//                     e.text_document.uri.clone(),
+//                     e.edits
+//                         .iter()
+//                         .map(|e| match e {
+//                             OneOf::Left(e) => e.clone(),
+//                             OneOf::Right(e) => e.text_edit.clone(),
+//                         })
+//                         .collect(),
+//                 )
+//             })
+//             .collect::<HashMap<Url, Vec<TextEdit>>>(),
+//         DocumentChanges::Operations(ops) => ops
+//             .iter()
+//             .filter_map(|o| match o {
+//                 DocumentChangeOperation::Op(_op) => None,
+//                 DocumentChangeOperation::Edit(e) => Some((
+//                     e.text_document.uri.clone(),
+//                     e.edits
+//                         .iter()
+//                         .map(|e| match e {
+//                             OneOf::Left(e) => e.clone(),
+//                             OneOf::Right(e) => e.text_edit.clone(),
+//                         })
+//                         .collect(),
+//                 )),
+//             })
+//             .collect::<HashMap<Url, Vec<TextEdit>>>(),
+//     };
+//     Some(edits)
+// }
 
 // fn next_in_file_errors_offset(
 //     active_path: Option<(PathBuf, usize, Position)>,

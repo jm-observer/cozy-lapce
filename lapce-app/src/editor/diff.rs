@@ -104,8 +104,8 @@ impl DiffEditorData {
         &self,
         cx: Scope,
         editor_tab_id: EditorTabManageId,
-        editors: Editors,
         diff_editor_id: EditorId,
+        editors: Editors,
     ) -> Self {
         let cx = cx.create_child();
         let confirmed = cx.create_rw_signal(true);

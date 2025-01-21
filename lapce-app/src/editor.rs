@@ -39,7 +39,7 @@ use floem::{
     },
     ViewId,
 };
-use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
+use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::error;
 use lsp_types::{
@@ -48,7 +48,6 @@ use lsp_types::{
     Range, TextEdit,
 };
 use nucleo::Utf32Str;
-use serde::{Deserialize, Serialize};
 use lapce_core::doc::DocContent;
 use lapce_core::editor_tab::EditorInfo;
 use view::StickyHeaderInfo;
@@ -68,7 +67,7 @@ use crate::{
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
     keypress::{condition::Condition, KeyPressFocus},
     lsp::path_from_url,
-    main_split::{Editors, MainSplitData},
+    main_split::{Editors},
     markdown::{
         from_marked_string, from_plaintext, parse_markdown, MarkdownContent,
     },

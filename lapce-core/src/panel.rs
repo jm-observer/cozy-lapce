@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use im::{Vector, vector};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use crate::icon::LapceIcons;
 
-pub type PanelOrder = HashMap<PanelContainerPosition, Vec<PanelKind>>;
+pub type PanelOrder = im::HashMap<PanelContainerPosition, Vector<PanelKind>>;
 
 pub fn default_panel_order() -> PanelOrder {
     let mut order = PanelOrder::new();
     order.insert(
         PanelContainerPosition::Left,
-        vec![
+        vector![
             PanelKind::FileExplorer,
             PanelKind::Plugin,
             PanelKind::SourceControl,
@@ -18,7 +18,7 @@ pub fn default_panel_order() -> PanelOrder {
     );
     order.insert(
         PanelContainerPosition::Bottom,
-        vec![
+        vector![
             PanelKind::Terminal,
             PanelKind::Search,
             PanelKind::Problem,
@@ -29,7 +29,7 @@ pub fn default_panel_order() -> PanelOrder {
     );
     order.insert(
         PanelContainerPosition::Right,
-        vec![PanelKind::DocumentSymbol,],
+        vector![PanelKind::DocumentSymbol,],
     );
 
     order
@@ -59,9 +59,9 @@ pub struct PanelSize {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PanelInfo {
     pub panels: PanelOrder,
-    pub styles: HashMap<PanelContainerPosition, PanelStyle>,
+    pub styles: im::HashMap<PanelContainerPosition, PanelStyle>,
     pub size: PanelSize,
-    pub sections: HashMap<PanelSection, bool>,
+    pub sections: im::HashMap<PanelSection, bool>,
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug, Serialize, Deserialize)]

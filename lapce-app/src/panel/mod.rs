@@ -9,7 +9,6 @@ pub mod position;
 pub mod problem_view;
 pub mod references_view;
 pub mod source_control_view;
-pub mod style;
 pub mod terminal_view;
 pub mod view;
 mod rust_build_panel;

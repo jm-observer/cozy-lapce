@@ -367,7 +367,7 @@ impl CoreRpcHandler {
         self.notification(CoreNotification::UpdateTerminal { term_id, content });
     }
 
-    pub fn update_rust_build_panel(&self, rev: u64, styled_text: StyledText) {
+    pub fn update_rust_build_panel(&self, _rev: u64, _styled_text: StyledText) {
         todo!()
         // self.notification(CoreNotification::UpdateTerminal { term_id, content });
     }
