@@ -65,7 +65,7 @@ pub struct Dispatcher {
 }
 
 impl ProxyHandler for Dispatcher {
-    fn handle_notification(&mut self, rpc: ProxyNotification) {
+    async fn handle_notification(&mut self, rpc: ProxyNotification) {
         use ProxyNotification::*;
         debug!("Dispatcher handle_notification {:?}", rpc);
         match rpc {
@@ -337,7 +337,7 @@ impl ProxyHandler for Dispatcher {
         }
     }
 
-    fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest) {
+    async fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest) {
         use ProxyRequest::*;
         log::debug!("dispatcher handle_request {:?}", rpc);
         match rpc {

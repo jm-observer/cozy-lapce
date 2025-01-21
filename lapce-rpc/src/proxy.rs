@@ -10,6 +10,7 @@ use std::{
 use crossbeam_channel::{Receiver, Sender};
 use indexmap::IndexMap;
 use lapce_xi_rope::RopeDelta;
+use log::info;
 use lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CodeAction, CodeActionResponse,
     CodeLens, CompletionItem, Diagnostic, DocumentSymbolResponse, FoldingRange,
@@ -515,8 +516,8 @@ impl ResponseHandler {
 }
 
 pub trait ProxyHandler {
-    fn handle_notification(&mut self, rpc: ProxyNotification);
-    fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest);
+    fn handle_notification(&mut self, rpc: ProxyNotification) -> impl std::future::Future<Output = ()> + Send;
+    fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest)-> impl std::future::Future<Output = ()> + Send;
 }
 
 #[derive(Clone)]
@@ -542,17 +543,20 @@ impl ProxyRpcHandler {
         &self.rx
     }
 
-    pub fn mainloop<H>(&self, handler: &mut H)
+    pub async fn mainloop<H>(&self, handler: &mut H)
     where
         H: ProxyHandler {
         use ProxyRpc::*;
+        info!("mainloop!!!");
         for msg in &self.rx {
             match msg {
                 Request(id, request) => {
-                    handler.handle_request(id, request);
+                    info!("Request: {request:?}");
+                    handler.handle_request(id, request).await;
                 },
                 Notification(notification) => {
-                    handler.handle_notification(notification);
+                    info!("Notification: {notification:?}");
+                    handler.handle_notification(notification).await;
                 },
                 Shutdown => {
                     return;

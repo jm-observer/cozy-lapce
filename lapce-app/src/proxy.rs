@@ -76,10 +76,7 @@ pub fn new_proxy(
                         std::thread::Builder::new()
                             .name("Dispatcher".to_owned())
                             .spawn(move || {
-                                let mut dispatcher =
-                                    Dispatcher::new(core_rpc, proxy_rpc);
-                                let proxy_rpc = dispatcher.proxy_rpc.clone();
-                                proxy_rpc.mainloop(&mut dispatcher);
+                                start_local_proxy(core_rpc, proxy_rpc);
                             })
                             .unwrap();
                     },
@@ -167,4 +164,12 @@ pub fn new_command(program: &str) -> Command {
     #[cfg(target_os = "windows")]
     cmd.creation_flags(0x08000000);
     cmd
+}
+
+#[tokio::main]
+async fn start_local_proxy(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler) {
+    let mut dispatcher =
+        Dispatcher::new(core_rpc, proxy_rpc);
+    let proxy_rpc = dispatcher.proxy_rpc.clone();
+    proxy_rpc.mainloop(&mut dispatcher).await;
 }

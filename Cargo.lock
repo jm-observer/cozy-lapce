@@ -3310,6 +3310,7 @@ dependencies = [
  "tar",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
  "toml 0.8.19",
  "toml_edit 0.20.7",
  "unicode-width 0.1.14",
