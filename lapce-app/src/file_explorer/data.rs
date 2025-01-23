@@ -6,6 +6,11 @@ use std::{
     rc::Rc,
     sync::Arc,
 };
+use doc::lines::command::{EditCommand, FocusCommand};
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
+use doc::lines::register::Clipboard;
+use doc::lines::text::SystemClipboard;
 
 use floem::{
     action::show_context_menu,
@@ -14,14 +19,6 @@ use floem::{
     keyboard::Modifiers,
     menu::{Menu, MenuItem},
     reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::{
-        core::{
-            command::{EditCommand, FocusCommand},
-            mode::Mode,
-            register::Clipboard,
-        },
-        text::SystemClipboard,
-    },
 };
 use globset::Glob;
 use lapce_rpc::{
@@ -33,7 +30,7 @@ use lapce_rpc::{
 };
 
 use crate::{
-    command::{CommandExecuted, CommandKind, InternalCommand, LapceCommand},
+    command::{CommandKind, InternalCommand, LapceCommand},
     config::LapceConfig,
     editor::EditorData,
     keypress::{condition::Condition, KeyPressFocus},

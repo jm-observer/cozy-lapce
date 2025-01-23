@@ -1,4 +1,5 @@
 use std::{cmp::Ordering, rc::Rc, sync::Arc};
+use doc::lines::mode::Modes;
 
 use floem::{
     event::{Event, EventListener},
@@ -8,7 +9,7 @@ use floem::{
     },
     style::CursorStyle,
     views::{
-        container, dyn_stack, editor::core::mode::Modes, label, scroll, stack, text,
+        container, dyn_stack, label, scroll, stack, text,
         virtual_stack, Decorators, VirtualDirection, VirtualItemSize,
     },
     View,

@@ -5,6 +5,9 @@ use std::{
 };
 
 use anyhow::Result;
+use doc::lines::command::EditCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 use floem::{
     action::show_context_menu,
     ext_event::create_ext_action,
@@ -18,7 +21,6 @@ use floem::{
     style::CursorStyle,
     views::{
         container, dyn_container, dyn_stack,
-        editor::core::{command::EditCommand, mode::Mode},
         empty, img, label, rich_text, scroll, stack, text, Decorators,
     },
     IntoView, View,
@@ -35,7 +37,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    command::{CommandExecuted, CommandKind},
+    command::{CommandKind},
     config::{color::LapceColor, LapceConfig},
     db::LapceDb,
     editor::EditorData,

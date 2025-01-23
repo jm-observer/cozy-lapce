@@ -19,6 +19,10 @@ use doc::{
     },
     syntax::Syntax,
 };
+use doc::lines::command::FocusCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
+use doc::lines::movement::Movement;
 use floem::{
     ext_event::{create_ext_action, create_signal_from_channel},
     keyboard::Modifiers,
@@ -26,7 +30,6 @@ use floem::{
         use_context, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate,
         SignalWith,
     },
-    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement},
 };
 use im::Vector;
 use itertools::Itertools;
@@ -46,7 +49,7 @@ use self::{
 };
 use crate::{
     command::{
-        CommandExecuted, CommandKind, InternalCommand, LapceCommand, WindowCommand,
+        CommandKind, InternalCommand, LapceCommand, WindowCommand,
     },
     db::LapceDb,
     editor::{
@@ -96,8 +99,8 @@ pub struct PaletteData {
     pub status: RwSignal<PaletteStatus>,
     pub index: RwSignal<usize>,
     pub preselect_index: RwSignal<Option<usize>>,
-    pub items: RwSignal<im::Vector<PaletteItem>>,
-    pub filtered_items: ReadSignal<im::Vector<PaletteItem>>,
+    pub items: RwSignal<Vector<PaletteItem>>,
+    pub filtered_items: ReadSignal<Vector<PaletteItem>>,
     pub input: RwSignal<PaletteInput>,
     pub kind: RwSignal<Option<PaletteKind>>,
     pub input_editor: EditorData,
@@ -1763,7 +1766,7 @@ impl KeyPressFocus for PaletteData {
 
     fn check_condition(
         &self,
-        condition: crate::keypress::condition::Condition,
+        condition: Condition,
     ) -> bool {
         matches!(
             condition,
@@ -1773,7 +1776,7 @@ impl KeyPressFocus for PaletteData {
 
     fn run_command(
         &self,
-        command: &crate::command::LapceCommand,
+        command: &LapceCommand,
         count: Option<usize>,
         mods: Modifiers,
     ) -> CommandExecuted {

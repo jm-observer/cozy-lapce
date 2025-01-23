@@ -1,4 +1,7 @@
 use std::{path::PathBuf, rc::Rc};
+use doc::lines::command::FocusCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 
 use doc::lines::selection::Selection;
 use floem::{
@@ -6,14 +9,13 @@ use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
-    views::editor::core::{command::FocusCommand, mode::Mode},
 };
 use lapce_rpc::proxy::ProxyResponse;
 use lapce_xi_rope::Rope;
 use lsp_types::Position;
 
 use crate::{
-    command::{CommandExecuted, CommandKind, InternalCommand, LapceCommand},
+    command::{CommandKind, InternalCommand, LapceCommand},
     editor::EditorData,
     keypress::{condition::Condition, KeyPressFocus},
     main_split::Editors,

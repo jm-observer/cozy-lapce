@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, rc::Rc, sync::Arc, time::Duration};
 
 use doc::lines::buffer::rope_text::RopeText;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 use floem::{
     action::{add_overlay, exec_after, remove_overlay, TimerToken},
     event::EventListener,
@@ -14,7 +16,6 @@ use floem::{
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
     views::{
         container, dyn_stack,
-        editor::core::mode::Mode,
         empty, label,
         scroll::{scroll, PropagatePointerWheel},
         stack, text, virtual_stack, Decorators, VirtualDirection, VirtualItemSize,
@@ -31,7 +32,6 @@ use serde_json::Value;
 use lapce_core::icon::LapceIcons;
 
 use crate::{
-    command::CommandExecuted,
     config::{
         color::LapceColor, core::CoreConfig, editor::EditorConfig,
         terminal::TerminalConfig, ui::UIConfig, DropdownInfo, LapceConfig,
@@ -114,7 +114,7 @@ impl KeyPressFocus for SettingsData {
         _command: &crate::command::LapceCommand,
         _count: Option<usize>,
         _mods: Modifiers,
-    ) -> crate::command::CommandExecuted {
+    ) -> CommandExecuted {
         CommandExecuted::No
     }
 

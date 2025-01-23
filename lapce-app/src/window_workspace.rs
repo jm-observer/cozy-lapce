@@ -14,6 +14,10 @@ use cozy_floem::views::panel::DocStyle;
 use cozy_floem::views::tree_with_panel::data::TreePanelData;
 use crossbeam_channel::Sender;
 use doc::lines::{buffer::rope_text::RopeText, cursor::CursorAffinity};
+use doc::lines::command::FocusCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
+use doc::lines::register::Register;
 use floem::{
     action::{remove_overlay, TimerToken},
     ext_event::{create_ext_action, create_signal_from_channel},
@@ -27,7 +31,6 @@ use floem::{
         SignalTrack, SignalUpdate, SignalWith, WriteSignal,
     },
     text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout},
-    views::editor::core::{command::FocusCommand, mode::Mode, register::Register},
     ViewId,
 };
 use im::HashMap;
@@ -62,7 +65,7 @@ use crate::{
     alert::{AlertBoxData, AlertButton},
     code_action::{CodeActionData, CodeActionStatus},
     command::{
-        CommandExecuted, CommandKind, InternalCommand, LapceCommand,
+        CommandKind, InternalCommand, LapceCommand,
         LapceWorkbenchCommand, WindowCommand,
     },
     completion::{CompletionData, CompletionStatus},

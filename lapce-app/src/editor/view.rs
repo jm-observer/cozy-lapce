@@ -8,6 +8,9 @@ use doc::lines::{
     screen_lines::ScreenLines,
     selection::SelRegion,
 };
+use doc::lines::screen_lines::DiffSectionKind;
+use doc::lines::style::{CurrentLineColor, CursorSurroundingLines, IndentGuideColor, IndentStyleProp, Modal, ModalRelativeLine, PhantomColor, PlaceholderColor, PreeditUnderlineColor, RenderWhitespaceProp, ScrollBeyondLastLine, SelectionColor, ShowIndentGuide, SmartTab, VisibleWhitespaceColor, WrapProp};
+use doc::lines::text::WrapMethod;
 use floem::{
     action::{set_ime_allowed, set_ime_cursor_area},
     context::{PaintCx, StyleCx},
@@ -27,13 +30,7 @@ use floem::{
     views::{
         container, dyn_stack,
         editor::{
-            text::WrapMethod,
-            view::{DiffSectionKind, EditorViewClass},
-            CurrentLineColor, CursorSurroundingLines, IndentGuideColor,
-            IndentStyleProp, Modal, ModalRelativeLine, PhantomColor,
-            PlaceholderColor, PreeditUnderlineColor, RenderWhitespaceProp,
-            ScrollBeyondLastLine, SelectionColor, ShowIndentGuide, SmartTab,
-            VisibleWhitespaceColor, WrapProp,
+            view::{EditorViewClass},
         },
         empty, label,
         scroll::{scroll, PropagatePointerWheel},

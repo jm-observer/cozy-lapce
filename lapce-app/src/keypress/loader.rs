@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use floem::views::editor::core::mode::Modes;
+use doc::lines::mode::Modes;
 use indexmap::IndexMap;
 use log::{debug, error};
 

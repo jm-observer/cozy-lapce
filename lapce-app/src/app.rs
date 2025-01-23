@@ -11,6 +11,9 @@ use std::{
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use crossbeam_channel::Sender;
+use doc::lines::command::{EditCommand, FocusCommand};
+use doc::lines::register::Clipboard;
+use doc::lines::text::SystemClipboard;
 use doc::syntax::{highlight::reset_highlight_configs, Syntax};
 use floem::{
     action::show_context_menu,
@@ -38,13 +41,6 @@ use floem::{
     unit::{PxPctAuto, PxPctAuto::Auto},
     views::{
         clip, container, drag_resize_window_area, dyn_stack,
-        editor::{
-            core::{
-                command::{EditCommand, FocusCommand},
-                register::Clipboard,
-            },
-            text::SystemClipboard,
-        },
         empty, label, rich_text,
         scroll::{scroll, PropagatePointerWheel, VerticalScrollAsHorizontal},
         stack, tab, text, tooltip, virtual_stack, Decorators, VirtualDirection,

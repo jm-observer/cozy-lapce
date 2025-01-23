@@ -1,10 +1,10 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::anyhow;
+use doc::lines::mode::Mode;
 use floem::{
     ext_event::create_ext_action,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::core::mode::Mode,
 };
 use lapce_rpc::{
     dap_types::{

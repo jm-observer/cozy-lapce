@@ -7,11 +7,12 @@ mod press;
 use std::{path::PathBuf, rc::Rc, str::FromStr, time::SystemTime};
 
 use anyhow::Result;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::{Mode, Modes};
 use floem::{
     keyboard::{Key, KeyEvent, KeyEventExtModifierSupplement, Modifiers, NamedKey},
     pointer::{PointerButton, PointerInputEvent},
     reactive::{RwSignal, Scope, SignalUpdate, SignalWith},
-    views::editor::core::mode::{Mode, Modes},
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -24,7 +25,7 @@ use self::{
     loader::KeyMapLoader,
 };
 use crate::{
-    command::{lapce_internal_commands, CommandExecuted, CommandKind, LapceCommand},
+    command::{lapce_internal_commands, CommandKind, LapceCommand},
     config::LapceConfig,
     keypress::{
         condition::{CheckCondition, Condition},

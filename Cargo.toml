@@ -77,7 +77,7 @@ lapce-core  = { path = "./lapce-core" }
 lapce-rpc   = { path = "./lapce-rpc" }
 lapce-proxy = { path = "./lapce-proxy" }
 lapce-xi-rope = {git = "https://github.com/jm-observer/xi-editor.git", features = ["serde"]}
-floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vger", "track-panic"], default-features = false }
+floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["serde", "default-image-formats", "rfd-async-std", "vger", "track-panic"], default-features = false }
 cozy-floem = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "c5f47d7"}
 #lapce-xi-rope = {path = "../xi-editor", features = ["serde"]}
 #floem = { version = "0.2.0" , features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vello"], default-features = false}

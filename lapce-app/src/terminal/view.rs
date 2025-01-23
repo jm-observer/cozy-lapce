@@ -6,6 +6,9 @@ use alacritty_terminal::{
     selection::{Selection, SelectionType},
     term::{cell::Flags, test::TermSize, RenderableContent},
 };
+use doc::lines::mode::Mode;
+use doc::lines::register::Clipboard;
+use doc::lines::text::SystemClipboard;
 use floem::{
     context::{EventCx, PaintCx},
     event::{Event, EventPropagation},
@@ -19,10 +22,6 @@ use floem::{
         create_effect, ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith,
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
-    views::editor::{
-        core::{mode::Mode, register::Clipboard},
-        text::SystemClipboard,
-    },
     Renderer, View, ViewId,
 };
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};

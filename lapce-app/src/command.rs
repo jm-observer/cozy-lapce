@@ -1,16 +1,10 @@
 use std::{path::PathBuf, rc::Rc};
+use doc::lines::command::*;
+use doc::lines::editor_command::Command;
 
-pub use floem::views::editor::command::CommandExecuted;
 use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Vec2,
-    views::editor::{
-        command::Command,
-        core::command::{
-            EditCommand, FocusCommand, MotionModeCommand, MoveCommand,
-            MultiSelectionCommand, ScrollCommand,
-        },
-    },
     ViewId,
 };
 use indexmap::IndexMap;

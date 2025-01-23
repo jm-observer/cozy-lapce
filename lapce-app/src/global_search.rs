@@ -1,18 +1,20 @@
 use std::{ops::Range, path::PathBuf, rc::Rc};
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 
 use doc::lines::selection::Selection;
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::{editor::core::mode::Mode, VirtualVector},
+    views::{VirtualVector},
 };
 use indexmap::IndexMap;
 use lapce_rpc::proxy::{ProxyResponse, SearchMatch};
 use lapce_xi_rope::Rope;
 
 use crate::{
-    command::{CommandExecuted, CommandKind},
+    command::{CommandKind},
     editor::EditorData,
     keypress::{condition::Condition, KeyPressFocus},
     main_split::MainSplitData,

@@ -29,6 +29,13 @@ use doc::{
         selection::{InsertDrift, Selection}, word::WordCursor,
     }, syntax::{BracketParser, edit::SyntaxEdit, Syntax},
 };
+use doc::lines::char_buffer::CharBuffer;
+use doc::lines::command::EditCommand;
+use doc::lines::editor_command::*;
+use doc::lines::mode::MotionMode;
+use doc::lines::register::Register;
+use doc::lines::style::EditorStyle;
+use doc::lines::text::PreeditData;
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
@@ -36,16 +43,6 @@ use floem::{
     reactive::{batch, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     text::FamilyOwned,
     ViewId,
-    views::editor::{
-        command::{Command, CommandExecuted},
-        core::{
-            char_buffer::CharBuffer, command::EditCommand, mode::MotionMode,
-            register::Register,
-        },
-        EditorStyle,
-        text::PreeditData,
-        view::ScreenLinesBase,
-    },
 };
 use itertools::Itertools;
 use lapce_xi_rope::{Interval, Rope, RopeDelta, spans::SpansBuilder, Transformer};
@@ -1598,35 +1595,6 @@ impl Doc {
 
     pub fn preedit(&self) -> PreeditData {
         self.lines.with_untracked(|x| x.preedit.clone())
-    }
-
-    pub fn compute_screen_lines(
-        &self,
-        _editor: &Editor,
-        _base: RwSignal<ScreenLinesBase>,
-    ) -> ScreenLines {
-        todo!()
-        // let Some(editor_data) = self.editor_data(editor.id()) else {
-        //     return ScreenLines {
-        //         lines: Default::default(),
-        //         info: Default::default(),
-        //         diff_sections: Default::default(),
-        //         base,
-        //     };
-        // };
-        //
-        // // compute_screen_lines(
-        // //     self.common.config,
-        // //     base,
-        // //     editor_data.kind(),
-        // //     &editor_data.doc_signal().get(),
-        // //     editor.text_prov(),
-        // //     editor.config_id(),
-        // // )
-        // let lines = editor_data
-        //     .doc_signal()
-        //     .with_untracked(|x| x.lines.get_untracked());
-        // compute_screen_lines(lines)
     }
 
     pub fn run_command(

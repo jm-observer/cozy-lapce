@@ -1,15 +1,16 @@
 use std::{path::PathBuf, rc::Rc};
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 
 use floem::{
     keyboard::Modifiers,
     reactive::{RwSignal, Scope, SignalWith},
-    views::editor::core::mode::Mode,
 };
 use indexmap::IndexMap;
 use lapce_rpc::source_control::FileDiff;
 
 use crate::{
-    command::{CommandExecuted, CommandKind},
+    command::{CommandKind},
     editor::EditorData,
     keypress::{condition::Condition, KeyPressFocus},
     main_split::Editors,

@@ -1,16 +1,19 @@
 use std::rc::Rc;
+use doc::lines::command::FocusCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
+use doc::lines::movement::Movement;
 
 use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
-    views::editor::core::{command::FocusCommand, mode::Mode, movement::Movement},
 };
 use lapce_rpc::plugin::PluginId;
 use lsp_types::CodeActionOrCommand;
 
 use crate::{
-    command::{CommandExecuted, CommandKind, InternalCommand},
+    command::{CommandKind, InternalCommand},
     keypress::{condition::Condition, KeyPressFocus},
     window_workspace::{CommonData, Focus},
 };
@@ -67,7 +70,7 @@ impl KeyPressFocus for CodeActionData {
         command: &crate::command::LapceCommand,
         _count: Option<usize>,
         _mods: Modifiers,
-    ) -> crate::command::CommandExecuted {
+    ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_cmd) => {
                 if matches!(LapceWorkbenchCommand::OpenUIInspector, _cmd) {

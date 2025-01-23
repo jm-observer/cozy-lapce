@@ -1,6 +1,7 @@
 use std::{
     sync::{atomic::AtomicU64, Arc},
 };
+use doc::lines::mode::{Mode, VisualMode};
 
 use floem::{
     event::EventPropagation,
@@ -10,7 +11,6 @@ use floem::{
     style::{AlignItems, CursorStyle, Display, FlexWrap},
     views::{
         dyn_stack,
-        editor::core::mode::{Mode, VisualMode},
         label, stack, Decorators,
     },
     View,

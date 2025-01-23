@@ -1,9 +1,9 @@
 use std::{fmt::Display, str::FromStr};
+use doc::lines::mode::Modes;
 
 use floem::{
     keyboard::{Key, KeyCode, Modifiers, NamedKey, PhysicalKey},
     pointer::PointerButton,
-    views::editor::core::mode::Modes,
 };
 
 #[derive(PartialEq, Debug, Clone)]

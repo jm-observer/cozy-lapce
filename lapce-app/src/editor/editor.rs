@@ -9,6 +9,12 @@ use doc::lines::{
     screen_lines::ScreenLines,
     selection::Selection,
 };
+use doc::lines::command::{EditCommand, MoveCommand};
+use doc::lines::editor_command::Command;
+use doc::lines::mode::{Mode, MotionMode, VisualMode};
+use doc::lines::movement::Movement;
+use doc::lines::register::Register;
+use doc::lines::text::{Preedit, PreeditData};
 use floem::{
     action::{exec_after, TimerToken},
     context::PaintCx,
@@ -22,14 +28,6 @@ use floem::{
     },
     text::{Attrs, AttrsList, TextLayout},
     views::editor::{
-        command::Command,
-        core::{
-            command::{EditCommand, MoveCommand},
-            mode::{Mode, MotionMode, VisualMode},
-            movement::Movement,
-            register::Register,
-        },
-        text::{Preedit, PreeditData, Styling},
         view::EditorView,
     },
     Renderer, ViewId,
@@ -1315,31 +1313,6 @@ impl std::fmt::Debug for Editor {
 //     //         .has_multiline_phantom(self.id(), &self.es.get_untracked())
 //     // }
 // }
-#[allow(dead_code)]
-pub struct EditorFontSizes {
-    id: EditorId,
-    style: ReadSignal<Rc<dyn Styling>>,
-    doc: ReadSignal<Rc<Doc>>,
-}
-impl EditorFontSizes {
-    // fn font_size(&self, line: usize) -> usize {
-    //     self.style.with_untracked(|style| style.font_size(line))
-    // }
-
-    // fn cache_id(&self) -> FontSizeCacheId {
-    //     let mut hasher = DefaultHasher::new();
-    //
-    //     // TODO: is this actually good enough for comparing cache state?
-    //     // We could just have it return an arbitrary type that impl's Eq?
-    //     self.style
-    //         .with_untracked(|style| style.id().hash(&mut hasher));
-    //     self.doc
-    //         .with_untracked(|doc| doc.cache_rev().get_untracked().hash(&mut
-    // hasher));
-    //
-    //     hasher.finish()
-    // }
-}
 
 // /// Minimum width that we'll allow the view to be wrapped at.
 // const MIN_WRAPPED_WIDTH: f32 = 100.0;

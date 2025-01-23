@@ -1,3 +1,6 @@
+use doc::lines::command::FocusCommand;
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::Mode;
 use floem::{
     event::EventListener,
     keyboard::Modifiers,
@@ -5,7 +8,6 @@ use floem::{
     style::{CursorStyle, Display, Position},
     views::{
         container,
-        editor::core::{command::FocusCommand, mode::Mode},
         label, stack, Decorators,
     },
     View,
@@ -13,7 +15,7 @@ use floem::{
 use lapce_core::meta::VERSION;
 
 use crate::{
-    command::{CommandExecuted, CommandKind},
+    command::{CommandKind},
     config::color::LapceColor,
     keypress::KeyPressFocus,
     svg,
@@ -72,7 +74,7 @@ impl KeyPressFocus for AboutData {
         command: &crate::command::LapceCommand,
         _count: Option<usize>,
         _mods: Modifiers,
-    ) -> crate::command::CommandExecuted {
+    ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
             CommandKind::Edit(_) => {},

@@ -1555,6 +1555,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "arc-swap",
+ "bitflags 2.8.0",
  "cosmic-text",
  "directories",
  "floem",

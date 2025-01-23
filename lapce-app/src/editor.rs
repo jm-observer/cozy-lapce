@@ -15,6 +15,10 @@ use doc::{
     },
     EditorViewKind,
 };
+use doc::lines::command::{EditCommand, FocusCommand, MotionModeCommand, MultiSelectionCommand, ScrollCommand};
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::{Mode, MotionMode};
+use doc::lines::movement::Movement;
 use floem::{
     action::{exec_after, show_context_menu, TimerToken},
     ext_event::create_ext_action,
@@ -25,17 +29,6 @@ use floem::{
     reactive::{
         batch, use_context, ReadSignal, RwSignal, Scope, SignalGet, SignalTrack,
         SignalUpdate, SignalWith,
-    },
-    views::editor::{
-        command::CommandExecuted,
-        core::{
-            command::{
-                EditCommand, FocusCommand, MotionModeCommand, MultiSelectionCommand,
-                ScrollCommand,
-            },
-            mode::{Mode, MotionMode},
-            movement::Movement,
-        },
     },
     ViewId,
 };

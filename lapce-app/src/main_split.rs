@@ -13,6 +13,7 @@ use doc::{
     },
     syntax::Syntax,
 };
+use doc::lines::command::FocusCommand;
 use floem::{
     ext_event::create_ext_action,
     file::{FileDialogOptions, FileInfo},
@@ -20,7 +21,6 @@ use floem::{
     keyboard::Modifiers,
     peniko::kurbo::{Point, Rect, Vec2},
     reactive::{batch, Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::{core::command::FocusCommand, },
 };
 use itertools::Itertools;
 use lapce_xi_rope::{Rope, spans::SpansBuilder};

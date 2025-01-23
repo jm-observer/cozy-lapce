@@ -6,16 +6,14 @@ use doc::lines::{
     cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
     selection::{SelRegion, Selection},
 };
+use doc::lines::command::MultiSelectionCommand;
+use doc::lines::mode::{Mode, MotionMode, VisualMode};
+use doc::lines::movement::{LinePosition, Movement};
+use doc::lines::register::Register;
 use floem::{
     reactive::SignalGet,
-    views::editor::core::{
-        command::MultiSelectionCommand,
-        mode::{Mode, MotionMode, VisualMode},
-        movement::{LinePosition, Movement},
-        register::Register,
-        soft_tab::SnapDirection,
-    },
 };
+use floem::prelude::editor::core::soft_tab::SnapDirection;
 use lapce_xi_rope::Rope;
 use log::info;
 

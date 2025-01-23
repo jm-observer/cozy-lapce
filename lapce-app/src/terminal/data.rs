@@ -8,18 +8,15 @@ use alacritty_terminal::{
     Term,
 };
 use anyhow::anyhow;
+use doc::lines::command::{EditCommand, FocusCommand, ScrollCommand};
+use doc::lines::editor_command::CommandExecuted;
+use doc::lines::mode::{Mode, VisualMode};
+use doc::lines::movement::{LinePosition, Movement};
+use doc::lines::register::Clipboard;
+use doc::lines::text::SystemClipboard;
 use floem::{
     keyboard::{Key, KeyEvent, Modifiers, NamedKey},
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::{
-        core::{
-            command::{EditCommand, FocusCommand, ScrollCommand},
-            mode::{Mode, VisualMode},
-            movement::{LinePosition, Movement},
-            register::Clipboard,
-        },
-        text::SystemClipboard,
-    },
 };
 use lapce_rpc::{
     dap_types::RunDebugConfig,
@@ -35,7 +32,7 @@ use super::{
     raw::{EventProxy, RawTerminal},
 };
 use crate::{
-    command::{CommandExecuted, CommandKind},
+    command::{CommandKind},
     keypress::{condition::Condition, KeyPressFocus},
     window_workspace::CommonData,
 };
@@ -69,7 +66,7 @@ impl KeyPressFocus for TerminalData {
         command: &crate::command::LapceCommand,
         count: Option<usize>,
         _mods: Modifiers,
-    ) -> crate::command::CommandExecuted {
+    ) -> CommandExecuted {
         self.common.view_id.get_untracked().request_paint();
         let config = self.common.config.get_untracked();
         match &command.kind {
