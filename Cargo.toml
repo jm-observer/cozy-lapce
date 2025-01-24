@@ -103,18 +103,11 @@ lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
 #custom-utils = {path="../custom-utils"}
 
-#[patch."https://github.com/jm-observer/doc.git"]
-#doc = {path = "../doc"}
-#[patch."https://github.com/jm-observer/xi-editor.git"]
-#lapce-xi-rope = {path = "../xi-editor"}
-#[patch."https://github.com/jm-observer/floem.git"]
-#floem = { path="../floem" }
 #[patch."https://github.com/jm-observer/cozy-floem.git"]
 #cozy-floem = {path = "../cozy-floem"}
 #doc = {path = "../cozy-floem/libs/doc"}
 #[patch."https://github.com/lapce/floem"]
 #floem = { path="../floem" }
-#floem-editor-core = {  path="../floem/editor-core"  }
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"

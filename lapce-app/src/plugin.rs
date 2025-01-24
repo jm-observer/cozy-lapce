@@ -396,7 +396,7 @@ impl PluginData {
                         volts_total.set(new.total);
                     },
                     Err(err) => {
-                        log::error!("{:?}", err);
+                        log::error!("{}", err.to_string());
                         core_rpc.notification(CoreNotification::ShowMessage {
                             title: "Request Available Plugins".to_string(),
                             message: lsp_types::ShowMessageParams {

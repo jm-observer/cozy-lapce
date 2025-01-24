@@ -118,7 +118,7 @@ impl WindowData {
             extra_plugin_paths,
         });
         let w = info.workspace.clone();
-        log::info!("WindowData {:?}", w);
+        log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
         w.watch_project_setting(&watcher);
         let window_tabs = cx.create_rw_signal(WindowWorkspaceData::new(
             cx,
