@@ -11,7 +11,7 @@ use floem::{
     },
     View, ViewId,
 };
-use floem::peniko::{Color};
+use floem::prelude::palette;
 use lapce_core::debug::RunDebugMode;
 use lapce_core::icon::LapceIcons;
 use lapce_core::id::TerminalTabId;
@@ -104,7 +104,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                     .style(move |s| {
                                         let config = config.get();
                                         let size = config.ui.icon_size() as f32;
-                                        s.size(size, size).color(Color::GREEN
+                                        s.size(size, size).color(palette::css::GREEN
                                         )
                                     }),
                             )

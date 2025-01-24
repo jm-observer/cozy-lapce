@@ -1,10 +1,10 @@
 use std::{borrow::Cow, path::PathBuf, str::FromStr, sync::Arc};
 
 use doc::lines::{buffer::rope_text::RopeText, RopeTextPosition};
+use doc::lines::movement::Movement;
 use floem::{
     peniko::kurbo::Rect,
     reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::editor::{core::movement::Movement},
 };
 use lapce_rpc::{plugin::PluginId, proxy::ProxyRpcHandler};
 use log::error;

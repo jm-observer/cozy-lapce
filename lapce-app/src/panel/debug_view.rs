@@ -14,6 +14,7 @@ use floem::{
     },
     View,
 };
+use floem::prelude::palette;
 use lapce_core::debug::{BreakpointAction, RunDebugMode};
 use lapce_core::icon::LapceIcons;
 use lapce_core::panel::{PanelContainerPosition, PanelSection};
@@ -283,7 +284,7 @@ fn debug_processes(
                             s.size(size, size)
                                 .margin_vert(5.0)
                                 .margin_horiz(10.0)
-                                .color(Color::GREEN)
+                                .color(palette::css::GREEN)
                         })
                     },
                     label(move || p.config.name.clone()).style(|s| {

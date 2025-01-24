@@ -9,7 +9,7 @@ use doc::lines::{
     selection::SelRegion,
 };
 use doc::lines::screen_lines::DiffSectionKind;
-use doc::lines::style::{CurrentLineColor, CursorSurroundingLines, IndentGuideColor, IndentStyleProp, Modal, ModalRelativeLine, PhantomColor, PlaceholderColor, PreeditUnderlineColor, RenderWhitespaceProp, ScrollBeyondLastLine, SelectionColor, ShowIndentGuide, SmartTab, VisibleWhitespaceColor, WrapProp};
+use doc::lines::style::{CurrentLineColor, CursorSurroundingLines, EditorViewClass, IndentGuideColor, IndentStyleProp, Modal, ModalRelativeLine, PhantomColor, PlaceholderColor, PreeditUnderlineColor, RenderWhitespaceProp, ScrollBeyondLastLine, SelectionColor, ShowIndentGuide, SmartTab, VisibleWhitespaceColor, WrapProp};
 use doc::lines::text::WrapMethod;
 use floem::{
     action::{set_ime_allowed, set_ime_cursor_area},
@@ -29,9 +29,6 @@ use floem::{
     taffy::prelude::NodeId,
     views::{
         container, dyn_stack,
-        editor::{
-            view::{EditorViewClass},
-        },
         empty, label,
         scroll::{scroll, PropagatePointerWheel},
         stack, Decorators,
@@ -1720,7 +1717,7 @@ fn editor_gutter_folding_view(
                 let config = config.get();
                 let size = config.ui.icon_size() as f32;
                 s.size(size, size)
-                    .set_style_value(SvgColor, (Some(Brush::Solid(Color::rgba8(0, 0, 0, 120)))).into())
+                    .set_style_value(SvgColor, (Some(Brush::Solid(Color::from_rgba8(0, 0, 0, 120)))).into())
                     .hover(|s| {
                         s.cursor(CursorStyle::Pointer)
                             .set_style_value(SvgColor, (Some(Brush::Solid(Color::BLACK))).into())

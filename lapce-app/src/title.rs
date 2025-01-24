@@ -11,6 +11,7 @@ use floem::{
     views::{container, drag_window_area, empty, label, stack, Decorators},
     View,
 };
+use floem::prelude::palette;
 use lapce_core::icon::LapceIcons;
 use lapce_core::meta;
 use lapce_core::workspace::LapceWorkspace;
@@ -277,7 +278,7 @@ fn middle(
                 }),
                 || false,
                 || false,
-                config, Some(Color::GREEN)
+                config, Some(palette::css::GREEN)
             ), || "Run and Debug",)
             .style(move |s| s.margin_horiz(6.0)),
             drag_window_area(empty())

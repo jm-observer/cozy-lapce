@@ -1,7 +1,6 @@
 use std::{path::PathBuf, rc::Rc};
 use doc::lines::command::*;
 use doc::lines::editor_command::Command;
-
 use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Vec2,
@@ -18,6 +17,7 @@ use log::LevelFilter;
 use lsp_types::{CodeActionOrCommand, Position, WorkspaceEdit};
 use serde_json::Value;
 use strum::{EnumMessage, IntoEnumIterator};
+use strum_macros::EnumMessage;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use lapce_core::debug::RunDebugMode;
 
@@ -51,13 +51,13 @@ pub enum CommandKind {
 impl CommandKind {
     pub fn desc(&self) -> Option<&'static str> {
         match &self {
-            CommandKind::Workbench(cmd) => cmd.get_message(),
-            CommandKind::Edit(cmd) => cmd.get_message(),
-            CommandKind::Move(cmd) => cmd.get_message(),
-            CommandKind::Scroll(cmd) => cmd.get_message(),
-            CommandKind::Focus(cmd) => cmd.get_message(),
-            CommandKind::MotionMode(cmd) => cmd.get_message(),
-            CommandKind::MultiSelection(cmd) => cmd.get_message(),
+            CommandKind::Workbench(cmd) => cmd.get_detailed_message(),
+            CommandKind::Edit(cmd) => cmd.get_detailed_message(),
+            CommandKind::Move(cmd) => cmd.get_detailed_message(),
+            CommandKind::Scroll(cmd) => cmd.get_detailed_message(),
+            CommandKind::Focus(cmd) => cmd.get_detailed_message(),
+            CommandKind::MotionMode(cmd) => cmd.get_detailed_message(),
+            CommandKind::MultiSelection(cmd) => cmd.get_detailed_message(),
         }
     }
 

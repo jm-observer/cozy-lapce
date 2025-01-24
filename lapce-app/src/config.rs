@@ -6,6 +6,7 @@ use std::{
 
 use ::core::slice;
 use floem::peniko::Color;
+use floem::prelude::palette;
 use itertools::Itertools;
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::wasi::find_all_volts;
@@ -21,7 +22,7 @@ use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType};
 
 use self::{
     color::LapceColor,
-    color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
+    color_theme::{ColorThemeConfig, ThemeColor},
     core::CoreConfig,
     editor::{EditorConfig, WrapStyle, SCALE_OR_SIZE_LIMIT},
     icon_theme::IconThemeConfig,
@@ -372,7 +373,7 @@ impl LapceConfig {
             Some(c) => *c,
             None => {
                 error!("Failed to find key: {name}");
-                Color::HOT_PINK
+                palette::css::HOT_PINK
             },
         }
     }
@@ -421,17 +422,17 @@ impl LapceConfig {
             default_config.map(|c| &c.color.syntax),
         );
 
-        let fg = self.color(LapceColor::EDITOR_FOREGROUND);
-        let bg = self.color(LapceColor::EDITOR_BACKGROUND);
-        let is_light = fg.r as u32 + fg.g as u32 + fg.b as u32
-            > bg.r as u32 + bg.g as u32 + bg.b as u32;
-        let high_contrast = self.color_theme.high_contrast.unwrap_or(false);
-        self.color.color_preference = match (is_light, high_contrast) {
-            (true, true) => ThemeColorPreference::HighContrastLight,
-            (false, true) => ThemeColorPreference::HighContrastDark,
-            (true, false) => ThemeColorPreference::Light,
-            (false, false) => ThemeColorPreference::Dark,
-        };
+        // let fg = self.color(LapceColor::EDITOR_FOREGROUND);
+        // let bg = self.color(LapceColor::EDITOR_BACKGROUND);
+        // let is_light = fg.r as u32 + fg.g as u32 + fg.b as u32
+        //     > bg.r as u32 + bg.g as u32 + bg.b as u32;
+        // let high_contrast = self.color_theme.high_contrast.unwrap_or(false);
+        // self.color.color_preference = match (is_light, high_contrast) {
+        //     (true, true) => ThemeColorPreference::HighContrastLight,
+        //     (false, true) => ThemeColorPreference::HighContrastDark,
+        //     (true, false) => ThemeColorPreference::Light,
+        //     (false, false) => ThemeColorPreference::Dark,
+        // };
     }
 
     fn load_local_themes() -> Option<HashMap<String, (String, config::Config)>> {
@@ -764,11 +765,11 @@ impl LapceConfig {
                 self.terminal_get_named_color(color)
             },
             alacritty_terminal::vte::ansi::Color::Spec(rgb) => {
-                Color::rgb8(rgb.r, rgb.g, rgb.b)
+                Color::from_rgb8(rgb.r, rgb.g, rgb.b)
             },
             alacritty_terminal::vte::ansi::Color::Indexed(index) => {
                 if let Some(rgb) = colors[*index as usize] {
-                    return Color::rgb8(rgb.r, rgb.g, rgb.b);
+                    return Color::from_rgb8(rgb.r, rgb.g, rgb.b);
                 }
                 const NAMED_COLORS: [alacritty_terminal::vte::ansi::NamedColor; 16] = [
                     alacritty_terminal::vte::ansi::NamedColor::Black,

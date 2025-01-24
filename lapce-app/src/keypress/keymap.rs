@@ -3,8 +3,8 @@ use doc::lines::mode::Modes;
 
 use floem::{
     keyboard::{Key, KeyCode, Modifiers, NamedKey, PhysicalKey},
-    pointer::PointerButton,
 };
+use floem::pointer::MouseButton;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum KeymapMatch {
@@ -24,7 +24,7 @@ pub struct KeyMap {
 
 #[derive(PartialEq, Eq, Clone, Debug, Ord, PartialOrd)]
 pub enum KeyMapKey {
-    Pointer(PointerButton),
+    Pointer(MouseButton),
     Logical(Key),
     Physical(PhysicalKey),
 }
@@ -347,8 +347,6 @@ impl Display for KeyMapPress {
 
 impl Display for KeyMapKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use floem::pointer::PointerButton as B;
-
         match self {
             Self::Physical(physical) => {
                 f.write_str("[")?;
@@ -696,9 +694,9 @@ impl Display for KeyMapKey {
                 Key::Unidentified(_) => f.write_str("Unidentified"),
                 Key::Dead(_) => f.write_str("dead"),
             },
-            Self::Pointer(B::Auxiliary) => f.write_str("MouseMiddle"),
-            Self::Pointer(B::X2) => f.write_str("MouseForward"),
-            Self::Pointer(B::X1) => f.write_str("MouseBackward"),
+            Self::Pointer(MouseButton::Auxiliary) => f.write_str("MouseMiddle"),
+            Self::Pointer(MouseButton::X2) => f.write_str("MouseForward"),
+            Self::Pointer(MouseButton::X1) => f.write_str("MouseBackward"),
             Self::Pointer(_) => f.write_str("MouseUnimplemented"),
         }
     }

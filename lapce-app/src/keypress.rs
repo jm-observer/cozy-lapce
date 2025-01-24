@@ -14,6 +14,7 @@ use floem::{
     pointer::{PointerButton, PointerInputEvent},
     reactive::{RwSignal, Scope, SignalUpdate, SignalWith},
 };
+use floem::pointer::MouseButton;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use log::trace;
@@ -289,7 +290,7 @@ impl KeyPressData {
                     handled: false,
                     keymatch: KeymapMatch::None,
                     keypress: KeyPress {
-                        key: KeyInput::Pointer(PointerButton::Primary),
+                        key: KeyInput::Pointer(PointerButton::Mouse(MouseButton::Primary)),
                         mods: Modifiers::empty(),
                     },
                 };

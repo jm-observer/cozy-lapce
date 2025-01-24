@@ -10,10 +10,10 @@ use doc::lines::command::MultiSelectionCommand;
 use doc::lines::mode::{Mode, MotionMode, VisualMode};
 use doc::lines::movement::{LinePosition, Movement};
 use doc::lines::register::Register;
+use doc::lines::soft_tab::SnapDirection;
 use floem::{
     reactive::SignalGet,
 };
-use floem::prelude::editor::core::soft_tab::SnapDirection;
 use lapce_xi_rope::Rope;
 use log::info;
 

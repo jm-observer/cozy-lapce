@@ -15,23 +15,12 @@ use doc::lines::mode::{Mode, MotionMode, VisualMode};
 use doc::lines::movement::Movement;
 use doc::lines::register::Register;
 use doc::lines::text::{Preedit, PreeditData};
-use floem::{
-    action::{exec_after, TimerToken},
-    context::PaintCx,
-    keyboard::Modifiers,
-    kurbo::{Line, Point, Rect, Size, Stroke, Vec2},
-    peniko::Color,
-    pointer::{PointerButton, PointerInputEvent, PointerMoveEvent},
-    reactive::{
-        batch, ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
-        SignalWith, Trigger,
-    },
-    text::{Attrs, AttrsList, TextLayout},
-    views::editor::{
-        view::EditorView,
-    },
-    Renderer, ViewId,
-};
+use floem::{action::{exec_after, TimerToken}, context::PaintCx, keyboard::Modifiers, kurbo::{Line, Point, Rect, Size, Stroke, Vec2}, peniko::Color, pointer::{PointerButton, PointerInputEvent, PointerMoveEvent}, reactive::{
+    batch, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
+    SignalWith, Trigger,
+}, text::{Attrs, AttrsList, TextLayout}, Renderer, ViewId, peniko};
+use floem::kurbo::BezPath;
+use floem::pointer::MouseButton;
 use lapce_xi_rope::Rope;
 use log::{error, info};
 use lapce_core::id::EditorId;
@@ -380,11 +369,11 @@ impl Editor {
     /// Default handler for `PointerDown` event
     pub fn pointer_down(&self, pointer_event: &PointerInputEvent) {
         match pointer_event.button {
-            PointerButton::Primary => {
+            PointerButton::Mouse(MouseButton::Primary) => {
                 self.active.set(true);
                 self.left_click(pointer_event);
             },
-            PointerButton::Secondary => {
+            PointerButton::Mouse(MouseButton::Secondary) => {
                 self.right_click(pointer_event);
             },
             _ => {},
@@ -2090,9 +2079,29 @@ pub fn paint_extra_style(
         if let Some(color) = style.wave_line {
             let width = style.width.unwrap_or_else(|| viewport.width());
             let y = y + style.y + height;
-            EditorView::paint_wave_line(cx, width, Point::new(style.x, y), color);
+            paint_wave_line(cx, width, Point::new(style.x, y), color);
         }
     }
+}
+
+pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color) {
+    let radius = 2.0;
+    let origin = Point::new(point.x, point.y + radius);
+    let mut path = BezPath::new();
+    path.move_to(origin);
+
+    let mut x = 0.0;
+    let mut direction = -1.0;
+    while x < width {
+        let point = origin + (x, 0.0);
+        let p1 = point + (radius, -radius * direction);
+        let p2 = point + (radius * 2.0, 0.0);
+        path.quad_to(p1, p2);
+        x += radius * 2.0;
+        direction *= -1.0;
+    }
+
+    cx.stroke(&path, color, &peniko::kurbo::Stroke::new(1.));
 }
 
 fn paint_cursor_caret(

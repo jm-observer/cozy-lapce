@@ -25,7 +25,6 @@ use doc::{
         fold::FoldingRange,
         line_ending::LineEnding,
         RopeTextPosition,
-        screen_lines::ScreenLines,
         selection::{InsertDrift, Selection}, word::WordCursor,
     }, syntax::{BracketParser, edit::SyntaxEdit, Syntax},
 };

@@ -2,8 +2,11 @@ use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,
 };
+use std::str::FromStr;
 
 use floem::peniko::Color;
+use floem::prelude::palette;
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use super::color::LoadThemeError;
@@ -30,7 +33,7 @@ pub const THEME_RECURSION_LIMIT: usize = 6;
 
 #[derive(Debug, Clone, Default)]
 pub struct ThemeColor {
-    pub color_preference: ThemeColorPreference,
+    // pub color_preference: ThemeColorPreference,
     pub base: ThemeBaseColor,
     pub syntax: HashMap<String, Color>,
     pub ui: HashMap<String, Color>,
@@ -63,12 +66,12 @@ impl ThemeBaseConfig {
         for (key, value) in self.0.iter() {
             match self.resolve_variable(&default, key, value, 0) {
                 Ok(Some(color)) => {
-                    let color = Color::parse(color).unwrap_or_else(|| {
+                    let color = Color::from_str(color).unwrap_or_else(|_|{
                         log::warn!(
                             "Failed to parse color theme variable for ({key}: \
                              {value})"
                         );
-                        Color::HOT_PINK
+                        palette::css::HOT_PINK
                     });
                     base.0.insert(key.to_string(), color);
                 },
@@ -152,14 +155,20 @@ impl ColorThemeConfig {
                 let color = if let Some(stripped) = hex.strip_prefix('$') {
                     base.get(stripped)
                 } else {
-                    Color::parse(hex)
+                    match Color::from_str(hex) {
+                        Ok(color) => {Some(color)}
+                        Err(err) => {
+                            error!("[{name}] [{hex}] {err:?}");
+                            None
+                        }
+                    }
                 };
 
                 let color = color
                     .or_else(|| {
                         default.and_then(|default| default.get(name).cloned())
                     })
-                    .unwrap_or(Color::rgb8(0, 0, 0));
+                    .unwrap_or(Color::from_rgb8(0, 0, 0));
 
                 (name.to_string(), color)
             })

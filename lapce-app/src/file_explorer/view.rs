@@ -16,6 +16,7 @@ use floem::{
     },
     View,
 };
+use floem::peniko::color::Rgba8;
 use lapce_rpc::{
     file::{FileNodeViewData, FileNodeViewKind, Naming},
     source_control::FileDiffKind,
@@ -47,18 +48,18 @@ use crate::{
 ///
 /// The result is always opaque regardless of the transparency of the inputs.
 fn blend_colors(background: Color, foreground: Color) -> Color {
-    let Color {
+    let Rgba8 {
         r: background_r,
         g: background_g,
         b: background_b,
         ..
-    } = background;
-    let Color {
+    } = background.to_rgba8();
+    let Rgba8 {
         r: foreground_r,
         g: foreground_g,
         b: foreground_b,
         a,
-    } = foreground;
+    } = foreground.to_rgba8();
     let a: u16 = a.into();
 
     let [r, g, b] = [
@@ -69,8 +70,7 @@ fn blend_colors(background: Color, foreground: Color) -> Color {
     .map(|x| x.map(u16::from))
     .map(|[b, f]| (a * f + (255 - a) * b) / 255)
     .map(|x| x as u8);
-
-    Color { r, g, b, a: 255 }
+    Color::from_rgb8(r, g, b)
 }
 
 pub fn file_explorer_panel(
