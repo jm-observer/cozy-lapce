@@ -78,10 +78,10 @@ lapce-rpc   = { path = "./lapce-rpc" }
 lapce-proxy = { path = "./lapce-proxy" }
 lapce-xi-rope = {git = "https://github.com/jm-observer/xi-editor.git", features = ["serde"]}
 #floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["serde", "default-image-formats", "rfd-async-std", "vger", "track-panic"], default-features = false }
-floem = {git ="https://github.com/lapce/floem.git", rev = "b7964b2", features = ["serde", "default-image-formats", "rfd-async-std", "vger"], default-features = false }
+floem = {git ="https://github.com/lapce/floem.git", rev = "b35fceb", features = ["serde", "default-image-formats", "rfd-async-std", "vger"], default-features = false }
 
-cozy-floem = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "9b88626"}
-doc = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "9b88626"}
+cozy-floem = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "d818f63"}
+doc = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "d818f63"}
 
 #lapce-xi-rope = {path = "../xi-editor", features = ["serde"]}
 #floem = { version = "0.2.0" , features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vello"], default-features = false}
@@ -103,9 +103,9 @@ lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
 #custom-utils = {path="../custom-utils"}
 
-#[patch."https://github.com/jm-observer/cozy-floem.git"]
-#cozy-floem = {path = "../cozy-floem"}
-#doc = {path = "../cozy-floem/libs/doc"}
+[patch."https://github.com/jm-observer/cozy-floem.git"]
+doc = {path = "../cozy-floem/libs/doc"}
+cozy-floem = {path = "../cozy-floem"}
 #[patch."https://github.com/lapce/floem"]
 #floem = { path="../floem" }
 

@@ -45,6 +45,7 @@ struct Cli {
     paths: Vec<PathObject>
 }
 
+#[allow(unused_mut, unused_variables)]
 pub fn mainloop() {
     let cli = Cli::parse();
     if !cli.proxy {
@@ -137,7 +138,8 @@ pub fn mainloop() {
         log::error!("{:?}", err);
     }
 
-    proxy_rpc.mainloop(&mut dispatcher);
+    todo!()
+    // proxy_rpc.mainloop(&mut dispatcher).await;
 }
 
 pub fn register_lapce_path() -> Result<()> {

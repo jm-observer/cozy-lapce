@@ -161,7 +161,6 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 [[package]]
 name = "ansi-to-style"
 version = "0.1.0"
-source = "git+https://github.com/jm-observer/cozy-floem.git?rev=9b88626#9b886267795548885a5d8f3441677942b26cc32a"
 dependencies = [
  "log",
  "peniko",
@@ -1098,7 +1097,6 @@ dependencies = [
 [[package]]
 name = "cozy-floem"
 version = "0.1.0"
-source = "git+https://github.com/jm-observer/cozy-floem.git?rev=9b88626#9b886267795548885a5d8f3441677942b26cc32a"
 dependencies = [
  "ansi-to-style",
  "anyhow",
@@ -1542,7 +1540,6 @@ dependencies = [
 [[package]]
 name = "doc"
 version = "0.1.0"
-source = "git+https://github.com/jm-observer/cozy-floem.git?rev=9b88626#9b886267795548885a5d8f3441677942b26cc32a"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1863,7 +1860,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1905,7 +1902,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.12.1",
@@ -1931,7 +1928,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "smallvec",
 ]
@@ -1939,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "cosmic-text",
  "crossbeam",
@@ -1957,7 +1954,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1974,7 +1971,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=b7964b2#b7964b2f42e42e1155ca77b85aca104a387493c2"
+source = "git+https://github.com/lapce/floem.git?rev=b35fceb#b35fceb669da43440dae3ef4aa8784c8cd461e0a"
 dependencies = [
  "anyhow",
  "floem-vger",

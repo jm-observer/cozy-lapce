@@ -977,7 +977,6 @@ fn editor_tab_header(
                 .debug_name("Active Tab Indicator"),
         ))
         .on_resize(move |rect| {
-            info!("on_resize {rect:?}");
             layout_rect.set(rect);
         })
         .style(move |s| {
@@ -3043,12 +3042,10 @@ fn hover(window_tab_data: WindowWorkspaceData) -> impl View {
     .style(move |s| {
         let active = window_tab_data.common.hover.active.get();
         if !active {
-            log::debug!("deactivate hover");
             s.hide()
         } else {
             let config = config.get();
             if let Some(origin) = window_tab_data.hover_origin() {
-                log::debug!("activate hover {:?}", origin);
                 s.absolute()
                     .margin_left(origin.x as f32)
                     .margin_top(origin.y as f32)

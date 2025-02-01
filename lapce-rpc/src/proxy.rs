@@ -10,7 +10,6 @@ use std::{
 use crossbeam_channel::{Receiver, Sender};
 use indexmap::IndexMap;
 use lapce_xi_rope::RopeDelta;
-use log::info;
 use lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CodeAction, CodeActionResponse,
     CodeLens, CompletionItem, Diagnostic, DocumentSymbolResponse, FoldingRange,
@@ -547,15 +546,14 @@ impl ProxyRpcHandler {
     where
         H: ProxyHandler {
         use ProxyRpc::*;
-        info!("mainloop!!!");
         for msg in &self.rx {
             match msg {
                 Request(id, request) => {
-                    info!("Request: {request:?}");
+                    // info!("Request: {request:?}");
                     handler.handle_request(id, request).await;
                 },
                 Notification(notification) => {
-                    info!("Notification: {notification:?}");
+                    // info!("Notification: {notification:?}");
                     handler.handle_notification(notification).await;
                 },
                 Shutdown => {
