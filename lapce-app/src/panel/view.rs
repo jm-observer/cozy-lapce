@@ -603,6 +603,7 @@ pub(crate) fn new_panel_picker(
                     s.selectable(false)
                         .absolute()
                         .size_pct(100.0, 100.0)
+                        .pointer_events_none()
                         .apply_if(!is_bottom, |s| s.margin_top(2.0))
                         .apply_if(is_bottom, |s| s.margin_left(-2.0))
                         .apply_if(is_active(), |s| {
@@ -672,9 +673,13 @@ fn drag_event<T: IntoView>(
         }
     })
     .style(move |s| {
+        let is_dragging_panel =
+            dragging
+                .with(|d| d.as_ref().map(|d| d.is_panel()))
+                .unwrap_or(false);
         s.apply_if(dragging_over.get(), |s| {
             s.background(config.get().color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
-        })
+        }).apply_if(!is_dragging_panel, |s| s.pointer_events_none())
     })
 }
 

@@ -161,6 +161,7 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 [[package]]
 name = "ansi-to-style"
 version = "0.1.0"
+source = "git+https://github.com/jm-observer/cozy-floem.git?rev=d818f63#d818f63274a3a4ec81459fa6302cd1523abe387e"
 dependencies = [
  "log",
  "peniko",
@@ -1097,6 +1098,7 @@ dependencies = [
 [[package]]
 name = "cozy-floem"
 version = "0.1.0"
+source = "git+https://github.com/jm-observer/cozy-floem.git?rev=d818f63#d818f63274a3a4ec81459fa6302cd1523abe387e"
 dependencies = [
  "ansi-to-style",
  "anyhow",
@@ -1540,6 +1542,7 @@ dependencies = [
 [[package]]
 name = "doc"
 version = "0.1.0"
+source = "git+https://github.com/jm-observer/cozy-floem.git?rev=d818f63#d818f63274a3a4ec81459fa6302cd1523abe387e"
 dependencies = [
  "ahash",
  "anyhow",
