@@ -8,6 +8,7 @@ mod common;
 pub mod completion;
 pub mod config;
 pub mod db;
+pub mod debug;
 pub mod doc;
 pub mod editor;
 pub mod editor_tab;
@@ -44,12 +45,11 @@ pub mod wave;
 pub mod web_link;
 pub mod window;
 pub mod window_workspace;
-pub mod debug;
 
 #[cfg(windows)]
 extern crate windows_sys as windows;
 
-use floem::{prelude::Svg, reactive::create_effect, View};
+use floem::{View, prelude::Svg, reactive::create_effect};
 
 pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
     let content = svg_str();

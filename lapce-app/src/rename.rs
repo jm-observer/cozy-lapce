@@ -1,14 +1,14 @@
 use std::{path::PathBuf, rc::Rc};
-use doc::lines::command::FocusCommand;
-use doc::lines::editor_command::CommandExecuted;
-use doc::lines::mode::Mode;
 
-use doc::lines::selection::Selection;
+use doc::lines::{
+    command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
+    selection::Selection
+};
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate}
 };
 use lapce_rpc::proxy::ProxyResponse;
 use lapce_xi_rope::Rope;
@@ -17,20 +17,20 @@ use lsp_types::Position;
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     editor::EditorData,
-    keypress::{condition::Condition, KeyPressFocus},
+    keypress::{KeyPressFocus, condition::Condition},
     main_split::Editors,
-    window_workspace::{CommonData, Focus},
+    window_workspace::{CommonData, Focus}
 };
 
 #[derive(Clone, Debug)]
 pub struct RenameData {
-    pub active: RwSignal<bool>,
-    pub editor: EditorData,
-    pub start: RwSignal<usize>,
-    pub position: RwSignal<Position>,
-    pub path: RwSignal<PathBuf>,
+    pub active:      RwSignal<bool>,
+    pub editor:      EditorData,
+    pub start:       RwSignal<usize>,
+    pub position:    RwSignal<Position>,
+    pub path:        RwSignal<PathBuf>,
     pub layout_rect: RwSignal<Rect>,
-    pub common: Rc<CommonData>,
+    pub common:      Rc<CommonData>
 }
 
 impl KeyPressFocus for RenameData {
@@ -46,7 +46,7 @@ impl KeyPressFocus for RenameData {
         &self,
         command: &LapceCommand,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -59,7 +59,7 @@ impl KeyPressFocus for RenameData {
             | CommandKind::MultiSelection(_) => {
                 self.editor.run_command(command, count, mods);
             },
-            CommandKind::MotionMode(_) => {},
+            CommandKind::MotionMode(_) => {}
         }
         CommandExecuted::Yes
     }
@@ -84,7 +84,7 @@ impl RenameData {
             position,
             layout_rect,
             path,
-            common,
+            common
         }
     }
 
@@ -93,7 +93,7 @@ impl RenameData {
         path: PathBuf,
         placeholder: String,
         start: usize,
-        position: Position,
+        position: Position
     ) {
         self.editor.doc().reload(Rope::from(&placeholder), true);
         self.editor.cursor().update(|cursor| {
@@ -114,7 +114,7 @@ impl RenameData {
             FocusCommand::ConfirmRename => {
                 self.confirm();
             },
-            _ => return CommandExecuted::No,
+            _ => return CommandExecuted::No
         }
         CommandExecuted::Yes
     }
@@ -149,7 +149,7 @@ impl RenameData {
                 new_name.to_string(),
                 move |(_, result)| {
                     send(result);
-                },
+                }
             );
         }
         self.cancel();

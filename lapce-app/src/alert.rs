@@ -1,28 +1,28 @@
 use std::{
     fmt,
     rc::Rc,
-    sync::{atomic::AtomicU64, Arc},
+    sync::{Arc, atomic::AtomicU64}
 };
 
 use floem::{
+    View,
     event::EventListener,
     reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
-    views::{container, dyn_stack, label, stack, Decorators},
-    View,
+    views::{Decorators, container, dyn_stack, label, stack}
 };
 use lapce_core::icon::LapceIcons;
 
 use crate::{
-    config::{color::LapceColor, LapceConfig},
+    config::{LapceConfig, color::LapceColor},
     svg,
-    window_workspace::CommonData,
+    window_workspace::CommonData
 };
 
 #[derive(Clone)]
 pub struct AlertButton {
-    pub text: String,
-    pub action: Rc<dyn Fn()>,
+    pub text:   String,
+    pub action: Rc<dyn Fn()>
 }
 
 impl fmt::Debug for AlertButton {
@@ -35,21 +35,21 @@ impl fmt::Debug for AlertButton {
 
 #[derive(Clone)]
 pub struct AlertBoxData {
-    pub active: RwSignal<bool>,
-    pub title: RwSignal<String>,
-    pub msg: RwSignal<String>,
+    pub active:  RwSignal<bool>,
+    pub title:   RwSignal<String>,
+    pub msg:     RwSignal<String>,
     pub buttons: RwSignal<Vec<AlertButton>>,
-    pub config: ReadSignal<Arc<LapceConfig>>,
+    pub config:  ReadSignal<Arc<LapceConfig>>
 }
 
 impl AlertBoxData {
     pub fn new(cx: Scope, common: Rc<CommonData>) -> Self {
         Self {
-            active: cx.create_rw_signal(false),
-            title: cx.create_rw_signal("".to_string()),
-            msg: cx.create_rw_signal("".to_string()),
+            active:  cx.create_rw_signal(false),
+            title:   cx.create_rw_signal("".to_string()),
+            msg:     cx.create_rw_signal("".to_string()),
             buttons: cx.create_rw_signal(Vec::new()),
-            config: common.config,
+            config:  common.config
         }
     }
 }
@@ -69,7 +69,7 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                     move |s| {
                         s.size(50.0, 50.0)
                             .color(config.get().color(LapceColor::LAPCE_WARN))
-                    },
+                    }
                 ),
                 label(move || title.get()).style(move |s| {
                     s.margin_top(20.0)
@@ -99,13 +99,13 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                     .border(1.0)
                                     .border_radius(6.0)
                                     .border_color(
-                                        config.color(LapceColor::LAPCE_BORDER),
+                                        config.color(LapceColor::LAPCE_BORDER)
                                     )
                                     .hover(|s| {
                                         s.cursor(CursorStyle::Pointer).background(
                                             config.color(
-                                                LapceColor::PANEL_HOVERED_BACKGROUND,
-                                            ),
+                                                LapceColor::PANEL_HOVERED_BACKGROUND
+                                            )
                                         )
                                     })
                                     .active(|s| {
@@ -114,7 +114,7 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                 ))
                                     })
                             })
-                    },
+                    }
                 )
                 .style(|s| s.flex_col().width_pct(100.0).margin_top(10.0)),
                 label(|| "Cancel".to_string())
@@ -134,15 +134,15 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                             .hover(|s| {
                                 s.cursor(CursorStyle::Pointer).background(
                                     config
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
                                 )
                             })
                             .active(|s| {
                                 s.background(config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
                                 ))
                             })
-                    }),
+                    })
             ))
             .style(|s| s.flex_col().items_center().width_pct(100.0))
         })
@@ -169,7 +169,7 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                 config
                     .get()
                     .color(LapceColor::LAPCE_DROPDOWN_SHADOW)
-                    .multiply_alpha(0.5),
+                    .multiply_alpha(0.5)
             )
     })
     .debug_name("Alert Box")

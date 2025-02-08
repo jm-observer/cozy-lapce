@@ -1,27 +1,26 @@
 use std::{rc::Rc, sync::Arc};
 
 use floem::reactive::{RwSignal, Scope, SignalWith};
-use lapce_core::debug::RunDebugProcess;
-use lapce_core::id::TerminalTabId;
-use lapce_core::workspace::LapceWorkspace;
+use lapce_core::{
+    debug::RunDebugProcess, id::TerminalTabId, workspace::LapceWorkspace
+};
 use lapce_rpc::terminal::TerminalProfile;
 
 use super::data::TerminalData;
-use crate::{window_workspace::CommonData,
-};
+use crate::window_workspace::CommonData;
 
 #[derive(Clone)]
 pub struct TerminalTabData {
-    pub scope: Scope,
+    pub scope:           Scope,
     pub terminal_tab_id: TerminalTabId,
-    pub terminal: RwSignal<TerminalData>,
+    pub terminal:        RwSignal<TerminalData>
 }
 
 impl TerminalTabData {
     pub fn new(
         workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         TerminalTabData::new_run_debug(workspace, None, profile, common)
     }
@@ -32,7 +31,7 @@ impl TerminalTabData {
         workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let cx = common.scope.create_child();
         let terminal_data =
@@ -42,7 +41,7 @@ impl TerminalTabData {
         Self {
             scope: cx,
             terminal_tab_id,
-            terminal: terminals,
+            terminal: terminals
         }
     }
 

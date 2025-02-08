@@ -9,7 +9,7 @@ use regex::Regex;
 pub enum SnippetElement {
     Text(String),
     PlaceHolder(usize, Vec<SnippetElement>),
-    Tabstop(usize),
+    Tabstop(usize)
 }
 
 impl Display for SnippetElement {
@@ -25,7 +25,7 @@ impl Display for SnippetElement {
                 }
                 f.write_str("}")
             },
-            SnippetElement::Tabstop(tab) => write!(f, "${tab}"),
+            SnippetElement::Tabstop(tab) => write!(f, "${tab}")
         }
     }
 }
@@ -37,7 +37,7 @@ impl SnippetElement {
             SnippetElement::PlaceHolder(_, elements) => {
                 elements.iter().map(|e| e.len()).sum()
             },
-            SnippetElement::Tabstop(_) => 0,
+            SnippetElement::Tabstop(_) => 0
         }
     }
 
@@ -64,14 +64,14 @@ impl SnippetElement {
                 }
                 fmt::Result::Ok(())
             },
-            SnippetElement::Tabstop(_) => fmt::Result::Ok(()),
+            SnippetElement::Tabstop(_) => fmt::Result::Ok(())
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Snippet {
-    elements: Vec<SnippetElement>,
+    elements: Vec<SnippetElement>
 }
 
 impl FromStr for Snippet {
@@ -99,7 +99,7 @@ impl Snippet {
         s: &str,
         pos: usize,
         escs: &[char],
-        loose_escs: &[char],
+        loose_escs: &[char]
     ) -> (Vec<SnippetElement>, usize) {
         let mut elements = Vec::new();
         let mut pos = pos;
@@ -190,9 +190,9 @@ impl Snippet {
             return Some((
                 SnippetElement::PlaceHolder(
                     tab,
-                    vec![SnippetElement::Text(String::new())],
+                    vec![SnippetElement::Text(String::new())]
                 ),
-                pos + caps.get(0).unwrap().end(),
+                pos + caps.get(0).unwrap().end()
             ));
         }
         let (els, pos) =
@@ -205,7 +205,7 @@ impl Snippet {
         s: &str,
         pos: usize,
         escs: &[char],
-        loose_escs: &[char],
+        loose_escs: &[char]
     ) -> Option<(SnippetElement, usize)> {
         let mut ele = String::new();
         let mut end = pos;
@@ -257,7 +257,7 @@ impl Snippet {
 
     pub fn elements_tabs(
         elements: &[SnippetElement],
-        start: usize,
+        start: usize
     ) -> Vec<(usize, (usize, usize))> {
         let mut tabs = Vec::new();
         let mut pos = start;
@@ -275,7 +275,7 @@ impl Snippet {
                 },
                 SnippetElement::Tabstop(tab) => {
                     tabs.push((*tab, (pos, pos)));
-                },
+                }
             }
         }
         tabs

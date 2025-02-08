@@ -6,8 +6,8 @@ use std::{
         atomic::{AtomicU64, Ordering}
     }
 };
-use cozy_floem::views::tree_with_panel::data::StyledText;
 
+use cozy_floem::views::tree_with_panel::data::StyledText;
 use crossbeam_channel::{Receiver, Sender};
 use lsp_types::{
     CancelParams, CompletionResponse, LogMessageParams, ProgressParams,
@@ -369,7 +369,8 @@ impl CoreRpcHandler {
 
     pub fn update_rust_build_panel(&self, _rev: u64, _styled_text: StyledText) {
         todo!()
-        // self.notification(CoreNotification::UpdateTerminal { term_id, content });
+        // self.notification(CoreNotification::UpdateTerminal { term_id, content
+        // });
     }
 
     pub fn dap_stopped(

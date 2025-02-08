@@ -577,11 +577,14 @@ pub fn handle_plugin_server_message(
             let result = rx.recv().unwrap();
             let resp = match result {
                 Ok(v) => JsonRpc::success(id, &v),
-                Err(e) => JsonRpc::error(id, jsonrpc_lite::Error {
-                    code:    e.code,
-                    message: e.message,
-                    data:    None
-                })
+                Err(e) => JsonRpc::error(
+                    id,
+                    jsonrpc_lite::Error {
+                        code:    e.code,
+                        message: e.message,
+                        data:    None
+                    }
+                )
             };
             Some(resp)
         },
@@ -1203,10 +1206,13 @@ impl PluginHostHandler {
                     serde_json::from_value(serde_json::to_value(params)?)?;
                 if !param.is_ok() {
                     if let Some(msg) = &param.message {
-                        self.core_rpc.show_message(from, ShowMessageParams {
-                            typ:     MessageType::ERROR,
-                            message: msg.clone()
-                        });
+                        self.core_rpc.show_message(
+                            from,
+                            ShowMessageParams {
+                                typ:     MessageType::ERROR,
+                                message: msg.clone()
+                            }
+                        );
                     }
                 }
                 self.catalog_rpc.core_rpc.server_status(param);

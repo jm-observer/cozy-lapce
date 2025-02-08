@@ -740,11 +740,14 @@ impl PluginCatalog {
                 program,
                 args
             } => {
-                self.debuggers.insert(debugger_type.clone(), DebuggerData {
-                    debugger_type,
-                    program,
-                    args
-                });
+                self.debuggers.insert(
+                    debugger_type.clone(),
+                    DebuggerData {
+                        debugger_type,
+                        program,
+                        args
+                    }
+                );
             },
             Shutdown => {
                 for (_, plugin) in self.plugins.iter() {

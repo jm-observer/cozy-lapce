@@ -1,0 +1,9 @@
+[package]
+name = "ansi-to-style"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vte = {workspace = true}
+peniko = {workspace = true}
+log = {workspace = true}

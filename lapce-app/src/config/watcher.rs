@@ -1,10 +1,10 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use crossbeam_channel::Sender;
 
 pub struct ConfigWatcher {
-    tx: Sender<()>,
-    delay_handler: Arc<AtomicBool>,
+    tx:            Sender<()>,
+    delay_handler: Arc<AtomicBool>
 }
 
 impl notify::EventHandler for ConfigWatcher {
@@ -20,7 +20,7 @@ impl notify::EventHandler for ConfigWatcher {
                             false,
                             true,
                             std::sync::atomic::Ordering::Relaxed,
-                            std::sync::atomic::Ordering::Relaxed,
+                            std::sync::atomic::Ordering::Relaxed
                         )
                         .is_ok()
                     {
@@ -28,7 +28,7 @@ impl notify::EventHandler for ConfigWatcher {
                         let tx = self.tx.clone();
                         std::thread::spawn(move || {
                             std::thread::sleep(std::time::Duration::from_millis(
-                                500,
+                                500
                             ));
                             if let Err(err) = tx.send(()) {
                                 log::error!("{:?}", err);
@@ -38,11 +38,11 @@ impl notify::EventHandler for ConfigWatcher {
                         });
                     }
                 },
-                _ => {},
+                _ => {}
             },
             Err(err) => {
                 log::error!("{:?}", err);
-            },
+            }
         }
     }
 }
@@ -51,7 +51,7 @@ impl ConfigWatcher {
     pub fn new(tx: Sender<()>) -> Self {
         Self {
             tx,
-            delay_handler: Arc::new(AtomicBool::new(false)),
+            delay_handler: Arc::new(AtomicBool::new(false))
         }
     }
 }

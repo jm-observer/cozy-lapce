@@ -1,17 +1,16 @@
-use serde::{Deserialize, Serialize};
 use lapce_rpc::plugin::VoltID;
+use serde::{Deserialize, Serialize};
+
 use crate::doc::DocContent;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EditorTabInfo {
-    pub active: usize,
+    pub active:   usize,
     pub is_focus: bool,
-    pub children: Vec<EditorTabChildInfo>,
+    pub children: Vec<EditorTabChildInfo>
 }
 
-impl EditorTabInfo {
-
-}
+impl EditorTabInfo {}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EditorTabChildInfo {
@@ -20,24 +19,21 @@ pub enum EditorTabChildInfo {
     Settings,
     ThemeColorSettings,
     Keymap,
-    Volt(VoltID),
+    Volt(VoltID)
 }
 
-impl EditorTabChildInfo {
-}
-
-
+impl EditorTabChildInfo {}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EditorInfo {
-    pub content: DocContent,
-    pub unsaved: Option<String>,
-    pub offset: usize,
-    pub scroll_offset: (f64, f64),
+    pub content:       DocContent,
+    pub unsaved:       Option<String>,
+    pub offset:        usize,
+    pub scroll_offset: (f64, f64)
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DiffEditorInfo {
-    pub left_content: DocContent,
-    pub right_content: DocContent,
+    pub left_content:  DocContent,
+    pub right_content: DocContent
 }

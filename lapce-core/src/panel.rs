@@ -1,6 +1,7 @@
 use im::{Vector, vector};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
+
 use crate::icon::LapceIcons;
 
 pub type PanelOrder = im::HashMap<PanelContainerPosition, Vector<PanelKind>>;
@@ -14,7 +15,7 @@ pub fn default_panel_order() -> PanelOrder {
             PanelKind::Plugin,
             PanelKind::SourceControl,
             PanelKind::Debug,
-        ],
+        ]
     );
     order.insert(
         PanelContainerPosition::Bottom,
@@ -25,11 +26,11 @@ pub fn default_panel_order() -> PanelOrder {
             PanelKind::CallHierarchy,
             PanelKind::References,
             PanelKind::Implementation
-        ],
+        ]
     );
     order.insert(
         PanelContainerPosition::Right,
-        vector![PanelKind::DocumentSymbol,],
+        vector![PanelKind::DocumentSymbol,]
     );
 
     order
@@ -46,29 +47,29 @@ pub enum PanelSection {
     Process,
     Variable,
     StackFrame,
-    Breakpoint,
+    Breakpoint
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PanelSize {
-    pub left: f64,
+    pub left:   f64,
     pub bottom: f64,
-    pub right: f64,
+    pub right:  f64
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PanelInfo {
-    pub panels: PanelOrder,
-    pub styles: im::HashMap<PanelContainerPosition, PanelStyle>,
-    pub size: PanelSize,
-    pub sections: im::HashMap<PanelSection, bool>,
+    pub panels:   PanelOrder,
+    pub styles:   im::HashMap<PanelContainerPosition, PanelStyle>,
+    pub size:     PanelSize,
+    pub sections: im::HashMap<PanelSection, bool>
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum PanelContainerPosition {
     Left,
     Bottom,
-    Right,
+    Right
 }
 
 impl PanelContainerPosition {
@@ -104,16 +105,16 @@ impl PanelContainerPosition {
         match self {
             PanelContainerPosition::Left => "Left Pannel Container View",
             PanelContainerPosition::Bottom => "Bottom Pannel Container View",
-            PanelContainerPosition::Right => "Right Pannel Container View",
+            PanelContainerPosition::Right => "Right Pannel Container View"
         }
     }
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct PanelStyle {
-    pub active: usize,
-    pub shown: bool,
-    pub maximized: bool,
+    pub active:    usize,
+    pub shown:     bool,
+    pub maximized: bool
 }
 
 #[derive(
@@ -131,7 +132,7 @@ pub enum PanelKind {
     DocumentSymbol,
     References,
     Implementation,
-    Build,
+    Build
 }
 
 impl PanelKind {
@@ -148,13 +149,13 @@ impl PanelKind {
             PanelKind::DocumentSymbol => LapceIcons::DOCUMENT_SYMBOL,
             PanelKind::References => LapceIcons::REFERENCES,
             PanelKind::Implementation => LapceIcons::IMPLEMENTATION,
-            PanelKind::Build => LapceIcons::DEBUG,
+            PanelKind::Build => LapceIcons::DEBUG
         }
     }
 
     pub fn position(
         &self,
-        order: &PanelOrder,
+        order: &PanelOrder
     ) -> Option<(usize, PanelContainerPosition)> {
         for (pos, panels) in order.iter() {
             let index = panels.iter().position(|k| k == self);
@@ -178,7 +179,7 @@ impl PanelKind {
             PanelKind::DocumentSymbol => PanelContainerPosition::Right,
             PanelKind::References => PanelContainerPosition::Bottom,
             PanelKind::Implementation => PanelContainerPosition::Bottom,
-            PanelKind::Build => PanelContainerPosition::Bottom,
+            PanelKind::Build => PanelContainerPosition::Bottom
         }
     }
 
@@ -199,4 +200,3 @@ impl PanelKind {
         }
     }
 }
-

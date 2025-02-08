@@ -1,29 +1,29 @@
 use anyhow::Result;
 use doc::lines::cursor::CursorAffinity;
 use floem::{
+    Renderer, View, ViewId,
     context::PaintCx,
     peniko::kurbo::{Point, Rect, Size},
     reactive::{Memo, SignalGet, SignalWith},
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout},
-    Renderer, View, ViewId,
+    text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
 use log::{debug, error};
 
-use super::{view::changes_colors_screen, EditorData};
+use super::{EditorData, view::changes_colors_screen};
 use crate::{
-    config::{color::LapceColor, LapceConfig},
-    doc::Doc,
+    config::{LapceConfig, color::LapceColor},
+    doc::Doc
 };
 pub struct EditorGutterView {
-    id: ViewId,
-    editor: EditorData,
-    width: f64,
-    gutter_padding_right: Memo<f32>,
+    id:                   ViewId,
+    editor:               EditorData,
+    width:                f64,
+    gutter_padding_right: Memo<f32>
 }
 
 pub fn editor_gutter_view(
     editor: EditorData,
-    gutter_padding_right: Memo<f32>,
+    gutter_padding_right: Memo<f32>
 ) -> EditorGutterView {
     let id = ViewId::new();
 
@@ -31,7 +31,7 @@ pub fn editor_gutter_view(
         id,
         editor,
         width: 0.0,
-        gutter_padding_right,
+        gutter_padding_right
     }
 }
 
@@ -43,7 +43,7 @@ impl EditorGutterView {
         viewport: Rect,
         is_normal: bool,
         config: &LapceConfig,
-        doc: &Doc,
+        doc: &Doc
     ) -> Result<()> {
         if !is_normal {
             return Ok(());
@@ -67,10 +67,10 @@ impl EditorGutterView {
             cx.fill(
                 &Size::new(3.0, height).to_rect().with_origin(Point::new(
                     self.width + 5.0 - gutter_padding_right,
-                    y,
+                    y
                 )),
                 color,
-                0.0,
+                0.0
             )
         }
         Ok(())
@@ -80,7 +80,7 @@ impl EditorGutterView {
         &self,
         cx: &mut PaintCx,
         is_normal: bool,
-        config: &LapceConfig,
+        config: &LapceConfig
     ) {
         if !is_normal {
             return;
@@ -102,12 +102,12 @@ impl EditorGutterView {
         cx.fill(
             &sticky_area_rect,
             config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
-            3.0,
+            3.0
         );
         cx.fill(
             &sticky_area_rect,
             config.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND),
-            0.0,
+            0.0
         );
     }
 }
@@ -119,7 +119,7 @@ impl View for EditorGutterView {
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx,
+        _cx: &mut floem::context::ComputeLayoutCx
     ) -> Option<floem::peniko::kurbo::Rect> {
         if let Some(width) = self.id.get_layout().map(|l| l.size.width as f64) {
             self.width = width;
@@ -159,7 +159,7 @@ impl View for EditorGutterView {
                 Err(err) => {
                     error!("{err:?}");
                     return;
-                },
+                }
             };
 
         let family: Vec<FamilyOwned> =
@@ -185,12 +185,12 @@ impl View for EditorGutterView {
                 let text_layout = if current_number == line_number {
                     TextLayout::new_with_text(
                         &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                        current_line_attrs_list.clone(),
+                        current_line_attrs_list.clone()
                     )
                 } else {
                     TextLayout::new_with_text(
                         &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                        attrs_list.clone(),
+                        attrs_list.clone()
                     )
                 };
                 let y = visual_line_info.visual_line_y;
@@ -205,7 +205,7 @@ impl View for EditorGutterView {
 
                 cx.draw_text_with_layout(
                     text_layout.layout_runs(),
-                    Point::new(x, y),
+                    Point::new(x, y)
                 );
             }
         });
@@ -216,7 +216,7 @@ impl View for EditorGutterView {
             viewport,
             kind_is_normal,
             &config,
-            &doc,
+            &doc
         ) {
             error!("{err:?}");
         }

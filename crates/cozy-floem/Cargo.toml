@@ -1,0 +1,15 @@
+[package]
+name = "cozy-floem"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = {workspace = true}
+floem = {workspace = true}
+lapce-xi-rope = {workspace = true}
+doc = {workspace = true}
+anyhow = {workspace = true}
+tokio = {workspace = true}
+cargo_metadata = {workspace = true}
+ansi-to-style = {workspace = true}
+parking_lot = {workspace = true}

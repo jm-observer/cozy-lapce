@@ -3,41 +3,41 @@ use std::{rc::Rc, sync::Arc};
 use doc::lines::{
     buffer::rope_text::RopeText,
     cursor::{Cursor, CursorMode},
-    selection::Selection,
+    selection::Selection
 };
 use floem::{
+    Renderer, View, ViewId,
     action::{set_ime_allowed, set_ime_cursor_area},
     context::EventCx,
     event::{Event, EventListener, EventPropagation},
     kurbo::{Affine, Stroke},
     peniko::{
-        kurbo::{Line, Point, Rect, Size, Vec2},
         Color,
+        kurbo::{Line, Point, Rect, Size, Vec2}
     },
     prop_extractor,
     reactive::{
-        create_effect, create_memo, create_rw_signal, Memo, ReadSignal, RwSignal,
-        Scope, SignalGet, SignalUpdate, SignalWith,
+        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        create_effect, create_memo, create_rw_signal
     },
     style::{
         CursorStyle, FontFamily, FontSize, FontStyle, FontWeight, LineHeight,
-        PaddingLeft, Style, TextColor,
+        PaddingLeft, Style, TextColor
     },
     taffy::prelude::NodeId,
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
     unit::PxPct,
-    views::Decorators,
-    Renderer, View, ViewId,
+    views::Decorators
 };
 use lapce_xi_rope::Rope;
 
 use crate::{
-    config::{color::LapceColor, LapceConfig},
+    config::{LapceConfig, color::LapceColor},
     doc::Doc,
-    editor::{view::editor_style, DocSignal, EditorData},
+    editor::{DocSignal, EditorData, view::editor_style},
     keypress::KeyPressFocus,
     main_split::Editors,
-    window_workspace::CommonData,
+    window_workspace::CommonData
 };
 
 prop_extractor! {
@@ -53,11 +53,11 @@ prop_extractor! {
 
 /// Builder for creating a [`TextInput`] easily.
 pub struct TextInputBuilder {
-    is_focused: Option<Memo<bool>>,
+    is_focused:     Option<Memo<bool>>,
     // TODO: it'd be nice to not need to box this
-    key_focus: Option<Box<dyn KeyPressFocus>>,
-    value: Option<Rope>,
-    keyboard_focus: RwSignal<bool>,
+    key_focus:      Option<Box<dyn KeyPressFocus>>,
+    value:          Option<Rope>,
+    keyboard_focus: RwSignal<bool>
 }
 
 impl Default for TextInputBuilder {
@@ -69,10 +69,10 @@ impl Default for TextInputBuilder {
 impl TextInputBuilder {
     pub fn new() -> Self {
         Self {
-            is_focused: None,
-            key_focus: None,
-            value: None,
-            keyboard_focus: create_rw_signal(false),
+            is_focused:     None,
+            key_focus:      None,
+            value:          None,
+            keyboard_focus: create_rw_signal(false)
         }
     }
 
@@ -100,7 +100,7 @@ impl TextInputBuilder {
         self,
         cx: Scope,
         editors: Editors,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> TextInput {
         let editor = editors.make_local(cx, common);
         let id = editor.id();
@@ -139,7 +139,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
     e_data: EditorData,
     key_focus: Option<T>,
     is_focused: Memo<bool>,
-    keyboard_focus: RwSignal<bool>,
+    keyboard_focus: RwSignal<bool>
 ) -> TextInput {
     let id = ViewId::new();
 
@@ -178,7 +178,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
             id.update_state(TextInputState::Content {
                 text: content,
                 offset,
-                preedit_range,
+                preedit_range
             });
         });
     }
@@ -209,7 +209,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
                 let origin = window_origin
                     + Vec2::new(
                         cursor_line.p1.x - viewport.x0,
-                        cursor_line.p1.y - viewport.y0,
+                        cursor_line.p1.y - viewport.y0
                     );
                 set_ime_cursor_area(origin, Size::new(800.0, 600.0));
             }
@@ -239,7 +239,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
         cursor_pos: Point::ZERO,
         on_cursor_pos: None,
         hide_cursor: editor.cursor_info.hidden,
-        style: Default::default(),
+        style: Default::default()
     }
     .style(move |s| {
         editor_style(config, doc, s)
@@ -283,7 +283,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
 
         if let Event::ImePreedit {
             text,
-            cursor: ime_cursor,
+            cursor: ime_cursor
         } = event
         {
             if text.is_empty() {
@@ -310,12 +310,12 @@ fn text_input_full<T: KeyPressFocus + 'static>(
 
 enum TextInputState {
     Content {
-        text: String,
-        offset: usize,
-        preedit_range: Option<(usize, usize)>,
+        text:          String,
+        offset:        usize,
+        preedit_range: Option<(usize, usize)>
     },
     Focus(bool),
-    Placeholder(String),
+    Placeholder(String)
 }
 
 pub struct TextInput {
@@ -337,7 +337,7 @@ pub struct TextInput {
     on_cursor_pos: Option<Box<dyn Fn(Point)>>,
     hide_cursor: RwSignal<bool>,
     config: ReadSignal<Arc<LapceConfig>>,
-    style: Extractor,
+    style: Extractor
 }
 
 impl TextInput {
@@ -400,7 +400,7 @@ impl TextInput {
             } else {
                 self.content.as_str()
             },
-            AttrsList::new(attrs),
+            AttrsList::new(attrs)
         );
         self.text_layout.set(Some(text_layout));
 
@@ -408,7 +408,7 @@ impl TextInput {
             self.style
                 .color()
                 .unwrap_or(Color::BLACK)
-                .multiply_alpha(0.5),
+                .multiply_alpha(0.5)
         );
         let placeholder_text_layout =
             TextLayout::new_with_text(&self.placeholder, AttrsList::new(attrs));
@@ -424,7 +424,7 @@ impl TextInput {
                         PxPct::Pct(pct) => {
                             let layout = self.id.get_layout().unwrap_or_default();
                             pct * layout.size.width as f64
-                        },
+                        }
                     };
                 let hit =
                     text_layout.hit_point(Point::new(point.x - padding_left, 0.0));
@@ -486,29 +486,29 @@ impl TextInput {
         // includes the origin.
         let target_size = Size::new(
             rect.width().min(self.text_viewport.width()),
-            rect.height().min(self.text_viewport.height()),
+            rect.height().min(self.text_viewport.height())
         );
         let rect = rect.with_size(target_size);
 
         let x0 = closest_on_axis(
             rect.min_x(),
             self.text_viewport.min_x(),
-            self.text_viewport.max_x(),
+            self.text_viewport.max_x()
         );
         let x1 = closest_on_axis(
             rect.max_x(),
             self.text_viewport.min_x(),
-            self.text_viewport.max_x(),
+            self.text_viewport.max_x()
         );
         let y0 = closest_on_axis(
             rect.min_y(),
             self.text_viewport.min_y(),
-            self.text_viewport.max_y(),
+            self.text_viewport.max_y()
         );
         let y1 = closest_on_axis(
             rect.max_y(),
             self.text_viewport.min_y(),
-            self.text_viewport.max_y(),
+            self.text_viewport.max_y()
         );
 
         let delta_x = if x0.abs() > x1.abs() { x0 } else { x1 };
@@ -526,14 +526,14 @@ impl View for TextInput {
     fn update(
         &mut self,
         _cx: &mut floem::context::UpdateCx,
-        state: Box<dyn std::any::Any>,
+        state: Box<dyn std::any::Any>
     ) {
         if let Ok(state) = state.downcast() {
             match *state {
                 TextInputState::Content {
                     text,
                     offset,
-                    preedit_range,
+                    preedit_range
                 } => {
                     self.content = text;
                     self.offset = offset;
@@ -546,7 +546,7 @@ impl View for TextInput {
                 TextInputState::Placeholder(placeholder) => {
                     self.placeholder = placeholder;
                     self.placeholder_text_layout = None;
-                },
+                }
             }
             self.id.request_layout();
         }
@@ -561,7 +561,7 @@ impl View for TextInput {
 
     fn layout(
         &mut self,
-        cx: &mut floem::context::LayoutCx,
+        cx: &mut floem::context::LayoutCx
     ) -> floem::taffy::prelude::NodeId {
         cx.layout_node(self.id, true, |_cx| {
             if self
@@ -602,7 +602,7 @@ impl View for TextInput {
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx,
+        _cx: &mut floem::context::ComputeLayoutCx
     ) -> Option<Rect> {
         let layout = self.id.get_layout().unwrap_or_default();
 
@@ -610,11 +610,11 @@ impl View for TextInput {
         let style = style.builtin();
         let padding_left = match style.padding_left() {
             PxPct::Px(padding) => padding,
-            PxPct::Pct(pct) => pct * layout.size.width as f64,
+            PxPct::Pct(pct) => pct * layout.size.width as f64
         };
         let padding_right = match style.padding_right() {
             PxPct::Px(padding) => padding,
-            PxPct::Pct(pct) => pct * layout.size.width as f64,
+            PxPct::Pct(pct) => pct * layout.size.width as f64
         };
 
         let size = Size::new(layout.size.width as f64, layout.size.height as f64);
@@ -640,12 +640,12 @@ impl View for TextInput {
             Line::new(
                 Point::new(
                     cursor_point.x,
-                    cursor_point.y - hit_position.glyph_ascent,
+                    cursor_point.y - hit_position.glyph_ascent
                 ),
                 Point::new(
                     cursor_point.x,
-                    cursor_point.y + hit_position.glyph_descent,
-                ),
+                    cursor_point.y + hit_position.glyph_descent
+                )
             )
         });
         self.cursor_line.set(cursor_line);
@@ -656,7 +656,7 @@ impl View for TextInput {
     fn event_before_children(
         &mut self,
         cx: &mut floem::context::EventCx,
-        event: &floem::event::Event,
+        event: &floem::event::Event
     ) -> EventPropagation {
         let text_offset = self.text_viewport.origin();
         let event = event
@@ -702,7 +702,7 @@ impl View for TextInput {
                 self.clamp_text_viewport(self.text_viewport + delta);
                 return EventPropagation::Continue;
             },
-            _ => {},
+            _ => {}
         }
         EventPropagation::Continue
     }
@@ -732,7 +732,7 @@ impl View for TextInput {
                                 .with_size(Size::new(max - min, height))
                                 .with_origin(Point::new(min + point.x, point.y)),
                             config.color(LapceColor::EDITOR_SELECTION),
-                            0.0,
+                            0.0
                         );
                     }
                 }
@@ -743,7 +743,7 @@ impl View for TextInput {
             } else if !self.placeholder.is_empty() {
                 cx.draw_text_with_layout(
                     self.placeholder_text_layout.as_ref().unwrap().layout_runs(),
-                    point,
+                    point
                 );
             }
 
@@ -760,17 +760,17 @@ impl View for TextInput {
                 let line = Line::new(
                     Point::new(
                         start_point.x,
-                        start_point.y + start_position.glyph_descent,
+                        start_point.y + start_position.glyph_descent
                     ),
                     Point::new(
                         end_point.x,
-                        end_point.y + end_position.glyph_descent,
-                    ),
+                        end_point.y + end_position.glyph_descent
+                    )
                 );
                 cx.stroke(
                     &line,
                     config.color(LapceColor::EDITOR_FOREGROUND),
-                    &Stroke::new(1.0),
+                    &Stroke::new(1.0)
                 );
             }
 
@@ -787,18 +787,18 @@ impl View for TextInput {
                 let line = Line::new(
                     Point::new(
                         cursor_point.x,
-                        cursor_point.y - hit_position.glyph_ascent,
+                        cursor_point.y - hit_position.glyph_ascent
                     ),
                     Point::new(
                         cursor_point.x,
-                        cursor_point.y + hit_position.glyph_descent,
-                    ),
+                        cursor_point.y + hit_position.glyph_descent
+                    )
                 );
 
                 cx.stroke(
                     &line,
                     self.config.get_untracked().color(LapceColor::EDITOR_CARET),
-                    &Stroke::new(2.0),
+                    &Stroke::new(2.0)
                 );
             }
 

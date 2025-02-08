@@ -1,53 +1,53 @@
 use std::{
     collections::HashSet,
     rc::Rc,
-    sync::{atomic::AtomicU64, Arc},
+    sync::{Arc, atomic::AtomicU64}
 };
 
 use anyhow::Result;
-use doc::lines::command::EditCommand;
-use doc::lines::editor_command::CommandExecuted;
-use doc::lines::mode::Mode;
+use doc::lines::{
+    command::EditCommand, editor_command::CommandExecuted, mode::Mode
+};
 use floem::{
+    IntoView, View,
     action::show_context_menu,
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::Rect,
     menu::{Menu, MenuItem},
     reactive::{
-        create_effect, create_memo, create_rw_signal, use_context, RwSignal, Scope,
-        SignalGet, SignalUpdate, SignalWith,
+        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, create_effect,
+        create_memo, create_rw_signal, use_context
     },
     style::CursorStyle,
     views::{
-        container, dyn_container, dyn_stack,
-        empty, img, label, rich_text, scroll, stack, text, Decorators,
-    },
-    IntoView, View,
+        Decorators, container, dyn_container, dyn_stack, empty, img, label,
+        rich_text, scroll, stack, text
+    }
 };
 use indexmap::IndexMap;
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{download_volt, volt_icon, wasi::find_all_volts};
 use lapce_rpc::{
     core::{CoreNotification, CoreRpcHandler},
-    plugin::{VoltID, VoltInfo, VoltMetadata},
+    plugin::{VoltID, VoltInfo, VoltMetadata}
 };
 use lsp_types::MessageType;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    command::{CommandKind},
-    config::{color::LapceColor, LapceConfig},
+    command::CommandKind,
+    config::{LapceConfig, color::LapceColor},
     db::LapceDb,
     editor::EditorData,
-    keypress::{condition::Condition, KeyPressFocus},
+    keypress::{KeyPressFocus, condition::Condition},
     main_split::Editors,
-    markdown::{parse_markdown, MarkdownContent},
+    markdown::{MarkdownContent, parse_markdown},
     panel::plugin_view::VOLT_DEFAULT_PNG,
     svg,
     web_link::web_link,
-    window_workspace::CommonData,
+    window_workspace::CommonData
 };
 
 type PluginInfo = Option<(
@@ -55,13 +55,13 @@ type PluginInfo = Option<(
     VoltInfo,
     Option<VoltIcon>,
     Option<VoltInfo>,
-    Option<RwSignal<bool>>,
+    Option<RwSignal<bool>>
 )>;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum VoltIcon {
     Svg(String),
-    Img(Vec<u8>),
+    Img(Vec<u8>)
 }
 
 impl VoltIcon {
@@ -77,40 +77,40 @@ impl VoltIcon {
 #[derive(Deserialize, Serialize)]
 pub struct VoltsInfo {
     pub plugins: Vec<VoltInfo>,
-    pub total: usize,
+    pub total:   usize
 }
 
 #[derive(Clone)]
 pub struct InstalledVoltData {
-    pub meta: RwSignal<VoltMetadata>,
-    pub icon: RwSignal<Option<VoltIcon>>,
-    pub latest: RwSignal<VoltInfo>,
+    pub meta:   RwSignal<VoltMetadata>,
+    pub icon:   RwSignal<Option<VoltIcon>>,
+    pub latest: RwSignal<VoltInfo>
 }
 
 #[derive(Clone, PartialEq)]
 pub struct AvailableVoltData {
-    pub info: RwSignal<VoltInfo>,
-    pub icon: RwSignal<Option<VoltIcon>>,
-    pub installing: RwSignal<bool>,
+    pub info:       RwSignal<VoltInfo>,
+    pub icon:       RwSignal<Option<VoltIcon>>,
+    pub installing: RwSignal<bool>
 }
 
 #[derive(Clone, Debug)]
 pub struct AvailableVoltList {
-    pub loading: RwSignal<bool>,
-    pub query_id: RwSignal<usize>,
+    pub loading:      RwSignal<bool>,
+    pub query_id:     RwSignal<usize>,
     pub query_editor: EditorData,
-    pub volts: RwSignal<IndexMap<VoltID, AvailableVoltData>>,
-    pub total: RwSignal<usize>,
+    pub volts:        RwSignal<IndexMap<VoltID, AvailableVoltData>>,
+    pub total:        RwSignal<usize>
 }
 
 #[derive(Clone, Debug)]
 pub struct PluginData {
-    pub installed: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
-    pub available: AvailableVoltList,
-    pub all: RwSignal<im::HashMap<VoltID, AvailableVoltData>>,
-    pub disabled: RwSignal<HashSet<VoltID>>,
+    pub installed:          RwSignal<IndexMap<VoltID, InstalledVoltData>>,
+    pub available:          AvailableVoltList,
+    pub all:                RwSignal<im::HashMap<VoltID, AvailableVoltData>>,
+    pub disabled:           RwSignal<HashSet<VoltID>>,
     pub workspace_disabled: RwSignal<HashSet<VoltID>>,
-    pub common: Rc<CommonData>,
+    pub common:             Rc<CommonData>
 }
 
 impl KeyPressFocus for PluginData {
@@ -126,7 +126,7 @@ impl KeyPressFocus for PluginData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -140,7 +140,7 @@ impl KeyPressFocus for PluginData {
                     CommandKind::Edit(EditCommand::InsertNewLine) => {
                         return CommandExecuted::Yes;
                     },
-                    _ => {},
+                    _ => {}
                 }
 
                 return self
@@ -148,7 +148,7 @@ impl KeyPressFocus for PluginData {
                     .query_editor
                     .run_command(command, count, mods);
             },
-            CommandKind::MotionMode(_) => {},
+            CommandKind::MotionMode(_) => {}
         }
         CommandExecuted::No
     }
@@ -165,15 +165,15 @@ impl PluginData {
         workspace_disabled: HashSet<VoltID>,
         editors: Editors,
         common: Rc<CommonData>,
-        core_rpc: CoreRpcHandler,
+        core_rpc: CoreRpcHandler
     ) -> Self {
         let installed = cx.create_rw_signal(IndexMap::new());
         let available = AvailableVoltList {
-            loading: cx.create_rw_signal(false),
-            volts: cx.create_rw_signal(IndexMap::new()),
-            total: cx.create_rw_signal(0),
-            query_id: cx.create_rw_signal(0),
-            query_editor: editors.make_local(cx, common.clone()),
+            loading:      cx.create_rw_signal(false),
+            volts:        cx.create_rw_signal(IndexMap::new()),
+            total:        cx.create_rw_signal(0),
+            query_id:     cx.create_rw_signal(0),
+            query_editor: editors.make_local(cx, common.clone())
         };
         let disabled = cx.create_rw_signal(disabled);
         let workspace_disabled = cx.create_rw_signal(workspace_disabled);
@@ -184,7 +184,7 @@ impl PluginData {
             all: cx.create_rw_signal(im::HashMap::new()),
             disabled,
             workspace_disabled,
-            common,
+            common
         };
 
         plugin.load_available_volts("", 0, core_rpc.clone());
@@ -200,7 +200,7 @@ impl PluginData {
                     for (icon, meta) in volts {
                         plugin.volt_installed(&meta, &icon);
                     }
-                },
+                }
             );
             std::thread::Builder::new()
                 .name("FindAllVolts".to_owned())
@@ -268,9 +268,9 @@ impl PluginData {
                         meta: self.common.scope.create_rw_signal(volt.clone()),
                         icon: self.common.scope.create_rw_signal(
                             icon.as_ref()
-                                .and_then(|icon| VoltIcon::from_bytes(icon).ok()),
+                                .and_then(|icon| VoltIcon::from_bytes(icon).ok())
                         ),
-                        latest,
+                        latest
                     };
                     installed.insert(volt_id, data.clone());
 
@@ -283,7 +283,7 @@ impl PluginData {
             volt_data.meta.set(volt.clone());
             volt_data.icon.set(
                 icon.as_ref()
-                    .and_then(|icon| VoltIcon::from_bytes(icon).ok()),
+                    .and_then(|icon| VoltIcon::from_bytes(icon).ok())
             );
         }
 
@@ -319,7 +319,7 @@ impl PluginData {
             });
             let db: Arc<LapceDb> = use_context().unwrap();
             db.save_disabled_volts(
-                self.disabled.get_untracked().into_iter().collect(),
+                self.disabled.get_untracked().into_iter().collect()
             );
         }
 
@@ -333,7 +333,7 @@ impl PluginData {
                 self.workspace_disabled
                     .get_untracked()
                     .into_iter()
-                    .collect(),
+                    .collect()
             );
         }
     }
@@ -342,7 +342,7 @@ impl PluginData {
         &self,
         query: &str,
         offset: usize,
-        core_rpc: CoreRpcHandler,
+        core_rpc: CoreRpcHandler
     ) {
         if self.available.loading.get_untracked() {
             return;
@@ -384,7 +384,7 @@ impl PluginData {
                                 let data = AvailableVoltData {
                                     info: cx.create_rw_signal(volt.clone()),
                                     icon,
-                                    installing: cx.create_rw_signal(false),
+                                    installing: cx.create_rw_signal(false)
                                 };
                                 all.update(|all| {
                                     all.insert(volt.id(), data.clone());
@@ -398,13 +398,13 @@ impl PluginData {
                     Err(err) => {
                         log::error!("{}", err.to_string());
                         core_rpc.notification(CoreNotification::ShowMessage {
-                            title: "Request Available Plugins".to_string(),
+                            title:   "Request Available Plugins".to_string(),
                             message: lsp_types::ShowMessageParams {
-                                typ: MessageType::ERROR,
-                                message: err.to_string(),
-                            },
+                                typ:     MessageType::ERROR,
+                                message: err.to_string()
+                            }
                         });
-                    },
+                    }
                 }
             });
 
@@ -447,7 +447,7 @@ impl PluginData {
                 }
 
                 buf
-            },
+            }
         };
 
         VoltIcon::from_bytes(&content)
@@ -455,7 +455,7 @@ impl PluginData {
 
     fn download_readme(
         volt: &VoltInfo,
-        config: &LapceConfig,
+        config: &LapceConfig
     ) -> Result<Vec<MarkdownContent>> {
         let url = format!(
             "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
@@ -564,7 +564,7 @@ impl PluginData {
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
             self.common.workspace.clone(),
-            self.disabled.get_untracked().into_iter().collect(),
+            self.disabled.get_untracked().into_iter().collect()
         );
     }
 
@@ -577,7 +577,7 @@ impl PluginData {
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
             self.common.workspace.clone(),
-            self.disabled.get_untracked().into_iter().collect(),
+            self.disabled.get_untracked().into_iter().collect()
         );
     }
 
@@ -638,7 +638,7 @@ impl PluginData {
                 MenuItem::new("Enable")
                     .enabled(
                         self.disabled
-                            .with_untracked(|disabled| disabled.contains(&volt_id)),
+                            .with_untracked(|disabled| disabled.contains(&volt_id))
                     )
                     .action({
                         let plugin = self.clone();
@@ -646,13 +646,13 @@ impl PluginData {
                         move || {
                             plugin.enable_volt(volt.clone());
                         }
-                    }),
+                    })
             )
             .entry(
                 MenuItem::new("Disable")
                     .enabled(
                         self.disabled
-                            .with_untracked(|disabled| !disabled.contains(&volt_id)),
+                            .with_untracked(|disabled| !disabled.contains(&volt_id))
                     )
                     .action({
                         let plugin = self.clone();
@@ -660,14 +660,14 @@ impl PluginData {
                         move || {
                             plugin.disable_volt(volt.clone());
                         }
-                    }),
+                    })
             )
             .separator()
             .entry(
                 MenuItem::new("Enable For Workspace")
                     .enabled(
                         self.workspace_disabled
-                            .with_untracked(|disabled| disabled.contains(&volt_id)),
+                            .with_untracked(|disabled| disabled.contains(&volt_id))
                     )
                     .action({
                         let plugin = self.clone();
@@ -675,13 +675,13 @@ impl PluginData {
                         move || {
                             plugin.enable_volt_for_ws(volt.clone());
                         }
-                    }),
+                    })
             )
             .entry(
                 MenuItem::new("Disable For Workspace")
                     .enabled(
                         self.workspace_disabled
-                            .with_untracked(|disabled| !disabled.contains(&volt_id)),
+                            .with_untracked(|disabled| !disabled.contains(&volt_id))
                     )
                     .action({
                         let plugin = self.clone();
@@ -689,7 +689,7 @@ impl PluginData {
                         move || {
                             plugin.disable_volt_for_ws(volt.clone());
                         }
-                    }),
+                    })
             )
             .separator()
             .entry(MenuItem::new("Uninstall").action({
@@ -718,7 +718,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         v.meta.get().info(),
                         v.icon.get(),
                         Some(v.latest.get()),
-                        None,
+                        None
                     )
                 })
             })
@@ -735,7 +735,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
         let version_info = plugin_info.as_ref().map(|(_, volt, _, latest, _)| {
             (
                 volt.version.clone(),
-                latest.as_ref().map(|i| i.version.clone()),
+                latest.as_ref().map(|i| i.version.clone())
             )
         });
         let installing = plugin_info
@@ -747,7 +747,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                 .as_ref()
                 .map(|(v, l)| match l {
                     Some(l) => (true, l == v),
-                    None => (false, false),
+                    None => (false, false)
                 }) {
                 Some((true, true)) => "Installed ▼",
                 Some((true, false)) => "Upgrade ▼",
@@ -767,7 +767,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                 version_info
                     .as_ref()
                     .map(|(v, _)| format!("v{v}"))
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
             ),
             label(move || control(local_version_info.clone()))
                 .style(move |s| {
@@ -777,28 +777,28 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         .border_radius(6.0)
                         .color(
                             config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
+                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND)
                         )
                         .background(
                             config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
+                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND)
                         )
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
                                 config
                                     .color(
-                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND,
+                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND
                                     )
-                                    .multiply_alpha(0.8),
+                                    .multiply_alpha(0.8)
                             )
                         })
                         .active(|s| {
                             s.background(
                                 config
                                     .color(
-                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND,
+                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND
                                     )
-                                    .multiply_alpha(0.6),
+                                    .multiply_alpha(0.6)
                             )
                         })
                         .disabled(|s| {
@@ -814,14 +814,14 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         if let Some(meta) = meta {
                             let menu = local_plugin.plugin_controls(
                                 meta.to_owned(),
-                                latest.clone().unwrap_or_else(|| info.to_owned()),
+                                latest.clone().unwrap_or_else(|| info.to_owned())
                             );
                             show_context_menu(menu, None);
                         } else {
                             local_plugin.install_volt(info.to_owned());
                         }
                     }
-                }),
+                })
         ))
     };
 
@@ -837,15 +837,15 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         {
                             None => container(
                                 img(move || VOLT_DEFAULT_PNG.to_vec())
-                                    .style(|s| s.size_full()),
+                                    .style(|s| s.size_full())
                             ),
                             Some(VoltIcon::Svg(svg_str)) => container(
                                 svg(move || svg_str.clone())
-                                    .style(|s| s.size_full()),
+                                    .style(|s| s.size_full())
                             ),
                             Some(VoltIcon::Img(buf)) => container(
-                                img(move || buf.clone()).style(|s| s.size_full()),
-                            ),
+                                img(move || buf.clone()).style(|s| s.size_full())
+                            )
                         }
                         .style(|s| {
                             s.min_size(150.0, 150.0).size(150.0, 150.0).padding(20)
@@ -857,12 +857,12 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                     .map(|(_, volt, _, _, _)| {
                                         volt.display_name.as_str()
                                     })
-                                    .unwrap_or(""),
+                                    .unwrap_or("")
                             )
                             .style(move |s| {
                                 s.font_bold().font_size(
                                     (config.get().ui.font_size() as f32 * 1.6)
-                                        .round(),
+                                        .round()
                                 )
                             }),
                             text(
@@ -871,7 +871,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                     .map(|(_, volt, _, _, _)| {
                                         volt.description.as_str()
                                     })
-                                    .unwrap_or(""),
+                                    .unwrap_or("")
                             )
                             .style(move |s| {
                                 let scroll_width = scroll_width.get();
@@ -879,7 +879,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                     scroll_width
                                         .clamp(200.0 + 60.0 * 2.0 + 200.0, 800.0)
                                         - 60.0 * 2.0
-                                        - 200.0,
+                                        - 200.0
                                 )
                             }),
                             {
@@ -901,22 +901,22 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                                 .get()
                                                 .color(LapceColor::EDITOR_LINK)
                                         },
-                                        internal_command,
-                                    ),
+                                        internal_command
+                                    )
                                 ))
                             },
                             text(
                                 plugin_info
                                     .as_ref()
                                     .map(|(_, volt, _, _, _)| volt.author.as_str())
-                                    .unwrap_or(""),
+                                    .unwrap_or("")
                             )
                             .style(move |s| {
                                 s.color(config.get().color(LapceColor::EDITOR_DIM))
                             }),
-                            version_view(local_plugin.clone(), plugin_info.clone()),
+                            version_view(local_plugin.clone(), plugin_info.clone())
                         ))
-                        .style(|s| s.flex_col().line_height(1.6)),
+                        .style(|s| s.flex_col().line_height(1.6))
                     ))
                     .style(|s| s.absolute())
                     .on_resize(move |rect| {
@@ -964,20 +964,20 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                         parse_markdown(
                                             "Loading README",
                                             2.0,
-                                            &config.get(),
+                                            &config.get()
                                         )
                                     })
                                 },
                                 move |_| {
                                     id.fetch_add(
                                         1,
-                                        std::sync::atomic::Ordering::Relaxed,
+                                        std::sync::atomic::Ordering::Relaxed
                                     )
                                 },
                                 move |content| match content {
                                     MarkdownContent::Text(text_layout) => container(
                                         rich_text(move || text_layout.clone())
-                                            .style(|s| s.width_full()),
+                                            .style(|s| s.width_full())
                                     )
                                     .style(|s| s.width_full()),
                                     MarkdownContent::Image { .. } => {
@@ -990,16 +990,16 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                                 .height(1.0)
                                                 .background(
                                                     config.get().color(
-                                                        LapceColor::LAPCE_BORDER,
-                                                    ),
+                                                        LapceColor::LAPCE_BORDER
+                                                    )
                                                 )
                                         }))
                                     },
-                                },
+                                }
                             )
                             .style(|s| s.flex_col().width_full())
                         }
-                    },
+                    }
                 ))
                 .style(move |s| {
                     let padding = 60.0;
@@ -1008,14 +1008,14 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             scroll_width
                                 .get()
                                 .min(800.0)
-                                .max(header_rect.get().width() + padding * 2.0),
+                                .max(header_rect.get().width() + padding * 2.0)
                         )
                         .padding(padding)
                 })
                 .into_any()
-            },
+            }
         )
-        .style(|s| s.min_width_full().justify_center()),
+        .style(|s| s.min_width_full().justify_center())
     )
     .on_resize(move |rect| {
         if scroll_width.get_untracked() != rect.width() {

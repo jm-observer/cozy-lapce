@@ -20,7 +20,7 @@ name = "lapce-proxy"
 path = "lapce-proxy/src/bin/lapce-proxy.rs"
 
 [workspace]
-members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core"]
+members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "crates/*"]
 
 [workspace.package]
 version      = "0.4.2"
@@ -78,11 +78,12 @@ lapce-rpc   = { path = "./lapce-rpc" }
 lapce-proxy = { path = "./lapce-proxy" }
 lapce-xi-rope = {git = "https://github.com/jm-observer/xi-editor.git", features = ["serde"]}
 #floem = { git="https://github.com/jm-observer/floem.git", branch = "main-fork-2", features = ["serde", "default-image-formats", "rfd-async-std", "vger", "track-panic"], default-features = false }
-floem = {git ="https://github.com/lapce/floem.git", rev = "b35fceb", features = ["serde", "default-image-formats", "rfd-async-std", "vger"], default-features = false }
+floem = {git ="https://github.com/lapce/floem.git", rev = "a49bc2", features = ["serde", "default-image-formats", "rfd-async-std", "vger"], default-features = false }
 
-cozy-floem = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "d818f63"}
-doc = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "d818f63"}
-
+cozy-floem = { path = "crates/cozy-floem"}
+doc = { path = "crates/doc"}
+ansi-to-style = {path = "crates/ansi-to-style"}
+rust-resolve= {path = "crates/rust-resolve"}
 #lapce-xi-rope = {path = "../xi-editor", features = ["serde"]}
 #floem = { version = "0.2.0" , features = ["editor", "serde", "default-image-formats", "rfd-async-std", "vello"], default-features = false}
 #floem = { git = "https://github.com/lapce/floem", rev = "4510c4b", features = ["editor", "serde", "default-image-formats", "rfd-async-std"] }
@@ -91,11 +92,19 @@ doc = { git = "https://github.com/jm-observer/cozy-floem.git", rev = "d818f63"}
 # floem-editor-core = { path = "../floem/editor-core/", features = ["serde"] }
 log = "0.4.22"
 custom-utils = "0.10.17"
-
+peniko = "=0.3.1"
+ahash       = "0.8.11"
+arc-swap    = "1.6.0"
+libloading  = "0.8.1"
 tokio = { version = "1.43.0", features = ["io-std", "io-util", "macros", "rt", "sync", "process", "rt-multi-thread", "time"] }
 cargo_metadata = "0.19.1"
 vte = "=0.14.1"
-
+bitflags = "2.6.0"
+cosmic-text = { version = "0.12.1", features = ["shape-run-cache"] }
+memchr = "2.7.1"
+slotmap     = "1.0"
+tree-sitter = "0.22.6"
+unicode-segmentation = "1.12.0"
 
 [patch.crates-io]
 # Temporarily patch lsp-types with a version that adds message-type debug
@@ -106,8 +115,8 @@ regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://g
 #[patch."https://github.com/jm-observer/cozy-floem.git"]
 #doc = {path = "../cozy-floem/libs/doc"}
 #cozy-floem = {path = "../cozy-floem"}
-#[patch."https://github.com/lapce/floem"]
-#floem = { path="../floem" }
+[patch."https://github.com/lapce/floem"]
+floem = { path="../floem" }
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"
@@ -116,6 +125,16 @@ regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://g
 [workspace.dependencies.windows-sys]
 version  = "0"
 features = ["Win32_Foundation"]
+
+[dev-dependencies]
+cozy-floem = {workspace = true}
+floem= {workspace = true}
+log= {workspace = true}
+anyhow= {workspace = true}
+custom-utils = {workspace = true}
+rust-resolve = {workspace = true}
+tokio = {workspace = true}
+ansi-to-style = {workspace = true}
 
 [profile.release-lto]
 inherits      = "release"

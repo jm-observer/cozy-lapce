@@ -2,48 +2,55 @@ use std::{collections::HashSet, rc::Rc, str::FromStr, sync::Arc, time::Duration}
 
 use anyhow::Result;
 use doc::{
+    EditorViewKind,
     lines::{
+        ClickResult, RopeTextPosition,
         buffer::{
-            diff::DiffLines,
-            rope_text::{RopeText, RopeTextVal},
             InvalLines,
+            diff::DiffLines,
+            rope_text::{RopeText, RopeTextVal}
+        },
+        command::{
+            EditCommand, FocusCommand, MotionModeCommand, MultiSelectionCommand,
+            ScrollCommand
         },
         cursor::{Cursor, CursorMode},
         edit::EditType,
-        selection::{InsertDrift, SelRegion, Selection},
-        ClickResult, RopeTextPosition,
-    },
-    EditorViewKind,
+        editor_command::CommandExecuted,
+        mode::{Mode, MotionMode},
+        movement::Movement,
+        selection::{InsertDrift, SelRegion, Selection}
+    }
 };
-use doc::lines::command::{EditCommand, FocusCommand, MotionModeCommand, MultiSelectionCommand, ScrollCommand};
-use doc::lines::editor_command::CommandExecuted;
-use doc::lines::mode::{Mode, MotionMode};
-use doc::lines::movement::Movement;
 use floem::{
-    action::{exec_after, show_context_menu, TimerToken},
+    ViewId,
+    action::{TimerToken, exec_after, show_context_menu},
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::{Point, Rect, Vec2},
     menu::{Menu, MenuItem},
-    pointer::{PointerButton, PointerInputEvent, PointerMoveEvent},
+    pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
-        batch, use_context, ReadSignal, RwSignal, Scope, SignalGet, SignalTrack,
-        SignalUpdate, SignalWith,
-    },
-    ViewId,
+        ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
+        SignalWith, batch, use_context
+    }
 };
-use floem::pointer::MouseButton;
+use lapce_core::{
+    doc::DocContent,
+    editor_tab::EditorInfo,
+    id::*,
+    main_split::{SplitDirection, SplitMoveDirection},
+    panel::PanelKind
+};
 use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::error;
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionTextEdit, GotoDefinitionResponse,
     HoverContents, InlineCompletionTriggerKind, Location, MarkedString, MarkupKind,
-    Range, TextEdit,
+    Range, TextEdit
 };
 use nucleo::Utf32Str;
-use lapce_core::doc::DocContent;
-use lapce_core::editor_tab::EditorInfo;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -52,29 +59,26 @@ use crate::{
     completion::CompletionStatus,
     config::LapceConfig,
     db::LapceDb,
-    doc::{Doc},
+    doc::Doc,
     editor::{
-        editor::{do_motion_mode, Editor},
-        movement::{do_multi_selection, move_cursor},
+        editor::{Editor, do_motion_mode},
+        movement::{do_multi_selection, move_cursor}
     },
     editor_tab::EditorTabChildId,
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
-    keypress::{condition::Condition, KeyPressFocus},
+    keypress::{KeyPressFocus, condition::Condition},
     lsp::path_from_url,
-    main_split::{Editors},
+    main_split::Editors,
     markdown::{
-        from_marked_string, from_plaintext, parse_markdown, MarkdownContent,
+        MarkdownContent, from_marked_string, from_plaintext, parse_markdown
     },
     panel::{
         call_hierarchy_view::{CallHierarchyData, CallHierarchyItemData},
-        implementation_view::{init_implementation_root, map_to_location},
+        implementation_view::{init_implementation_root, map_to_location}
     },
     snippet::Snippet,
-    window_workspace::{CommonData, Focus, WindowWorkspaceData},
+    window_workspace::{CommonData, Focus, WindowWorkspaceData}
 };
-use lapce_core::id::*;
-use lapce_core::main_split::{SplitDirection, SplitMoveDirection};
-use lapce_core::panel::PanelKind;
 
 pub mod diff;
 pub mod editor;
@@ -82,15 +86,14 @@ pub mod gutter;
 pub mod location;
 pub mod view;
 
-pub mod movement;
 pub mod gutter_new;
+pub mod movement;
 
 #[derive(Clone, Debug)]
 pub enum InlineFindDirection {
     Left,
-    Right,
+    Right
 }
-
 
 // #[derive(Clone)]
 // pub enum EditorViewKind {
@@ -106,9 +109,9 @@ pub enum InlineFindDirection {
 
 #[derive(Clone)]
 pub struct OnScreenFind {
-    pub active: bool,
+    pub active:  bool,
     pub pattern: String,
-    pub regions: Vec<SelRegion>,
+    pub regions: Vec<SelRegion>
 }
 
 pub type SnippetIndex = Vec<(usize, (usize, usize))>;
@@ -117,21 +120,21 @@ pub type SnippetIndex = Vec<(usize, (usize, usize))>;
 /// out.
 #[derive(Clone, Debug)]
 pub struct EditorData {
-    pub scope: Scope,
-    pub editor_tab_id: RwSignal<Option<EditorTabManageId>>,
-    pub diff_editor_id: RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
-    pub confirmed: RwSignal<bool>,
-    pub snippet: RwSignal<Option<SnippetIndex>>,
-    pub inline_find: RwSignal<Option<InlineFindDirection>>,
-    pub on_screen_find: RwSignal<OnScreenFind>,
-    pub last_inline_find: RwSignal<Option<(InlineFindDirection, String)>>,
-    pub find_focus: RwSignal<bool>,
-    pub editor: Rc<Editor>,
+    pub scope:                Scope,
+    pub editor_tab_id:        RwSignal<Option<EditorTabManageId>>,
+    pub diff_editor_id:       RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
+    pub confirmed:            RwSignal<bool>,
+    pub snippet:              RwSignal<Option<SnippetIndex>>,
+    pub inline_find:          RwSignal<Option<InlineFindDirection>>,
+    pub on_screen_find:       RwSignal<OnScreenFind>,
+    pub last_inline_find:     RwSignal<Option<(InlineFindDirection, String)>>,
+    pub find_focus:           RwSignal<bool>,
+    pub editor:               Rc<Editor>,
     // pub kind: RwSignal<EditorViewKind>,
     pub sticky_header_height: RwSignal<f64>,
-    pub common: Rc<CommonData>,
-    pub sticky_header_info: RwSignal<StickyHeaderInfo>,
-    pub offset_line_from_top: RwSignal<Option<Option<usize>>>,
+    pub common:               Rc<CommonData>,
+    pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
+    pub offset_line_from_top: RwSignal<Option<Option<usize>>>
 }
 
 impl PartialEq for EditorData {
@@ -147,7 +150,7 @@ impl EditorData {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let cx = cx.create_child();
 
@@ -160,9 +163,9 @@ impl EditorData {
             snippet: cx.create_rw_signal(None),
             inline_find: cx.create_rw_signal(None),
             on_screen_find: cx.create_rw_signal(OnScreenFind {
-                active: false,
+                active:  false,
                 pattern: "".to_string(),
-                regions: Vec::new(),
+                regions: Vec::new()
             }),
             last_inline_find: cx.create_rw_signal(None),
             find_focus: cx.create_rw_signal(false),
@@ -171,7 +174,7 @@ impl EditorData {
             sticky_header_height: cx.create_rw_signal(0.0),
             common,
             sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
-            offset_line_from_top: cx.create_rw_signal(None),
+            offset_line_from_top: cx.create_rw_signal(None)
         }
     }
 
@@ -190,7 +193,7 @@ impl EditorData {
         cx: Scope,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>,
+        name: Option<String>
     ) -> Self {
         Self::new_local_id(cx, editors, common, name)
     }
@@ -202,7 +205,7 @@ impl EditorData {
         cx: Scope,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>,
+        name: Option<String>
     ) -> Self {
         let cx = cx.create_child();
         let doc = Rc::new(Doc::new_local(cx, editors, common.clone(), name));
@@ -219,7 +222,7 @@ impl EditorData {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         confirmed: Option<RwSignal<bool>>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let editor = doc.create_editor(cx, false);
         Self::new(cx, editor, editor_tab_id, diff_editor_id, confirmed, common)
@@ -236,7 +239,7 @@ impl EditorData {
         cx: Scope,
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
-        confirmed: Option<RwSignal<bool>>,
+        confirmed: Option<RwSignal<bool>>
     ) -> Self {
         let cx = cx.create_child();
 
@@ -248,7 +251,7 @@ impl EditorData {
             editor_tab_id,
             diff_editor_id,
             Some(confirmed),
-            self.common.clone(),
+            self.common.clone()
         );
         editor.editor.cursor.set(self.editor.cursor.get_untracked());
         // editor
@@ -286,7 +289,7 @@ impl EditorData {
             content: self.doc().content.get_untracked(),
             unsaved,
             offset,
-            scroll_offset: (scroll_offset.x, scroll_offset.y),
+            scroll_offset: (scroll_offset.x, scroll_offset.y)
         }
     }
 
@@ -333,7 +336,7 @@ impl EditorData {
     /// The signal for the editor's document.
     pub fn doc_signal(&self) -> DocSignal {
         DocSignal {
-            inner: self.editor.doc_signal(),
+            inner: self.editor.doc_signal()
         }
     }
 
@@ -406,14 +409,14 @@ impl EditorData {
     fn run_motion_mode_command(
         &self,
         cmd: &MotionModeCommand,
-        count: Option<usize>,
+        count: Option<usize>
     ) -> CommandExecuted {
         let count = count.unwrap_or(1);
         let motion_mode = match cmd {
             MotionModeCommand::MotionModeDelete => MotionMode::Delete { count },
             MotionModeCommand::MotionModeIndent => MotionMode::Indent,
             MotionModeCommand::MotionModeOutdent => MotionMode::Outdent,
-            MotionModeCommand::MotionModeYank => MotionMode::Yank { count },
+            MotionModeCommand::MotionModeYank => MotionMode::Yank { count }
         };
         let mut cursor = self.editor.cursor.get_untracked();
         let mut register = self.common.register.get_untracked();
@@ -423,7 +426,7 @@ impl EditorData {
             &*self.doc(),
             &mut cursor,
             motion_mode,
-            &mut register,
+            &mut register
         );
 
         self.editor.cursor.set(cursor);
@@ -434,7 +437,7 @@ impl EditorData {
 
     fn run_multi_selection_command(
         &self,
-        cmd: &MultiSelectionCommand,
+        cmd: &MultiSelectionCommand
     ) -> CommandExecuted {
         let mut cursor = self.editor.cursor.get_untracked();
         let rope_text = self.rope_text();
@@ -475,7 +478,7 @@ impl EditorData {
                     }
                     cursor.set_insert(selection);
                 }
-            }
+            },
             MultiSelectionCommand::SelectNextCurrent => {
                 if let CursorMode::Insert(mut selection) = cursor.mode().clone() {
                     if !selection.is_empty() {
@@ -514,7 +517,7 @@ impl EditorData {
                                     .any(|r| r.min() == start && r.max() == end)
                                 {
                                     selection.add_region(SelRegion::new(
-                                        start, end, None,
+                                        start, end, None
                                     ));
                                     break;
                                 }
@@ -528,7 +531,7 @@ impl EditorData {
                     }
                     cursor.set_insert(selection);
                 }
-            }
+            },
             MultiSelectionCommand::SelectSkipCurrent => {
                 if let CursorMode::Insert(mut selection) = cursor.mode().clone() {
                     if !selection.is_empty() {
@@ -536,7 +539,7 @@ impl EditorData {
                         if r.is_caret() {
                             let (start, end) = rope_text.select_word(r.start);
                             selection.replace_last_inserted_region(SelRegion::new(
-                                start, end, None,
+                                start, end, None
                             ));
                         } else {
                             let find = doc.find();
@@ -555,7 +558,7 @@ impl EditorData {
                                     .any(|r| r.min() == start && r.max() == end)
                                 {
                                     selection.replace_last_inserted_region(
-                                        SelRegion::new(start, end, None),
+                                        SelRegion::new(start, end, None)
                                     );
                                     break;
                                 }
@@ -569,7 +572,7 @@ impl EditorData {
                     }
                     cursor.set_insert(selection);
                 }
-            }
+            },
             _ => {
                 if let Err(err) = do_multi_selection(&self.editor, &mut cursor, cmd)
                 {
@@ -589,7 +592,7 @@ impl EditorData {
         &self,
         movement: &Movement,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         self.common.hover.active.set(false);
         if movement.is_jump()
@@ -606,8 +609,8 @@ impl EditorData {
                     InternalCommand::SaveJumpLocation {
                         path,
                         offset,
-                        scroll_offset,
-                    },
+                        scroll_offset
+                    }
                 );
             }
         }
@@ -622,7 +625,7 @@ impl EditorData {
                 movement,
                 count.unwrap_or(1),
                 mods.shift(),
-                register,
+                register
             ) {
                 error!("{:?}", err);
             }
@@ -653,7 +656,7 @@ impl EditorData {
         &self,
         cmd: &ScrollCommand,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         let prev_completion_index = self
             .common
@@ -663,19 +666,19 @@ impl EditorData {
         match cmd {
             ScrollCommand::PageUp => {
                 self.editor.page_move(false, mods);
-            }
+            },
             ScrollCommand::PageDown => {
                 self.editor.page_move(true, mods);
-            }
+            },
             ScrollCommand::ScrollUp => {
                 self.scroll(false, count.unwrap_or(1), mods);
-            }
+            },
             ScrollCommand::ScrollDown => {
                 self.scroll(true, count.unwrap_or(1), mods);
-            }
+            },
             // TODO:
-            ScrollCommand::CenterOfWindow => {}
-            ScrollCommand::TopOfWindow => {}
+            ScrollCommand::CenterOfWindow => {},
+            ScrollCommand::TopOfWindow => {},
             ScrollCommand::BottomOfWindow => {}
         }
 
@@ -698,7 +701,7 @@ impl EditorData {
         &self,
         cmd: &FocusCommand,
         _count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         // TODO(minor): Evaluate whether we should split this into subenums,
         // such as actions specific to the actual editor pane, movement, and list
@@ -711,50 +714,50 @@ impl EditorData {
         match cmd {
             FocusCommand::ModalClose => {
                 self.cancel_completion();
-            }
+            },
             FocusCommand::SplitVertical => {
                 if let Some(editor_tab_id) =
                     self.editor_tab_id.read_only().get_untracked()
                 {
                     self.common.internal_command.send(InternalCommand::Split {
                         direction: SplitDirection::Vertical,
-                        editor_tab_id,
+                        editor_tab_id
                     });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
                 {
                     self.common.internal_command.send(InternalCommand::Split {
                         direction: SplitDirection::Vertical,
-                        editor_tab_id,
+                        editor_tab_id
                     });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitHorizontal => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common.internal_command.send(InternalCommand::Split {
                         direction: SplitDirection::Horizontal,
-                        editor_tab_id,
+                        editor_tab_id
                     });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
                 {
                     self.common.internal_command.send(InternalCommand::Split {
                         direction: SplitDirection::Horizontal,
-                        editor_tab_id,
+                        editor_tab_id
                     });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitRight => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Right,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
@@ -763,19 +766,19 @@ impl EditorData {
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Right,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitLeft => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Left,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
@@ -784,19 +787,19 @@ impl EditorData {
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Left,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitUp => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Up,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
@@ -805,19 +808,19 @@ impl EditorData {
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Up,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitDown => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Down,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else if let Some((editor_tab_id, _)) =
                     self.diff_editor_id.get_untracked()
@@ -826,12 +829,12 @@ impl EditorData {
                         .internal_command
                         .send(InternalCommand::SplitMove {
                             direction: SplitMoveDirection::Down,
-                            editor_tab_id,
+                            editor_tab_id
                         });
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitExchange => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common
@@ -846,14 +849,14 @@ impl EditorData {
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::SplitClose => {
                 if let Some(editor_tab_id) = self.editor_tab_id.get_untracked() {
                     self.common.internal_command.send(
                         InternalCommand::EditorTabChildClose {
                             editor_tab_id,
-                            child: EditorTabChildId::Editor(self.id()),
-                        },
+                            child: EditorTabChildId::Editor(self.id())
+                        }
                     );
                 } else if let Some((editor_tab_id, diff_editor_id)) =
                     self.diff_editor_id.get_untracked()
@@ -861,37 +864,37 @@ impl EditorData {
                     self.common.internal_command.send(
                         InternalCommand::EditorTabChildClose {
                             editor_tab_id,
-                            child: EditorTabChildId::DiffEditor(diff_editor_id),
-                        },
+                            child: EditorTabChildId::DiffEditor(diff_editor_id)
+                        }
                     );
                 } else {
                     return CommandExecuted::No;
                 }
-            }
+            },
             FocusCommand::ListNext => {
                 self.common.completion.update(|c| {
                     c.next();
                 });
-            }
+            },
             FocusCommand::ListPrevious => {
                 self.common.completion.update(|c| {
                     c.previous();
                 });
-            }
+            },
             FocusCommand::ListNextPage => {
                 self.common.completion.update(|c| {
                     c.next_page();
                 });
-            }
+            },
             FocusCommand::ListPreviousPage => {
                 self.common.completion.update(|c| {
                     c.previous_page();
                 });
-            }
+            },
             FocusCommand::ListSelect => {
                 self.select_completion();
                 self.cancel_inline_completion();
-            }
+            },
             FocusCommand::JumpToNextSnippetPlaceholder => {
                 self.snippet.update(|snippet| {
                     if let Some(snippet_mut) = snippet.as_mut() {
@@ -925,7 +928,7 @@ impl EditorData {
                         self.cancel_inline_completion();
                     }
                 });
-            }
+            },
             FocusCommand::JumpToPrevSnippetPlaceholder => {
                 self.snippet.update(|snippet| {
                     if let Some(snippet_mut) = snippet.as_mut() {
@@ -956,100 +959,100 @@ impl EditorData {
                         }
                     }
                 });
-            }
+            },
             FocusCommand::GotoDefinition => {
                 if let Err(err) = self.go_to_definition() {
                     error!("{:?}", err);
                 }
-            }
+            },
             FocusCommand::ShowCodeActions => {
                 self.show_code_actions(false);
-            }
+            },
             FocusCommand::SearchWholeWordForward => {
                 self.search_whole_word_forward(mods);
-            }
+            },
             FocusCommand::SearchForward => {
                 self.search_forward(mods);
-            }
+            },
             FocusCommand::SearchBackward => {
                 self.search_backward(mods);
-            }
+            },
             FocusCommand::Save => {
                 self.save(true, || {});
-            }
+            },
             FocusCommand::SaveWithoutFormatting => {
                 self.save(false, || {});
-            }
+            },
             FocusCommand::FormatDocument => {
                 self.format();
-            }
+            },
             FocusCommand::InlineFindLeft => {
                 self.inline_find.set(Some(InlineFindDirection::Left));
-            }
+            },
             FocusCommand::InlineFindRight => {
                 self.inline_find.set(Some(InlineFindDirection::Right));
-            }
+            },
             FocusCommand::OnScreenFind => {
                 self.on_screen_find.update(|find| {
                     find.active = true;
                     find.pattern.clear();
                     find.regions.clear();
                 });
-            }
+            },
             FocusCommand::RepeatLastInlineFind => {
                 if let Some((direction, c)) = self.last_inline_find.get_untracked() {
                     if let Err(err) = self.inline_find(direction, &c) {
                         error!("{:?}", err);
                     }
                 }
-            }
+            },
             FocusCommand::Rename => {
                 if let Err(err) = self.rename() {
                     error!("{err:?}");
                 }
-            }
+            },
             FocusCommand::ClearSearch => {
                 self.clear_search();
-            }
+            },
             FocusCommand::Search => {
                 self.search();
-            }
+            },
             FocusCommand::FocusFindEditor => {
                 self.common.find.replace_focus.set(false);
-            }
+            },
             FocusCommand::FocusReplaceEditor => {
                 if self.common.find.replace_active.get_untracked() {
                     self.common.find.replace_focus.set(true);
                 }
-            }
+            },
             FocusCommand::InlineCompletionSelect => {
                 // todo!("check to save");
                 self.select_inline_completion();
                 self.check_auto_save();
-            }
+            },
             FocusCommand::InlineCompletionNext => {
                 self.next_inline_completion();
-            }
+            },
             FocusCommand::InlineCompletionPrevious => {
                 self.previous_inline_completion();
-            }
+            },
             FocusCommand::InlineCompletionCancel => {
                 self.cancel_inline_completion();
-            }
+            },
             FocusCommand::InlineCompletionInvoke => {
                 if let Err(err) = self
                     .update_inline_completion(InlineCompletionTriggerKind::Invoked)
                 {
                     error!("{err:?}");
                 }
-            }
+            },
             FocusCommand::ShowHover => {
                 let start_offset = self.doc().lines.with_untracked(|b| {
                     b.buffer()
                         .prev_code_boundary(self.cursor().get_untracked().offset())
                 });
                 self.update_hover(start_offset);
-            }
+            },
             _ => {}
         }
 
@@ -1079,7 +1082,7 @@ impl EditorData {
             let line_start_offset = b.buffer().offset_of_line(line)?;
             Ok::<(String, usize), anyhow::Error>((
                 line_content.to_string(),
-                line_start_offset,
+                line_start_offset
             ))
         })?;
         let index = offset - line_start_offset;
@@ -1091,23 +1094,23 @@ impl EditorData {
                 } else {
                     let index = index
                         + doc.lines.with_untracked(|b| {
-                        Ok::<usize, anyhow::Error>(
-                            b.buffer().next_grapheme_offset(
-                                offset,
-                                1,
-                                b.buffer().offset_line_end(offset, false)?,
-                            ),
-                        )
-                    })?
+                            Ok::<usize, anyhow::Error>(
+                                b.buffer().next_grapheme_offset(
+                                    offset,
+                                    1,
+                                    b.buffer().offset_line_end(offset, false)?
+                                )
+                            )
+                        })?
                         - offset;
                     line_content[index..].find(c).map(|i| i + index)
                 }
-            }
+            },
         } {
             self.run_move_command(
                 &Movement::Offset(new_index + line_start_offset),
                 None,
-                Modifiers::empty(),
+                Modifiers::empty()
             );
         }
         Ok(())
@@ -1139,7 +1142,7 @@ impl EditorData {
         let pattern = nucleo::pattern::Pattern::parse(
             pattern,
             nucleo::pattern::CaseMatching::Ignore,
-            nucleo::pattern::Normalization::Smart,
+            nucleo::pattern::Normalization::Smart
         );
         let mut indices = Vec::new();
         let mut filter_text_buf = Vec::new();
@@ -1179,7 +1182,7 @@ impl EditorData {
             self.run_move_command(
                 &Movement::Offset(offset),
                 None,
-                Modifiers::empty(),
+                Modifiers::empty()
             );
         }
 
@@ -1197,7 +1200,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -1211,7 +1214,7 @@ impl EditorData {
 
         enum DefinitionOrReferece {
             Location(EditorLocation),
-            References(Vec<Location>),
+            References(Vec<Location>)
         }
 
         let internal_command = self.common.internal_command;
@@ -1226,21 +1229,21 @@ impl EditorData {
                 DefinitionOrReferece::Location(location) => {
                     internal_command
                         .send(InternalCommand::JumpToLocation { location });
-                }
+                },
                 DefinitionOrReferece::References(locations) => {
                     internal_command.send(InternalCommand::PaletteReferences {
                         references: locations
                             .into_iter()
                             .map(|l| EditorLocation {
-                                path: path_from_url(&l.uri),
-                                position: Some(EditorPosition::Position(
-                                    l.range.start,
+                                path:               path_from_url(&l.uri),
+                                position:           Some(EditorPosition::Position(
+                                    l.range.start
                                 )),
-                                scroll_offset: None,
+                                scroll_offset:      None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab: false,
+                                same_editor_tab:    false
                             })
-                            .collect(),
+                            .collect()
                     });
                 }
             }
@@ -1252,8 +1255,8 @@ impl EditorData {
             position,
             move |(_, result)| {
                 if let Ok(ProxyResponse::GetDefinitionResponse {
-                              definition, ..
-                          }) = result
+                    definition, ..
+                }) = result
                 {
                     if let Some(location) = match definition {
                         GotoDefinitionResponse::Scalar(location) => Some(location),
@@ -1263,12 +1266,12 @@ impl EditorData {
                             } else {
                                 None
                             }
-                        }
+                        },
                         GotoDefinitionResponse::Link(location_links) => {
                             let location_link = location_links[0].clone();
                             Some(Location {
-                                uri: location_link.target_uri,
-                                range: location_link.target_selection_range,
+                                uri:   location_link.target_uri,
+                                range: location_link.target_selection_range
                             })
                         }
                     } {
@@ -1279,8 +1282,8 @@ impl EditorData {
                                 move |(_, result)| {
                                     if let Ok(
                                         ProxyResponse::GetReferencesResponse {
-                                            references,
-                                        },
+                                            references
+                                        }
                                     ) = result
                                     {
                                         if references.is_empty() {
@@ -1290,47 +1293,49 @@ impl EditorData {
                                             let location = &references[0];
                                             send(DefinitionOrReferece::Location(
                                                 EditorLocation {
-                                                    path: path_from_url(
-                                                        &location.uri,
-                                                    ),
-                                                    position: Some(
+                                                    path:
+                                                        path_from_url(&location.uri),
+                                                    position:           Some(
                                                         EditorPosition::Position(
-                                                            location.range.start,
-                                                        ),
+                                                            location.range.start
+                                                        )
                                                     ),
-                                                    scroll_offset: None,
+                                                    scroll_offset:      None,
                                                     ignore_unconfirmed: false,
-                                                    same_editor_tab: false,
-                                                },
+                                                    same_editor_tab:    false
+                                                }
                                             ));
                                         } else {
                                             send(DefinitionOrReferece::References(
-                                                references,
+                                                references
                                             ));
                                         }
                                     }
-                                },
+                                }
                             );
                         } else {
                             let path = path_from_url(&location.uri);
                             send(DefinitionOrReferece::Location(EditorLocation {
                                 path,
                                 position: Some(EditorPosition::Position(
-                                    location.range.start,
+                                    location.range.start
                                 )),
                                 scroll_offset: None,
                                 ignore_unconfirmed: false,
-                                same_editor_tab: false,
+                                same_editor_tab: false
                             }));
                         }
                     }
                 }
-            },
+            }
         );
         Ok(())
     }
 
-    pub fn call_hierarchy(&self, window_tab_data: WindowWorkspaceData) -> Result<()> {
+    pub fn call_hierarchy(
+        &self,
+        window_tab_data: WindowWorkspaceData
+    ) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -1338,7 +1343,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -1353,15 +1358,15 @@ impl EditorData {
         let scope = window_tab_data.scope;
         let range = Range {
             start: _start_position,
-            end: position,
+            end:   position
         };
         self.common.proxy.show_call_hierarchy(
             path,
             position,
             create_ext_action(self.scope, move |(_, result)| {
                 if let Ok(ProxyResponse::ShowCallHierarchyResponse {
-                              items, ..
-                          }) = result
+                    items, ..
+                }) = result
                 {
                     if let Some(item) = items.and_then(|x| x.into_iter().next()) {
                         let root_id = ViewId::new();
@@ -1373,7 +1378,7 @@ impl EditorData {
                             from_range: range,
                             init: false,
                             open: scope.create_rw_signal(true),
-                            children: scope.create_rw_signal(Vec::with_capacity(0)),
+                            children: scope.create_rw_signal(Vec::with_capacity(0))
                         };
                         let root = window_tab_data
                             .main_split
@@ -1385,8 +1390,8 @@ impl EditorData {
                             CallHierarchyData {
                                 root,
                                 root_id,
-                                scroll_to_line: None,
-                            },
+                                scroll_to_line: None
+                            }
                         );
                         // call_hierarchy_data.root.update(|x| {
                         //     *x = Some(root);
@@ -1395,12 +1400,12 @@ impl EditorData {
                         window_tab_data.common.internal_command.send(
                             InternalCommand::CallHierarchyIncoming {
                                 item_id: root_id,
-                                root_id,
-                            },
+                                root_id
+                            }
                         );
                     }
                 }
-            }),
+            })
         );
         Ok(())
     }
@@ -1408,17 +1413,22 @@ impl EditorData {
     pub fn fold_code(&self) -> Result<()> {
         let doc = self.doc();
         if !doc.content.get_untracked().is_file() {
-            return Ok(())
+            return Ok(());
         }
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        doc.lines.update(|x| if let Err(e) = x.update_folding_ranges(offset.into()) {
-            error!("{:?}", e);
+        doc.lines.update(|x| {
+            if let Err(e) = x.update_folding_ranges(offset.into()) {
+                error!("{:?}", e);
+            }
         });
         Ok(())
     }
 
-    pub fn find_refenrence(&self, window_tab_data: WindowWorkspaceData) -> Result<()> {
+    pub fn find_refenrence(
+        &self,
+        window_tab_data: WindowWorkspaceData
+    ) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -1426,7 +1436,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -1469,21 +1479,21 @@ impl EditorData {
                         if !references.is_empty() {
                             proxy.references_resolve(
                                 references,
-                                update_implementation,
+                                update_implementation
                             );
                         } else {
                             window_tab_data.show_panel(PanelKind::References);
                         }
                     }
                 }
-            }),
+            })
         );
         Ok(())
     }
 
     pub fn go_to_implementation(
         &self,
-        window_tab_data: WindowWorkspaceData,
+        window_tab_data: WindowWorkspaceData
     ) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
@@ -1492,7 +1502,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -1530,22 +1540,22 @@ impl EditorData {
             create_ext_action(self.scope, {
                 move |(_, result)| {
                     if let Ok(ProxyResponse::GotoImplementationResponse {
-                                  resp,
-                                  ..
-                              }) = result
+                        resp,
+                        ..
+                    }) = result
                     {
                         let locations = map_to_location(resp);
                         if !locations.is_empty() {
                             proxy.references_resolve(
                                 locations,
-                                update_implementation,
+                                update_implementation
                             );
                         } else {
                             window_tab_data.show_panel(PanelKind::Implementation);
                         }
                     }
                 }
-            }),
+            })
         );
         Ok(())
     }
@@ -1555,7 +1565,7 @@ impl EditorData {
             self.sticky_header_height.get_untracked(),
             down,
             count,
-            mods,
+            mods
         )
     }
 
@@ -1631,7 +1641,7 @@ impl EditorData {
     /// Update the current inline completion
     fn update_inline_completion(
         &self,
-        trigger_kind: InlineCompletionTriggerKind,
+        trigger_kind: InlineCompletionTriggerKind
     ) -> Result<()> {
         if self.get_mode() != Mode::Insert {
             self.cancel_inline_completion();
@@ -1645,14 +1655,14 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
         let (line, position) = doc.lines.with_untracked(|b| {
             (
                 b.buffer().line_of_offset(offset),
-                b.buffer().offset_to_position(offset),
+                b.buffer().offset_to_position(offset)
             )
         });
         let position = position?;
@@ -1694,7 +1704,7 @@ impl EditorData {
                     c.set_items(items, offset, path2);
                     c.update_doc(&doc, offset);
                 });
-            },
+            }
         );
 
         inline_completion.update(|c| c.status = InlineCompletionStatus::Started);
@@ -1705,19 +1715,19 @@ impl EditorData {
             trigger_kind,
             move |(_, res)| {
                 if let Ok(ProxyResponse::GetInlineCompletions {
-                              completions: items,
-                          }) = res
+                    completions: items
+                }) = res
                 {
                     let items = match items {
                         lsp_types::InlineCompletionResponse::Array(items) => items,
                         // Currently does not have any relevant extra fields
                         lsp_types::InlineCompletionResponse::List(items) => {
                             items.items
-                        }
+                        },
                     };
                     send(items);
                 }
-            },
+            }
         );
         Ok(())
     }
@@ -1751,8 +1761,8 @@ impl EditorData {
                     }
                     if buffer.get_untracked() != rev
                         || content.with_untracked(|content| {
-                        content.path() != path.as_ref()
-                    })
+                            content.path() != path.as_ref()
+                        })
                     {
                         return;
                     }
@@ -1766,15 +1776,15 @@ impl EditorData {
                     move |(_, result)| {
                         let item =
                             if let Ok(ProxyResponse::CompletionResolveResponse {
-                                          item,
-                                      }) = result
+                                item
+                            }) = result
                             {
                                 *item
                             } else {
                                 item.item.clone()
                             };
                         send(item);
-                    },
+                    }
                 );
             } else if let Err(err) = self.apply_completion_item(&item.item) {
                 log::error!("{:?}", err);
@@ -1810,7 +1820,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return,
+            None => return
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -1857,7 +1867,7 @@ impl EditorData {
                         &self.common.proxy,
                         path.clone(),
                         "".to_string(),
-                        start_pos,
+                        start_pos
                     );
                 }
 
@@ -1877,7 +1887,7 @@ impl EditorData {
                         &self.common.proxy,
                         path,
                         input,
-                        position,
+                        position
                     );
                 }
             });
@@ -1913,7 +1923,7 @@ impl EditorData {
                 &self.common.proxy,
                 path.clone(),
                 "".to_string(),
-                start_pos,
+                start_pos
             );
 
             if !input.is_empty() {
@@ -1932,7 +1942,7 @@ impl EditorData {
                     &self.common.proxy,
                     path,
                     input,
-                    position,
+                    position
                 );
             }
         });
@@ -1961,7 +1971,7 @@ impl EditorData {
             .map(|edit| {
                 let selection = Selection::region(
                     buffer.offset_of_position(&edit.range.start)?,
-                    buffer.offset_of_position(&edit.range.end)?,
+                    buffer.offset_of_position(&edit.range.end)?
                 );
                 Ok((selection, edit.new_text.as_str()))
             })
@@ -1988,7 +1998,7 @@ impl EditorData {
 
                     let selection = Selection::region(
                         start_offset.min(edit_start),
-                        end_offset.max(edit_end),
+                        end_offset.max(edit_end)
                     );
                     match text_format {
                         lsp_types::InsertTextFormat::PLAIN_TEXT => {
@@ -2001,7 +2011,7 @@ impl EditorData {
                                     .concat(), false,
                             );
                             return Ok(());
-                        }
+                        },
 
                         lsp_types::InsertTextFormat::SNIPPET => {
                             let snippet = Snippet::from_str(&edit.new_text)?;
@@ -2011,14 +2021,14 @@ impl EditorData {
                                 snippet,
                                 &selection,
                                 additional_edit,
-                                start_offset,
+                                start_offset
                             )?;
                             return Ok(());
-                        }
+                        },
                         _ => {}
                     }
-                }
-                CompletionTextEdit::InsertAndReplace(_) => (),
+                },
+                CompletionTextEdit::InsertAndReplace(_) => ()
             }
         }
 
@@ -2032,12 +2042,12 @@ impl EditorData {
             &[
                 &[(
                     selection.clone(),
-                    item.insert_text.as_deref().unwrap_or(item.label.as_str()),
+                    item.insert_text.as_deref().unwrap_or(item.label.as_str())
                 )][..],
-                &additional_edit[..],
+                &additional_edit[..]
             ]
-                .concat(),
-            false,
+            .concat(),
+            false
         );
         self.check_auto_save();
         Ok(())
@@ -2048,7 +2058,7 @@ impl EditorData {
         snippet: Snippet,
         selection: &Selection,
         additional_edit: Vec<(Selection, &str)>,
-        start_offset: usize,
+        start_offset: usize
     ) -> anyhow::Result<()> {
         // let snippet = Snippet::from_str(snippet)?;
         // let text = snippet.text();
@@ -2095,7 +2105,7 @@ impl EditorData {
 
     fn add_snippet_placeholders(
         &self,
-        new_placeholders: Vec<(usize, (usize, usize))>,
+        new_placeholders: Vec<(usize, (usize, usize))>
     ) {
         self.snippet.update(|snippet| {
             if snippet.is_none() {
@@ -2141,7 +2151,7 @@ impl EditorData {
                     if !is_pristine && is_current_rec {
                         editor.save(true, || {});
                     }
-                },
+                }
             );
         }
     }
@@ -2150,7 +2160,7 @@ impl EditorData {
         &self,
         old_selection: &Selection,
         edits: &[(Selection, &str)],
-        format_before_save: bool,
+        format_before_save: bool
     ) {
         // log::debug!("{:?} {}", old_selection, format_before_save);
         let mut cursor = self.cursor().get_untracked();
@@ -2173,7 +2183,7 @@ impl EditorData {
         let (text, delta, inval_lines) =
             match doc.do_raw_edit(edits, EditType::Completion) {
                 Some(e) => e,
-                None => return,
+                None => return
             };
         let selection =
             old_selection.apply_delta(&delta, true, InsertDrift::Default);
@@ -2208,7 +2218,7 @@ impl EditorData {
                 .map(|edit| {
                     let selection = Selection::region(
                         x.buffer().offset_of_position(&edit.range.start)?,
-                        x.buffer().offset_of_position(&edit.range.end)?,
+                        x.buffer().offset_of_position(&edit.range.end)?
                     );
                     // log::debug!("{edit:?} {selection:?}");
                     Ok((selection, edit.new_text.as_str()))
@@ -2260,11 +2270,11 @@ impl EditorData {
                                 *tab,
                                 (
                                     transformer.transform(*start, false),
-                                    transformer.transform(*end, true),
-                                ),
+                                    transformer.transform(*end, true)
+                                )
                             )
                         })
-                        .collect(),
+                        .collect()
                 );
             });
         }
@@ -2273,7 +2283,7 @@ impl EditorData {
     fn do_go_to_location(
         &self,
         location: EditorLocation,
-        edits: Option<Vec<TextEdit>>,
+        edits: Option<Vec<TextEdit>>
     ) {
         if let Some(position) = location.position {
             self.go_to_position(position, location.scroll_offset, edits);
@@ -2286,7 +2296,7 @@ impl EditorData {
                 self.go_to_position(
                     EditorPosition::Offset(info.cursor_offset),
                     Some(Vec2::new(info.scroll_offset.0, info.scroll_offset.1)),
-                    edits,
+                    edits
                 );
             }
         }
@@ -2296,7 +2306,7 @@ impl EditorData {
         &self,
         location: EditorLocation,
         new_doc: bool,
-        edits: Option<Vec<TextEdit>>,
+        edits: Option<Vec<TextEdit>>
     ) {
         if !new_doc {
             self.do_go_to_location(location, edits);
@@ -2321,7 +2331,7 @@ impl EditorData {
         &self,
         position: EditorPosition,
         scroll_offset: Option<Vec2>,
-        edits: Option<Vec<TextEdit>>,
+        edits: Option<Vec<TextEdit>>
     ) {
         let offset = match self
             .doc()
@@ -2356,7 +2366,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return,
+            None => return
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -2409,7 +2419,7 @@ impl EditorData {
                         c.insert(offset, (resp.0, resp.1.into()));
                     });
                 }
-            },
+            }
         );
 
         self.common.proxy.get_code_actions(
@@ -2418,13 +2428,13 @@ impl EditorData {
             diagnostics,
             move |(_, result)| {
                 if let Ok(ProxyResponse::GetCodeActionsResponse {
-                              plugin_id,
-                              resp,
-                          }) = result
+                    plugin_id,
+                    resp
+                }) = result
                 {
                     send((plugin_id, resp))
                 }
-            },
+            }
         );
     }
 
@@ -2441,8 +2451,8 @@ impl EditorData {
                         offset,
                         mouse_click,
                         plugin_id,
-                        code_actions,
-                    },
+                        code_actions
+                    }
                 );
             }
         }
@@ -2455,7 +2465,7 @@ impl EditorData {
     pub fn save(
         &self,
         allow_formatting: bool,
-        after_action: impl FnOnce() + 'static,
+        after_action: impl FnOnce() + 'static
     ) {
         let doc = self.doc();
         let is_pristine = doc.is_pristine();
@@ -2562,7 +2572,7 @@ impl EditorData {
             (buffer.slice_to_cow(start..end).to_string(), buffer.clone())
         });
         self.common.internal_command.send(InternalCommand::Search {
-            pattern: Some(word),
+            pattern: Some(word)
         });
         let next = self.common.find.next(buffer.text(), offset, false, true);
 
@@ -2638,7 +2648,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return,
+            None => return
         };
 
         let cursor_offset = self.cursor().with_untracked(|c| c.offset());
@@ -2649,7 +2659,7 @@ impl EditorData {
             &self.common.workspace,
             path,
             cursor_offset,
-            scroll_offset,
+            scroll_offset
         );
     }
 
@@ -2661,7 +2671,7 @@ impl EditorData {
             None
         } {
             Some(path) => path,
-            None => return Ok(()),
+            None => return Ok(())
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
@@ -2691,24 +2701,24 @@ impl EditorData {
                                     usize,
                                     usize,
                                     lsp_types::Position,
-                                    std::option::Option<std::string::String>,
+                                    std::option::Option<std::string::String>
                                 ),
-                                anyhow::Error,
+                                anyhow::Error
                             >((
                                 buffer.offset_of_position(&range.start)?,
                                 buffer.offset_of_position(&range.end)?,
                                 range.start,
-                                None,
+                                None
                             ))
-                        }
+                        },
                         lsp_types::PrepareRenameResponse::RangeWithPlaceholder {
                             range,
-                            placeholder,
+                            placeholder
                         } => Ok((
                             buffer.offset_of_position(&range.start)?,
                             buffer.offset_of_position(&range.end)?,
                             range.start,
-                            Some(placeholder),
+                            Some(placeholder)
                         )),
                         lsp_types::PrepareRenameResponse::DefaultBehavior {
                             ..
@@ -2719,7 +2729,7 @@ impl EditorData {
                                 start,
                                 buffer.next_code_boundary(offset),
                                 position,
-                                None,
+                                None
                             ))
                         }
                     }) {
@@ -2739,7 +2749,7 @@ impl EditorData {
                     path: local_path.clone(),
                     placeholder,
                     start,
-                    position,
+                    position
                 });
             }
         });
@@ -2758,19 +2768,19 @@ impl EditorData {
             CursorMode::Visual {
                 start,
                 end,
-                mode: _,
+                mode: _
             } => SelRegion::new(
                 *start.min(end),
                 doc.lines.with_untracked(|buffer| {
                     buffer.buffer().next_grapheme_offset(
                         *start.max(end),
                         1,
-                        buffer.buffer().len(),
+                        buffer.buffer().len()
                     )
                 }),
-                None,
+                None
             ),
-            CursorMode::Insert(selection) => *selection.last_inserted().unwrap(),
+            CursorMode::Insert(selection) => *selection.last_inserted().unwrap()
         });
 
         if region.is_caret() {
@@ -2840,40 +2850,43 @@ impl EditorData {
                         self.sticky_header_info
                             .get_untracked()
                             .sticky_lines
-                            .get(index),
+                            .get(index)
                     ) {
                         self.common.internal_command.send(
                             InternalCommand::JumpToLocation {
                                 location: EditorLocation {
-                                    path: path.clone(),
-                                    position: Some(EditorPosition::Line(*line)),
-                                    scroll_offset: None,
+                                    path:               path.clone(),
+                                    position:           Some(EditorPosition::Line(
+                                        *line
+                                    )),
+                                    scroll_offset:      None,
                                     ignore_unconfirmed: true,
-                                    same_editor_tab: false,
-                                },
-                            },
+                                    same_editor_tab:    false
+                                }
+                            }
                         );
                         return;
                     }
                 }
 
-                let control = (cfg!(target_os = "macos") && pointer_event.modifiers.meta())
+                let control = (cfg!(target_os = "macos")
+                    && pointer_event.modifiers.meta())
                     || (cfg!(not(target_os = "macos"))
-                    && pointer_event.modifiers.control());
+                        && pointer_event.modifiers.control());
                 if let Some(rs) = self.result_of_left_click(pointer_event.pos) {
                     match rs {
                         ClickResult::NoHint => {
                             if control {
                                 self.common.lapce_command.send(LapceCommand {
                                     kind: CommandKind::Focus(
-                                        FocusCommand::GotoDefinition,
+                                        FocusCommand::GotoDefinition
                                     ),
-                                    data: None,
+                                    data: None
                                 })
                             }
-                        }
+                        },
                         ClickResult::MatchWithoutLocation
-                        | ClickResult::MatchFolded => {}
+                        | ClickResult::MatchFolded => {},
                         ClickResult::MatchHint(location) => {
                             if control {
                                 let Ok(path) = location.uri.to_file_path() else {
@@ -2885,23 +2898,23 @@ impl EditorData {
                                             path,
                                             position: Some(
                                                 EditorPosition::Position(
-                                                    location.range.start,
-                                                ),
+                                                    location.range.start
+                                                )
                                             ),
                                             scroll_offset: None,
                                             ignore_unconfirmed: true,
-                                            same_editor_tab: false,
-                                        },
-                                    },
+                                            same_editor_tab: false
+                                        }
+                                    }
                                 );
                             }
-                        }
+                        },
                     }
                 }
-            }
+            },
             PointerButton::Mouse(MouseButton::Secondary) => {
                 self.right_click(pointer_event);
-            }
+            },
             _ => {}
         }
     }
@@ -2922,13 +2935,13 @@ impl EditorData {
         match pointer_event.count {
             1 => {
                 self.single_click(pointer_event);
-            }
+            },
             2 => {
                 self.double_click(pointer_event);
-            }
+            },
             3 => {
                 self.triple_click(pointer_event);
-            }
+            },
             _ => {}
         }
     }
@@ -2986,9 +2999,10 @@ impl EditorData {
                         if mouse_hover_timer.try_get_untracked() == Some(token)
                             && editor.editor_tab_id.try_get_untracked().is_some()
                         {
-                            let end_offset = editor.doc().lines.with_untracked(|buffer| {
-                                buffer.buffer().next_code_boundary(offset)
-                            });
+                            let end_offset =
+                                editor.doc().lines.with_untracked(|buffer| {
+                                    buffer.buffer().next_code_boundary(offset)
+                                });
                             editor.update_hover(end_offset);
                         }
                     });
@@ -3027,7 +3041,7 @@ impl EditorData {
                         return false;
                     }
                 }
-                    .contains(offset)
+                .contains(offset)
             })
         });
         if !pointer_inside_selection {
@@ -3038,10 +3052,10 @@ impl EditorData {
         let (path, is_file) = doc.content.with_untracked(|content| match content {
             DocContent::File { path, .. } => {
                 (Some(path.to_path_buf()), path.is_file())
-            }
+            },
             DocContent::Local
             | DocContent::History(_)
-            | DocContent::Scratch { .. } => (None, false),
+            | DocContent::Scratch { .. } => (None, false)
         });
         let mut menu = Menu::new("");
         let mut cmds = if is_file {
@@ -3053,24 +3067,24 @@ impl EditorData {
             {
                 vec![
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RevealInPanel,
+                        LapceWorkbenchCommand::RevealInPanel
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RevealInFileExplorer,
+                        LapceWorkbenchCommand::RevealInFileExplorer
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
+                        LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl
                     )),
                     None,
                     Some(CommandKind::Edit(EditCommand::ClipboardCut)),
                     Some(CommandKind::Edit(EditCommand::ClipboardCopy)),
                     Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::AddRunDebugConfig,
+                        LapceWorkbenchCommand::AddRunDebugConfig
                     )),
                     None,
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::PaletteCommand,
+                        LapceWorkbenchCommand::PaletteCommand
                     )),
                 ]
             } else {
@@ -3078,30 +3092,30 @@ impl EditorData {
                     Some(CommandKind::Focus(FocusCommand::GotoDefinition)),
                     Some(CommandKind::Focus(FocusCommand::GotoTypeDefinition)),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::ShowCallHierarchy,
+                        LapceWorkbenchCommand::ShowCallHierarchy
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::FindReferences,
+                        LapceWorkbenchCommand::FindReferences
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::GoToImplementation,
+                        LapceWorkbenchCommand::GoToImplementation
                     )),
                     Some(CommandKind::Focus(FocusCommand::Rename)),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RunInTerminal,
+                        LapceWorkbenchCommand::RunInTerminal
                     )),
                     None,
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RevealInPanel,
+                        LapceWorkbenchCommand::RevealInPanel
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RevealInFileExplorer,
+                        LapceWorkbenchCommand::RevealInFileExplorer
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::RevealInDocumentSymbolPanel,
+                        LapceWorkbenchCommand::RevealInDocumentSymbolPanel
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
+                        LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl
                     )),
                     None,
                     Some(CommandKind::Edit(EditCommand::ClipboardCut)),
@@ -3109,7 +3123,7 @@ impl EditorData {
                     Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
                     None,
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::PaletteCommand,
+                        LapceWorkbenchCommand::PaletteCommand
                     )),
                 ]
             }
@@ -3120,13 +3134,13 @@ impl EditorData {
                 Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
                 None,
                 Some(CommandKind::Workbench(
-                    LapceWorkbenchCommand::PaletteCommand,
+                    LapceWorkbenchCommand::PaletteCommand
                 )),
             ]
         };
         if self.diff_editor_id.get_untracked().is_some() && is_file {
             cmds.push(Some(CommandKind::Workbench(
-                LapceWorkbenchCommand::GoToLocation,
+                LapceWorkbenchCommand::GoToLocation
             )));
         }
         let lapce_command = self.common.lapce_command;
@@ -3137,10 +3151,10 @@ impl EditorData {
                         move || {
                             lapce_command.send(LapceCommand {
                                 kind: cmd.clone(),
-                                data: None,
+                                data: None
                             })
-                        },
-                    ),
+                        }
+                    )
                 );
             } else {
                 menu = menu.separator();
@@ -3166,7 +3180,7 @@ impl EditorData {
         };
         let path = match path {
             Some(path) => path,
-            None => return,
+            None => return
         };
         let config = self.common.config;
         let hover_data = self.common.hover.clone();
@@ -3206,10 +3220,11 @@ impl EditorData {
                 while let Some(change) = changes.next() {
                     match (is_right, change) {
                         (true, DiffLines::Left(range)) => {
-                            if let Some(DiffLines::Right(_)) = changes.peek() {} else {
+                            if let Some(DiffLines::Right(_)) = changes.peek() {
+                            } else {
                                 visual_line += range.len();
                             }
-                        }
+                        },
                         (false, DiffLines::Right(range)) => {
                             let len = if let Some(DiffLines::Left(r)) = last_change {
                                 range.len() - r.len().min(range.len())
@@ -3219,7 +3234,7 @@ impl EditorData {
                             if len > 0 {
                                 visual_line += len;
                             }
-                        }
+                        },
                         (true, DiffLines::Right(range))
                         | (false, DiffLines::Left(range)) => {
                             if line < range.end {
@@ -3234,7 +3249,7 @@ impl EditorData {
                                     }
                                 }
                             }
-                        }
+                        },
                         (_, DiffLines::Both(info)) => {
                             let end = if is_right {
                                 info.right.end
@@ -3244,10 +3259,10 @@ impl EditorData {
                             if line >= end {
                                 visual_line += info.right.len()
                                     - info
-                                    .skip
-                                    .as_ref()
-                                    .map(|skip| skip.len().saturating_sub(1))
-                                    .unwrap_or(0);
+                                        .skip
+                                        .as_ref()
+                                        .map(|skip| skip.len().saturating_sub(1))
+                                        .unwrap_or(0);
                                 last_change = Some(change);
                                 continue;
                             }
@@ -3290,7 +3305,8 @@ impl EditorData {
                 while let Some(change) = changes.next() {
                     match (is_right, change) {
                         (true, DiffLines::Left(range)) => {
-                            if let Some(DiffLines::Right(_)) = changes.peek() {} else {
+                            if let Some(DiffLines::Right(_)) = changes.peek() {
+                            } else {
                                 current_visual_line += range.len();
                                 if current_visual_line >= visual_line {
                                     return if bottom_affinity {
@@ -3300,7 +3316,7 @@ impl EditorData {
                                     };
                                 }
                             }
-                        }
+                        },
                         (false, DiffLines::Right(range)) => {
                             let len = if let Some(DiffLines::Left(r)) = last_change {
                                 range.len() - r.len().min(range.len())
@@ -3313,7 +3329,7 @@ impl EditorData {
                                     return actual_line;
                                 }
                             }
-                        }
+                        },
                         (true, DiffLines::Right(range))
                         | (false, DiffLines::Left(range)) => {
                             let len = range.len();
@@ -3338,7 +3354,7 @@ impl EditorData {
                                     }
                                 }
                             }
-                        }
+                        },
                         (_, DiffLines::Both(info)) => {
                             let len = info.right.len();
                             let start = if is_right {
@@ -3365,9 +3381,9 @@ impl EditorData {
                                     return actual_line
                                         + skip.end
                                         + (visual_line
-                                        - current_visual_line
-                                        - skip.start
-                                        - 1);
+                                            - current_visual_line
+                                            - skip.start
+                                            - 1);
                                 }
                                 actual_line += len;
                                 current_visual_line += len - skip.len() + 1;
@@ -3404,13 +3420,13 @@ impl KeyPressFocus for EditorData {
             Condition::InputFocus => {
                 self.common.find.visual.get_untracked()
                     && self.find_focus.get_untracked()
-            }
+            },
             Condition::ListFocus => self.has_completions(),
             Condition::CompletionFocus => self.has_completions(),
             Condition::InlineCompletionVisible => self.has_inline_completions(),
             Condition::OnScreenFindActive => {
                 self.on_screen_find.with_untracked(|f| f.active)
-            }
+            },
             Condition::InSnippet => self.snippet.with_untracked(|s| s.is_some()),
             Condition::EditorFocus => self
                 .doc()
@@ -3420,12 +3436,12 @@ impl KeyPressFocus for EditorData {
                 self.common.find.visual.get_untracked()
                     && self.find_focus.get_untracked()
                     && !self.common.find.replace_focus.get_untracked()
-            }
+            },
             Condition::ReplaceFocus => {
                 self.common.find.visual.get_untracked()
                     && self.find_focus.get_untracked()
                     && self.common.find.replace_focus.get_untracked()
-            }
+            },
             Condition::SearchActive => {
                 if self.common.config.get_untracked().core.modal
                     && self.cursor().with_untracked(|c| !c.is_normal())
@@ -3434,8 +3450,8 @@ impl KeyPressFocus for EditorData {
                 } else {
                     self.common.find.visual.get_untracked()
                 }
-            }
-            _ => false,
+            },
+            _ => false
         }
     }
 
@@ -3443,7 +3459,7 @@ impl KeyPressFocus for EditorData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers,
+        mods: Modifiers
     ) -> CommandExecuted {
         if self.common.find.visual.get_untracked() && self.find_focus.get_untracked()
         {
@@ -3456,20 +3472,20 @@ impl KeyPressFocus for EditorData {
                             InternalCommand::ReplaceEditorCommand {
                                 command: command.clone(),
                                 count,
-                                mods,
-                            },
+                                mods
+                            }
                         );
                     } else {
                         self.common.internal_command.send(
                             InternalCommand::FindEditorCommand {
                                 command: command.clone(),
                                 count,
-                                mods,
-                            },
+                                mods
+                            }
                         );
                     }
                     return CommandExecuted::Yes;
-                }
+                },
                 _ => {}
             }
         }
@@ -3484,11 +3500,11 @@ impl KeyPressFocus for EditorData {
                         CommandExecuted::No
                     }
                 }
-            }
+            },
             crate::command::CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);
                 self.run_move_command(&movement, count, mods)
-            }
+            },
             crate::command::CommandKind::Scroll(cmd) => {
                 if self
                     .doc()
@@ -3498,7 +3514,7 @@ impl KeyPressFocus for EditorData {
                     return CommandExecuted::No;
                 }
                 self.run_scroll_command(cmd, count, mods)
-            }
+            },
             crate::command::CommandKind::Focus(cmd) => {
                 if self
                     .doc()
@@ -3508,13 +3524,13 @@ impl KeyPressFocus for EditorData {
                     return CommandExecuted::No;
                 }
                 self.run_focus_command(cmd, count, mods)
-            }
+            },
             crate::command::CommandKind::MotionMode(cmd) => {
                 self.run_motion_mode_command(cmd, count)
-            }
+            },
             crate::command::CommandKind::MultiSelection(cmd) => {
                 self.run_multi_selection_command(cmd)
-            }
+            },
         }
     }
 
@@ -3534,11 +3550,11 @@ impl KeyPressFocus for EditorData {
             // find/relace editor receive char
             if self.common.find.replace_focus.get_untracked() {
                 self.common.internal_command.send(
-                    InternalCommand::ReplaceEditorReceiveChar { s: c.to_string() },
+                    InternalCommand::ReplaceEditorReceiveChar { s: c.to_string() }
                 );
             } else {
                 self.common.internal_command.send(
-                    InternalCommand::FindEditorReceiveChar { s: c.to_string() },
+                    InternalCommand::FindEditorReceiveChar { s: c.to_string() }
                 );
             }
         } else {
@@ -3590,7 +3606,7 @@ impl KeyPressFocus for EditorData {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DocSignal {
     // TODO: replace with ReadSignal once that impls `track`
-    inner: RwSignal<Rc<Doc>>,
+    inner: RwSignal<Rc<Doc>>
 }
 
 impl DocSignal {
@@ -3626,7 +3642,7 @@ impl DocSignal {
 fn show_completion(
     cmd: &EditCommand,
     doc: &Rope,
-    deltas: &[(Rope, RopeDelta, InvalLines)],
+    deltas: &[(Rope, RopeDelta, InvalLines)]
 ) -> bool {
     let show_completion = match cmd {
         EditCommand::DeleteBackward
@@ -3636,12 +3652,12 @@ fn show_completion(
         | EditCommand::DeleteForwardAndInsert => {
             let start = match deltas.first().and_then(|delta| delta.1.els.first()) {
                 Some(lapce_xi_rope::DeltaElement::Copy(_, start)) => *start,
-                _ => 0,
+                _ => 0
             };
 
             let end = match deltas.first().and_then(|delta| delta.1.els.get(1)) {
                 Some(lapce_xi_rope::DeltaElement::Copy(end, _)) => *end,
-                _ => 0,
+                _ => 0
             };
 
             if start > 0 && end > start {
@@ -3651,9 +3667,9 @@ fn show_completion(
             } else {
                 true
             }
-        }
+        },
         EditCommand::NormalizeLineEndings => true,
-        _ => false,
+        _ => false
     };
 
     show_completion
@@ -3847,9 +3863,9 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //             //                         y: line_y(rvline_info, vline_y) as f64
 // - y0,             //                         vline_y: vline_y as f64 - y0, //
 //   vline_info: rvline_info, //                     }, //                 ); //
-//   //                 if initial_y_idx + i > max_vline.0 { //
-//   break; //                 } //             } // //             if is_right
-//   { //                 if let Some(DiffLines::Left(r)) = last_change
+//   //                 if initial_y_idx + i > max_vline.0 { // break; //
+//   } //             } // //             if is_right { //                 if
+//   let Some(DiffLines::Left(r)) = last_change
 // {             //                     // TODO: count vline count in the other
 // editor since this is skipping an amount dependent on those vlines
 // //                     let len = r.len() - r.len().min(range.len());
@@ -3919,17 +3935,16 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //             //                             y: line_y(rvline_info, vline_y) as
 // f64 - y0,             //                             vline_y: vline_y as f64
 // - y0,             //                             vline_info: rvline_info, //
-//   }, //                     ); //                 } // //
-//   y_idx += 1; // //                 if y_idx - 1 > max_vline.get() { //
-//   break; //                 } //             } //         } //     } //
-//   last_change = Some(change); // } // ScreenLines { //     lines:
-//   Rc::new(rvlines), //     info: Rc::new(info), //     diff_sections:
-//   Some(Rc::new(diff_sections)), //     base, // } } }
+//   }, //                     ); //                 } // // y_idx += 1; // //
+//   if y_idx - 1 > max_vline.get() { // break; //                 } //
+//   } //         } //     } // last_change = Some(change); // } // ScreenLines
+//   { //     lines: Rc::new(rvlines), //     info: Rc::new(info), //
+//   diff_sections: Some(Rc::new(diff_sections)), //     base, // } } }
 // }
 
 fn parse_hover_resp(
     hover: lsp_types::Hover,
-    config: &LapceConfig,
+    config: &LapceConfig
 ) -> Vec<MarkdownContent> {
     match hover.contents {
         HoverContents::Scalar(text) => match text {
@@ -3937,8 +3952,8 @@ fn parse_hover_resp(
             MarkedString::LanguageString(code) => parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config,
-            ),
+                config
+            )
         },
         HoverContents::Array(array) => array
             .into_iter()
@@ -3952,7 +3967,7 @@ fn parse_hover_resp(
             .unwrap_or_default(),
         HoverContents::Markup(content) => match content.kind {
             MarkupKind::PlainText => from_plaintext(&content.value, 1.8, config),
-            MarkupKind::Markdown => parse_markdown(&content.value, 1.8, config),
-        },
+            MarkupKind::Markdown => parse_markdown(&content.value, 1.8, config)
+        }
     }
 }

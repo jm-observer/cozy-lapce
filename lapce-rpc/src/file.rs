@@ -388,14 +388,17 @@ impl FileNodeItem {
     pub fn add_child(&mut self, path: &Path, is_dir: bool) -> Option<()> {
         let parent = path.parent()?;
         let node = self.get_file_node_mut(parent)?;
-        node.children.insert(PathBuf::from(path), FileNodeItem {
-            path: PathBuf::from(path),
-            is_dir,
-            read: false,
-            open: false,
-            children: HashMap::new(),
-            children_open_count: 0
-        });
+        node.children.insert(
+            PathBuf::from(path),
+            FileNodeItem {
+                path: PathBuf::from(path),
+                is_dir,
+                read: false,
+                open: false,
+                children: HashMap::new(),
+                children_open_count: 0
+            }
+        );
         for p in path.ancestors() {
             self.update_node_count(p);
         }

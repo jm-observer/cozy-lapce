@@ -1,14 +1,14 @@
 use std::{path::Path, process::Command};
 
 use anyhow::Result;
-use log::debug;
 use lapce_core::workspace::SshHost;
+use log::debug;
 
 use super::remote::Remote;
-use crate::{proxy::new_command, };
+use crate::proxy::new_command;
 
 pub struct SshRemote {
-    pub ssh: SshHost,
+    pub ssh: SshHost
 }
 
 impl SshRemote {
@@ -23,7 +23,7 @@ impl SshRemote {
         "-o",
         "ControlPersist=30m",
         "-o",
-        "ConnectTimeout=15",
+        "ConnectTimeout=15"
     ];
 }
 

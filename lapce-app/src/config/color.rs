@@ -9,14 +9,14 @@ pub enum LoadThemeError {
     #[error("theme file ({theme_name}.toml) was not found in {themes_folder:?}")]
     FileNotFound {
         themes_folder: PathBuf,
-        theme_name: String,
+        theme_name:    String
     },
     #[error("recursion limit reached for {variable_name}")]
     RecursionLimitReached { variable_name: String },
     #[error("variable {variable_name} not found")]
     VariableNotFound { variable_name: String },
     #[error("There was an error reading the theme file")]
-    Read(std::io::Error),
+    Read(std::io::Error)
 }
 
 pub struct LapceColor {}
@@ -31,6 +31,7 @@ impl LapceColor {
     pub const DEBUG_BREAKPOINT: &'static str = "debug.breakpoint";
     pub const DEBUG_BREAKPOINT_HOVER: &'static str = "debug.breakpoint.hover";
     pub const EDITOR_BACKGROUND: &'static str = "editor.background";
+    pub const EDITOR_BRACKET: &'static str = "editor.bracket";
     pub const EDITOR_CARET: &'static str = "editor.caret";
     pub const EDITOR_CURRENT_LINE: &'static str = "editor.current_line";
     pub const EDITOR_DEBUG_BREAK_LINE: &'static str = "editor.debug_break_line";
@@ -156,5 +157,4 @@ impl LapceColor {
     pub const TERMINAL_YELLOW: &'static str = "terminal.yellow";
     pub const TOOLTIP_BACKGROUND: &'static str = "tooltip.background";
     pub const TOOLTIP_FOREGROUND: &'static str = "tooltip.foreground";
-    pub const EDITOR_BRACKET: &'static str = "editor.bracket";
 }

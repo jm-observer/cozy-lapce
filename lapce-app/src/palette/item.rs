@@ -1,87 +1,89 @@
 use std::path::PathBuf;
 
 use doc::lines::line_ending::LineEnding;
+use lapce_core::{
+    debug::RunDebugMode,
+    workspace::{LapceWorkspace, SshHost, WslHost}
+};
 use lapce_rpc::dap_types::RunDebugConfig;
 use lsp_types::{Range, SymbolKind};
-use lapce_core::debug::RunDebugMode;
-use lapce_core::workspace::{LapceWorkspace, SshHost, WslHost};
 
 use crate::{
     command::{LapceCommand, LapceWorkbenchCommand},
-    editor::location::EditorLocation,
+    editor::location::EditorLocation
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PaletteItem {
-    pub content: PaletteItemContent,
+    pub content:     PaletteItemContent,
     pub filter_text: String,
-    pub score: u32,
-    pub indices: Vec<usize>,
+    pub score:       u32,
+    pub indices:     Vec<usize>
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PaletteItemContent {
     PaletteHelp {
-        cmd: LapceWorkbenchCommand,
+        cmd: LapceWorkbenchCommand
     },
     File {
-        path: PathBuf,
-        full_path: PathBuf,
+        path:      PathBuf,
+        full_path: PathBuf
     },
     Line {
-        line: usize,
-        content: String,
+        line:    usize,
+        content: String
     },
     Command {
-        cmd: LapceCommand,
+        cmd: LapceCommand
     },
     Workspace {
-        workspace: LapceWorkspace,
+        workspace: LapceWorkspace
     },
     Reference {
-        path: PathBuf,
-        location: EditorLocation,
+        path:     PathBuf,
+        location: EditorLocation
     },
     DocumentSymbol {
-        kind: SymbolKind,
-        name: String,
-        range: Range,
-        container_name: Option<String>,
+        kind:           SymbolKind,
+        name:           String,
+        range:          Range,
+        container_name: Option<String>
     },
     WorkspaceSymbol {
-        kind: SymbolKind,
-        name: String,
+        kind:           SymbolKind,
+        name:           String,
         container_name: Option<String>,
-        location: EditorLocation,
+        location:       EditorLocation
     },
     SshHost {
-        host: SshHost,
+        host: SshHost
     },
     #[cfg(windows)]
     WslHost {
-        host: WslHost,
+        host: WslHost
     },
     RunAndDebug {
-        mode: RunDebugMode,
-        config: RunDebugConfig,
+        mode:   RunDebugMode,
+        config: RunDebugConfig
     },
     ColorTheme {
-        name: String,
+        name: String
     },
     IconTheme {
-        name: String,
+        name: String
     },
     Language {
-        name: String,
+        name: String
     },
     LineEnding {
-        kind: LineEnding,
+        kind: LineEnding
     },
     SCMReference {
-        name: String,
+        name: String
     },
     TerminalProfile {
-        name: String,
-        profile: lapce_rpc::terminal::TerminalProfile,
-    },
+        name:    String,
+        profile: lapce_rpc::terminal::TerminalProfile
+    }
 }

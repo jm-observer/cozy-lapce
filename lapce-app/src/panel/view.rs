@@ -1,41 +1,41 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use floem::{
+    AnyView, IntoView, View,
     event::{Event, EventListener, EventPropagation},
     kurbo::Point,
     reactive::{
-        create_rw_signal, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
+        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
     },
     style::{CursorStyle, Style},
     taffy::AlignItems,
     unit::PxPctAuto,
     views::{
-        container, dyn_stack, empty, h_stack, label, stack, stack_from_iter, tab,
-        text, Decorators,
-    },
-    AnyView, IntoView, View,
+        Decorators, container, dyn_stack, empty, h_stack, label, stack,
+        stack_from_iter, tab, text
+    }
 };
-use lapce_core::icon::LapceIcons;
-use lapce_core::panel::{PanelContainerPosition, PanelKind};
+use lapce_core::{
+    icon::LapceIcons,
+    panel::{PanelContainerPosition, PanelKind}
+};
 
 use super::{
     debug_view::debug_panel, global_search_view::global_search_panel,
-    plugin_view::plugin_panel,
-    problem_view::problem_panel, source_control_view::source_control_panel,
-    terminal_view::terminal_panel,
+    plugin_view::plugin_panel, problem_view::problem_panel,
+    source_control_view::source_control_panel, terminal_view::terminal_panel
 };
 use crate::{
     app::{clickable_icon, clickable_icon_base},
-    config::{color::LapceColor, LapceConfig},
+    config::{LapceConfig, color::LapceColor},
     file_explorer::view::file_explorer_panel,
     panel::{
         call_hierarchy_view::show_hierarchy_panel, data::PanelData,
         document_symbol::symbol_panel, implementation_view::implementation_panel,
-        references_view::references_panel,
+        references_view::references_panel, rust_build_panel::build_panel
     },
-    window_workspace::{DragContent, WindowWorkspaceData},
+    window_workspace::{DragContent, WindowWorkspaceData}
 };
-use crate::panel::rust_build_panel::build_panel;
 
 pub(crate) const PANEL_PICKER_SIZE: f32 = 40.0;
 
@@ -43,7 +43,7 @@ pub fn foldable_panel_section(
     header: impl View + 'static,
     child: impl View + 'static,
     open: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     stack((
         h_stack((
@@ -58,9 +58,9 @@ pub fn foldable_panel_section(
                 None::<Box<dyn Fn()>>,
                 || false,
                 || false,
-                config,
+                config
             ),
-            header.style(|s| s.align_items(AlignItems::Center).padding_left(3.0)),
+            header.style(|s| s.align_items(AlignItems::Center).padding_left(3.0))
         ))
         .style(move |s| {
             s.padding_horiz(10.0)
@@ -72,25 +72,25 @@ pub fn foldable_panel_section(
         .on_click_stop(move |_| {
             open.update(|open| *open = !*open);
         }),
-        child.style(move |s| s.apply_if(!open.get(), |s| s.hide())),
+        child.style(move |s| s.apply_if(!open.get(), |s| s.hide()))
     ))
 }
 
 /// A builder for creating a foldable panel out of sections
 pub struct PanelBuilder {
-    views: Vec<AnyView>,
-    config: ReadSignal<Arc<LapceConfig>>,
-    position: PanelContainerPosition,
+    views:    Vec<AnyView>,
+    config:   ReadSignal<Arc<LapceConfig>>,
+    position: PanelContainerPosition
 }
 impl PanelBuilder {
     pub fn new(
         config: ReadSignal<Arc<LapceConfig>>,
-        position: PanelContainerPosition,
+        position: PanelContainerPosition
     ) -> Self {
         Self {
             views: Vec::new(),
             config,
-            position,
+            position
         }
     }
 
@@ -100,14 +100,14 @@ impl PanelBuilder {
         height: Option<PxPctAuto>,
         view: impl View + 'static,
         open: RwSignal<bool>,
-        style: impl Fn(Style) -> Style + 'static,
+        style: impl Fn(Style) -> Style + 'static
     ) -> Self {
         let position = self.position;
         let view = foldable_panel_section(
             text(name).style(move |s| s.selectable(false)),
             view,
             open,
-            self.config,
+            self.config
         )
         .style(move |s| {
             let s = s.width_full().flex_col();
@@ -136,7 +136,7 @@ impl PanelBuilder {
         self,
         name: &'static str,
         view: impl View + 'static,
-        open: RwSignal<bool>,
+        open: RwSignal<bool>
     ) -> Self {
         self.add_general(name, None, view, open, std::convert::identity)
     }
@@ -148,7 +148,7 @@ impl PanelBuilder {
         name: &'static str,
         view: impl View + 'static,
         open: RwSignal<bool>,
-        style: impl Fn(Style) -> Style + 'static,
+        style: impl Fn(Style) -> Style + 'static
     ) -> Self {
         self.add_general(name, None, view, open, style)
     }
@@ -160,14 +160,14 @@ impl PanelBuilder {
         name: &'static str,
         height: impl Into<PxPctAuto>,
         view: impl View + 'static,
-        open: RwSignal<bool>,
+        open: RwSignal<bool>
     ) -> Self {
         self.add_general(
             name,
             Some(height.into()),
             view,
             open,
-            std::convert::identity,
+            std::convert::identity
         )
     }
 
@@ -180,7 +180,7 @@ impl PanelBuilder {
         height: impl Into<PxPctAuto>,
         view: impl View + 'static,
         open: RwSignal<bool>,
-        style: impl Fn(Style) -> Style + 'static,
+        style: impl Fn(Style) -> Style + 'static
     ) -> Self {
         self.add_general(name, Some(height.into()), view, open, style)
     }
@@ -192,14 +192,14 @@ impl PanelBuilder {
         name: &'static str,
         height: f64,
         view: impl View + 'static,
-        open: RwSignal<bool>,
+        open: RwSignal<bool>
     ) -> Self {
         self.add_general(
             name,
             Some(PxPctAuto::Pct(height)),
             view,
             open,
-            std::convert::identity,
+            std::convert::identity
         )
     }
 
@@ -214,7 +214,7 @@ impl PanelBuilder {
 
 pub fn new_left_panel_container_view(
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition,
+    position: PanelContainerPosition
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
     let config = window_tab_data.common.config;
@@ -272,7 +272,7 @@ pub fn new_left_panel_container_view(
 
 pub fn new_bottom_panel_container_view(
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition,
+    position: PanelContainerPosition
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
     let config = window_tab_data.common.config;
@@ -296,9 +296,9 @@ pub fn new_bottom_panel_container_view(
             active_fn,
             panels,
             |p| *p,
-            move |kind| panel_view_by_kind(kind, window_tab_data.clone(), position),
+            move |kind| panel_view_by_kind(kind, window_tab_data.clone(), position)
         )
-        .style(|s| s.flex_grow(1.0).width_pct(100.0)),
+        .style(|s| s.flex_grow(1.0).width_pct(100.0))
     ))
     .style({
         let panel = panel.clone();
@@ -311,7 +311,7 @@ pub fn new_bottom_panel_container_view(
                 .apply_if(
                     !panel.is_position_shown(&position, true)
                         || panel.is_position_empty(&position, true),
-                    |s| s.hide(),
+                    |s| s.hide()
                 )
         }
     })
@@ -321,7 +321,7 @@ pub fn new_bottom_panel_container_view(
 
 pub fn new_right_panel_container_view(
     window_tab_data: WindowWorkspaceData,
-    container_position: PanelContainerPosition,
+    container_position: PanelContainerPosition
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
     let config = window_tab_data.common.config;
@@ -385,7 +385,7 @@ pub fn new_right_panel_container_view(
 fn panel_view_by_kind(
     kind: PanelKind,
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition,
+    position: PanelContainerPosition
 ) -> impl View {
     match kind {
         PanelKind::Terminal => terminal_panel(window_tab_data.clone()).into_any(),
@@ -419,15 +419,13 @@ fn panel_view_by_kind(
         PanelKind::Implementation => {
             implementation_panel(window_tab_data.clone(), position).into_any()
         },
-        PanelKind::Build => {
-            build_panel(window_tab_data.clone(), position).into_any()
-        },
+        PanelKind::Build => build_panel(window_tab_data.clone(), position).into_any()
     }
 }
 
 pub fn panel_header(
     header: String,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     container(label(move || header.clone())).style(move |s| {
         s.padding_horiz(10.0)
@@ -440,7 +438,7 @@ pub fn panel_header(
 fn drag_line(
     position: PanelContainerPosition,
     panel: PanelData,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<Arc<LapceConfig>>
 ) -> impl View {
     let panel_size = panel.size;
     let view = empty();
@@ -493,7 +491,7 @@ fn drag_line(
                                 size.right = new_size;
                             })
                         }
-                    },
+                    }
                 }
             }
         }
@@ -504,14 +502,15 @@ fn drag_line(
     .style(move |s| {
         let is_dragging = drag_start.get().is_some();
         let config = config.get();
-        s.background(config.color(LapceColor::PANEL_BACKGROUND)).pointer_events_auto()
+        s.background(config.color(LapceColor::PANEL_BACKGROUND))
+            .pointer_events_auto()
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0).height(4.0)
             })
             .apply_if(
                 position == PanelContainerPosition::Left
                     || position == PanelContainerPosition::Right,
-                |s| s.width(4.0).height_pct(100.0),
+                |s| s.width(4.0).height_pct(100.0)
             )
             .apply_if(is_dragging, |s| {
                 s.background(config.color(LapceColor::EDITOR_CARET))
@@ -533,12 +532,13 @@ fn drag_line(
                     })
                     .z_index(2)
             })
-    }).debug_name("drag_line")
+    })
+    .debug_name("drag_line")
 }
 
 pub(crate) fn new_panel_picker(
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition,
+    position: PanelContainerPosition
 ) -> impl View {
     let panel = window_tab_data.panel.clone();
     let config = window_tab_data.common.config;
@@ -577,7 +577,7 @@ pub(crate) fn new_panel_picker(
                     || false,
                     || false,
                     move || tooltip,
-                    config,
+                    config
                 )
                 .draggable()
                 .on_event_stop(EventListener::DragStart, move |_| {
@@ -595,7 +595,7 @@ pub(crate) fn new_panel_picker(
                         .background(
                             config
                                 .color(LapceColor::PANEL_BACKGROUND)
-                                .multiply_alpha(0.7),
+                                .multiply_alpha(0.7)
                         )
                 })
                 .style(|s| s.padding(1.0)),
@@ -615,12 +615,12 @@ pub(crate) fn new_panel_picker(
                         .border_color(
                             config
                                 .get()
-                                .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE),
+                                .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                         )
-                }),
+                })
             )))
             .style(|s| s.padding(4.0))
-        },
+        }
     )
     .style(move |s| {
         s.flex_row()
@@ -635,7 +635,7 @@ fn drag_event<T: IntoView>(
     config: ReadSignal<Arc<LapceConfig>>,
     dragging: RwSignal<Option<DragContent>>,
     panel: PanelData,
-    position: PanelContainerPosition,
+    position: PanelContainerPosition
 ) -> <T as IntoView>::V {
     let panel = panel.clone();
 
@@ -672,13 +672,13 @@ fn drag_event<T: IntoView>(
         }
     })
     .style(move |s| {
-        let is_dragging_panel =
-            dragging
-                .with(|d| d.as_ref().map(|d| d.is_panel()))
-                .unwrap_or(false);
+        let is_dragging_panel = dragging
+            .with(|d| d.as_ref().map(|d| d.is_panel()))
+            .unwrap_or(false);
         s.apply_if(dragging_over.get(), |s| {
             s.background(config.get().color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
-        }).apply_if(!is_dragging_panel, |s| s.pointer_events_none())
+        })
+        .apply_if(!is_dragging_panel, |s| s.pointer_events_none())
     })
 }
 

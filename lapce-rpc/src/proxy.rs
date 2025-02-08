@@ -359,9 +359,9 @@ pub enum ProxyNotification {
         breakpoints: Vec<SourceBreakpoint>
     },
     RustBuild {
-        rev: u64,
-        command:     String,
-        arguments:   Option<Vec<String>>,
+        rev:       u64,
+        command:   String,
+        arguments: Option<Vec<String>>
     }
 }
 
@@ -515,8 +515,15 @@ impl ResponseHandler {
 }
 
 pub trait ProxyHandler {
-    fn handle_notification(&mut self, rpc: ProxyNotification) -> impl std::future::Future<Output = ()> + Send;
-    fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest)-> impl std::future::Future<Output = ()> + Send;
+    fn handle_notification(
+        &mut self,
+        rpc: ProxyNotification
+    ) -> impl std::future::Future<Output = ()> + Send;
+    fn handle_request(
+        &mut self,
+        id: RequestId,
+        rpc: ProxyRequest
+    ) -> impl std::future::Future<Output = ()> + Send;
 }
 
 #[derive(Clone)]

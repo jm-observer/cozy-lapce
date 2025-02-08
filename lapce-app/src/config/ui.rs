@@ -48,7 +48,7 @@ pub struct UIConfig {
     )]
     hover_font_family: String,
     #[field_names(desc = "Set the hover font size. If 0, uses the UI font size")]
-    hover_font_size: usize,
+    hover_font_size:   usize,
 
     #[field_names(desc = "Trim whitespace from search results")]
     pub trim_search_results_whitespace: bool,
@@ -60,7 +60,7 @@ pub struct UIConfig {
     pub tab_close_button: TabCloseButton,
 
     #[field_names(desc = "Display the Open Editors section in the explorer")]
-    pub open_editors_visible: bool,
+    pub open_editors_visible: bool
 }
 
 #[derive(
@@ -80,7 +80,7 @@ pub enum TabCloseButton {
     Left,
     #[default]
     Right,
-    Off,
+    Off
 }
 
 #[derive(
@@ -99,7 +99,7 @@ pub enum TabCloseButton {
 pub enum TabSeparatorHeight {
     #[default]
     Content,
-    Full,
+    Full
 }
 
 impl UIConfig {

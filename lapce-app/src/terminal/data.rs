@@ -1,55 +1,59 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
 use alacritty_terminal::{
+    Term,
     grid::{Dimensions, Scroll},
     selection::{Selection, SelectionType},
-    term::{test::TermSize, TermMode},
-    vi_mode::ViMotion,
-    Term,
+    term::{TermMode, test::TermSize},
+    vi_mode::ViMotion
 };
 use anyhow::anyhow;
-use doc::lines::command::{EditCommand, FocusCommand, ScrollCommand};
-use doc::lines::editor_command::CommandExecuted;
-use doc::lines::mode::{Mode, VisualMode};
-use doc::lines::movement::{LinePosition, Movement};
-use doc::lines::register::Clipboard;
-use doc::lines::text::SystemClipboard;
+use doc::lines::{
+    command::{EditCommand, FocusCommand, ScrollCommand},
+    editor_command::CommandExecuted,
+    mode::{Mode, VisualMode},
+    movement::{LinePosition, Movement},
+    register::Clipboard,
+    text::SystemClipboard
+};
 use floem::{
     keyboard::{Key, KeyEvent, Modifiers, NamedKey},
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+};
+use lapce_core::{
+    debug::{RunDebugMode, RunDebugProcess},
+    workspace::LapceWorkspace
 };
 use lapce_rpc::{
     dap_types::RunDebugConfig,
-    terminal::{TermId, TerminalProfile},
+    terminal::{TermId, TerminalProfile}
 };
 use parking_lot::RwLock;
 use url::Url;
-use lapce_core::debug::{RunDebugMode, RunDebugProcess};
-use lapce_core::workspace::LapceWorkspace;
 
 use super::{
     event::TermEvent,
-    raw::{EventProxy, RawTerminal},
+    raw::{EventProxy, RawTerminal}
 };
 use crate::{
-    command::{CommandKind},
-    keypress::{condition::Condition, KeyPressFocus},
-    window_workspace::CommonData,
+    command::CommandKind,
+    keypress::{KeyPressFocus, condition::Condition},
+    window_workspace::CommonData
 };
 
 #[derive(Clone, Debug)]
 pub struct TerminalData {
-    pub scope: Scope,
-    pub term_id: TermId,
-    pub workspace: Arc<LapceWorkspace>,
-    pub raw_id: RwSignal<u64>,
-    pub title: RwSignal<String>,
+    pub scope:        Scope,
+    pub term_id:      TermId,
+    pub workspace:    Arc<LapceWorkspace>,
+    pub raw_id:       RwSignal<u64>,
+    pub title:        RwSignal<String>,
     pub launch_error: RwSignal<Option<String>>,
-    pub mode: RwSignal<Mode>,
-    pub visual_mode: RwSignal<VisualMode>,
-    pub raw: RwSignal<Arc<RwLock<RawTerminal>>>,
-    pub run_debug: RwSignal<Option<RunDebugProcess>>,
-    pub common: Rc<CommonData>,
+    pub mode:         RwSignal<Mode>,
+    pub visual_mode:  RwSignal<VisualMode>,
+    pub raw:          RwSignal<Arc<RwLock<RawTerminal>>>,
+    pub run_debug:    RwSignal<Option<RunDebugProcess>>,
+    pub common:       Rc<CommonData>
 }
 
 impl KeyPressFocus for TerminalData {
@@ -65,7 +69,7 @@ impl KeyPressFocus for TerminalData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        _mods: Modifiers,
+        _mods: Modifiers
     ) -> CommandExecuted {
         self.common.view_id.get_untracked().request_paint();
         let config = self.common.config.get_untracked();
@@ -117,10 +121,10 @@ impl KeyPressFocus for TerminalData {
                                 term.vi_mode_cursor.point.line =
                                     term.bottommost_line();
                             },
-                            LinePosition::Line(_) => {},
+                            LinePosition::Line(_) => {}
                         };
                     },
-                    _ => (),
+                    _ => ()
                 };
             },
             CommandKind::Edit(cmd) => match cmd {
@@ -195,7 +199,7 @@ impl KeyPressFocus for TerminalData {
                         }
                     }
                 },
-                _ => return CommandExecuted::No,
+                _ => return CommandExecuted::No
             },
             CommandKind::Scroll(cmd) => match cmd {
                 ScrollCommand::PageUp => {
@@ -207,7 +211,7 @@ impl KeyPressFocus for TerminalData {
                         term.vi_mode_cursor.scroll(term, scroll_lines);
 
                     term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines,
+                        scroll_lines
                     ));
                 },
                 ScrollCommand::PageDown => {
@@ -219,10 +223,10 @@ impl KeyPressFocus for TerminalData {
                         term.vi_mode_cursor.scroll(term, scroll_lines);
 
                     term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines,
+                        scroll_lines
                     ));
                 },
-                _ => return CommandExecuted::No,
+                _ => return CommandExecuted::No
             },
             CommandKind::Focus(cmd) => match cmd {
                 FocusCommand::SplitVertical
@@ -254,9 +258,9 @@ impl KeyPressFocus for TerminalData {
                     //     );
                     // }
                 },
-                _ => return CommandExecuted::No,
+                _ => return CommandExecuted::No
             },
-            _ => return CommandExecuted::No,
+            _ => return CommandExecuted::No
         };
         CommandExecuted::Yes
     }
@@ -266,7 +270,7 @@ impl KeyPressFocus for TerminalData {
             self.common.proxy.terminal_write(
                 self.term_id,
                 self.raw_id(),
-                c.to_string(),
+                c.to_string()
             );
             self.raw
                 .get_untracked()
@@ -282,7 +286,7 @@ impl TerminalData {
         cx: Scope,
         workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         Self::new_run_debug(cx, workspace, None, profile, common)
     }
@@ -292,7 +296,7 @@ impl TerminalData {
         workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> Self {
         let cx = cx.create_child();
         let term_id = TermId::next();
@@ -311,7 +315,7 @@ impl TerminalData {
             run_debug.as_ref(),
             profile,
             common.clone(),
-            launch_error,
+            launch_error
         );
 
         let run_debug = cx.create_rw_signal(run_debug);
@@ -330,7 +334,7 @@ impl TerminalData {
             mode,
             visual_mode,
             common,
-            launch_error,
+            launch_error
         }
     }
 
@@ -340,7 +344,7 @@ impl TerminalData {
         run_debug: Option<&RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-        launch_error: RwSignal<Option<String>>,
+        launch_error: RwSignal<Option<String>>
     ) -> (Arc<RwLock<RawTerminal>>, u64) {
         log::debug!("term_id={term_id:?} new_raw_terminal");
         let raw_id = TermId::next().to_raw();
@@ -348,14 +352,14 @@ impl TerminalData {
             term_id,
             raw_id,
             common.proxy.clone(),
-            common.term_notification_tx.clone(),
+            common.term_notification_tx.clone()
         )));
 
         let mut profile = profile.unwrap_or_default();
 
         if profile.workdir.is_none() {
             profile.workdir = if let Ok(path) = url::Url::from_file_path(
-                workspace.path.as_ref().cloned().unwrap_or_default(),
+                workspace.path.as_ref().cloned().unwrap_or_default()
             ) {
                 Some(path)
             } else {
@@ -556,7 +560,7 @@ impl TerminalData {
                         "]" => "\x1d",
                         "^" => "\x1e",
                         "_" => "\x1f",
-                        _ => return None,
+                        _ => return None
                     };
 
                     Some(str)
@@ -610,7 +614,7 @@ impl TerminalData {
             Key::Named(NamedKey::PageDown) => {
                 term_sequence!([all], key, "\x1b[6~", "\x1b[6;", "~")
             },
-            _ => None,
+            _ => None
         }
     }
 
@@ -646,7 +650,7 @@ impl TerminalData {
                     self.visual_mode.set(visual_mode);
                 }
             },
-            _ => (),
+            _ => ()
         }
 
         let raw = self.raw.get_untracked();
@@ -658,14 +662,14 @@ impl TerminalData {
         let ty = match visual_mode {
             VisualMode::Normal => SelectionType::Simple,
             VisualMode::Linewise => SelectionType::Lines,
-            VisualMode::Blockwise => SelectionType::Block,
+            VisualMode::Blockwise => SelectionType::Block
         };
         let point = term.renderable_content().cursor.point;
         self.toggle_selection(
             term,
             ty,
             point,
-            alacritty_terminal::index::Side::Left,
+            alacritty_terminal::index::Side::Left
         );
         if let Some(selection) = term.selection.as_mut() {
             selection.include_all();
@@ -677,7 +681,7 @@ impl TerminalData {
         term: &mut Term<EventProxy>,
         ty: SelectionType,
         point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
+        side: alacritty_terminal::index::Side
     ) {
         match &mut term.selection {
             Some(selection) if selection.ty == ty && !selection.is_empty() => {
@@ -686,7 +690,7 @@ impl TerminalData {
             Some(selection) if !selection.is_empty() => {
                 selection.ty = ty;
             },
-            _ => self.start_selection(term, ty, point, side),
+            _ => self.start_selection(term, ty, point, side)
         }
     }
 
@@ -695,7 +699,7 @@ impl TerminalData {
         term: &mut Term<EventProxy>,
         ty: SelectionType,
         point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
+        side: alacritty_terminal::index::Side
     ) {
         term.selection = Some(Selection::new(ty, point, side));
     }
@@ -715,7 +719,7 @@ impl TerminalData {
             run_debug.as_ref(),
             None,
             self.common.clone(),
-            self.launch_error,
+            self.launch_error
         );
         let term_size = TermSize::new(width, height);
         raw.write().term.resize(term_size);
@@ -751,14 +755,14 @@ impl TerminalData {
 #[derive(Debug, Clone)]
 pub struct ExpandedRunDebug {
     pub work_dir: Option<Url>,
-    pub env: Option<HashMap<String, String>>,
-    pub program: String,
-    pub args: Option<Vec<String>>,
+    pub env:      Option<HashMap<String, String>>,
+    pub program:  String,
+    pub args:     Option<Vec<String>>
 }
 impl ExpandedRunDebug {
     pub fn expand(
         run_debug: &RunDebugConfig,
-        is_prelaunch: bool,
+        is_prelaunch: bool
     ) -> anyhow::Result<Self> {
         // Get the current working directory variable, which can container
         // ${workspace}
@@ -832,7 +836,7 @@ impl ExpandedRunDebug {
             work_dir,
             env,
             program,
-            args,
+            args
         })
     }
 }

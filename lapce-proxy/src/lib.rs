@@ -4,9 +4,9 @@ pub mod buffer;
 pub mod cli;
 pub mod dispatch;
 pub mod plugin;
+pub mod rust_build;
 pub mod terminal;
 pub mod watcher;
-pub mod rust_build;
 
 use std::{
     io::{BufReader, stdin, stdout},

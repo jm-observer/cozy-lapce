@@ -1,14 +1,16 @@
 pub mod view;
 
-use std::hash::{Hash};
-use doc::lines::buffer::rope_text::RopeText;
-use doc::lines::screen_lines::VisualLineInfo;
-use floem::prelude::{RwSignal, SignalGet, SignalWith};
-use crate::editor::EditorData;
-use crate::window_workspace::WindowWorkspaceData;
+use std::hash::Hash;
 
-pub fn gutter_data(window_tab_data: WindowWorkspaceData,
-                   e_data: RwSignal<EditorData>, ) -> Vec<GutterData> {
+use doc::lines::{buffer::rope_text::RopeText, screen_lines::VisualLineInfo};
+use floem::prelude::{RwSignal, SignalGet, SignalWith};
+
+use crate::{editor::EditorData, window_workspace::WindowWorkspaceData};
+
+pub fn gutter_data(
+    window_tab_data: WindowWorkspaceData,
+    e_data: RwSignal<EditorData>
+) -> Vec<GutterData> {
     let breakpoints = window_tab_data.terminal.debug.breakpoints;
     let e_data = e_data.get();
     let doc = e_data.doc_signal().get();
@@ -21,46 +23,54 @@ pub fn gutter_data(window_tab_data: WindowWorkspaceData,
         Default::default()
     };
     let code_lens = doc.code_lens.get();
-    let offset= e_data.editor.cursor.get().offset();
+    let offset = e_data.editor.cursor.get().offset();
     let (current_line, screen_lines) = doc.lines.with_untracked(|x| {
-        (x.buffer().line_of_offset(offset),
-        x.signal_screen_lines())
+        (x.buffer().line_of_offset(offset), x.signal_screen_lines())
     });
     let screen_lines = screen_lines.get();
 
-    screen_lines.visual_lines.into_iter().map(|vl_info| {
-        if vl_info.visual_line.origin_folded_line_sub_index == 0 {
-            let is_current_line = vl_info.visual_line.origin_line == current_line;
-            if code_lens.get(&vl_info.visual_line.origin_line).is_some() {
-                GutterData {
-                    vl_info,
-                    marker: GutterMarker::CodeLen, is_current_line
-                }
-            } else if breakpoints.get(&vl_info.visual_line.origin_line).is_some() {
-                GutterData {
-                    vl_info,
-                    marker: GutterMarker::Breakpoint,is_current_line
+    screen_lines
+        .visual_lines
+        .into_iter()
+        .map(|vl_info| {
+            if vl_info.visual_line.origin_folded_line_sub_index == 0 {
+                let is_current_line =
+                    vl_info.visual_line.origin_line == current_line;
+                if code_lens.get(&vl_info.visual_line.origin_line).is_some() {
+                    GutterData {
+                        vl_info,
+                        marker: GutterMarker::CodeLen,
+                        is_current_line
+                    }
+                } else if breakpoints.get(&vl_info.visual_line.origin_line).is_some()
+                {
+                    GutterData {
+                        vl_info,
+                        marker: GutterMarker::Breakpoint,
+                        is_current_line
+                    }
+                } else {
+                    GutterData {
+                        vl_info,
+                        marker: GutterMarker::None,
+                        is_current_line
+                    }
                 }
             } else {
                 GutterData {
                     vl_info,
-                    marker: GutterMarker::None,is_current_line
+                    marker: GutterMarker::None,
+                    is_current_line: false
                 }
             }
-        } else {
-            GutterData {
-                vl_info,
-                marker: GutterMarker::None,
-                is_current_line: false,
-            }
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct GutterData {
-    vl_info: VisualLineInfo,
-    marker: GutterMarker,
+    vl_info:         VisualLineInfo,
+    marker:          GutterMarker,
     is_current_line: bool
 }
 
@@ -95,7 +105,7 @@ impl GutterData {
 pub enum GutterMarker {
     None,
     CodeLen,
-    Breakpoint,
+    Breakpoint
     // CodeLenAndBreakPoint,
 }
 
@@ -104,5 +114,5 @@ pub enum GutterFolding {
     None,
     Start,
     End,
-    Folded,
+    Folded
 }

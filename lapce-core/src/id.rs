@@ -1,4 +1,5 @@
 use std::sync::atomic::AtomicU64;
+
 use lapce_rpc::terminal::TermId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

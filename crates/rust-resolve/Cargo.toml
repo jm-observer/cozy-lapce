@@ -1,0 +1,17 @@
+[package]
+name = "rust-resolve"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = {workspace = true}
+serde_json = {workspace = true}
+cargo_metadata = {workspace = true}
+log = {workspace = true}
+anyhow = {workspace = true}
+floem = {workspace = true}
+cozy-floem = {workspace = true}
+parking_lot = {workspace = true}
+doc = {workspace = true}
+ansi-to-style = {workspace = true}
+lapce-xi-rope = {workspace = true}

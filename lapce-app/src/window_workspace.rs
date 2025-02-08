@@ -5,21 +5,20 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
-    time::Instant,
+    time::Instant
 };
 
 use alacritty_terminal::vte::ansi::Handler;
-use anyhow::{anyhow, Result};
-use cozy_floem::views::panel::DocStyle;
-use cozy_floem::views::tree_with_panel::data::TreePanelData;
+use anyhow::{Result, anyhow};
+use cozy_floem::views::{panel::DocStyle, tree_with_panel::data::TreePanelData};
 use crossbeam_channel::Sender;
-use doc::lines::{buffer::rope_text::RopeText, cursor::CursorAffinity};
-use doc::lines::command::FocusCommand;
-use doc::lines::editor_command::CommandExecuted;
-use doc::lines::mode::Mode;
-use doc::lines::register::Register;
+use doc::lines::{
+    buffer::rope_text::RopeText, command::FocusCommand, cursor::CursorAffinity,
+    editor_command::CommandExecuted, mode::Mode, register::Register
+};
 use floem::{
-    action::{remove_overlay, TimerToken},
+    ViewId,
+    action::{TimerToken, remove_overlay},
     ext_event::{create_ext_action, create_signal_from_channel},
     file::FileDialogOptions,
     file_action::open_file,
@@ -27,51 +26,55 @@ use floem::{
     kurbo::Size,
     peniko::kurbo::{Point, Rect, Vec2},
     reactive::{
-        batch, use_context, Memo, ReadSignal, RwSignal, Scope, SignalGet,
-        SignalTrack, SignalUpdate, SignalWith, WriteSignal,
+        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
+        SignalWith, WriteSignal, batch, use_context
     },
-    text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout},
-    ViewId,
+    text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout}
 };
 use im::HashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use lapce_core::{directory::Directory, meta};
+use lapce_core::{
+    debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess},
+    directory::Directory,
+    doc::DocContent,
+    id::{TerminalTabId, WindowTabId},
+    main_split::{
+        SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection
+    },
+    meta,
+    panel::{PanelContainerPosition, PanelKind, PanelSection, default_panel_order},
+    workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo}
+};
 use lapce_rpc::{
+    RpcError,
     core::CoreNotification,
     dap_types::{ConfigSource, RunDebugConfig},
     file::{Naming, PathObject},
     plugin::PluginId,
     proxy::{ProxyResponse, ProxyRpcHandler, ProxyStatus},
     source_control::FileDiff,
-    terminal::TermId,
-    RpcError,
+    terminal::TermId
 };
 use log::{debug, error, info, trace, warn};
 use lsp_types::{
     CodeActionOrCommand, CodeLens, Diagnostic, MessageType, ProgressParams,
-    ProgressToken, ShowMessageParams,
+    ProgressToken, ShowMessageParams
 };
 use serde_json::Value;
-use lapce_core::debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess};
-use lapce_core::doc::DocContent;
-use lapce_core::id::{TerminalTabId, WindowTabId};
-use lapce_core::main_split::{SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection};
-use lapce_core::panel::{default_panel_order, PanelContainerPosition, PanelKind, PanelSection};
-use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo};
 
 use crate::{
     about::AboutData,
     alert::{AlertBoxData, AlertButton},
     code_action::{CodeActionData, CodeActionStatus},
     command::{
-        CommandKind, InternalCommand, LapceCommand,
-        LapceWorkbenchCommand, WindowCommand,
+        CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand,
+        WindowCommand
     },
     completion::{CompletionData, CompletionStatus},
     config::LapceConfig,
     db::LapceDb,
-    debug::{DapData},
+    debug::DapData,
     editor::location::{EditorLocation, EditorPosition},
     editor_tab::EditorTabChildId,
     file_explorer::data::FileExplorerData,
@@ -79,25 +82,24 @@ use crate::{
     global_search::GlobalSearchData,
     hover::HoverData,
     inline_completion::InlineCompletionData,
-    keypress::{condition::Condition, EventRef, KeyPressData, KeyPressFocus},
+    keypress::{EventRef, KeyPressData, KeyPressFocus, condition::Condition},
     listener::Listener,
     lsp::path_from_url,
-    main_split::{MainSplitData, SplitData, },
-    palette::{kind::PaletteKind, PaletteData, PaletteStatus, DEFAULT_RUN_TOML},
+    main_split::{MainSplitData, SplitData},
+    palette::{DEFAULT_RUN_TOML, PaletteData, PaletteStatus, kind::PaletteKind},
     panel::{
-        call_hierarchy_view::CallHierarchyItemData,
-        data::{PanelData},
-        document_symbol::MatchDocumentSymbol,
+        call_hierarchy_view::CallHierarchyItemData, data::PanelData,
+        document_symbol::MatchDocumentSymbol
     },
     plugin::PluginData,
-    proxy::{new_proxy, ProxyData},
+    proxy::{ProxyData, new_proxy},
     rename::RenameData,
     source_control::SourceControlData,
     terminal::{
-        event::{terminal_update_process, TermEvent, TermNotification},
-        panel::TerminalPanelData,
+        event::{TermEvent, TermNotification, terminal_update_process},
+        panel::TerminalPanelData
     },
-    window::WindowCommonData,
+    window::WindowCommonData
 };
 
 #[derive(Clone, Debug)]
@@ -170,13 +172,13 @@ pub enum Focus {
     CodeAction,
     Rename,
     AboutPopup,
-    Panel(PanelKind),
+    Panel(PanelKind)
 }
 
 #[derive(Clone)]
 pub enum DragContent {
     Panel(PanelKind),
-    EditorTab(EditorTabChildId),
+    EditorTab(EditorTabChildId)
 }
 
 impl DragContent {
@@ -187,41 +189,41 @@ impl DragContent {
 
 #[derive(Clone)]
 pub struct WorkProgress {
-    pub token: ProgressToken,
-    pub title: String,
-    pub message: Option<String>,
-    pub percentage: Option<u32>,
+    pub token:      ProgressToken,
+    pub title:      String,
+    pub message:    Option<String>,
+    pub percentage: Option<u32>
 }
 
 #[derive(Clone)]
 pub struct CommonData {
-    pub workspace: Arc<LapceWorkspace>,
-    pub scope: Scope,
-    pub focus: SignalManager<Focus>,
-    pub keypress: RwSignal<KeyPressData>,
-    pub completion: RwSignal<CompletionData>,
-    pub inline_completion: RwSignal<InlineCompletionData>,
-    pub hover: HoverData,
-    pub register: RwSignal<Register>,
-    pub find: Find,
-    pub workbench_size: RwSignal<Size>,
-    pub window_origin: RwSignal<Point>,
-    pub internal_command: Listener<InternalCommand>,
-    pub lapce_command: Listener<LapceCommand>,
-    pub workbench_command: Listener<LapceWorkbenchCommand>,
-    pub term_tx: Sender<(TermId, TermEvent)>,
+    pub workspace:            Arc<LapceWorkspace>,
+    pub scope:                Scope,
+    pub focus:                SignalManager<Focus>,
+    pub keypress:             RwSignal<KeyPressData>,
+    pub completion:           RwSignal<CompletionData>,
+    pub inline_completion:    RwSignal<InlineCompletionData>,
+    pub hover:                HoverData,
+    pub register:             RwSignal<Register>,
+    pub find:                 Find,
+    pub workbench_size:       RwSignal<Size>,
+    pub window_origin:        RwSignal<Point>,
+    pub internal_command:     Listener<InternalCommand>,
+    pub lapce_command:        Listener<LapceCommand>,
+    pub workbench_command:    Listener<LapceWorkbenchCommand>,
+    pub term_tx:              Sender<(TermId, TermEvent)>,
     pub term_notification_tx: Sender<TermNotification>,
-    pub proxy: ProxyRpcHandler,
-    pub view_id: RwSignal<ViewId>,
-    pub ui_line_height: Memo<f64>,
-    pub dragging: RwSignal<Option<DragContent>>,
-    pub config: ReadSignal<Arc<LapceConfig>>,
-    pub proxy_status: RwSignal<Option<ProxyStatus>>,
-    pub mouse_hover_timer: RwSignal<TimerToken>,
+    pub proxy:                ProxyRpcHandler,
+    pub view_id:              RwSignal<ViewId>,
+    pub ui_line_height:       Memo<f64>,
+    pub dragging:             RwSignal<Option<DragContent>>,
+    pub config:               ReadSignal<Arc<LapceConfig>>,
+    pub proxy_status:         RwSignal<Option<ProxyStatus>>,
+    pub mouse_hover_timer:    RwSignal<TimerToken>,
     pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
     // the current focused view which will receive keyboard events
-    pub keyboard_focus: RwSignal<Option<ViewId>>,
-    pub window_common: Rc<WindowCommonData>,
+    pub keyboard_focus:       RwSignal<Option<ViewId>>,
+    pub window_common:        Rc<WindowCommonData>
 }
 
 impl std::fmt::Debug for CommonData {
@@ -234,33 +236,33 @@ impl std::fmt::Debug for CommonData {
 
 #[derive(Clone)]
 pub struct WindowWorkspaceData {
-    pub scope: Scope,
-    pub window_tab_id: WindowTabId,
-    pub workspace: Arc<LapceWorkspace>,
-    pub palette: PaletteData,
-    pub main_split: MainSplitData,
-    pub file_explorer: FileExplorerData,
-    pub panel: PanelData,
-    pub terminal: TerminalPanelData,
-    pub plugin: PluginData,
-    pub code_action: RwSignal<CodeActionData>,
-    pub code_lens: RwSignal<Option<ViewId>>,
-    pub source_control: SourceControlData,
-    pub rename: RenameData,
-    pub global_search: GlobalSearchData,
-    pub about_data: AboutData,
-    pub alert_data: AlertBoxData,
-    pub layout_rect: RwSignal<Rect>,
-    pub title_height: RwSignal<f64>,
-    pub status_height: RwSignal<f64>,
-    pub proxy: ProxyData,
-    pub set_config: WriteSignal<Arc<LapceConfig>>,
-    pub update_in_progress: RwSignal<bool>,
-    pub progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>,
-    pub messages: RwSignal<Vec<(String, ShowMessageParams)>>,
-    pub common: Rc<CommonData>,
+    pub scope:                     Scope,
+    pub window_tab_id:             WindowTabId,
+    pub workspace:                 Arc<LapceWorkspace>,
+    pub palette:                   PaletteData,
+    pub main_split:                MainSplitData,
+    pub file_explorer:             FileExplorerData,
+    pub panel:                     PanelData,
+    pub terminal:                  TerminalPanelData,
+    pub plugin:                    PluginData,
+    pub code_action:               RwSignal<CodeActionData>,
+    pub code_lens:                 RwSignal<Option<ViewId>>,
+    pub source_control:            SourceControlData,
+    pub rename:                    RenameData,
+    pub global_search:             GlobalSearchData,
+    pub about_data:                AboutData,
+    pub alert_data:                AlertBoxData,
+    pub layout_rect:               RwSignal<Rect>,
+    pub title_height:              RwSignal<f64>,
+    pub status_height:             RwSignal<f64>,
+    pub proxy:                     ProxyData,
+    pub set_config:                WriteSignal<Arc<LapceConfig>>,
+    pub update_in_progress:        RwSignal<bool>,
+    pub progresses:                RwSignal<IndexMap<ProgressToken, WorkProgress>>,
+    pub messages:                  RwSignal<Vec<(String, ShowMessageParams)>>,
+    pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
-    pub build_data: TreePanelData
+    pub build_data:                TreePanelData
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -285,7 +287,7 @@ impl KeyPressFocus for WindowWorkspaceData {
                 self.common.focus.get_untracked()
                     == Focus::Panel(PanelKind::SourceControl)
             },
-            _ => false,
+            _ => false
         }
     }
 
@@ -293,7 +295,7 @@ impl KeyPressFocus for WindowWorkspaceData {
         &self,
         command: &LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers,
+        _mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(cmd) => {
@@ -334,13 +336,13 @@ impl KeyPressFocus for WindowWorkspaceData {
                         },
                         _ => {
                             return CommandExecuted::No;
-                        },
+                        }
                     }
                 }
             },
             _ => {
                 return CommandExecuted::No;
-            },
+            }
         }
 
         CommandExecuted::Yes
@@ -354,7 +356,7 @@ impl WindowWorkspaceData {
     pub fn new(
         cx: Scope,
         workspace: Arc<LapceWorkspace>,
-        window_common: Rc<WindowCommonData>,
+        window_common: Rc<WindowCommonData>
     ) -> Self {
         let cx = cx.create_child();
         let db: Arc<LapceDb> = use_context().unwrap();
@@ -379,7 +381,7 @@ impl WindowWorkspaceData {
         let config = LapceConfig::load(
             &workspace,
             &all_disabled_volts,
-            &window_common.extra_plugin_paths,
+            &window_common.extra_plugin_paths
         );
         let lapce_command = Listener::new_empty(cx);
         let workbench_command = Listener::new_empty(cx);
@@ -405,7 +407,7 @@ impl WindowWorkspaceData {
             all_disabled_volts,
             window_common.extra_plugin_paths.as_ref().clone(),
             config.plugins.clone(),
-            term_tx.clone(),
+            term_tx.clone()
         );
         let (config, set_config) = cx.create_signal(Arc::new(config));
 
@@ -457,7 +459,7 @@ impl WindowWorkspaceData {
             window_origin: cx.create_rw_signal(Point::ZERO),
             breakpoints: cx.create_rw_signal(BTreeMap::new()),
             keyboard_focus: cx.create_rw_signal(None),
-            window_common: window_common.clone(),
+            window_common: window_common.clone()
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -476,13 +478,13 @@ impl WindowWorkspaceData {
             let root_split_data = {
                 let cx = cx.create_child();
                 let root_split_data = SplitData {
-                    scope: cx,
-                    parent_split: None,
-                    split_id: root_split,
-                    children: Vec::new(),
-                    direction: SplitDirection::Horizontal,
+                    scope:         cx,
+                    parent_split:  None,
+                    split_id:      root_split,
+                    children:      Vec::new(),
+                    direction:     SplitDirection::Horizontal,
                     window_origin: Point::ZERO,
-                    layout_rect: Rect::ZERO,
+                    layout_rect:   Rect::ZERO
                 };
                 cx.create_rw_signal(root_split_data)
             };
@@ -497,7 +499,7 @@ impl WindowWorkspaceData {
             main_split.clone(),
             keypress.read_only(),
             source_control.clone(),
-            common.clone(),
+            common.clone()
         );
 
         let title_height = cx.create_rw_signal(0.0);
@@ -508,9 +510,7 @@ impl WindowWorkspaceData {
             let window_size = window_common.size.get();
             Size::new(
                 window_size.width,
-                window_size.height
-                    - title_height
-                    - status_height
+                window_size.height - title_height - status_height
             )
         });
         let panel = workspace_info
@@ -520,18 +520,18 @@ impl WindowWorkspaceData {
                     .get_panel_orders()
                     .unwrap_or_else(|_| default_panel_order());
                 PanelData {
-                    panels: cx.create_rw_signal(panel_order),
-                    styles: cx.create_rw_signal(i.panel.styles.clone()),
-                    size: cx.create_rw_signal(i.panel.size.clone()),
+                    panels:         cx.create_rw_signal(panel_order),
+                    styles:         cx.create_rw_signal(i.panel.styles.clone()),
+                    size:           cx.create_rw_signal(i.panel.size.clone()),
                     available_size: panel_available_size,
-                    sections: cx.create_rw_signal(
+                    sections:       cx.create_rw_signal(
                         i.panel
                             .sections
                             .iter()
                             .map(|(key, value)| (*key, cx.create_rw_signal(*value)))
-                            .collect(),
+                            .collect()
                     ),
-                    common: common.clone(),
+                    common:         common.clone()
                 }
             })
             .unwrap_or_else(|| {
@@ -543,7 +543,7 @@ impl WindowWorkspaceData {
                     panel_order,
                     panel_available_size,
                     im::HashMap::new(),
-                    common.clone(),
+                    common.clone()
                 )
             });
 
@@ -551,7 +551,7 @@ impl WindowWorkspaceData {
             workspace.clone(),
             common.config.get_untracked().terminal.get_default_profile(),
             common.clone(),
-            main_split.clone(),
+            main_split.clone()
         );
         if let Some(workspace_info) = workspace_info.as_ref() {
             terminal.debug.breakpoints.set(
@@ -565,10 +565,10 @@ impl WindowWorkspaceData {
                             breakpoints
                                 .into_iter()
                                 .map(|b| (b.line, b))
-                                .collect::<BTreeMap<usize, LapceBreakpoint>>(),
+                                .collect::<BTreeMap<usize, LapceBreakpoint>>()
                         )
                     })
-                    .collect(),
+                    .collect()
             );
         }
 
@@ -581,7 +581,7 @@ impl WindowWorkspaceData {
             HashSet::from_iter(workspace_disabled_volts),
             main_split.editors,
             common.clone(),
-            proxy.core_rpc.clone(),
+            proxy.core_rpc.clone()
         );
 
         {
@@ -596,7 +596,7 @@ impl WindowWorkspaceData {
                             },
                             TermNotification::RequestPaint => {
                                 view_id.get_untracked().request_paint();
-                            },
+                            }
                         }
                     }
                 });
@@ -634,7 +634,7 @@ impl WindowWorkspaceData {
             messages: cx.create_rw_signal(Vec::new()),
             common,
             document_symbol_scroll_to: cx.create_rw_signal(None),
-            build_data,
+            build_data
         };
 
         {
@@ -705,7 +705,7 @@ impl WindowWorkspaceData {
         let config = LapceConfig::load(
             &self.workspace,
             &all_disabled_volts,
-            &self.common.window_common.extra_plugin_paths,
+            &self.common.window_common.extra_plugin_paths
         );
         self.common.keypress.update(|keypress| {
             keypress.update_keymaps(&config);
@@ -730,7 +730,7 @@ impl WindowWorkspaceData {
             if config.core.auto_reload_plugin {
                 let mut plugin_metas: HashMap<
                     String,
-                    lapce_rpc::plugin::VoltMetadata,
+                    lapce_rpc::plugin::VoltMetadata
                 > = self
                     .plugin
                     .installed
@@ -774,14 +774,14 @@ impl WindowWorkspaceData {
                 }
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {},
+            CommandKind::MultiSelection(_) => {}
         }
     }
 
     pub fn run_workbench_command(
         &self,
         cmd: LapceWorkbenchCommand,
-        data: Option<Value>,
+        data: Option<Value>
     ) -> Result<()> {
         use LapceWorkbenchCommand::*;
         match cmd {
@@ -1705,9 +1705,9 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: false,
-                        same_editor_tab: false,
+                        same_editor_tab: false
                     },
-                    None,
+                    None
                 );
             },
             InternalCommand::OpenAndConfirmedFile { path } => {
@@ -1717,9 +1717,9 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: false,
-                        same_editor_tab: false,
+                        same_editor_tab: false
                     },
-                    None,
+                    None
                 );
                 if let Some(editor) = self.main_split.active_editor.get_untracked() {
                     editor.confirmed.set(true);
@@ -1732,9 +1732,9 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: true,
-                        same_editor_tab: false,
+                        same_editor_tab: false
                     },
-                    None,
+                    None
                 );
             },
             InternalCommand::OpenFileChanges { path } => {
@@ -1755,16 +1755,16 @@ impl WindowWorkspaceData {
                             },
                             Err(err) => {
                                 naming.update(|naming| naming.set_err(err.message));
-                            },
+                            }
                         }
-                    },
+                    }
                 );
 
                 self.common.proxy.test_create_at_path(new_path, send);
             },
             InternalCommand::FinishRenamePath {
                 current_path,
-                new_path,
+                new_path
             } => {
                 let send_current_path = current_path.clone();
                 let send_new_path = new_path.clone();
@@ -1779,7 +1779,7 @@ impl WindowWorkspaceData {
                                 // Get the canonicalized new path from the proxy.
                                 let new_path =
                                     if let ProxyResponse::CreatePathResponse {
-                                        path,
+                                        path
                                     } = response
                                     {
                                         path
@@ -1807,9 +1807,9 @@ impl WindowWorkspaceData {
                                                             path,
                                                             ..
                                                         } => path.starts_with(
-                                                            &send_current_path,
+                                                            &send_current_path
                                                         ),
-                                                        _ => false,
+                                                        _ => false
                                                     }
                                                 })
                                             })
@@ -1837,9 +1837,9 @@ impl WindowWorkspaceData {
                                 file_explorer
                                     .naming
                                     .update(|naming| naming.set_err(err.message));
-                            },
+                            }
                         }
-                    },
+                    }
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
@@ -1855,7 +1855,7 @@ impl WindowWorkspaceData {
                     self.scope,
                     move |(_id, response): (
                         u64,
-                        Result<ProxyResponse, RpcError>,
+                        Result<ProxyResponse, RpcError>
                     )| {
                         match response {
                             Ok(response) => {
@@ -1868,7 +1868,7 @@ impl WindowWorkspaceData {
                                 {
                                     if !is_dir {
                                         internal_command.send(
-                                            InternalCommand::OpenFile { path },
+                                            InternalCommand::OpenFile { path }
                                         );
                                     }
                                 }
@@ -1877,9 +1877,9 @@ impl WindowWorkspaceData {
                                 file_explorer
                                     .naming
                                     .update(|naming| naming.set_err(err.message));
-                            },
+                            }
                         }
-                    },
+                    }
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
@@ -1896,7 +1896,7 @@ impl WindowWorkspaceData {
                     self.scope,
                     move |(_id, response): (
                         u64,
-                        Result<ProxyResponse, RpcError>,
+                        Result<ProxyResponse, RpcError>
                     )| {
                         if let Err(err) = response {
                             file_explorer
@@ -1906,7 +1906,7 @@ impl WindowWorkspaceData {
                             file_explorer.reload();
                             file_explorer.naming.set(Naming::None);
                         }
-                    },
+                    }
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
@@ -1926,13 +1926,13 @@ impl WindowWorkspaceData {
             },
             InternalCommand::Split {
                 direction,
-                editor_tab_id,
+                editor_tab_id
             } => {
                 self.main_split.split(direction, editor_tab_id);
             },
             InternalCommand::SplitMove {
                 direction,
-                editor_tab_id,
+                editor_tab_id
             } => {
                 self.main_split.split_move(direction, editor_tab_id);
             },
@@ -1944,7 +1944,7 @@ impl WindowWorkspaceData {
             },
             InternalCommand::EditorTabChildClose {
                 editor_tab_id,
-                child,
+                child
             } => {
                 self.main_split
                     .editor_tab_child_close(editor_tab_id, child, false);
@@ -1952,19 +1952,19 @@ impl WindowWorkspaceData {
             InternalCommand::EditorTabCloseByKind {
                 editor_tab_id,
                 child,
-                kind,
+                kind
             } => {
                 self.main_split.editor_tab_child_close_by_kind(
                     editor_tab_id,
                     child,
-                    kind,
+                    kind
                 );
             },
             InternalCommand::ShowCodeActions {
                 offset,
                 mouse_click,
                 plugin_id,
-                code_actions,
+                code_actions
             } => {
                 let mut code_action = self.code_action.get_untracked();
                 code_action.show(plugin_id, code_actions, offset, mouse_click);
@@ -1979,7 +1979,7 @@ impl WindowWorkspaceData {
             InternalCommand::SaveJumpLocation {
                 path,
                 offset,
-                scroll_offset,
+                scroll_offset
             } => {
                 self.main_split
                     .save_jump_location(path, offset, scroll_offset);
@@ -1988,7 +1988,7 @@ impl WindowWorkspaceData {
                 path,
                 placeholder,
                 position,
-                start,
+                start
             } => {
                 self.rename.start(path, placeholder, start, position);
             },
@@ -2004,7 +2004,7 @@ impl WindowWorkspaceData {
             InternalCommand::FindEditorCommand {
                 command,
                 count,
-                mods,
+                mods
             } => {
                 self.main_split
                     .find_editor
@@ -2013,7 +2013,7 @@ impl WindowWorkspaceData {
             InternalCommand::ReplaceEditorCommand {
                 command,
                 count,
-                mods,
+                mods
             } => {
                 self.main_split
                     .replace_editor
@@ -2028,7 +2028,7 @@ impl WindowWorkspaceData {
                     LapceConfig::update_file(
                         "core",
                         "color-theme",
-                        toml_edit::Value::from(name),
+                        toml_edit::Value::from(name)
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
@@ -2043,7 +2043,7 @@ impl WindowWorkspaceData {
                     LapceConfig::update_file(
                         "core",
                         "icon-theme",
-                        toml_edit::Value::from(name),
+                        toml_edit::Value::from(name)
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
@@ -2056,7 +2056,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "core",
                     "modal",
-                    toml_edit::Value::from(modal),
+                    toml_edit::Value::from(modal)
                 );
             },
             InternalCommand::OpenWebUri { uri } => {
@@ -2067,14 +2067,14 @@ impl WindowWorkspaceData {
                         },
                         Err(e) => {
                             trace!("failed to open web uri: {uri:?}, error: {e}");
-                        },
+                        }
                     }
                 }
             },
             InternalCommand::ShowAlert {
                 title,
                 msg,
-                buttons,
+                buttons
             } => {
                 self.show_alert(title, msg, buttons);
             },
@@ -2106,7 +2106,7 @@ impl WindowWorkspaceData {
             },
             InternalCommand::OpenDiffFiles {
                 left_path,
-                right_path,
+                right_path
             } => self.main_split.open_diff_files(left_path, right_path),
             InternalCommand::ExecuteProcess { program, arguments } => {
                 let mut cmd = match std::process::Command::new(program)
@@ -2114,19 +2114,19 @@ impl WindowWorkspaceData {
                     .spawn()
                 {
                     Ok(v) => v,
-                    Err(e) => return error!("Failed to spawn process: {e}"),
+                    Err(e) => return error!("Failed to spawn process: {e}")
                 };
 
                 match cmd.wait() {
                     Ok(v) => trace!("Process exited with status {v}"),
                     Err(e) => {
                         error!("Proces exited with an error: {e}")
-                    },
+                    }
                 };
             },
             InternalCommand::ClearTerminalBuffer {
                 view_id,
-                terminal_id,
+                terminal_id
             } => {
                 let Some(tab) = self.terminal.tab_infos.with_untracked(|x| {
                     x.tabs.iter().find_map(|data| {
@@ -2166,7 +2166,7 @@ impl WindowWorkspaceData {
             },
             InternalCommand::CallHierarchyIncoming { item_id, root_id } => {
                 self.call_hierarchy_incoming(root_id, item_id);
-            },
+            }
         }
     }
 
@@ -2207,7 +2207,7 @@ impl WindowWorkspaceData {
                 request_id,
                 input,
                 resp,
-                plugin_id,
+                plugin_id
             } => {
                 self.common.completion.update(|completion| {
                     completion.receive(*request_id, input, resp, *plugin_id);
@@ -2225,7 +2225,7 @@ impl WindowWorkspaceData {
                 }
             },
             CoreNotification::PublishDiagnostics {
-                diagnostics: diagnostic_params,
+                diagnostics: diagnostic_params
             } => {
                 let path = path_from_url(&diagnostic_params.uri);
                 let diagnostics: im::Vector<Diagnostic> = diagnostic_params
@@ -2312,7 +2312,7 @@ impl WindowWorkspaceData {
                             cx,
                             &RunDebugMode::Debug,
                             config,
-                            true,
+                            true
                         );
                         return;
                     };
@@ -2332,7 +2332,7 @@ impl WindowWorkspaceData {
                             config: config.clone(),
                             stopped: false,
                             created: Instant::now(),
-                            is_prelaunch: false,
+                            is_prelaunch: false
                         }));
                     } else {
                         error!("no found terminal {term_id:?}");
@@ -2343,7 +2343,7 @@ impl WindowWorkspaceData {
             },
             CoreNotification::TerminalProcessId {
                 term_id,
-                process_id,
+                process_id
             } => {
                 self.terminal.set_process_id(term_id, *process_id);
             },
@@ -2351,7 +2351,7 @@ impl WindowWorkspaceData {
                 dap_id,
                 stopped,
                 stack_frames,
-                variables,
+                variables
             } => {
                 self.show_panel(PanelKind::Debug);
                 self.terminal
@@ -2419,10 +2419,10 @@ impl WindowWorkspaceData {
             CoreNotification::Log {
                 level,
                 message,
-                target,
+                target
             } => {
                 use lapce_rpc::core::LogLevel;
-                use log::{log, Level};
+                use log::{Level, log};
 
                 let target = target.clone().unwrap_or(String::from("unknown"));
 
@@ -2441,7 +2441,7 @@ impl WindowWorkspaceData {
                     },
                     LogLevel::Error => {
                         log!(target: &target, Level::Error, "{}", message);
-                    },
+                    }
                 }
             },
             CoreNotification::LogMessage { message, target } => {
@@ -2462,13 +2462,13 @@ impl WindowWorkspaceData {
                     MessageType::LOG => {
                         trace!("{} {}", target, message.message)
                     },
-                    _ => {},
+                    _ => {}
                 }
             },
             CoreNotification::WorkspaceFileChange => {
                 self.file_explorer.reload();
             },
-            _ => {},
+            _ => {}
         }
     }
 
@@ -2500,7 +2500,7 @@ impl WindowWorkspaceData {
             Focus::Panel(PanelKind::SourceControl) => {
                 Some(keypress.key_down(event, &self.source_control))
             },
-            _ => None,
+            _ => None
         };
 
         if let Some(handle) = &handle {
@@ -2511,7 +2511,7 @@ impl WindowWorkspaceData {
                     .handle_keymatch(
                         self,
                         handle.keymatch.clone(),
-                        handle.keypress.clone(),
+                        handle.keypress.clone()
                     )
                     .handled
             }
@@ -2529,8 +2529,8 @@ impl WindowWorkspaceData {
             .cloned()
             .unwrap();
         WorkspaceInfo {
-            split: main_split_data.get_untracked().split_info(self),
-            panel: self.panel.panel_info(),
+            split:       main_split_data.get_untracked().split_info(self),
+            panel:       self.panel.panel_info(),
             breakpoints: self
                 .terminal
                 .debug
@@ -2540,7 +2540,7 @@ impl WindowWorkspaceData {
                 .map(|(path, breakpoints)| {
                     (path, breakpoints.into_values().collect::<Vec<_>>())
                 })
-                .collect(),
+                .collect()
         }
     }
 
@@ -2555,7 +2555,7 @@ impl WindowWorkspaceData {
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
             editor_data.signal_viewport(),
-            &editor_data.editor,
+            &editor_data.editor
         );
 
         // TODO(minor): affinity should be gotten from where the hover was started
@@ -2563,7 +2563,7 @@ impl WindowWorkspaceData {
         let (point_above, point_below) = editor
             .points_of_offset(
                 self.common.hover.offset.get_untracked(),
-                CursorAffinity::Forward,
+                CursorAffinity::Forward
             )
             .ok()?;
 
@@ -2578,7 +2578,7 @@ impl WindowWorkspaceData {
         let mut origin = window_origin
             + Vec2::new(
                 point_below.x - viewport.x0 - offset,
-                (point_above.y - viewport.y0) - hover_size.height + offset,
+                (point_above.y - viewport.y0) - hover_size.height + offset
             );
         if origin.y < 0.0 {
             // bottom right corner of word
@@ -2611,7 +2611,7 @@ impl WindowWorkspaceData {
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
             editor_data.signal_viewport(),
-            &editor_data.editor,
+            &editor_data.editor
         );
 
         // TODO(minor): What affinity should we use for this? Probably just use the
@@ -2631,7 +2631,7 @@ impl WindowWorkspaceData {
                     - viewport.x0
                     - config.editor.line_height() as f64
                     - 5.0,
-                point_below.y - viewport.y0,
+                point_below.y - viewport.y0
             );
         if origin.y + completion_size.height > tab_size.height {
             origin.y = window_origin.y + (point_above.y - viewport.y0)
@@ -2664,7 +2664,7 @@ impl WindowWorkspaceData {
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
             editor_data.signal_viewport(),
-            &editor_data.editor,
+            &editor_data.editor
         );
 
         // TODO(minor): What affinity should we use for this?
@@ -2682,7 +2682,7 @@ impl WindowWorkspaceData {
                 } else {
                     point_below.x - viewport.x0
                 },
-                point_below.y - viewport.y0,
+                point_below.y - viewport.y0
             );
 
         if origin.y + code_action_size.height > tab_size.height {
@@ -2719,13 +2719,13 @@ impl WindowWorkspaceData {
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
             editor_data.signal_viewport(),
-            &editor_data.editor,
+            &editor_data.editor
         );
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) = editor.points_of_offset(
             self.rename.start.get_untracked(),
-            CursorAffinity::Forward,
+            CursorAffinity::Forward
         )?;
 
         let window_origin =
@@ -2785,7 +2785,8 @@ impl WindowWorkspaceData {
             | PanelKind::CallHierarchy
             | PanelKind::DocumentSymbol
             | PanelKind::References
-            | PanelKind::Implementation | PanelKind::Build => {
+            | PanelKind::Implementation
+            | PanelKind::Build => {
                 // Some panels don't accept focus (yet). Fall back to visibility
                 // check in those cases.
                 self.panel.is_panel_visible(&kind)
@@ -2840,7 +2841,7 @@ impl WindowWorkspaceData {
                     .config
                     .get_untracked()
                     .terminal
-                    .get_default_profile(),
+                    .get_default_profile()
             );
         }
         self.panel.show_panel(&kind);
@@ -2878,7 +2879,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            },
+            }
         }
     }
 
@@ -2887,7 +2888,7 @@ impl WindowWorkspaceData {
         _cx: Scope,
         mode: &RunDebugMode,
         config: &RunDebugConfig,
-        from_dap: bool,
+        from_dap: bool
     ) -> TermId {
         // if not from dap, then run prelaunch first
         let is_prelaunch = !from_dap;
@@ -2900,7 +2901,7 @@ impl WindowWorkspaceData {
                 config: config.clone(),
                 stopped: false,
                 created: Instant::now(),
-                is_prelaunch,
+                is_prelaunch
             }));
 
             terminal.term_id
@@ -2912,9 +2913,9 @@ impl WindowWorkspaceData {
                     config: config.clone(),
                     stopped: false,
                     created: Instant::now(),
-                    is_prelaunch,
+                    is_prelaunch
                 }),
-                None,
+                None
             );
             new_terminal_tab.active_terminal(false).term_id
         };
@@ -2938,7 +2939,7 @@ impl WindowWorkspaceData {
 
     fn restart_run_program_in_terminal(
         &self,
-        terminal_id: TerminalTabId,
+        terminal_id: TerminalTabId
     ) -> anyhow::Result<()> {
         let tab = self
             .terminal
@@ -2969,7 +2970,7 @@ impl WindowWorkspaceData {
                     self.scope,
                     dap_id,
                     Some(terminal.term_id),
-                    self.common.clone(),
+                    self.common.clone()
                 );
                 self.terminal.debug.daps.update(|x| {
                     x.insert(dap_id, dap_data);
@@ -2986,7 +2987,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            },
+            }
         }
         Ok(())
     }
@@ -2999,20 +3000,20 @@ impl WindowWorkspaceData {
             self.common.window_common.window_command.send(
                 WindowCommand::NewWorkspaceTab {
                     workspace: LapceWorkspace {
-                        kind: self.workspace.kind.clone(),
-                        path: Some(folder.path.clone()),
-                        last_open: 0,
+                        kind:      self.workspace.kind.clone(),
+                        path:      Some(folder.path.clone()),
+                        last_open: 0
                     },
-                    end: false,
-                },
+                    end:       false
+                }
             );
         }
 
         for file in files {
             let position = file.linecol.map(|pos| {
                 EditorPosition::Position(lsp_types::Position {
-                    line: pos.line.saturating_sub(1) as u32,
-                    character: pos.column.saturating_sub(1) as u32,
+                    line:      pos.line.saturating_sub(1) as u32,
+                    character: pos.column.saturating_sub(1) as u32
                 })
             });
 
@@ -3026,8 +3027,8 @@ impl WindowWorkspaceData {
                         // Create a new editor for the file, so we don't change any
                         // current unconfirmed editor
                         ignore_unconfirmed: true,
-                        same_editor_tab: false,
-                    },
+                        same_editor_tab: false
+                    }
                 });
         }
     }
@@ -3045,10 +3046,10 @@ impl WindowWorkspaceData {
             lsp_types::ProgressParamsValue::WorkDone(progress) => match progress {
                 lsp_types::WorkDoneProgress::Begin(progress) => {
                     let progress = WorkProgress {
-                        token: token.clone(),
-                        title: progress.title.clone(),
-                        message: progress.message.clone(),
-                        percentage: progress.percentage,
+                        token:      token.clone(),
+                        title:      progress.title.clone(),
+                        message:    progress.message.clone(),
+                        percentage: progress.percentage
                     };
                     self.progresses.update(|p| {
                         p.insert(token, progress);
@@ -3066,8 +3067,8 @@ impl WindowWorkspaceData {
                     self.progresses.update(|p| {
                         p.swap_remove(&token);
                     });
-                },
-            },
+                }
+            }
         }
     }
 
@@ -3084,8 +3085,8 @@ impl WindowWorkspaceData {
                 title,
                 ShowMessageParams {
                     typ: MessageType::ERROR,
-                    message,
-                },
+                    message
+                }
             ));
         });
     }
@@ -3107,7 +3108,7 @@ impl WindowWorkspaceData {
         mouse_click: bool,
         plugin_id: PluginId,
         offset: usize,
-        lens: im::Vector<CodeLens>,
+        lens: im::Vector<CodeLens>
     ) {
         self.common
             .internal_command
@@ -3120,7 +3121,7 @@ impl WindowWorkspaceData {
                     .filter_map(|lens| {
                         Some(CodeActionOrCommand::Command(lens.command?))
                     })
-                    .collect(),
+                    .collect()
             });
     }
 
@@ -3161,8 +3162,8 @@ impl WindowWorkspaceData {
                                         from_range: range,
                                         init: false,
                                         open: scope.create_rw_signal(false),
-                                        children: scope.create_rw_signal(Vec::new()),
-                                    },
+                                        children: scope.create_rw_signal(Vec::new())
+                                    }
                                 ))
                             }
                         }
@@ -3177,13 +3178,13 @@ impl WindowWorkspaceData {
                 Err(err) => {
                     log::error!("{:?}", err);
                 },
-                Ok(_) => {},
-            },
+                Ok(_) => {}
+            }
         );
         self.common.proxy.call_hierarchy_incoming(
             path,
             item.get_untracked().item.as_ref().clone(),
-            send,
+            send
         );
     }
 
@@ -3198,7 +3199,7 @@ impl WindowWorkspaceData {
                     .cloned()
                     .unwrap();
                 SplitContentInfo::EditorTab(
-                    editor_tab_data.get_untracked().tab_info(self),
+                    editor_tab_data.get_untracked().tab_info(self)
                 )
             },
             SplitContent::Split(split_id) => {
@@ -3210,7 +3211,7 @@ impl WindowWorkspaceData {
                     .cloned()
                     .unwrap();
                 SplitContentInfo::Split(split_data.get_untracked().split_info(self))
-            },
+            }
         }
     }
 }
@@ -3223,6 +3224,6 @@ fn open_uri(path: &Path) {
         },
         Err(e) => {
             error!("failed to open active file: {path:?}, error: {e}");
-        },
+        }
     }
 }

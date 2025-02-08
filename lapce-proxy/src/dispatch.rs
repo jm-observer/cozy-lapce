@@ -328,12 +328,8 @@ impl ProxyHandler for Dispatcher {
                     None,
                     false
                 );
-            }
-            RustBuild {
-                ..
-            } => {
-
-            }
+            },
+            RustBuild { .. } => {}
         }
     }
 

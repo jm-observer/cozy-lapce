@@ -50,11 +50,10 @@ impl LapceIcons {
     pub const DIRECTORY_OPENED: &'static str = "directory.opened";
     pub const DOCUMENT_SYMBOL: &'static str = "document_symbol";
     pub const DROPDOWN_ARROW: &'static str = "dropdown.arrow";
-
-    pub const EMPTY: &'static str = "empty";
     pub const EDITOR_FOLDING_END: &'static str = "folding.end";
     pub const EDITOR_FOLDING_FOLDED: &'static str = "folding.folded";
     pub const EDITOR_FOLDING_START: &'static str = "folding.start";
+    pub const EMPTY: &'static str = "empty";
     pub const ERROR: &'static str = "error";
     pub const EXTENSIONS: &'static str = "extensions";
     pub const FILE: &'static str = "file";

@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
+use lapce_core::debug::RunDebugMode;
 use lapce_rpc::dap_types::{ConfigSource, RunDebugConfig, RunDebugProgram};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use lapce_core::debug::RunDebugMode;
 
 use crate::{command::InternalCommand, window_workspace::CommonData};
 
@@ -13,20 +13,20 @@ struct CargoArgs {
     pub cargo_args: Vec<String>,
 
     #[serde(rename = "executableArgs")]
-    pub executable_args: Vec<String>,
+    pub executable_args: Vec<String>
 }
 
 #[derive(Serialize, Deserialize)]
 struct RustArgs {
-    pub args: CargoArgs,
-    pub kind: String,
-    pub label: String,
-    pub location: lsp_types::LocationLink,
+    pub args:     CargoArgs,
+    pub kind:     String,
+    pub label:    String,
+    pub location: lsp_types::LocationLink
 }
 
 #[derive(Clone)]
 pub struct CodeLensData {
-    common: Rc<CommonData>,
+    common: Rc<CommonData>
 }
 
 impl CodeLensData {
@@ -50,14 +50,14 @@ impl CodeLensData {
             },
             _ => {
                 log::debug!("todo {:}", command);
-            },
+            }
         }
     }
 
     fn get_rust_command_config(
         &self,
         args: &[Value],
-        mode: RunDebugMode,
+        mode: RunDebugMode
     ) -> Option<RunDebugConfig> {
         if let Some(args) = args.first() {
             let Ok(mut cargo_args) =
@@ -87,7 +87,7 @@ impl CodeLensData {
                 args.push("--message-format=json".to_owned());
                 prelaunch = Some(RunDebugProgram {
                     program: "cargo".to_string(),
-                    args: Some(args),
+                    args:    Some(args)
                 });
                 cargo_args
                     .args
@@ -113,7 +113,7 @@ impl CodeLensData {
                 debug_command: None,
                 dap_id: Default::default(),
                 tracing_output,
-                config_source: ConfigSource::RustCodeLens,
+                config_source: ConfigSource::RustCodeLens
             })
         } else {
             log::error!("no args");

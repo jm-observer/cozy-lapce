@@ -135,21 +135,24 @@ fn test_load_volt() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(volt_metadata, VoltMetadata {
-        name:         "some-useful-plugin".to_string(),
-        version:      "0.1.56".to_string(),
-        display_name: "Some Useful Plugin Name".to_string(),
-        author:       "some_author".to_string(),
-        description:  "very useful plugin".to_string(),
-        icon:         Some("icon.svg".to_string()),
-        repository:   Some("https://github.com/lapce".to_string()),
-        wasm:         wasm_path,
-        color_themes: Some(color_themes_pathes),
-        icon_themes:  Some(icon_themes_pathes),
-        dir:          parent_path.canonicalize().ok(),
-        activation:   None,
-        config:       None
-    });
+    assert_eq!(
+        volt_metadata,
+        VoltMetadata {
+            name:         "some-useful-plugin".to_string(),
+            version:      "0.1.56".to_string(),
+            display_name: "Some Useful Plugin Name".to_string(),
+            author:       "some_author".to_string(),
+            description:  "very useful plugin".to_string(),
+            icon:         Some("icon.svg".to_string()),
+            repository:   Some("https://github.com/lapce".to_string()),
+            wasm:         wasm_path,
+            color_themes: Some(color_themes_pathes),
+            icon_themes:  Some(icon_themes_pathes),
+            dir:          parent_path.canonicalize().ok(),
+            activation:   None,
+            config:       None
+        }
+    );
 
     let parent_path = lapce_proxy_dir.join("some_author.test-plugin-two");
 
@@ -192,21 +195,24 @@ fn test_load_volt() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(volt_metadata, VoltMetadata {
-        name:         "some-useful-plugin".to_string(),
-        version:      "0.1.56".to_string(),
-        display_name: "Some Useful Plugin Name".to_string(),
-        author:       "some_author.".to_string(),
-        description:  "very useful plugin".to_string(),
-        icon:         Some("icon.svg".to_string()),
-        repository:   Some("https://github.com/lapce".to_string()),
-        wasm:         wasm_path,
-        color_themes: Some(color_themes_pathes),
-        icon_themes:  Some(icon_themes_pathes),
-        dir:          parent_path.canonicalize().ok(),
-        activation:   None,
-        config:       None
-    });
+    assert_eq!(
+        volt_metadata,
+        VoltMetadata {
+            name:         "some-useful-plugin".to_string(),
+            version:      "0.1.56".to_string(),
+            display_name: "Some Useful Plugin Name".to_string(),
+            author:       "some_author.".to_string(),
+            description:  "very useful plugin".to_string(),
+            icon:         Some("icon.svg".to_string()),
+            repository:   Some("https://github.com/lapce".to_string()),
+            wasm:         wasm_path,
+            color_themes: Some(color_themes_pathes),
+            icon_themes:  Some(icon_themes_pathes),
+            dir:          parent_path.canonicalize().ok(),
+            activation:   None,
+            config:       None
+        }
+    );
 
     let parent_path = lapce_proxy_dir.join("some_author.test-plugin-three");
 
@@ -215,19 +221,22 @@ fn test_load_volt() {
         Err(error) => panic!("{}", error)
     };
 
-    assert_eq!(volt_metadata, VoltMetadata {
-        name:         "some-useful-plugin".to_string(),
-        version:      "0.1.56".to_string(),
-        display_name: "Some Useful Plugin Name".to_string(),
-        author:       "some_author".to_string(),
-        description:  "very useful plugin".to_string(),
-        icon:         Some("icon.svg".to_string()),
-        repository:   Some("https://github.com/lapce".to_string()),
-        wasm:         None,
-        color_themes: Some(Vec::new()),
-        icon_themes:  Some(Vec::new()),
-        dir:          parent_path.canonicalize().ok(),
-        activation:   None,
-        config:       None
-    });
+    assert_eq!(
+        volt_metadata,
+        VoltMetadata {
+            name:         "some-useful-plugin".to_string(),
+            version:      "0.1.56".to_string(),
+            display_name: "Some Useful Plugin Name".to_string(),
+            author:       "some_author".to_string(),
+            description:  "very useful plugin".to_string(),
+            icon:         Some("icon.svg".to_string()),
+            repository:   Some("https://github.com/lapce".to_string()),
+            wasm:         None,
+            color_themes: Some(Vec::new()),
+            icon_themes:  Some(Vec::new()),
+            dir:          parent_path.canonicalize().ok(),
+            activation:   None,
+            config:       None
+        }
+    );
 }

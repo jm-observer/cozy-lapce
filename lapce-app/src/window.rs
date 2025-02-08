@@ -1,53 +1,48 @@
 use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use floem::{
+    ViewId,
     action::TimerToken,
     peniko::kurbo::{Point, Size},
     reactive::{
-        use_context, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate,
-        SignalWith,
+        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        use_context
     },
-    window::WindowId,
-    ViewId,
+    window::WindowId
 };
+use lapce_core::workspace::LapceWorkspace;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use lapce_core::workspace::LapceWorkspace;
 
 use crate::{
-    app::AppCommand,
-    command::{WindowCommand},
-    config::LapceConfig,
-    db::LapceDb,
-    keypress::EventRef,
-    listener::Listener,
-    update::ReleaseInfo,
-    window_workspace::WindowWorkspaceData,
+    app::AppCommand, command::WindowCommand, config::LapceConfig, db::LapceDb,
+    keypress::EventRef, listener::Listener, update::ReleaseInfo,
+    window_workspace::WindowWorkspaceData
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
-    pub size: Size,
-    pub pos: Point,
+    pub size:      Size,
+    pub pos:       Point,
     pub maximised: bool,
     #[serde(default)]
-    pub workspace: LapceWorkspace,
+    pub workspace: LapceWorkspace
 }
 
 #[derive(Clone)]
 pub struct WindowCommonData {
-    pub window_command: Listener<WindowCommand>,
-    pub window_scale: RwSignal<f64>,
-    pub size: RwSignal<Size>,
-    pub window_maximized: RwSignal<bool>,
+    pub window_command:           Listener<WindowCommand>,
+    pub window_scale:             RwSignal<f64>,
+    pub size:                     RwSignal<Size>,
+    pub window_maximized:         RwSignal<bool>,
     pub window_tab_header_height: RwSignal<f64>,
-    pub latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
-    pub ime_allowed: RwSignal<bool>,
-    pub cursor_blink_timer: RwSignal<TimerToken>,
+    pub latest_release:           ReadSignal<Arc<Option<ReleaseInfo>>>,
+    pub ime_allowed:              RwSignal<bool>,
+    pub cursor_blink_timer:       RwSignal<TimerToken>,
     // the value to be update by curosr blinking
-    pub hide_cursor: RwSignal<bool>,
-    pub app_view_id: RwSignal<ViewId>,
-    pub extra_plugin_paths: Arc<Vec<PathBuf>>,
+    pub hide_cursor:              RwSignal<bool>,
+    pub app_view_id:              RwSignal<ViewId>,
+    pub extra_plugin_paths:       Arc<Vec<PathBuf>>
 }
 
 /// `WindowData` is the application model for a top-level window.
@@ -61,21 +56,21 @@ pub struct WindowCommonData {
 /// normally only one window tab), size, position etc.
 #[derive(Clone)]
 pub struct WindowData {
-    pub window_id: WindowId,
-    pub scope: Scope,
+    pub window_id:    WindowId,
+    pub scope:        Scope,
     /// The set of tabs within the window. These tabs are high-level
     /// constructs for workspaces, in particular they are not **editor tabs**.
-    pub window_tabs: RwSignal<WindowWorkspaceData>,
+    pub window_tabs:  RwSignal<WindowWorkspaceData>,
     /// The index of the active window tab.
     // pub active: RwSignal<usize>,
     pub app_command: Listener<AppCommand>,
-    pub position: RwSignal<Point>,
+    pub position:     RwSignal<Point>,
     pub root_view_id: RwSignal<ViewId>,
     pub window_scale: RwSignal<f64>,
-    pub config: RwSignal<Arc<LapceConfig>>,
-    pub ime_enabled: RwSignal<bool>,
-    pub common: Rc<WindowCommonData>,
-    pub watcher: Arc<RwLock<notify::RecommendedWatcher>>,
+    pub config:       RwSignal<Arc<LapceConfig>>,
+    pub ime_enabled:  RwSignal<bool>,
+    pub common:       Rc<WindowCommonData>,
+    pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
 }
 
 impl WindowData {
@@ -88,7 +83,7 @@ impl WindowData {
         latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
         app_command: Listener<AppCommand>,
-        watcher: Arc<RwLock<notify::RecommendedWatcher>>,
+        watcher: Arc<RwLock<notify::RecommendedWatcher>>
     ) -> Self {
         let cx = Scope::new();
         let config =
@@ -115,7 +110,7 @@ impl WindowData {
             cursor_blink_timer,
             hide_cursor,
             app_view_id,
-            extra_plugin_paths,
+            extra_plugin_paths
         });
         let w = info.workspace.clone();
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
@@ -123,7 +118,7 @@ impl WindowData {
         let window_tabs = cx.create_rw_signal(WindowWorkspaceData::new(
             cx,
             Arc::new(w),
-            common.clone(),
+            common.clone()
         ));
 
         // for w in info.tabs.workspaces {
@@ -162,7 +157,7 @@ impl WindowData {
             config,
             ime_enabled: cx.create_rw_signal(false),
             common,
-            watcher,
+            watcher
         };
 
         {
@@ -192,7 +187,7 @@ impl WindowData {
         let config = LapceConfig::load(
             &LapceWorkspace::default(),
             &[],
-            &self.common.extra_plugin_paths,
+            &self.common.extra_plugin_paths
         );
         self.config.set(Arc::new(config));
         self.window_tabs.with_untracked(|x| x.reload_config());
@@ -215,13 +210,16 @@ impl WindowData {
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace.clone(),
-                    self.common.clone(),
+                    self.common.clone()
                 );
 
                 self.window_tabs.set(window_tab);
                 workspace.watch_project_setting(&self.watcher);
-            }
-            WindowCommand::NewWorkspaceTab { workspace, end: _end } => {
+            },
+            WindowCommand::NewWorkspaceTab {
+                workspace,
+                end: _end
+            } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
                 if let Err(err) = db.update_recent_workspace(&workspace) {
                     log::error!("{:?}", err);
@@ -231,7 +229,7 @@ impl WindowData {
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     Arc::new(workspace),
-                    self.common.clone(),
+                    self.common.clone()
                 );
                 self.window_tabs.set(window_tab);
                 // let active = self.active.get_untracked();
@@ -255,7 +253,7 @@ impl WindowData {
                 //     })
                 //     .unwrap();
                 // self.active.set(active);
-            }
+            },
             WindowCommand::CloseWorkspaceTab { index: _index } => {
                 // let active = self.active.get_untracked();
                 // let index = index.unwrap_or(active);
@@ -268,24 +266,25 @@ impl WindowData {
                 //         let (_, old_window_tab) = window_tabs.remove(index);
                 //         old_window_tab.proxy.shutdown();
                 //         let db: Arc<LapceDb> = use_context().unwrap();
-                //         if let Err(err) = db.save_window_tab(old_window_tab) {
-                //             log::error!("{:?}", err);
+                //         if let Err(err) = db.save_window_tab(old_window_tab)
+                // {             log::error!("{:?}", err);
                 //         }
                 //     }
                 // });
                 //
-                // let tabs_len = self.window_tabs.with_untracked(|tabs| tabs.len());
+                // let tabs_len = self.window_tabs.with_untracked(|tabs|
+                // tabs.len());
                 //
                 // if active > index && active > 0 {
                 //     self.active.set(active - 1);
                 // } else if active >= tabs_len.saturating_sub(1) {
                 //     self.active.set(tabs_len.saturating_sub(1));
                 // }
-            }
+            },
             WindowCommand::NextWorkspaceTab => {
                 // let active = self.active.get_untracked();
-                // let tabs_len = self.window_tabs.with_untracked(|tabs| tabs.len());
-                // if tabs_len > 1 {
+                // let tabs_len = self.window_tabs.with_untracked(|tabs|
+                // tabs.len()); if tabs_len > 1 {
                 //     let active = if active >= tabs_len - 1 {
                 //         0
                 //     } else {
@@ -293,11 +292,11 @@ impl WindowData {
                 //     };
                 //     self.active.set(active);
                 // }
-            }
+            },
             WindowCommand::PreviousWorkspaceTab => {
                 // let active = self.active.get_untracked();
-                // let tabs_len = self.window_tabs.with_untracked(|tabs| tabs.len());
-                // if tabs_len > 1 {
+                // let tabs_len = self.window_tabs.with_untracked(|tabs|
+                // tabs.len()); if tabs_len > 1 {
                 //     let active = if active == 0 {
                 //         tabs_len - 1
                 //     } else {
@@ -305,11 +304,11 @@ impl WindowData {
                 //     };
                 //     self.active.set(active);
                 // }
-            }
+            },
             WindowCommand::NewWindow => {
                 self.app_command
                     .send(AppCommand::NewWindow { folder: None });
-            }
+            },
             WindowCommand::CloseWindow => {
                 self.app_command
                     .send(AppCommand::CloseWindow(self.window_id));
@@ -323,14 +322,13 @@ impl WindowData {
     }
 
     pub fn info(&self) -> WindowInfo {
-        let workspace: LapceWorkspace = self
-            .window_tabs
-            .get_untracked().workspace.as_ref().clone();
+        let workspace: LapceWorkspace =
+            self.window_tabs.get_untracked().workspace.as_ref().clone();
         WindowInfo {
             size: self.common.size.get_untracked(),
             pos: self.position.get_untracked(),
             maximised: false,
-            workspace,
+            workspace
         }
     }
 
