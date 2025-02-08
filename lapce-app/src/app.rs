@@ -576,7 +576,7 @@ impl AppData {
                             cfg!(target_os = "macos")
                                 || !config.get_untracked().core.custom_titlebar,
                             |s| s.hide(),
-                        )
+                        ).pointer_events_none()
                     }),
             ))
                 .style(|s| s.flex_col().size_full());
@@ -1561,9 +1561,7 @@ fn editor_tab(
                 .on_resize(move |rect| {
                     tab_size.set(rect.size());
                 })
-                .style(move |s| s.absolute().size_full().apply_if(dragging.get().is_none(), |s| {
-                    s.pointer_events_none()
-                })),
+                .style(move |s| s.absolute().size_full()),
         ))
         .debug_name("Editor Content and Drag Over")
         .style(|s| s.size_full()),
@@ -2864,7 +2862,7 @@ fn palette(window_tab_data: WindowWorkspaceData) -> impl View {
         .position(Position::Absolute)
         .size_full()
         .flex_col()
-        .items_center().pointer_events_none()
+        .items_center()
     })
     .debug_name("Pallete Layer")
 }

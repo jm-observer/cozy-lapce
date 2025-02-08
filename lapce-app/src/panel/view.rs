@@ -504,7 +504,7 @@ fn drag_line(
     .style(move |s| {
         let is_dragging = drag_start.get().is_some();
         let config = config.get();
-        s.background(config.color(LapceColor::PANEL_BACKGROUND))
+        s.background(config.color(LapceColor::PANEL_BACKGROUND)).pointer_events_auto()
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0).height(4.0)
             })
@@ -603,7 +603,6 @@ pub(crate) fn new_panel_picker(
                     s.selectable(false)
                         .absolute()
                         .size_pct(100.0, 100.0)
-                        .pointer_events_none()
                         .apply_if(!is_bottom, |s| s.margin_top(2.0))
                         .apply_if(is_bottom, |s| s.margin_left(-2.0))
                         .apply_if(is_active(), |s| {
