@@ -1861,6 +1861,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1878,7 +1879,6 @@ dependencies = [
  "image",
  "indexmap",
  "lapce-xi-rope 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "log",
  "muda",
  "objc2 0.6.0",
  "objc2-app-kit 0.3.0",
@@ -1903,6 +1903,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.12.1",
@@ -1928,6 +1929,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "smallvec",
 ]
@@ -1935,6 +1937,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "cosmic-text",
  "crossbeam",
@@ -1952,6 +1955,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1968,6 +1972,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
+source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
 dependencies = [
  "anyhow",
  "floem-vger",

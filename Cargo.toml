@@ -115,8 +115,8 @@ regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://g
 #[patch."https://github.com/jm-observer/cozy-floem.git"]
 #doc = {path = "../cozy-floem/libs/doc"}
 #cozy-floem = {path = "../cozy-floem"}
-[patch."https://github.com/lapce/floem"]
-floem = { path="../floem" }
+#[patch."https://github.com/lapce/floem"]
+#floem = { path="../floem" }
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"
