@@ -110,13 +110,8 @@ unicode-segmentation = "1.12.0"
 # Temporarily patch lsp-types with a version that adds message-type debug
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
-#custom-utils = {path="../custom-utils"}
-
-#[patch."https://github.com/jm-observer/cozy-floem.git"]
-#doc = {path = "../cozy-floem/libs/doc"}
-#cozy-floem = {path = "../cozy-floem"}
-#[patch."https://github.com/lapce/floem"]
-#floem = { path="../floem" }
+[patch."https://github.com/lapce/floem"]
+floem = { git="https://github.com/jm-observer/floem", branch = "commit-no" }
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"
@@ -140,6 +135,9 @@ ansi-to-style = {workspace = true}
 inherits      = "release"
 lto           = true
 codegen-units = 1
+
+[profile.release]
+debug           = true
 
 # A profile which compiles all (non-workspace) dependencies in release mode
 # but Lapce code in dev mode. This gives a good debugging experience for your

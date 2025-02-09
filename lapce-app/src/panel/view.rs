@@ -503,7 +503,6 @@ fn drag_line(
         let is_dragging = drag_start.get().is_some();
         let config = config.get();
         s.background(config.color(LapceColor::PANEL_BACKGROUND))
-            .pointer_events_auto()
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0).height(4.0)
             })
@@ -678,7 +677,7 @@ fn drag_event<T: IntoView>(
         s.apply_if(dragging_over.get(), |s| {
             s.background(config.get().color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
         })
-        .apply_if(!is_dragging_panel, |s| s.pointer_events_none())
+        // .apply_if(!is_dragging_panel, |s| s)
     })
 }
 

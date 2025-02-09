@@ -1861,7 +1861,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1903,10 +1903,10 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "bitflags 2.8.0",
- "itertools 0.12.1",
+ "itertools 0.14.0",
  "lapce-xi-rope 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "memchr",
  "serde",
@@ -1929,7 +1929,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "smallvec",
 ]
@@ -1937,12 +1937,11 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "cosmic-text",
  "crossbeam",
  "futures",
- "image",
  "parking_lot",
  "peniko",
  "resvg",
@@ -1955,34 +1954,27 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "anyhow",
- "bytemuck",
  "floem_renderer",
- "futures",
- "image",
  "peniko",
  "raw-window-handle",
  "resvg",
  "softbuffer",
- "swash",
 ]
 
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
-source = "git+https://github.com/lapce/floem.git?rev=a49bc2#a49bc201cfbd14265cd87b621d31f849bc6600e9"
+source = "git+https://github.com/jm-observer/floem?branch=commit-no#d45bb30fd8adf27fe4296a31c21a05ea9fbd3f00"
 dependencies = [
  "anyhow",
  "floem-vger",
  "floem_renderer",
- "futures",
  "image",
  "peniko",
- "raw-window-handle",
  "resvg",
- "swash",
  "wgpu",
 ]
 
@@ -3262,6 +3254,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]

@@ -586,7 +586,7 @@ impl AppData {
                                 || !config.get_untracked().core.custom_titlebar,
                             |s| s.hide()
                         )
-                        .pointer_events_none()
+
                 })
             ))
             .style(|s| s.flex_col().size_full());
@@ -969,7 +969,7 @@ fn editor_tab_header(
                     s.absolute()
                         .padding_horiz(3.0)
                         .size_full()
-                        .pointer_events_none()
+
                 })
                 .debug_name("Drop Indicator"),
             empty()
@@ -1788,7 +1788,7 @@ fn split_resize_border(
     .style(|s| {
         s.position(Position::Absolute)
             .size_full()
-            .pointer_events_none()
+
     })
     .debug_name("Split Resize Border")
 }
@@ -1866,7 +1866,7 @@ fn split_border(
     .style(|s| {
         s.position(Position::Absolute)
             .size_full()
-            .pointer_events_none()
+
     })
     .debug_name("Split Border")
 }
@@ -3005,7 +3005,7 @@ fn window_message_view(
                 .height_full()
         })
     )
-    .style(|s| s.absolute().size_full().justify_end().pointer_events_none())
+    .style(|s| s.absolute().size_full().justify_end())
     .debug_name("Window Message View")
 }
 
