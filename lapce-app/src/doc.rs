@@ -36,7 +36,6 @@ use doc::{
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
 use floem::{
-    ViewId,
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::Rect,
@@ -59,7 +58,7 @@ use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     editor::{
         EditorData,
-        editor::{CommonAction, CursorInfo, Editor},
+        editor::{CommonAction, Editor},
         location::{EditorLocation, EditorPosition}
     },
     find::{Find, FindProgress, FindResult},
@@ -69,7 +68,7 @@ use crate::{
     panel::document_symbol::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData
     },
-    window_workspace::{CommonData, Focus, SignalManager}
+    window_workspace::{CommonData}
 };
 
 // #[derive(Clone, Debug)]
@@ -422,19 +421,19 @@ impl Doc {
         let register = common.register;
         // TODO: we could have these Rcs created once and stored somewhere, maybe on
         // common, to avoid recreating them everytime.
-        let cursor_info = CursorInfo {
-            blink_interval: Rc::new(move || config.editor.blink_interval()),
-            blink_timer:    common.window_common.cursor_blink_timer,
-            hidden:         common.window_common.hide_cursor,
-            should_blink:   Rc::new(should_blink(
-                common.focus,
-                common.keyboard_focus
-            ))
-        };
+        // let cursor_info = CursorInfo {
+        //     blink_interval: Rc::new(move || config.editor.blink_interval()),
+        //     blink_timer:    common.window_common.cursor_blink_timer,
+        //     hidden:         common.window_common.hide_cursor,
+        //     should_blink:   Rc::new(should_blink(
+        //         common.focus,
+        //         common.keyboard_focus
+        //     ))
+        // };
         let mut editor = Editor::new(cx, self.clone(), modal);
 
         editor.register = register;
-        editor.cursor_info = cursor_info;
+        // editor.cursor_info = cursor_info;
         editor.ime_allowed = common.window_common.ime_allowed;
 
         editor.recreate_view_effects();
@@ -1733,32 +1732,32 @@ impl std::fmt::Debug for Doc {
         f.write_str(&format!("Document {:?}", self.buffer_id))
     }
 }
-
-fn should_blink(
-    _focus: SignalManager<Focus>,
-    _keyboard_focus: RwSignal<Option<ViewId>>
-) -> impl Fn() -> bool {
-    move || {
-        // let Some(focus) = _focus.try_get_untracked() else {
-        //     return false;
-        // };
-        // if matches!(
-        //     focus,
-        //     Focus::Workbench
-        //         | Focus::Palette
-        //         | Focus::Panel(crate::panel::kind::PanelKind::Plugin)
-        //         | Focus::Panel(crate::panel::kind::PanelKind::Search)
-        //         | Focus::Panel(crate::panel::kind::PanelKind::SourceControl)
-        // ) {
-        //     return true;
-        // }
-        //
-        // if _keyboard_focus.get_untracked().is_some() {
-        //     return true;
-        // }
-        false
-    }
-}
+//
+// pub fn should_blink(
+//     _focus: SignalManager<Focus>,
+//     _keyboard_focus: RwSignal<Option<ViewId>>
+// ) -> impl Fn() -> bool {
+//     move || {
+//         let Some(focus) = _focus.try_get_untracked() else {
+//             return false;
+//         };
+//         if matches!(
+//             focus,
+//             Focus::Workbench
+//                 | Focus::Palette
+//                 | Focus::Panel(lapce_core::panel::PanelKind::Plugin)
+//                 | Focus::Panel(lapce_core::panel::PanelKind::Search)
+//                 | Focus::Panel(lapce_core::panel::PanelKind::SourceControl)
+//         ) {
+//             return true;
+//         }
+//
+//         if _keyboard_focus.get_untracked().is_some() {
+//             return true;
+//         }
+//         false
+//     }
+// }
 
 // fn extra_styles_for_range(
 //     text_layout: &TextLayout,

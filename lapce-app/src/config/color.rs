@@ -93,7 +93,7 @@ impl LapceColor {
         "lapce.tab.inactive.foreground";
     pub const LAPCE_TAB_INACTIVE_UNDERLINE: &'static str =
         "lapce.tab.inactive.underline";
-    pub const LAPCE_TAB_SEPARATOR: &'static str = "lapce.tab.separator";
+    // pub const LAPCE_TAB_SEPARATOR: &'static str = "lapce.tab.separator";
     pub const LAPCE_WARN: &'static str = "lapce.warn";
     pub const MARKDOWN_BLOCKQUOTE: &'static str = "markdown.blockquote";
     pub const PALETTE_BACKGROUND: &'static str = "palette.background";

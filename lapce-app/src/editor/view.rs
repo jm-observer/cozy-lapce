@@ -166,13 +166,14 @@ pub fn editor_view(
         id.request_layout();
     });
 
-    let hide_cursor = e_data.common.window_common.hide_cursor;
-    create_effect(move |_| {
-        hide_cursor.track();
-        let occurrences = doc.with(|doc| doc.find_result.occurrences);
-        occurrences.track();
-        id.request_paint();
-    });
+    // let hide_cursor = e_data.common.window_common.hide_cursor;
+    // create_effect(move |_| {
+    //     hide_cursor.track();
+    //     let occurrences = doc.with(|doc| doc.find_result.occurrences);
+    //     occurrences.track();
+    //     log::warn!("hide_cursor.track");
+    //     id.request_paint();
+    // });
 
     create_effect(move |last_rev| {
         let lines = doc.with(|doc| doc.lines);
@@ -1199,6 +1200,8 @@ impl View for EditorView {
             .get();
         let e_data = &self.editor;
         let ed = &e_data.editor;
+
+        let cursor_hidden = e_data.common.window_common.hide_cursor.get_untracked();
         let config = e_data.common.config.get_untracked();
         let is_local = doc.content.with_untracked(|content| content.is_local());
         let find_focus = self.editor.find_focus;
@@ -1236,7 +1239,7 @@ impl View for EditorView {
             cx,
             ed,
             viewport,
-            is_active,
+            is_active, cursor_hidden,
             &screen_lines,
             show_indent_guide
         ) {

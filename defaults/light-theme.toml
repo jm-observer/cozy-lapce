@@ -103,8 +103,6 @@ dim-text = "#A0A1A7"
 "lapce.tab.inactive.foreground" = "$text"
 "lapce.tab.inactive.underline" = "#528BFF77"
 
-"lapce.tab.separator" = "#B4B4B4"
-
 "lapce.icon.active" = "$text"
 "lapce.icon.inactive" = "$dim-text"
 

@@ -101,6 +101,7 @@ use crate::{
     },
     window::WindowCommonData
 };
+use crate::window::CursorBlink;
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -262,7 +263,8 @@ pub struct WindowWorkspaceData {
     pub messages:                  RwSignal<Vec<(String, ShowMessageParams)>>,
     pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
-    pub build_data:                TreePanelData
+    pub build_data:                TreePanelData,
+    pub cursor_blink: CursorBlink
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -502,6 +504,8 @@ impl WindowWorkspaceData {
             common.clone()
         );
 
+        let hide_cursor = window_common.hide_cursor;
+
         let title_height = cx.create_rw_signal(0.0);
         let status_height = cx.create_rw_signal(0.0);
         let panel_available_size = cx.create_memo(move |_| {
@@ -606,6 +610,22 @@ impl WindowWorkspaceData {
         let about_data = AboutData::new(cx, common.focus);
         let alert_data = AlertBoxData::new(cx, common.clone());
         let build_data = TreePanelData::new(cx, DocStyle::default());
+        let cursor_blink_timer = cx.create_rw_signal(TimerToken::INVALID);
+        let cursor_blink = CursorBlink {
+            hide_cursor: hide_cursor,
+            blink_timer: cursor_blink_timer,
+            blink_interval: cx.create_rw_signal(0),
+            common_data: common.clone()
+        };
+
+        let cursor_blink_clone = cursor_blink.clone();
+        cx.create_effect(move |_| {
+            let active = config.get();
+            let blink_interval = active.editor.blink_interval();
+            log::info!("update blink_interval {}", blink_interval);
+            cursor_blink_clone.blink_interval.set(blink_interval);
+            cursor_blink_clone.blink(None);
+        });
 
         let window_tab_data = Self {
             scope: cx,
@@ -634,7 +654,8 @@ impl WindowWorkspaceData {
             messages: cx.create_rw_signal(Vec::new()),
             common,
             document_symbol_scroll_to: cx.create_rw_signal(None),
-            build_data
+            build_data,
+            cursor_blink,
         };
 
         {
@@ -2100,8 +2121,18 @@ impl WindowWorkspaceData {
             InternalCommand::ResetBlinkCursor => {
                 // All the editors share the blinking information and logic, so we
                 // can just reset one of them.
+                self.cursor_blink.reset_blink();
+                // if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                //     // e_data.editor.cursor_info.reset();
+                // }
+            },
+            InternalCommand::BlinkCursor => {
+                // All the editors share the blinking information and logic, so we
+                // can just reset one of them.
                 if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                    e_data.editor.cursor_info.reset();
+                    if let Some(id) = e_data.editor.editor_view_id.get_untracked() {
+                        id.request_paint();
+                    }
                 }
             },
             InternalCommand::OpenDiffFiles {

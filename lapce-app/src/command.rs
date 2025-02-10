@@ -777,6 +777,7 @@ pub enum InternalCommand {
         volt_id: VoltID
     },
     ResetBlinkCursor,
+    BlinkCursor,
     OpenDiffFiles {
         left_path:  PathBuf,
         right_path: PathBuf

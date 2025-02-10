@@ -1,4 +1,4 @@
-use std::{cell::Cell, cmp::Ordering, ops::Range, rc::Rc, time::Duration};
+use std::{cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
 
 use anyhow::Result;
 use doc::lines::{
@@ -17,7 +17,6 @@ use doc::lines::{
 };
 use floem::{
     Renderer, ViewId,
-    action::{TimerToken, exec_after},
     context::PaintCx,
     keyboard::Modifiers,
     kurbo::{BezPath, Line, Point, Rect, Size, Stroke, Vec2},
@@ -25,7 +24,7 @@ use floem::{
     peniko::Color,
     pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
-        RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith, Trigger,
+        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger,
         batch
     },
     text::{Attrs, AttrsList, TextLayout}
@@ -77,7 +76,7 @@ pub struct Editor {
     /// Modal mode register
     pub register:    RwSignal<Register>,
     /// Cursor rendering information, such as the cursor blinking state.
-    pub cursor_info: CursorInfo,
+    // pub cursor_info: CursorInfo,
 
     pub last_movement: RwSignal<Movement>,
 
@@ -174,13 +173,13 @@ impl Editor {
             editor_view_id: cx.create_rw_signal(None),
             // screen_lines,
             register: cx.create_rw_signal(Register::default()),
-            cursor_info: CursorInfo::new(cx),
+            // cursor_info: CursorInfo::new(cx),
             last_movement: cx.create_rw_signal(Movement::Left),
             ime_allowed: cx.create_rw_signal(false),
             floem_style_id: cx.create_rw_signal(0)
         };
 
-        create_view_effects(ed.effects_cx.get(), &ed);
+        // create_view_effects(ed.effects_cx.get(), &ed);
 
         ed
     }
@@ -213,7 +212,7 @@ impl Editor {
         batch(|| {
             self.effects_cx.get().dispose();
             self.effects_cx.set(self.cx.get().create_child());
-            create_view_effects(self.effects_cx.get(), self);
+            // create_view_effects(self.effects_cx.get(), self);
         });
     }
 
@@ -230,7 +229,7 @@ impl Editor {
 
             // Recreate the effects
             self.effects_cx.set(self.cx.get().create_child());
-            create_view_effects(self.effects_cx.get(), self);
+            // create_view_effects(self.effects_cx.get(), self);
         });
     }
 
@@ -1314,15 +1313,15 @@ impl std::fmt::Debug for Editor {
 /// Create various reactive effects to update the screen lines whenever relevant
 /// parts of the view, doc, text layouts, viewport, etc. change.
 /// This tries to be smart to a degree.
-fn create_view_effects(cx: Scope, ed: &Editor) {
-    {
-        let cursor_info = ed.cursor_info.clone();
-        let cursor = ed.cursor;
-        cx.create_effect(move |_| {
-            cursor.track();
-            cursor_info.reset();
-        });
-    }
+// fn create_view_effects(cx: Scope, ed: &Editor) {
+    // {
+    //     let cursor_info = ed.cursor_info.clone();
+    //     let cursor = ed.cursor;
+    //     cx.create_effect(move |_| {
+    //         cursor.track();
+    //         cursor_info.reset();
+    //     });
+    // }
 
     // let update_screen_lines = |ed: &Editor| {
     //     // This function should not depend on the viewport signal directly.
@@ -1415,7 +1414,7 @@ fn create_view_effects(cx: Scope, ed: &Editor) {
     //
     //     update_screen_lines(&ed4);
     // });
-}
+// }
 
 // pub fn normal_compute_screen_lines(
 //     editor: &Editor,
@@ -1495,56 +1494,57 @@ fn create_view_effects(cx: Scope, ed: &Editor) {
 
 // TODO: should we put `cursor` on this structure?
 /// Cursor rendering information
-#[derive(Clone)]
-pub struct CursorInfo {
-    pub hidden: RwSignal<bool>,
-
-    pub blink_timer:    RwSignal<TimerToken>,
-    // TODO: should these just be rwsignals?
-    pub should_blink:   Rc<dyn Fn() -> bool + 'static>,
-    pub blink_interval: Rc<dyn Fn() -> u64 + 'static>
-}
-impl CursorInfo {
-    pub fn new(cx: Scope) -> CursorInfo {
-        CursorInfo {
-            hidden: cx.create_rw_signal(false),
-
-            blink_timer:    cx.create_rw_signal(TimerToken::INVALID),
-            should_blink:   Rc::new(|| true),
-            blink_interval: Rc::new(|| 500)
-        }
-    }
-
-    pub fn blink(&self) {
-        let info = self.clone();
-        let blink_interval = (info.blink_interval)();
-        if blink_interval > 0 && (info.should_blink)() {
-            let blink_timer = info.blink_timer;
-            let timer_token = exec_after(
-                Duration::from_millis(blink_interval),
-                move |timer_token| {
-                    if info.blink_timer.try_get_untracked() == Some(timer_token) {
-                        info.hidden.update(|hide| {
-                            *hide = !*hide;
-                        });
-                        info.blink();
-                    }
-                }
-            );
-            blink_timer.set(timer_token);
-        }
-    }
-
-    pub fn reset(&self) {
-        if self.hidden.get_untracked() {
-            self.hidden.set(false);
-        }
-
-        self.blink_timer.set(TimerToken::INVALID);
-
-        self.blink();
-    }
-}
+// #[derive(Clone)]
+// pub struct CursorInfo {
+//     pub hidden: RwSignal<bool>,
+//
+//     pub blink_timer:    RwSignal<TimerToken>,
+//     // TODO: should these just be rwsignals?
+//     pub should_blink:   Rc<dyn Fn() -> bool + 'static>,
+//     pub blink_interval: Rc<dyn Fn() -> u64 + 'static>
+// }
+// impl CursorInfo {
+//     pub fn new(cx: Scope) -> CursorInfo {
+//         CursorInfo {
+//             hidden: cx.create_rw_signal(false),
+//
+//             blink_timer:    cx.create_rw_signal(TimerToken::INVALID),
+//             should_blink:   Rc::new(|| true),
+//             blink_interval: Rc::new(|| 500)
+//         }
+//     }
+//
+//     pub fn blink(&self) {
+//         // let info = self.clone();
+//         // let blink_interval = (info.blink_interval)();
+//         // if blink_interval > 0 && (info.should_blink)() {
+//         //     let blink_timer = info.blink_timer;
+//         //     let timer_token = exec_after(
+//         //         Duration::from_millis(blink_interval),
+//         //         move |timer_token| {
+//         //             if info.blink_timer.try_get_untracked() == Some(timer_token) {
+//         //                 log::warn!("blink");
+//         //                 info.hidden.update(|hide| {
+//         //                     *hide = !*hide;
+//         //                 });
+//         //                 info.blink();
+//         //             }
+//         //         }
+//         //     );
+//         //     blink_timer.set(timer_token);
+//         // }
+//     }
+//
+//     pub fn reset(&self) {
+//         if self.hidden.get_untracked() {
+//             self.hidden.set(false);
+//         }
+//
+//         self.blink_timer.set(TimerToken::INVALID);
+//
+//         self.blink();
+//     }
+// }
 
 // /// Get the render information for a caret cursor at the given `offset`.
 // pub fn cursor_caret(
@@ -1989,12 +1989,15 @@ pub fn paint_text(
     ed: &Editor,
     viewport: Rect,
     is_active: bool,
+    hide_cursor: bool,
     screen_lines: &ScreenLines,
     _show_indent_guide: (bool, Color)
 ) -> Result<()> {
     let style = ed.doc();
+    if is_active && !hide_cursor {
+        paint_cursor_caret(cx, ed, screen_lines);
+    }
 
-    paint_cursor_caret(cx, ed, is_active, screen_lines);
     // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
@@ -2114,17 +2117,10 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
 fn paint_cursor_caret(
     cx: &mut PaintCx,
     ed: &Editor,
-    is_active: bool,
     _screen_lines: &ScreenLines
 ) {
     let cursor = ed.cursor;
-    let hide_cursor = ed.cursor_info.hidden;
     let caret_color = ed.doc().lines.with_untracked(|es| es.ed_caret());
-
-    if !is_active || hide_cursor.get_untracked() {
-        return;
-    }
-
     cursor.with_untracked(|cursor| {
         // let style = ed.doc();
         // let cursor_offset = cursor.offset();

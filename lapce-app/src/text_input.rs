@@ -238,7 +238,7 @@ fn text_input_full<T: KeyPressFocus + 'static>(
         editor: e_data.clone(),
         cursor_pos: Point::ZERO,
         on_cursor_pos: None,
-        hide_cursor: editor.cursor_info.hidden,
+        // hide_cursor: editor.cursor_info.hidden,
         style: Default::default()
     }
     .style(move |s| {
@@ -335,7 +335,7 @@ pub struct TextInput {
     placeholder_text_layout: Option<TextLayout>,
     cursor_pos: Point,
     on_cursor_pos: Option<Box<dyn Fn(Point)>>,
-    hide_cursor: RwSignal<bool>,
+    // hide_cursor: RwSignal<bool>,
     config: ReadSignal<Arc<LapceConfig>>,
     style: Extractor
 }
@@ -774,7 +774,9 @@ impl View for TextInput {
                 );
             }
 
-            if !self.hide_cursor.get_untracked()
+            let hide_cursor = self.editor.common.window_common.hide_cursor.get_untracked();
+
+            if !hide_cursor
                 && (self.focus || cx.is_focused(self.id))
             {
                 cx.clip(&self.text_rect.inflate(2.0, 2.0));
