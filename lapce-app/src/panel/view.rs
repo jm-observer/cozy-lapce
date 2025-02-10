@@ -671,9 +671,9 @@ fn drag_event<T: IntoView>(
         }
     })
     .style(move |s| {
-        let is_dragging_panel = dragging
-            .with(|d| d.as_ref().map(|d| d.is_panel()))
-            .unwrap_or(false);
+        // let is_dragging_panel = dragging
+        //     .with(|d| d.as_ref().map(|d| d.is_panel()))
+        //     .unwrap_or(false);
         s.apply_if(dragging_over.get(), |s| {
             s.background(config.get().color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
         })

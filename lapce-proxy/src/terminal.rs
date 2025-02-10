@@ -13,7 +13,7 @@ use alacritty_terminal::{
     event_loop::Msg,
     tty::{self, EventedPty, EventedReadWrite, Options, Shell, setup_env}
 };
-use anyhow::Result;
+use anyhow::{bail, Result};
 use crossbeam_channel::{Receiver, Sender};
 use directories::BaseDirs;
 use lapce_rpc::{
@@ -157,7 +157,12 @@ impl Terminal {
             cell_width:  1,
             cell_height: 1
         };
-        let pty = alacritty_terminal::tty::new(&options, size, 0)?;
+        let pty = match alacritty_terminal::tty::new(&options, size, 0) {
+            Ok(pty) => pty,
+            Err(err) => {
+                bail!("{}: {:?}", err.to_string(), shell);
+            },
+        };
 
         let (tx, rx) = crossbeam_channel::unbounded();
 
