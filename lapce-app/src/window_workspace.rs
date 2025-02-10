@@ -62,7 +62,6 @@ use lsp_types::{
     ProgressToken, ShowMessageParams
 };
 use serde_json::Value;
-
 use crate::{
     about::AboutData,
     alert::{AlertBoxData, AlertButton},
@@ -2129,9 +2128,24 @@ impl WindowWorkspaceData {
             InternalCommand::BlinkCursor => {
                 // All the editors share the blinking information and logic, so we
                 // can just reset one of them.
-                if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                    if let Some(id) = e_data.editor.editor_view_id.get_untracked() {
-                        id.request_paint();
+                match self.common.focus.get_untracked() {
+                    Focus::Panel(PanelKind::Terminal) => {
+                        if let Some(tab) = self.terminal.active_tab(false) {
+                            if let Some(id) = tab.active_terminal(false).view_id.get_untracked() {
+                                // log::info!("BlinkCursor Terminal {:?}", id.data().as_ffi());
+                                id.request_paint();
+                            }
+                        }
+                    }
+                    Focus::Workbench => {
+                        if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                            if let Some(id) = e_data.editor.editor_view_id.get_untracked() {
+                                id.request_paint();
+                            }
+                        }
+                    }
+                    _ => {
+
                     }
                 }
             },

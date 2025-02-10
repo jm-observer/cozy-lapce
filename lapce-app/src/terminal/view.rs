@@ -11,7 +11,6 @@ use floem::{
     Renderer, View, ViewId,
     context::{EventCx, PaintCx},
     event::{Event, EventPropagation},
-    kurbo::Stroke,
     peniko::{
         Color,
         kurbo::{Point, Rect, Size}
@@ -22,6 +21,7 @@ use floem::{
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight}
 };
+use floem::prelude::SignalUpdate;
 use lapce_core::{
     debug::RunDebugProcess, panel::PanelKind, workspace::LapceWorkspace
 };
@@ -29,7 +29,6 @@ use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 use lsp_types::Position;
 use parking_lot::RwLock;
 use regex::Regex;
-use unicode_width::UnicodeWidthChar;
 
 use super::{panel::TerminalPanelData, raw::RawTerminal};
 use crate::{
@@ -39,6 +38,7 @@ use crate::{
     listener::Listener,
     window_workspace::Focus
 };
+use crate::terminal::data::TerminalData;
 
 /// Threshold used for double_click/triple_click.
 const CLICK_THRESHOLD: u128 = 400;
@@ -72,7 +72,8 @@ pub struct TerminalView {
     workspace:             Arc<LapceWorkspace>,
     hyper_regs:            Vec<Regex>,
     previous_mouse_action: MouseAction,
-    current_mouse_action:  MouseAction
+    current_mouse_action:  MouseAction,
+    terminal_data: TerminalData
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -84,10 +85,11 @@ pub fn terminal_view(
     terminal_panel_data: TerminalPanelData,
     launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
-    workspace: Arc<LapceWorkspace>
+    workspace: Arc<LapceWorkspace>, terminal: TerminalData
 ) -> TerminalView {
     let id = ViewId::new();
 
+    terminal.view_id.set(Some(id));
     create_effect(move |_| {
         let raw = raw.get();
         id.update_state(TerminalViewState::Raw(raw));
@@ -130,6 +132,7 @@ pub fn terminal_view(
         regex::Regex::new(r"([:\.\w\\/-]+\.(rs|toml)?):(\d+)(:(\d+))?").unwrap();
 
     TerminalView {
+        terminal_data: terminal,
         id,
         term_id,
         raw: raw.get_untracked(),
@@ -455,9 +458,9 @@ impl TerminalView {
             cx.fill(&rect, fg, 0.0);
         }
 
-        if let Some((c, x)) = line_content.cursor {
+        if let Some((_, x)) = line_content.cursor {
             let rect =
-                Size::new(char_width * c.width().unwrap_or(1) as f64, line_height)
+                Size::new(2.0, line_height)
                     .to_rect()
                     .with_origin(Point::new(x, line_content.y));
             let mode = self.mode.get_untracked();
@@ -472,10 +475,12 @@ impl TerminalView {
             } else {
                 config.color(LapceColor::EDITOR_CARET)
             };
-            if self.is_focused {
+            let hide_cursor = self.terminal_data.common.window_common.hide_cursor.get_untracked();
+            // info!("hide_cursor {}, self.is_focused={}", hide_cursor, self.is_focused);
+            if self.is_focused && !hide_cursor {
                 cx.fill(&rect, cursor_color, 0.0);
-            } else {
-                cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
+            // } else {
+            //     cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
             }
         }
 

@@ -16,10 +16,7 @@ use doc::lines::{
     register::Clipboard,
     text::SystemClipboard
 };
-use floem::{
-    keyboard::{Key, KeyEvent, Modifiers, NamedKey},
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
-};
+use floem::{keyboard::{Key, KeyEvent, Modifiers, NamedKey}, reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}, ViewId};
 use lapce_core::{
     debug::{RunDebugMode, RunDebugProcess},
     workspace::LapceWorkspace
@@ -53,7 +50,8 @@ pub struct TerminalData {
     pub visual_mode:  RwSignal<VisualMode>,
     pub raw:          RwSignal<Arc<RwLock<RawTerminal>>>,
     pub run_debug:    RwSignal<Option<RunDebugProcess>>,
-    pub common:       Rc<CommonData>
+    pub common:       Rc<CommonData>,
+    pub view_id: RwSignal<Option<ViewId>>,
 }
 
 impl KeyPressFocus for TerminalData {
@@ -334,7 +332,8 @@ impl TerminalData {
             mode,
             visual_mode,
             common,
-            launch_error
+            launch_error,
+            view_id: cx.create_rw_signal(None),
         }
     }
 

@@ -430,6 +430,7 @@ pub fn should_blink(
                 | Focus::Panel(lapce_core::panel::PanelKind::Plugin)
                 | Focus::Panel(lapce_core::panel::PanelKind::Search)
                 | Focus::Panel(lapce_core::panel::PanelKind::SourceControl)
+            | Focus::Panel(lapce_core::panel::PanelKind::Terminal)
         ) {
             return true;
         }
