@@ -244,7 +244,7 @@ pub fn new_left_panel_container_view(
     .style({
         let panel = panel.clone();
         move |s| {
-            s.flex_row()
+            s
                 .width(panel.size.get().left as f32)
                 .height_pct(100.0)
                 .border_color(config.get().color(LapceColor::LAPCE_BORDER))
@@ -351,22 +351,15 @@ pub fn new_right_panel_container_view(
             })
             .style(|s| s.flex_grow(1.0).height_pct(100.0)),
         ))
-        .style(move |s| s.flex_row().width(panel.size.get().right as f32))
+        .style(move |s| s.width(panel.size.get().right as f32).height_pct(100.0)
+            .border_left(1.0)
+            .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            .apply_if(
+                !panel.is_position_shown(&position, true)
+                    || panel.is_position_empty(&position, true),
+                |s| s.hide(),
+            ))
     }
-    .style({
-        let panel = panel.clone();
-        move |s| {
-            s.flex_grow(1.0)
-                .height_pct(100.0)
-                .border_left(1.0)
-                .border_color(config.get().color(LapceColor::LAPCE_BORDER))
-                .apply_if(
-                    !panel.is_position_shown(&position, true)
-                        || panel.is_position_empty(&position, true),
-                    |s| s.hide(),
-                )
-        }
-    })
     .debug_name("panel right view")
     // .style({
     //     move |s| {

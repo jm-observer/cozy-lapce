@@ -107,7 +107,7 @@ pub struct SignalManager<T>(RwSignal<T>, bool);
 
 impl<T: Clone> Copy for SignalManager<T> {}
 
-impl<T: Clone + 'static> SignalManager<T> {
+impl<T: Debug + Clone + 'static> SignalManager<T> {
     pub fn new(signal: RwSignal<T>) -> Self {
         Self(signal, false)
     }
@@ -126,7 +126,7 @@ impl<T: Clone + 'static> SignalManager<T> {
 
     pub fn set(&self, signal: T) {
         if self.1 {
-            log::info!("set");
+            log::info!("set {:?} to {:?} ", self.0.get_untracked(), signal);
             // panic!("ad");
         }
         self.0.set(signal);
@@ -146,7 +146,7 @@ impl<T: Clone + 'static> SignalManager<T> {
 
     pub fn update(&self, f: impl FnOnce(&mut T)) {
         if self.1 {
-            log::info!("set");
+            log::info!("update");
             // panic!("ad");
         }
         self.0.update(f)
@@ -412,7 +412,7 @@ impl WindowWorkspaceData {
         );
         let (config, set_config) = cx.create_signal(Arc::new(config));
 
-        let focus = SignalManager::new(cx.create_rw_signal(Focus::Workbench));
+        let focus = SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
         let completion = cx.create_rw_signal(CompletionData::new(cx, config));
         let inline_completion = cx.create_rw_signal(InlineCompletionData::new(cx));
         let hover = HoverData::new(cx);
@@ -582,7 +582,6 @@ impl WindowWorkspaceData {
             cx,
             HashSet::from_iter(disabled_volts),
             HashSet::from_iter(workspace_disabled_volts),
-            main_split.editors,
             common.clone(),
             proxy.core_rpc.clone()
         );

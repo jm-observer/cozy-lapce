@@ -13,6 +13,7 @@ use floem::{
         dyn_container, img, label, scroll::scroll, stack, virtual_stack
     }
 };
+use floem::prelude::text_input;
 use indexmap::IndexMap;
 use lapce_core::{
     icon::LapceIcons,
@@ -30,7 +31,6 @@ use crate::{
     config::color::LapceColor,
     plugin::{AvailableVoltData, InstalledVoltData, PluginData, VoltIcon},
     svg,
-    text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData}
 };
 pub const VOLT_DEFAULT_PNG: &[u8] = include_bytes!("../../../extra/images/volt.png");
@@ -338,24 +338,31 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
 
     let content_rect = create_rw_signal(Rect::ZERO);
 
-    let editor = plugin.available.query_editor.clone();
+    let query_str = plugin.available.query_str;
     let focus = plugin.common.focus;
-    let is_focused = move || focus.get() == Focus::Panel(PanelKind::Plugin);
     let cursor_x = create_rw_signal(0.0);
 
     stack((
         container({
             scroll(
-                TextInputBuilder::new()
-                    .is_focused(is_focused)
-                    .build_editor(editor.clone())
-                    .placeholder(|| "Search extensions".to_string())
-                    .on_cursor_pos(move |point| {
-                        cursor_x.set(point.x);
-                    })
-                    .style(|s| {
-                        s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
-                    })
+                text_input(query_str)
+                    .placeholder("Search extensions")
+                    .keyboard_navigable().style(|s| {
+                    s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
+                // }).on_click_stop(move |event| {
+                }).pointer_down(move || {
+                    focus.set(Focus::Panel(PanelKind::Plugin));
+                })
+                // TextInputBuilder::new()
+                //     .is_focused(is_focused)
+                //     .build_editor(editor.clone())
+                //     .placeholder(|| "Search extensions".to_string())
+                //     .on_cursor_pos(move |point| {
+                //         cursor_x.set(point.x);
+                //     })
+                //     .style(|s| {
+                //         s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
+                //     })
             )
             .ensure_visible(move || {
                 Size::new(20.0, 0.0)

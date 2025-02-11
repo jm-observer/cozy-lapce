@@ -3788,7 +3788,7 @@ pub fn launch() {
 
     let _ = custom_utils::logger::logger_feature(
         "lapce",
-        "warn,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,\
+        "info,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,wasi_experimental_http_wasmtime=warn,\
          hyper=info,reqwest=info,wasmtime=info,floem=info,alacritty_terminal=info,\
          lapce_app::keypress::loader=info",
         log::LevelFilter::Info,

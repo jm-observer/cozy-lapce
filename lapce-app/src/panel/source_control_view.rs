@@ -9,12 +9,12 @@ use floem::{
     menu::{Menu, MenuItem},
     peniko::kurbo::Rect,
     reactive::{
-        SignalGet, SignalTrack, SignalUpdate, SignalWith, create_memo,
-        create_rw_signal
+        SignalGet, SignalTrack, SignalUpdate, SignalWith
     },
     style::{CursorStyle, Style},
     views::{Decorators, container, dyn_stack, label, scroll, stack, text}
 };
+use floem::reactive::Scope;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}
@@ -35,6 +35,7 @@ pub fn source_control_panel(
     window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition
 ) -> impl View {
+    let scope = window_tab_data.scope;
     let config = window_tab_data.common.config;
     let source_control = window_tab_data.source_control.clone();
     let focus = source_control.common.focus;
@@ -43,7 +44,7 @@ pub fn source_control_panel(
     let cursor = editor.cursor();
     let lines = editor.editor.doc().lines;
     let window_origin = editor.window_origin();
-    let editor = create_rw_signal(editor);
+    let editor = scope.create_rw_signal(editor);
     let is_active = move |tracked| {
         let focus = if tracked {
             focus.get()
@@ -52,11 +53,11 @@ pub fn source_control_panel(
         };
         focus == Focus::Panel(PanelKind::SourceControl)
     };
-    let is_empty = create_memo(move |_| {
+    let is_empty = scope.create_memo(move |_| {
         let doc = doc.get().lines.with_untracked(|x| x.signal_buffer());
         doc.with(|b| b.len() == 0)
     });
-    let debug_breakline = create_memo(move |_| None);
+    let debug_breakline = scope.create_memo(move |_| None);
 
     stack((
         stack((
@@ -215,7 +216,7 @@ pub fn source_control_panel(
         .style(|s| s.flex_col().width_pct(100.0).padding(10.0)),
         foldable_panel_section(
             text("Changes"),
-            file_diffs_view(source_control),
+            file_diffs_view(source_control, scope),
             window_tab_data.panel.section_open(PanelSection::Changes),
             config
         )
@@ -230,12 +231,12 @@ pub fn source_control_panel(
     .debug_name("Source Control Panel")
 }
 
-fn file_diffs_view(source_control: SourceControlData) -> impl View {
+fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View {
     let file_diffs = source_control.file_diffs;
     let config = source_control.common.config;
     let workspace = source_control.common.workspace.clone();
-    let panel_rect = create_rw_signal(Rect::ZERO);
-    let panel_width = create_memo(move |_| panel_rect.get().width());
+    let panel_rect = scope.create_rw_signal(Rect::ZERO);
+    let panel_width = scope.create_memo(move |_| panel_rect.get().width());
     let lapce_command = source_control.common.lapce_command;
     let internal_command = source_control.common.internal_command;
 

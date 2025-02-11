@@ -40,9 +40,7 @@ use crate::{
     command::CommandKind,
     config::{LapceConfig, color::LapceColor},
     db::LapceDb,
-    editor::EditorData,
     keypress::{KeyPressFocus, condition::Condition},
-    main_split::Editors,
     markdown::{MarkdownContent, parse_markdown},
     panel::plugin_view::VOLT_DEFAULT_PNG,
     svg,
@@ -98,7 +96,7 @@ pub struct AvailableVoltData {
 pub struct AvailableVoltList {
     pub loading:      RwSignal<bool>,
     pub query_id:     RwSignal<usize>,
-    pub query_editor: EditorData,
+    pub query_str: RwSignal<String>,
     pub volts:        RwSignal<IndexMap<VoltID, AvailableVoltData>>,
     pub total:        RwSignal<usize>
 }
@@ -125,8 +123,8 @@ impl KeyPressFocus for PluginData {
     fn run_command(
         &self,
         command: &crate::command::LapceCommand,
-        count: Option<usize>,
-        mods: Modifiers
+        _count: Option<usize>,
+        _mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_) => {},
@@ -141,21 +139,14 @@ impl KeyPressFocus for PluginData {
                         return CommandExecuted::Yes;
                     },
                     _ => {}
-                }
-
-                return self
-                    .available
-                    .query_editor
-                    .run_command(command, count, mods);
+                };
             },
             CommandKind::MotionMode(_) => {}
         }
         CommandExecuted::No
     }
 
-    fn receive_char(&self, c: &str) {
-        self.available.query_editor.receive_char(c);
-    }
+    fn receive_char(&self, _c: &str) {}
 }
 
 impl PluginData {
@@ -163,7 +154,6 @@ impl PluginData {
         cx: Scope,
         disabled: HashSet<VoltID>,
         workspace_disabled: HashSet<VoltID>,
-        editors: Editors,
         common: Rc<CommonData>,
         core_rpc: CoreRpcHandler
     ) -> Self {
@@ -173,7 +163,7 @@ impl PluginData {
             volts:        cx.create_rw_signal(IndexMap::new()),
             total:        cx.create_rw_signal(0),
             query_id:     cx.create_rw_signal(0),
-            query_editor: editors.make_local(cx, common.clone())
+            query_str: cx.create_rw_signal(String::new())
         };
         let disabled = cx.create_rw_signal(disabled);
         let workspace_disabled = cx.create_rw_signal(workspace_disabled);
@@ -226,11 +216,8 @@ impl PluginData {
             cx.create_effect(move |s| {
                 let query = plugin
                     .available
-                    .query_editor
-                    .doc_signal()
-                    .get()
-                    .lines
-                    .with_untracked(|x| x.buffer().to_string());
+                    .query_str
+                    .get();
                 if s.as_ref() == Some(&query) {
                     return query;
                 }
@@ -491,10 +478,7 @@ impl PluginData {
 
         let query = self
             .available
-            .query_editor
-            .doc()
-            .lines
-            .with_untracked(|x| x.buffer().to_string());
+            .query_str.get_untracked();
         let offset = self.available.volts.with_untracked(|v| v.len());
         self.load_available_volts(&query, offset, core_rpc);
     }
