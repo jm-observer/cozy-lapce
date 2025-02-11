@@ -1382,7 +1382,7 @@ fn editor_tab_content(
             EditorTabChildId::ThemeColorSettings(_) => {
                 theme_color_settings_view(editors, common).into_any()
             },
-            EditorTabChildId::Keymap(_) => keymap_view(editors, common).into_any(),
+            EditorTabChildId::Keymap(_) => keymap_view(common).into_any(),
             EditorTabChildId::Volt(_, id) => {
                 plugin_info_view(plugin.clone(), id).into_any()
             },

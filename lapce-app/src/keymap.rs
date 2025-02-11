@@ -5,7 +5,7 @@ use floem::{
     View,
     event::{Event, EventListener},
     reactive::{
-        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
         create_effect, create_memo, create_rw_signal, create_signal
     },
     style::CursorStyle,
@@ -14,8 +14,8 @@ use floem::{
         scroll, stack, text, virtual_stack
     }
 };
+use floem::prelude::text_input;
 use itertools::Itertools;
-
 use crate::{
     command::LapceCommand,
     config::{LapceConfig, color::LapceColor},
@@ -23,8 +23,6 @@ use crate::{
         KeyPressData,
         keymap::{KeyMap, KeyMapPress}
     },
-    main_split::Editors,
-    text_input::TextInputBuilder,
     window_workspace::CommonData
 };
 
@@ -35,7 +33,7 @@ pub struct KeymapPicker {
     keys:   RwSignal<Vec<(KeyMapPress, bool)>>
 }
 
-pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
+pub fn keymap_view(common: Rc<CommonData>) -> impl View {
     let config = common.config;
     let keypress = common.keypress;
     let ui_line_height_memo = common.ui_line_height;
@@ -47,16 +45,14 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
         keys:   create_rw_signal(Vec::new())
     };
 
-    let cx = Scope::current();
-    let text_input_view = TextInputBuilder::new().build(cx, editors, common.clone());
-    let doc = text_input_view.doc_signal();
+    // let cx = Scope::current();
+    // let text_input_view = TextInputBuilder::new().build(cx, editors, common.clone());
+    // let doc = text_input_view.doc_signal();
     let (read_order, write_order) = create_signal(KeyMapOrder::default());
 
+    let query_str = create_rw_signal(String::new());
     let key_map_items = move || {
-        let doc = doc.get();
-        let pattern = doc
-            .lines
-            .with_untracked(|x| x.buffer().to_string().to_lowercase());
+        let pattern = query_str.get();
         let keypress = keypress.get();
         let items = keypress.commands_with_keymap.iter().filter_map(|keymap| {
             let cmd = keypress.commands.get(&keymap.command).cloned()?;
@@ -301,16 +297,16 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
 
     stack((
         container(
-            text_input_view
-                .placeholder(|| "Search Key Bindings".to_string())
-                .keyboard_navigable()
-                .request_focus(|| {})
-                .style(move |s| {
-                    s.width_pct(100.0)
-                        .border_radius(6.0)
-                        .border(1.0)
-                        .border_color(config.get().color(LapceColor::LAPCE_BORDER))
-                })
+            text_input(query_str)
+                .placeholder("Search Key Bindings")
+                .keyboard_navigable().style(move |s| {
+                s.width_pct(100.0)
+                    .border_radius(2.0)
+                    .border(1.0)
+                    .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            // }).pointer_down(move || {
+            //     focus.set(Focus::Panel(PanelKind::Plugin));
+            })
         )
         .style(|s| s.padding_bottom(10.0).width_pct(100.0)),
         stack((
@@ -394,7 +390,7 @@ pub fn keymap_view(editors: Editors, common: Rc<CommonData>) -> impl View {
             .padding_top(20.0)
             .padding_left(20.0)
             .padding_right(20.0)
-    })
+    }).debug_name("keymap view")
 }
 
 fn keyboard_picker_view(
