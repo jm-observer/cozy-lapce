@@ -1,6 +1,5 @@
 use std::{path::Path};
 
-use doc::lines::selection::Selection;
 use floem::{
     View,
     event::{Event, EventListener},
@@ -16,6 +15,7 @@ use floem::{
         dyn_stack, label, scroll, stack, virtual_stack
     }
 };
+use floem::prelude::text_input;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}
@@ -24,7 +24,6 @@ use lapce_rpc::{
     file::{FileNodeViewData, FileNodeViewKind, Naming},
     source_control::FileDiffKind
 };
-use lapce_xi_rope::Rope;
 
 use super::{data::FileExplorerData, node::FileNodeVirtualList};
 use crate::{
@@ -36,7 +35,6 @@ use crate::{
     plugin::PluginData,
     source_control::SourceControlData,
     svg,
-    text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData}
 };
 
@@ -106,31 +104,32 @@ fn initialize_naming_editor_with_path(data: &FileExplorerData, path: &Path) {
     let file_name = path.file_name().unwrap_or_default().to_string_lossy();
     // Start with the part of the file or directory name before the extension
     // selected.
-    let selection_end = {
-        let without_leading_dot = file_name.strip_prefix('.').unwrap_or(&file_name);
-        let idx = without_leading_dot
-            .find('.')
-            .unwrap_or(without_leading_dot.len());
+    // let selection_end = {
+    //     let without_leading_dot = file_name.strip_prefix('.').unwrap_or(&file_name);
+    //     let idx = without_leading_dot
+    //         .find('.')
+    //         .unwrap_or(without_leading_dot.len());
+    //
+    //     idx + file_name.len() - without_leading_dot.len()
+    // };
 
-        idx + file_name.len() - without_leading_dot.len()
-    };
-
-    initialize_naming_editor(data, &file_name, Some(selection_end));
+    initialize_naming_editor(data, &file_name);
 }
 
 fn initialize_naming_editor(
     data: &FileExplorerData,
     text: &str,
-    selection_end: Option<usize>
 ) {
-    let text = Rope::from(text);
-    let selection_end = selection_end.unwrap_or(text.len());
+    // let text = Rope::from(text);
+    // let selection_end = selection_end.unwrap_or(text.len());
+    //
+    // let doc = data.naming_editor_data.doc();
+    // doc.reload(text, true);
+    // data.naming_editor_data
+    //     .cursor()
+    //     .update(|cursor| cursor.set_insert(Selection::region(0, selection_end)));
 
-    let doc = data.naming_editor_data.doc();
-    doc.reload(text, true);
-    data.naming_editor_data
-        .cursor()
-        .update(|cursor| cursor.set_insert(Selection::region(0, selection_end)));
+    data.naming_str.set(text.to_string());
 
     data.naming
         .update(|naming| naming.set_editor_needs_reset(false));
@@ -236,7 +235,7 @@ fn file_node_text_view(
         },
         FileNodeViewKind::Naming { err } => {
             if data.naming.with_untracked(Naming::editor_needs_reset) {
-                initialize_naming_editor(&data, "", None);
+                initialize_naming_editor(&data, "");
             }
 
             file_node_input_view(data, err.clone())
@@ -255,22 +254,22 @@ fn file_node_text_view(
 fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Container {
     let ui_line_height = data.common.ui_line_height;
 
-    let naming_editor_data = data.naming_editor_data.clone();
-    let text_input_file_explorer_data = data.clone();
+    let naming_str = data.naming_str;
+    // let text_input_file_explorer_data = data.clone();
     let focus = data.common.focus;
     let config = data.common.config;
 
-    let is_focused = move || {
-        focus.with_untracked(|focus| focus == &Focus::Panel(PanelKind::FileExplorer))
-    };
-    let text_input_view = TextInputBuilder::new()
-        .is_focused(is_focused)
-        .key_focus(text_input_file_explorer_data)
-        .build_editor(naming_editor_data.clone())
+    // let is_focused = move || {
+    //     focus.with_untracked(|focus| focus == &Focus::Panel(PanelKind::FileExplorer))
+    // };
+    let text_input_view = text_input(naming_str).pointer_down(move || {
+        focus.set(Focus::Panel(PanelKind::FileExplorer))
+    })
         .on_event_stop(EventListener::FocusLost, move |_| {
-            data.finish_naming();
-            data.naming.set(Naming::None);
-        })
+        log::info!("FocusLost {}", naming_str.get_untracked());
+        data.finish_naming();
+        data.naming.set(Naming::None);
+    })
         .style(move |s| {
             s.width_full()
                 .height(ui_line_height.get())
@@ -280,6 +279,23 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                 .border(1.0)
                 .border_color(config.get().color(LapceColor::LAPCE_BORDER))
         });
+    // let text_input_view = TextInputBuilder::new()
+    //     .is_focused(is_focused)
+    //     .key_focus(text_input_file_explorer_data)
+    //     .build_editor(naming_editor_data.clone())
+    //     .on_event_stop(EventListener::FocusLost, move |_| {
+    //         data.finish_naming();
+    //         data.naming.set(Naming::None);
+    //     })
+    //     .style(move |s| {
+    //         s.width_full()
+    //             .height(ui_line_height.get())
+    //             .padding(0.0)
+    //             .margin(0.0)
+    //             .border_radius(6.0)
+    //             .border(1.0)
+    //             .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+    //     });
 
     let text_input_id = text_input_view.id();
     text_input_id.request_focus();

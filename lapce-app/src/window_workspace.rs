@@ -469,7 +469,7 @@ impl WindowWorkspaceData {
         let source_control =
             SourceControlData::new(cx, main_split.editors, common.clone());
         let file_explorer =
-            FileExplorerData::new(cx, main_split.editors, common.clone());
+            FileExplorerData::new(cx, common.clone());
 
         if let Some(info) = workspace_info.as_ref() {
             let root_split = main_split.root_split;

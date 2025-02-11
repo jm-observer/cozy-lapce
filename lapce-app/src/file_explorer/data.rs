@@ -1,7 +1,5 @@
 use std::{
-    borrow::Cow,
     collections::HashMap,
-    ffi::OsStr,
     path::{Path, PathBuf},
     rc::Rc,
 };
@@ -33,12 +31,11 @@ use lapce_rpc::{
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     config::LapceConfig,
-    editor::EditorData,
     keypress::{KeyPressFocus, condition::Condition},
-    main_split::Editors,
     window_workspace::CommonData
 };
 
+#[derive(Debug)]
 enum RenamedPath {
     NotRenaming,
     NameUnchanged,
@@ -52,8 +49,8 @@ enum RenamedPath {
 pub struct FileExplorerData {
     pub root:               RwSignal<FileNodeItem>,
     pub naming:             RwSignal<Naming>,
-    pub naming_editor_data: EditorData,
     pub common:             Rc<CommonData>,
+    pub naming_str:     RwSignal<String>,
     pub scroll_to_line:     RwSignal<Option<f64>>,
     left_diff_path:         RwSignal<Option<PathBuf>>,
     pub select:             RwSignal<Option<FileNodeViewKind>>
@@ -72,8 +69,8 @@ impl KeyPressFocus for FileExplorerData {
     fn run_command(
         &self,
         command: &LapceCommand,
-        count: Option<usize>,
-        mods: Modifiers
+        _count: Option<usize>,
+        _mods: Modifiers
     ) -> CommandExecuted {
         if self.naming.with_untracked(Naming::is_accepting_input) {
             match command.kind {
@@ -86,39 +83,40 @@ impl KeyPressFocus for FileExplorerData {
                     CommandExecuted::Yes
                 },
                 CommandKind::Edit(_) => {
-                    let command_executed =
-                        self.naming_editor_data.run_command(command, count, mods);
-
+                    // let command_executed =
+                    //     self.naming_editor_data.run_command(command, count, mods);
                     if let Some(new_path) = self.naming_path() {
                         self.common
                             .internal_command
                             .send(InternalCommand::TestPathCreation { new_path });
                     }
 
-                    command_executed
+                    CommandExecuted::Yes
                 },
-                _ => self.naming_editor_data.run_command(command, count, mods)
+                _ => {
+                    CommandExecuted::Yes
+                }
             }
         } else {
             CommandExecuted::No
         }
     }
 
-    fn receive_char(&self, c: &str) {
-        if self.naming.with_untracked(Naming::is_accepting_input) {
-            self.naming_editor_data.receive_char(c);
-
-            if let Some(new_path) = self.naming_path() {
-                self.common
-                    .internal_command
-                    .send(InternalCommand::TestPathCreation { new_path });
-            }
-        }
+    fn receive_char(&self, _c: &str) {
+        // if self.naming.with_untracked(Naming::is_accepting_input) {
+        //     self.naming_editor_data.receive_char(c);
+        //
+        //     if let Some(new_path) = self.naming_path() {
+        //         self.common
+        //             .internal_command
+        //             .send(InternalCommand::TestPathCreation { new_path });
+        //     }
+        // }
     }
 }
 
 impl FileExplorerData {
-    pub fn new(cx: Scope, editors: Editors, common: Rc<CommonData>) -> Self {
+    pub fn new(cx: Scope, common: Rc<CommonData>) -> Self {
         let path = common.workspace.path.clone().unwrap_or_default();
         let root = cx.create_rw_signal(FileNodeItem {
             path:                path.clone(),
@@ -129,15 +127,16 @@ impl FileExplorerData {
             children_open_count: 0
         });
         let naming = cx.create_rw_signal(Naming::None);
-        let naming_editor_data = editors.make_local(cx, common.clone());
+        let naming_str = cx.create_rw_signal(String::new());
+
+
         let data = Self {
             root,
             naming,
-            naming_editor_data,
             common,
             scroll_to_line: cx.create_rw_signal(None),
             left_diff_path: cx.create_rw_signal(None),
-            select: cx.create_rw_signal(None)
+            select: cx.create_rw_signal(None), naming_str
         };
         if data.common.workspace.path.is_some() {
             // only fill in the child files if there is open folder
@@ -280,25 +279,26 @@ impl FileExplorerData {
                 }
             },
             Naming::NewNode(n) => {
-                let relative_path = self.naming_editor_data.text();
-                let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
-                {
-                    Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
-                    Cow::Owned(path) => Cow::Owned(path.into())
-                };
+                // let relative_path = self.naming_editor_data.text();
+                // let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
+                // {
+                //     Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
+                //     Cow::Owned(path) => Cow::Owned(path.into())
+                // };
 
-                Some(n.base_path.join(relative_path))
+                let new_node = self.naming_str.get_untracked();
+                Some(n.base_path.join(new_node))
             },
             Naming::Duplicating(d) => {
-                let relative_path = self.naming_editor_data.text();
-                let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
-                {
-                    Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
-                    Cow::Owned(path) => Cow::Owned(path.into())
-                };
-
+                // let relative_path = self.naming_editor_data.text();
+                // let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
+                // {
+                //     Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
+                //     Cow::Owned(path) => Cow::Owned(path.into())
+                // };
+                let new_node = self.naming_str.get_untracked();
                 let new_path =
-                    d.path.parent().unwrap_or("".as_ref()).join(relative_path);
+                    d.path.parent().unwrap_or("".as_ref()).join(new_node);
 
                 Some(new_path)
             }
@@ -315,15 +315,16 @@ impl FileExplorerData {
                 // `new_relative_path` is the new path relative to the parent
                 // directory, unless the user has entered an absolute
                 // path.
-                let new_relative_path = self.naming_editor_data.text();
+                // let new_relative_path = self.naming_editor_data.text();
+                //
+                // let new_relative_path: Cow<OsStr> =
+                //     match new_relative_path.slice_to_cow(..) {
+                //         Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
+                //         Cow::Owned(path) => Cow::Owned(path.into())
+                //     };
+                let new_relative_path= self.naming_str.get_untracked();
 
-                let new_relative_path: Cow<OsStr> =
-                    match new_relative_path.slice_to_cow(..) {
-                        Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
-                        Cow::Owned(path) => Cow::Owned(path.into())
-                    };
-
-                if new_relative_path == current_file_name {
+                if <std::string::String as AsRef<std::ffi::OsStr>>::as_ref(&new_relative_path) == current_file_name {
                     RenamedPath::NameUnchanged
                 } else {
                     let new_path = current_path
@@ -349,6 +350,7 @@ impl FileExplorerData {
             Naming::None => {},
             Naming::Renaming(_) => {
                 let renamed_path = self.renamed_path();
+                log::info!("finish_naming {:?}", renamed_path);
                 match renamed_path {
                     // Should not occur
                     RenamedPath::NotRenaming => {},
