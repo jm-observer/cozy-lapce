@@ -21,7 +21,7 @@ pub enum ThemeColorPreference {
 
 /// Holds all the resolved theme variables
 #[derive(Debug, Clone, Default)]
-pub struct ThemeBaseColor(HashMap<String, Color>);
+pub struct ThemeBaseColor(pub HashMap<String, Color>);
 impl ThemeBaseColor {
     pub fn get(&self, name: &str) -> Option<Color> {
         self.0.get(name).map(ToOwned::to_owned)

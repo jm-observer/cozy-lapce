@@ -1209,6 +1209,7 @@ fn editor_tab_content(
     let workspace = common.workspace.clone();
     let editors = main_split.editors;
     let diff_editors = main_split.diff_editors;
+
     let config = common.config;
     let focus = common.focus;
     let items = move || {

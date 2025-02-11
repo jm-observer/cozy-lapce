@@ -29,7 +29,6 @@ use serde::Serialize;
 use serde_json::Value;
 use std::str::FromStr;
 use std::{collections::BTreeMap, rc::Rc, time::Duration};
-
 use crate::{
     config::{
         DropdownInfo, LapceConfig, color::LapceColor, core::CoreConfig,
@@ -40,6 +39,7 @@ use crate::{
     svg,
     window_workspace::CommonData,
 };
+use crate::command::InternalCommand;
 
 #[derive(Debug, Clone)]
 pub enum SettingsValue {
@@ -813,7 +813,7 @@ fn color_section_list(
     list: impl Fn() -> BTreeMap<String, String> + 'static,
     max_width: Memo<f64>,
     text_height: Memo<f64>,
-    common: Rc<CommonData>,
+    common: Rc<CommonData>
 ) -> impl View {
     let config = common.config;
 
@@ -829,55 +829,33 @@ fn color_section_list(
             VirtualDirection::Vertical,
             VirtualItemSize::Fixed(Box::new(move || text_height.get() + 24.0)),
             move || BTreeMapVirtualList(list()),
-            move |(key, _)| (key.to_owned()),
+            move |(_key, _)| (_key.to_owned()),
             move |(key, value)| {
+                // info!("init color-theme.{kind} {}", &key);
                 let query_str = create_rw_signal(value);
-                // {
-                //     let kind = kind.clone();
-                //     let key = key.clone();
-                //     let doc = text_input_view.doc_signal();
-                //     // config变化时，保持原来的值不变
-                //     create_effect(move |_| {
-                //         let doc = doc.get_untracked();
-                //         let config = config.get();
-                //         let current =
-                //             doc.lines.with_untracked(|x| x.buffer().to_string());
-                //
-                //         let value = match kind.as_str() {
-                //             "base" => config.color_theme.base.get(&key),
-                //             "ui" => config.color_theme.ui.get(&key),
-                //             "syntax" => config.color_theme.syntax.get(&key),
-                //             _ => None
-                //         };
-                //
-                //         if let Some(value) = value {
-                //             if value != &current {
-                //                 doc.reload(Rope::from(value.to_string()), true);
-                //             }
-                //         }
-                //     });
-                // }
-
                 {
                     let timer = create_rw_signal(TimerToken::INVALID);
                     let kind = kind.clone();
                     let field = key.clone();
+                    let common = common.clone();
                     // 保存新值
                     create_effect(move |_| {
-                        let new_value = query_str.get();
-                        let Ok(_color) = Color::from_str(&new_value) else {
+                        let value = query_str.get();
+                        let Ok(_) = Color::from_str(&value) else {
                             return;
                         };
                         let kind = kind.clone();
                         let field = field.clone();
+                        let common = common.clone();
                         let token =
                             exec_after(Duration::from_millis(500), move |token| {
                                 if let Some(timer) = timer.try_get_untracked() {
                                     if timer == token {
-                                        let value = query_str.get_untracked();
-                                        if new_value != value {
-                                            return;
-                                        }
+                                        // let value = query_str.get_untracked();
+                                        // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
+                                        // if new_value != value {
+                                        //     return;
+                                        // }
                                         let config_val = config.get_untracked();
                                         let default = match kind.as_str() {
                                             "base" => config_val
@@ -894,40 +872,46 @@ fn color_section_list(
                                                 .get(&field),
                                             _ => None
                                         };
-
                                         if default != Some(&value) {
-                                            info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
-                                            // todo!
-                                            // config.update(|config| {
-                                            //
-                                            // })
-                                            // match kind.as_str() {
-                                            //     "base" => config_val
-                                            //         .color
-                                            //         .base.0.insert(field.clone(), color),
-                                            //     "ui" => config_val
-                                            //         .color
-                                            //         .ui.insert(field.clone(), color),
-                                            //     "syntax" => config_val
-                                            //         .color
-                                            //         .syntax.insert(field.clone(), color),
-                                            //     _ => None
-                                            // };
-
-                                            let value = serde::Serialize::serialize(
+                                            // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
+                                            let value_ser = serde::Serialize::serialize(
                                                 &value,
                                                 toml_edit::ser::ValueSerializer::new(
                                                 )
                                             )
                                             .ok();
 
-                                            if let Some(value) = value {
+                                            if let Some(value_ser) = value_ser {
                                                 LapceConfig::update_file(
                                                     &format!("color-theme.{kind}"),
                                                     &field,
-                                                    value
+                                                    value_ser
                                                 );
+                                                common.internal_command.send(InternalCommand::ReloadConfig);
                                             }
+                                            // mut_config.update(|config| {
+                                            //     match kind.as_str() {
+                                            //         "base" => {
+                                            //             config
+                                            //                 .color
+                                            //                 .base.0.insert(field.clone(), color);
+                                            //             config.color_theme.base.0.insert(field.clone(), value);
+                                            //         },
+                                            //         "ui" => {
+                                            //             config
+                                            //                 .color
+                                            //                 .ui.insert(field.clone(), color);
+                                            //             config.color_theme.ui.insert(field.clone(), value);
+                                            //         },
+                                            //         "syntax" => {
+                                            //             config
+                                            //                 .color
+                                            //                 .syntax.insert(field.clone(), color);
+                                            //             config.color_theme.syntax.insert(field.clone(), value);
+                                            //         },
+                                            //         _ => ()
+                                            //     };
+                                            // });
                                         // } else {
                                         //     LapceConfig::reset_setting(
                                         //         &format!("color-theme.{kind}"),
@@ -940,7 +924,7 @@ fn color_section_list(
                         timer.set(token);
                     });
                 }
-
+                let common = common.clone();
                 stack((
                     text(&key).style(move |s| {
                         s.width(max_width.get()).margin_left(20).margin_right(10)
@@ -980,6 +964,7 @@ fn color_section_list(
                                     &format!("color-theme.{local_kind}"),
                                     &local_key
                                 );
+                                common.internal_command.send(InternalCommand::ReloadConfig);
                             })
                             .style(move |s| {
                                 let content = query_str.get();
@@ -1071,7 +1056,7 @@ pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
         max_width
     });
 
-    let query_str = create_rw_signal(String::new());
+    let query_str = common.scope.create_rw_signal(String::new());
 
     v_stack((
         container({

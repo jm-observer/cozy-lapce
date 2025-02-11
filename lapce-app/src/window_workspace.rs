@@ -712,6 +712,7 @@ impl WindowWorkspaceData {
     }
 
     pub fn reload_config(&self) {
+        log::info!("reload_config");
         let db: Arc<LapceDb> = use_context().unwrap();
 
         let disabled_volts = db.get_disabled_volts().unwrap_or_default();
