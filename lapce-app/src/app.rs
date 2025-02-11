@@ -1380,7 +1380,7 @@ fn editor_tab_content(
                 settings_view(plugin.installed, editors, common).into_any()
             },
             EditorTabChildId::ThemeColorSettings(_) => {
-                theme_color_settings_view(editors, common).into_any()
+                theme_color_settings_view(common).into_any()
             },
             EditorTabChildId::Keymap(_) => keymap_view(common).into_any(),
             EditorTabChildId::Volt(_, id) => {
@@ -3916,21 +3916,21 @@ pub fn launch() {
 
     let (tx, rx) = crossbeam_channel::bounded(1);
     let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
-    if let Some(path) = LapceConfig::settings_file() {
-        if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-            log::error!("{:?}", err);
-        }
-    }
-    if let Some(path) = Directory::themes_directory() {
-        if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-            log::error!("{:?}", err);
-        }
-    }
-    if let Some(path) = LapceConfig::keymaps_file() {
-        if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-            log::error!("{:?}", err);
-        }
-    }
+    // if let Some(path) = LapceConfig::settings_file() {
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
+    //         log::error!("{:?}", err);
+    //     }
+    // }
+    // if let Some(path) = Directory::themes_directory() {
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
+    //         log::error!("{:?}", err);
+    //     }
+    // }
+    // if let Some(path) = LapceConfig::keymaps_file() {
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
+    //         log::error!("{:?}", err);
+    //     }
+    // }
     if let Some(path) = Directory::plugins_directory() {
         if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
             log::error!("{:?}", err);

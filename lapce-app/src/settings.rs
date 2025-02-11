@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, rc::Rc, sync::Arc, time::Duration};
-
+use std::str::FromStr;
 use doc::lines::{
-    buffer::rope_text::RopeText, editor_command::CommandExecuted, mode::Mode
+    editor_command::CommandExecuted, mode::Mode
 };
 use floem::{
     IntoView, View,
@@ -22,11 +22,13 @@ use floem::{
         stack, text, virtual_stack
     }
 };
+use floem::peniko::Color;
+use floem::prelude::text_input;
 use indexmap::IndexMap;
 use inflector::Inflector;
 use lapce_core::icon::LapceIcons;
 use lapce_rpc::plugin::VoltID;
-use lapce_xi_rope::Rope;
+use log::info;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -826,7 +828,6 @@ fn color_section_list(
     list: impl Fn() -> BTreeMap<String, String> + 'static,
     max_width: Memo<f64>,
     text_height: Memo<f64>,
-    editors: Editors,
     common: Rc<CommonData>
 ) -> impl View {
     let config = common.config;
@@ -845,81 +846,89 @@ fn color_section_list(
             move || BTreeMapVirtualList(list()),
             move |(key, _)| (key.to_owned()),
             move |(key, value)| {
-                let cx = Scope::current();
-                let text_input_view = TextInputBuilder::new()
-                    .value(value.clone())
-                    .build(cx, editors, common.clone());
-                let doc = text_input_view.doc_signal();
-
-                {
-                    let kind = kind.clone();
-                    let key = key.clone();
-                    let doc = text_input_view.doc_signal();
-                    create_effect(move |_| {
-                        let doc = doc.get_untracked();
-                        let config = config.get();
-                        let current =
-                            doc.lines.with_untracked(|x| x.buffer().to_string());
-
-                        let value = match kind.as_str() {
-                            "base" => config.color_theme.base.get(&key),
-                            "ui" => config.color_theme.ui.get(&key),
-                            "syntax" => config.color_theme.syntax.get(&key),
-                            _ => None
-                        };
-
-                        if let Some(value) = value {
-                            if value != &current {
-                                doc.reload(Rope::from(value.to_string()), true);
-                            }
-                        }
-                    });
-                }
+                let query_str = create_rw_signal(value);
+                // {
+                //     let kind = kind.clone();
+                //     let key = key.clone();
+                //     let doc = text_input_view.doc_signal();
+                //     // config变化时，保持原来的值不变
+                //     create_effect(move |_| {
+                //         let doc = doc.get_untracked();
+                //         let config = config.get();
+                //         let current =
+                //             doc.lines.with_untracked(|x| x.buffer().to_string());
+                //
+                //         let value = match kind.as_str() {
+                //             "base" => config.color_theme.base.get(&key),
+                //             "ui" => config.color_theme.ui.get(&key),
+                //             "syntax" => config.color_theme.syntax.get(&key),
+                //             _ => None
+                //         };
+                //
+                //         if let Some(value) = value {
+                //             if value != &current {
+                //                 doc.reload(Rope::from(value.to_string()), true);
+                //             }
+                //         }
+                //     });
+                // }
 
                 {
                     let timer = create_rw_signal(TimerToken::INVALID);
                     let kind = kind.clone();
                     let field = key.clone();
-                    create_effect(move |last| {
-                        let doc = doc.get_untracked();
-
-                        let buffer_rev =
-                            doc.lines.with_untracked(|x| x.signal_buffer_rev());
-                        let rev = buffer_rev.get();
-                        if last.is_none() {
-                            return rev;
-                        }
-                        if last == Some(rev) {
-                            return rev;
-                        }
+                    // 保存新值
+                    create_effect(move |_| {
+                        let new_value = query_str.get();
+                        let Ok(_color) = Color::from_str(&new_value) else {
+                            return;
+                        };
                         let kind = kind.clone();
                         let field = field.clone();
                         let token =
                             exec_after(Duration::from_millis(500), move |token| {
                                 if let Some(timer) = timer.try_get_untracked() {
                                     if timer == token {
-                                        let value = doc.lines.with_untracked(|x| {
-                                            x.buffer().to_string()
-                                        });
-
-                                        let config = config.get_untracked();
+                                        let value = query_str.get_untracked();
+                                        if new_value != value {
+                                            return;
+                                        }
+                                        let config_val = config.get_untracked();
                                         let default = match kind.as_str() {
-                                            "base" => config
-                                                .default_color_theme()
+                                            "base" => config_val
+                                                .color_theme
                                                 .base
                                                 .get(&field),
-                                            "ui" => config
-                                                .default_color_theme()
+                                            "ui" => config_val
+                                                .color_theme
                                                 .ui
                                                 .get(&field),
-                                            "syntax" => config
-                                                .default_color_theme()
+                                            "syntax" => config_val
+                                                .color_theme
                                                 .syntax
                                                 .get(&field),
                                             _ => None
                                         };
 
                                         if default != Some(&value) {
+                                            info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
+                                            // todo!
+                                            // config.update(|config| {
+                                            //
+                                            // })
+                                            // match kind.as_str() {
+                                            //     "base" => config_val
+                                            //         .color
+                                            //         .base.0.insert(field.clone(), color),
+                                            //     "ui" => config_val
+                                            //         .color
+                                            //         .ui.insert(field.clone(), color),
+                                            //     "syntax" => config_val
+                                            //         .color
+                                            //         .syntax.insert(field.clone(), color),
+                                            //     _ => None
+                                            // };
+
                                             let value = serde::Serialize::serialize(
                                                 &value,
                                                 toml_edit::ser::ValueSerializer::new(
@@ -934,28 +943,25 @@ fn color_section_list(
                                                     value
                                                 );
                                             }
-                                        } else {
-                                            LapceConfig::reset_setting(
-                                                &format!("color-theme.{kind}"),
-                                                &field
-                                            );
+                                        // } else {
+                                        //     LapceConfig::reset_setting(
+                                        //         &format!("color-theme.{kind}"),
+                                        //         &field
+                                        //     );
                                         }
                                     }
                                 }
                             });
                         timer.set(token);
-
-                        rev
                     });
                 }
 
-                let local_kind = kind.clone();
-                let local_key = key.clone();
                 stack((
                     text(&key).style(move |s| {
                         s.width(max_width.get()).margin_left(20).margin_right(10)
                     }),
-                    text_input_view.keyboard_navigable().style(move |s| {
+                    text_input(query_str)
+                        .keyboard_navigable().keyboard_navigable().style(move |s| {
                         s.width(150.0)
                             .margin_vert(6)
                             .border(1)
@@ -966,13 +972,9 @@ fn color_section_list(
                     }),
                     empty().style(move |s| {
                         let size = text_height.get() + 12.0;
-                        let config = config.get();
-                        let color = match local_kind.as_str() {
-                            "base" => config.color.base.get(&local_key),
-                            "ui" => config.color.ui.get(&local_key).copied(),
-                            "syntax" => config.color.syntax.get(&local_key).copied(),
-                            _ => None
-                        };
+                        let config = config.get_untracked();
+                        let new_value = query_str.get();
+                        let color = Color::from_str(&new_value).ok();
                         s.border(1)
                             .border_radius(6)
                             .size(size, size)
@@ -995,11 +997,8 @@ fn color_section_list(
                                 );
                             })
                             .style(move |s| {
-                                let doc = doc.get_untracked();
+                                let content = query_str.get();
                                 let config = config.get();
-                                let buffer =
-                                    doc.lines.with_untracked(|x| x.signal_buffer());
-                                let content = buffer.with(|b| b.to_string());
 
                                 let same = match kind.as_str() {
                                     "base" => {
@@ -1044,7 +1043,6 @@ fn color_section_list(
 }
 
 pub fn theme_color_settings_view(
-    editors: Editors,
     common: Rc<CommonData>
 ) -> impl View {
     let config = common.config;
@@ -1090,37 +1088,26 @@ pub fn theme_color_settings_view(
         max_width
     });
 
-    let cx = Scope::current();
-    let search_editor = editors.make_local(cx, common.clone());
-    let buffer = search_editor
-        .doc_signal()
-        .get_untracked()
-        .lines
-        .with_untracked(|x| x.signal_buffer());
+    let query_str = create_rw_signal(String::new());
 
     scroll(
         stack((
             container({
-                TextInputBuilder::new()
-                    .build_editor(search_editor)
-                    .placeholder(|| "Search Settings".to_string())
-                    .keyboard_navigable()
-                    .style(move |s| {
-                        s.width_pct(100.0)
-                            .border_radius(6.0)
-                            .border(1.0)
-                            .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
-                            )
-                    })
-                    .request_focus(|| {})
+                text_input(query_str)
+                    .placeholder("Search Settings")
+                    .keyboard_navigable().style(move |s| {
+                    s.width_pct(100.0)
+                        .border_radius(2.0)
+                        .border(1.0)
+                        .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                })
             })
             .style(|s| s.padding_vert(20.0).padding_horiz(20.0)),
             color_section_list(
                 "base",
                 "Base Colors",
                 move || {
-                    let filter = buffer.get().to_string();
+                    let filter = query_str.get();
                     config.with(|c| {
                         c.color_theme
                             .base
@@ -1138,14 +1125,13 @@ pub fn theme_color_settings_view(
                 },
                 max_width,
                 text_height,
-                editors,
                 common.clone()
             ),
             color_section_list(
                 "syntax",
                 "Syntax Colors",
                 move || {
-                    let filter = buffer.get().text().to_string();
+                    let filter = query_str.get();
                     config.with(|c| {
                         c.color_theme
                             .syntax
@@ -1162,14 +1148,13 @@ pub fn theme_color_settings_view(
                 },
                 max_width,
                 text_height,
-                editors,
                 common.clone()
             ),
             color_section_list(
                 "ui",
                 "UI Colors",
                 move || {
-                    let filter = buffer.get().text().to_string();
+                    let filter = query_str.get();
                     config.with(|c| {
                         c.color_theme
                             .ui
@@ -1186,7 +1171,6 @@ pub fn theme_color_settings_view(
                 },
                 max_width,
                 text_height,
-                editors,
                 common.clone()
             )
         ))
