@@ -36,10 +36,8 @@ use crate::{
         editor::EditorConfig, terminal::TerminalConfig, ui::UIConfig,
     },
     keypress::KeyPressFocus,
-    main_split::Editors,
     plugin::InstalledVoltData,
     svg,
-    text_input::TextInputBuilder,
     window_workspace::CommonData,
 };
 
@@ -328,7 +326,6 @@ impl SettingsData {
 
 pub fn settings_view(
     installed_plugins: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
-    editors: Editors,
     common: Rc<CommonData>,
 ) -> impl View {
     let config = common.config;
@@ -338,18 +335,13 @@ pub fn settings_view(
     let view_settings_data = settings_data.clone();
     let plugin_kinds = settings_data.plugin_kinds;
 
-    let search_editor = editors.make_local(cx, common);
-    let buffer = search_editor
-        .doc_signal()
-        .get_untracked()
-        .lines
-        .with_untracked(|x| x.signal_buffer());
+    let query_str = create_rw_signal(String::new());
 
     let items = settings_data.items;
     let kinds = settings_data.kinds;
     let filtered_items_signal = settings_data.filtered_items;
     create_effect(move |_| {
-        let pattern = buffer.with(|x| x.to_string().to_lowercase());
+        let pattern = query_str.get();
         let plugin_items = settings_data.plugin_items.get();
         let mut items = items.get();
         if pattern.is_empty() {
@@ -493,19 +485,30 @@ pub fn settings_view(
         }),
         stack((
             container({
-                TextInputBuilder::new()
-                    .build_editor(search_editor)
-                    .placeholder(|| "Search Settings".to_string())
-                    .keyboard_navigable()
-                    .style(move |s| {
-                        s.width_pct(100.0)
-                            .border_radius(6.0)
-                            .border(1.0)
-                            .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER),
-                            )
-                    })
-                    .request_focus(|| {})
+                text_input(query_str)
+                    .placeholder("Search Settings")
+                    .keyboard_navigable().style(move |s| {
+                    s.width_pct(100.0)
+                        .border_radius(2.0)
+                        .border(1.0)
+                        .border_color(
+                            config.get().color(LapceColor::LAPCE_BORDER),
+                        )
+                })
+                //
+                // TextInputBuilder::new()
+                //     .build_editor(search_editor)
+                //     .placeholder(|| "Search Settings".to_string())
+                //     .keyboard_navigable()
+                //     .style(move |s| {
+                //         s.width_pct(100.0)
+                //             .border_radius(6.0)
+                //             .border(1.0)
+                //             .border_color(
+                //                 config.get().color(LapceColor::LAPCE_BORDER),
+                //             )
+                //     })
+                //     .request_focus(|| {})
             })
             .style(|s| s.padding_horiz(50.0).padding_vert(20.0)),
             container({
@@ -521,7 +524,6 @@ pub fn settings_view(
                         },
                         move |item| {
                             settings_item_view(
-                                editors,
                                 view_settings_data.clone(),
                                 item,
                             )
@@ -552,7 +554,6 @@ pub fn settings_view(
 }
 
 fn settings_item_view(
-    editors: Editors,
     settings_data: SettingsData,
     item: SettingsItem,
 ) -> impl View {
@@ -578,28 +579,18 @@ fn settings_item_view(
     let view = {
         let item = item.clone();
         move || {
-            let cx = Scope::current();
             if let Some(editor_value) = editor_value {
-                let text_input_view = TextInputBuilder::new()
-                    .value(editor_value)
-                    .build(cx, editors, settings_data.common);
+                // let text_input_view = TextInputBuilder::new()
+                //     .value(editor_value)
+                //     .build(cx, editors, settings_data.common);
 
-                let doc = text_input_view.doc_signal();
+                let query_str = create_rw_signal(editor_value);
 
                 let kind = item.kind.clone();
                 let field = item.field.clone();
                 let item_value = item.value.clone();
-                create_effect(move |last| {
-                    let doc = doc.get_untracked();
-                    let buffer_rev =
-                        doc.lines.with_untracked(|x| x.signal_buffer_rev());
-                    let rev = buffer_rev.get();
-                    if last.is_none() {
-                        return rev;
-                    }
-                    if last == Some(rev) {
-                        return rev;
-                    }
+                create_effect(move |_| {
+                    let value = query_str.get();
                     let kind = kind.clone();
                     let field = field.clone();
                     let item_value = item_value.clone();
@@ -607,9 +598,7 @@ fn settings_item_view(
                         exec_after(Duration::from_millis(500), move |token| {
                             if let Some(timer) = timer.try_get_untracked() {
                                 if timer == token {
-                                    let value = doc
-                                        .lines
-                                        .with_untracked(|x| x.buffer().to_string());
+                                    // let value = query_str.get_untracked();
                                     let value = match &item_value {
                                         SettingsValue::Float(_) => {
                                             value.parse::<f64>().ok().and_then(|v| {
@@ -643,11 +632,9 @@ fn settings_item_view(
                             }
                         });
                     timer.set(token);
-
-                    rev
                 });
 
-                text_input_view
+                text_input(query_str)
                     .keyboard_navigable()
                     .style(move |s| {
                         s.width(300.0).border(1.0).border_radius(6.0).border_color(

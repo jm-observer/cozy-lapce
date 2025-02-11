@@ -1377,7 +1377,7 @@ fn editor_tab_content(
                 }
             },
             EditorTabChildId::Settings(_) => {
-                settings_view(plugin.installed, editors, common).into_any()
+                settings_view(plugin.installed, common).into_any()
             },
             EditorTabChildId::ThemeColorSettings(_) => {
                 theme_color_settings_view(common).into_any()
