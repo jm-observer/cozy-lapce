@@ -1,8 +1,6 @@
-use std::{collections::BTreeMap, rc::Rc, sync::Arc, time::Duration};
-use std::str::FromStr;
-use doc::lines::{
-    editor_command::CommandExecuted, mode::Mode
-};
+use doc::lines::{editor_command::CommandExecuted, mode::Mode};
+use floem::peniko::Color;
+use floem::prelude::{text_input, v_stack};
 use floem::{
     IntoView, View,
     action::{TimerToken, add_overlay, exec_after, remove_overlay},
@@ -11,7 +9,7 @@ use floem::{
     peniko::kurbo::{Point, Rect, Size},
     reactive::{
         Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        create_effect, create_memo, create_rw_signal
+        create_effect, create_memo, create_rw_signal,
     },
     style::CursorStyle,
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
@@ -19,11 +17,9 @@ use floem::{
         Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
         dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack, text, virtual_stack
-    }
+        stack, text, virtual_stack,
+    },
 };
-use floem::peniko::Color;
-use floem::prelude::text_input;
 use indexmap::IndexMap;
 use inflector::Inflector;
 use lapce_core::icon::LapceIcons;
@@ -31,18 +27,20 @@ use lapce_rpc::plugin::VoltID;
 use log::info;
 use serde::Serialize;
 use serde_json::Value;
+use std::str::FromStr;
+use std::{collections::BTreeMap, rc::Rc, sync::Arc, time::Duration};
 
 use crate::{
     config::{
         DropdownInfo, LapceConfig, color::LapceColor, core::CoreConfig,
-        editor::EditorConfig, terminal::TerminalConfig, ui::UIConfig
+        editor::EditorConfig, terminal::TerminalConfig, ui::UIConfig,
     },
     keypress::KeyPressFocus,
     main_split::Editors,
     plugin::InstalledVoltData,
     svg,
     text_input::TextInputBuilder,
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 
 #[derive(Debug, Clone)]
@@ -52,7 +50,7 @@ pub enum SettingsValue {
     String(String),
     Bool(bool),
     Dropdown(DropdownInfo),
-    Empty
+    Empty,
 }
 
 impl From<serde_json::Value> for SettingsValue {
@@ -67,35 +65,35 @@ impl From<serde_json::Value> for SettingsValue {
             },
             serde_json::Value::String(s) => SettingsValue::String(s),
             serde_json::Value::Bool(b) => SettingsValue::Bool(b),
-            _ => SettingsValue::Empty
+            _ => SettingsValue::Empty,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 struct SettingsItem {
-    kind:        String,
-    name:        String,
-    field:       String,
+    kind: String,
+    name: String,
+    field: String,
     description: String,
     filter_text: String,
-    value:       SettingsValue,
+    value: SettingsValue,
     serde_value: Value,
-    pos:         RwSignal<Point>,
-    size:        RwSignal<Size>,
+    pos: RwSignal<Point>,
+    size: RwSignal<Size>,
     // this is only the header that give an visual sepeartion between different type
     // of settings
-    header:      bool
+    header: bool,
 }
 
 #[derive(Clone, Debug)]
 struct SettingsData {
-    items:          RwSignal<im::Vector<SettingsItem>>,
-    kinds:          RwSignal<im::Vector<(String, RwSignal<Point>)>>,
-    plugin_items:   RwSignal<im::Vector<SettingsItem>>,
-    plugin_kinds:   RwSignal<im::Vector<(String, RwSignal<Point>)>>,
+    items: RwSignal<im::Vector<SettingsItem>>,
+    kinds: RwSignal<im::Vector<(String, RwSignal<Point>)>>,
+    plugin_items: RwSignal<im::Vector<SettingsItem>>,
+    plugin_kinds: RwSignal<im::Vector<(String, RwSignal<Point>)>>,
     filtered_items: RwSignal<im::Vector<SettingsItem>>,
-    common:         Rc<CommonData>
+    common: Rc<CommonData>,
 }
 
 impl KeyPressFocus for SettingsData {
@@ -105,7 +103,7 @@ impl KeyPressFocus for SettingsData {
 
     fn check_condition(
         &self,
-        _condition: crate::keypress::condition::Condition
+        _condition: crate::keypress::condition::Condition,
     ) -> bool {
         false
     }
@@ -114,7 +112,7 @@ impl KeyPressFocus for SettingsData {
         &self,
         _command: &crate::command::LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         CommandExecuted::No
     }
@@ -129,7 +127,7 @@ impl VirtualVector<SettingsItem> for SettingsData {
 
     fn slice(
         &mut self,
-        _range: std::ops::Range<usize>
+        _range: std::ops::Range<usize>,
     ) -> impl Iterator<Item = SettingsItem> {
         Box::new(self.filtered_items.get().into_iter())
     }
@@ -139,14 +137,14 @@ impl SettingsData {
     pub fn new(
         cx: Scope,
         installed_plugin: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Self {
         fn into_settings_map(
-            data: &impl Serialize
+            data: &impl Serialize,
         ) -> serde_json::Map<String, serde_json::Value> {
             match serde_json::to_value(data).unwrap() {
                 serde_json::Value::Object(h) => h,
-                _ => serde_json::Map::default()
+                _ => serde_json::Map::default(),
             }
         }
 
@@ -167,26 +165,26 @@ impl SettingsData {
                     "Core",
                     &CoreConfig::FIELDS[..],
                     &CoreConfig::DESCS[..],
-                    into_settings_map(&config.core)
+                    into_settings_map(&config.core),
                 ),
                 (
                     "Editor",
                     &EditorConfig::FIELDS[..],
                     &EditorConfig::DESCS[..],
-                    into_settings_map(&config.editor)
+                    into_settings_map(&config.editor),
                 ),
                 (
                     "UI",
                     &UIConfig::FIELDS[..],
                     &UIConfig::DESCS[..],
-                    into_settings_map(&config.ui)
+                    into_settings_map(&config.ui),
                 ),
                 (
                     "Terminal",
                     &TerminalConfig::FIELDS[..],
                     &TerminalConfig::DESCS[..],
-                    into_settings_map(&config.terminal)
-                )
+                    into_settings_map(&config.terminal),
+                ),
             ] {
                 let pos = cx.create_rw_signal(Point::new(0.0, item_height_accum));
                 data_items.push_back(SettingsItem {
@@ -199,7 +197,7 @@ impl SettingsData {
                     serde_value: Value::Null,
                     pos,
                     size: cx.create_rw_signal(Size::ZERO),
-                    header: true
+                    header: true,
                 });
                 data_kinds.push_back((kind.to_string(), pos));
                 for (name, desc) in fields.iter().zip(descs.iter()) {
@@ -211,7 +209,7 @@ impl SettingsData {
                         let index = dropdown.active_index;
                         (
                             SettingsValue::Dropdown(dropdown),
-                            Value::Number(index.into())
+                            Value::Number(index.into()),
                         )
                     } else {
                         let value = settings_map.remove(&field).unwrap();
@@ -236,7 +234,7 @@ impl SettingsData {
                         pos: cx.create_rw_signal(Point::ZERO),
                         size: cx.create_rw_signal(Size::ZERO),
                         serde_value,
-                        header: false
+                        header: false,
                     });
                     item_height_accum += 50.0;
                 }
@@ -265,7 +263,7 @@ impl SettingsData {
                         serde_value: Value::Null,
                         pos,
                         size: cx.create_rw_signal(Size::ZERO),
-                        header: true
+                        header: true,
                     });
                     plugin_kinds_tmp.push_back((meta.display_name.clone(), pos));
 
@@ -302,7 +300,7 @@ impl SettingsData {
                                 pos: cx.create_rw_signal(Point::ZERO),
                                 size: cx.create_rw_signal(Size::ZERO),
                                 serde_value: Value::Null,
-                                header: false
+                                header: false,
                             };
                             local_items.push(item);
                             item_height_accum += 50.0;
@@ -323,7 +321,7 @@ impl SettingsData {
             plugin_kinds,
             items,
             kinds,
-            common
+            common,
         }
     }
 }
@@ -331,7 +329,7 @@ impl SettingsData {
 pub fn settings_view(
     installed_plugins: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
     editors: Editors,
-    common: Rc<CommonData>
+    common: Rc<CommonData>,
 ) -> impl View {
     let config = common.config;
 
@@ -407,7 +405,7 @@ pub fn settings_view(
         let kind = k.clone();
         container(
             label(move || k.clone())
-                .style(move |s| s.text_ellipsis().padding_left(margin))
+                .style(move |s| s.text_ellipsis().padding_left(margin)),
         )
         .on_click_stop(move |_| {
             if let Some(pos) = pos() {
@@ -415,7 +413,7 @@ pub fn settings_view(
                     settings_content_size
                         .get_untracked()
                         .to_rect()
-                        .with_origin(pos.get_untracked())
+                        .with_origin(pos.get_untracked()),
                 );
             }
         })
@@ -428,12 +426,12 @@ pub fn settings_view(
                 })
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
                 .active(|s| {
                     s.background(
-                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
+                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
                     )
                 })
         })
@@ -444,7 +442,7 @@ pub fn settings_view(
             dyn_stack(
                 move || kinds.get().clone(),
                 |(k, _)| k.clone(),
-                move |(k, pos)| switcher_item(k, Box::new(move || Some(pos)), 0.0)
+                move |(k, pos)| switcher_item(k, Box::new(move || Some(pos)), 0.0),
             )
             .style(|s| s.flex_col().width_pct(100.0)),
             stack((
@@ -454,22 +452,22 @@ pub fn settings_view(
                         plugin_kinds
                             .with_untracked(|k| k.get(0).map(|(_, pos)| *pos))
                     }),
-                    0.0
+                    0.0,
                 ),
                 dyn_stack(
                     move || plugin_kinds.get(),
                     |(k, _)| k.clone(),
                     move |(k, pos)| {
                         switcher_item(k, Box::new(move || Some(pos)), 10.0)
-                    }
+                    },
                 )
-                .style(|s| s.flex_col().width_pct(100.0))
+                .style(|s| s.flex_col().width_pct(100.0)),
             ))
             .style(move |s| {
                 s.width_pct(100.0)
                     .flex_col()
                     .apply_if(plugin_kinds.with(|k| k.is_empty()), |s| s.hide())
-            })
+            }),
         ))
         .style(move |s| {
             s.width_pct(100.0)
@@ -504,7 +502,7 @@ pub fn settings_view(
                             .border_radius(6.0)
                             .border(1.0)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.get().color(LapceColor::LAPCE_BORDER),
                             )
                     })
                     .request_focus(|| {})
@@ -518,16 +516,16 @@ pub fn settings_view(
                             (
                                 item.kind.clone(),
                                 item.name.clone(),
-                                item.serde_value.clone()
+                                item.serde_value.clone(),
                             )
                         },
                         move |item| {
                             settings_item_view(
                                 editors,
                                 view_settings_data.clone(),
-                                item
+                                item,
                             )
-                        }
+                        },
                     )
                     .style(|s| {
                         s.flex_col()
@@ -545,9 +543,9 @@ pub fn settings_view(
                 })
                 .style(|s| s.absolute().size_pct(100.0, 100.0))
             })
-            .style(|s| s.size_pct(100.0, 100.0))
+            .style(|s| s.size_pct(100.0, 100.0)),
         ))
-        .style(|s| s.flex_col().size_pct(100.0, 100.0))
+        .style(|s| s.flex_col().size_pct(100.0, 100.0)),
     ))
     .style(|s| s.absolute().size_pct(100.0, 100.0))
     .debug_name("Settings")
@@ -556,7 +554,7 @@ pub fn settings_view(
 fn settings_item_view(
     editors: Editors,
     settings_data: SettingsData,
-    item: SettingsItem
+    item: SettingsItem,
 ) -> impl View {
     let config = settings_data.common.config;
 
@@ -574,7 +572,7 @@ fn settings_item_view(
         SettingsValue::String(s) => Some(s.to_string()),
         SettingsValue::Bool(_) => None,
         SettingsValue::Dropdown(_) => None,
-        SettingsValue::Empty => None
+        SettingsValue::Empty => None,
     };
 
     let view = {
@@ -631,14 +629,14 @@ fn settings_item_view(
                                         },
                                         _ => serde::Serialize::serialize(
                                             &value,
-                                            toml_edit::ser::ValueSerializer::new()
+                                            toml_edit::ser::ValueSerializer::new(),
                                         )
-                                        .ok()
+                                        .ok(),
                                     };
 
                                     if let Some(value) = value {
                                         LapceConfig::update_file(
-                                            &kind, &field, value
+                                            &kind, &field, value,
                                         );
                                     }
                                 }
@@ -653,7 +651,7 @@ fn settings_item_view(
                     .keyboard_navigable()
                     .style(move |s| {
                         s.width(300.0).border(1.0).border_radius(6.0).border_color(
-                            config.get().color(LapceColor::LAPCE_BORDER)
+                            config.get().color(LapceColor::LAPCE_BORDER),
                         )
                     })
                     .into_any()
@@ -673,7 +671,7 @@ fn settings_item_view(
                     dropdown,
                     expanded,
                     settings_data.common.window_common.size,
-                    config
+                    config,
                 )
                 .into_any()
             } else if item.header {
@@ -725,7 +723,7 @@ fn settings_item_view(
                     }
                     if let Ok(value) = serde::Serialize::serialize(
                         &checked,
-                        toml_edit::ser::ValueSerializer::new()
+                        toml_edit::ser::ValueSerializer::new(),
                     ) {
                         LapceConfig::update_file(&kind, &field, value);
                     }
@@ -734,9 +732,9 @@ fn settings_item_view(
                 container(
                     stack((
                         checkbox(move || checked.get(), config),
-                        label(|| " ".to_string()).style(|s| s.line_height(1.8))
+                        label(|| " ".to_string()).style(|s| s.line_height(1.8)),
                     ))
-                    .style(|s| s.items_center())
+                    .style(|s| s.items_center()),
                 )
                 .on_click_stop(move |_| {
                     checked.update(|checked| {
@@ -751,9 +749,9 @@ fn settings_item_view(
                 })
             } else {
                 container(empty()).style(|s| s.hide())
-            }
+            },
         )),
-        view().style(move |s| s.apply_if(!item.header, |s| s.margin_top(6.0)))
+        view().style(move |s| s.apply_if(!item.header, |s| s.margin_top(6.0))),
     ))
     .on_resize(move |rect| {
         if item.header {
@@ -775,7 +773,7 @@ fn settings_item_view(
 
 pub fn checkbox(
     checked: impl Fn() -> bool + 'static,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     const CHECKBOX_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 16 16"><polygon points="5.19,11.83 0.18,7.44 1.82,5.56 4.81,8.17 10,1.25 12,2.75" /></svg>"#;
     let svg_str = move || if checked() { CHECKBOX_SVG } else { "" }.to_string();
@@ -803,7 +801,7 @@ impl VirtualVector<(String, String)> for BTreeMapVirtualList {
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>
+        range: std::ops::Range<usize>,
     ) -> impl Iterator<Item = (String, String)> {
         Box::new(
             self.0
@@ -817,7 +815,7 @@ impl VirtualVector<(String, String)> for BTreeMapVirtualList {
                     }
                 })
                 .collect::<Vec<_>>()
-                .into_iter()
+                .into_iter(),
         )
     }
 }
@@ -828,7 +826,7 @@ fn color_section_list(
     list: impl Fn() -> BTreeMap<String, String> + 'static,
     max_width: Memo<f64>,
     text_height: Memo<f64>,
-    common: Rc<CommonData>
+    common: Rc<CommonData>,
 ) -> impl View {
     let config = common.config;
 
@@ -1042,9 +1040,7 @@ fn color_section_list(
     .style(|s| s.flex_col())
 }
 
-pub fn theme_color_settings_view(
-    common: Rc<CommonData>
-) -> impl View {
+pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
     let config = common.config;
 
     let text_height = create_memo(move |_| {
@@ -1090,93 +1086,96 @@ pub fn theme_color_settings_view(
 
     let query_str = create_rw_signal(String::new());
 
-    scroll(
-        stack((
-            container({
-                text_input(query_str)
-                    .placeholder("Search Settings")
-                    .keyboard_navigable().style(move |s| {
+    v_stack((
+        container({
+            text_input(query_str)
+                .placeholder("Search Settings")
+                .keyboard_navigable()
+                .style(move |s| {
                     s.width_pct(100.0)
                         .border_radius(2.0)
                         .border(1.0)
                         .border_color(config.get().color(LapceColor::LAPCE_BORDER))
                 })
-            })
-            .style(|s| s.padding_vert(20.0).padding_horiz(20.0)),
-            color_section_list(
-                "base",
-                "Base Colors",
-                move || {
-                    let filter = query_str.get();
-                    config.with(|c| {
-                        c.color_theme
-                            .base
-                            .0
-                            .iter()
-                            .filter_map(|x| {
-                                if x.0.contains(&filter) {
-                                    Some((x.0.clone(), x.1.clone()))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<BTreeMap<String, String>>()
-                    })
-                },
-                max_width,
-                text_height,
-                common.clone()
-            ),
-            color_section_list(
-                "syntax",
-                "Syntax Colors",
-                move || {
-                    let filter = query_str.get();
-                    config.with(|c| {
-                        c.color_theme
-                            .syntax
-                            .iter()
-                            .filter_map(|x| {
-                                if x.0.contains(&filter) {
-                                    Some((x.0.clone(), x.1.clone()))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<BTreeMap<String, String>>()
-                    })
-                },
-                max_width,
-                text_height,
-                common.clone()
-            ),
-            color_section_list(
-                "ui",
-                "UI Colors",
-                move || {
-                    let filter = query_str.get();
-                    config.with(|c| {
-                        c.color_theme
-                            .ui
-                            .iter()
-                            .filter_map(|x| {
-                                if x.0.contains(&filter) {
-                                    Some((x.0.clone(), x.1.clone()))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<BTreeMap<String, String>>()
-                    })
-                },
-                max_width,
-                text_height,
-                common.clone()
-            )
-        ))
-        .style(|s| s.flex_col())
-    )
-    .style(|s| s.absolute().size_full())
+        })
+        .style(|s| s.padding_vert(20.0).padding_horiz(20.0).width_full()),
+        container(
+            scroll(v_stack((
+                color_section_list(
+                    "base",
+                    "Base Colors",
+                    move || {
+                        let filter = query_str.get();
+                        config.with(|c| {
+                            c.color_theme
+                                .base
+                                .0
+                                .iter()
+                                .filter_map(|x| {
+                                    if x.0.contains(&filter) {
+                                        Some((x.0.clone(), x.1.clone()))
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<BTreeMap<String, String>>()
+                        })
+                    },
+                    max_width,
+                    text_height,
+                    common.clone(),
+                ),
+                color_section_list(
+                    "syntax",
+                    "Syntax Colors",
+                    move || {
+                        let filter = query_str.get();
+                        config.with(|c| {
+                            c.color_theme
+                                .syntax
+                                .iter()
+                                .filter_map(|x| {
+                                    if x.0.contains(&filter) {
+                                        Some((x.0.clone(), x.1.clone()))
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<BTreeMap<String, String>>()
+                        })
+                    },
+                    max_width,
+                    text_height,
+                    common.clone(),
+                ),
+                color_section_list(
+                    "ui",
+                    "UI Colors",
+                    move || {
+                        let filter = query_str.get();
+                        config.with(|c| {
+                            c.color_theme
+                                .ui
+                                .iter()
+                                .filter_map(|x| {
+                                    if x.0.contains(&filter) {
+                                        Some((x.0.clone(), x.1.clone()))
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<BTreeMap<String, String>>()
+                        })
+                    },
+                    max_width,
+                    text_height,
+                    common.clone(),
+                ),
+            )))
+            .style(|s| s.absolute().size_full()),
+        )
+        .style(|s| s.width_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
+    ))
     .debug_name("Theme Color Settings")
 }
 
@@ -1186,7 +1185,7 @@ fn dropdown_view(
     dropdown: &DropdownInfo,
     expanded: RwSignal<bool>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let window_origin = create_rw_signal(Point::ZERO);
     let size = create_rw_signal(Size::ZERO);
@@ -1212,7 +1211,7 @@ fn dropdown_view(
                         window_origin,
                         size,
                         window_size,
-                        config
+                        config,
                     )
                 });
                 overlay_id.set(Some(id));
@@ -1243,9 +1242,9 @@ fn dropdown_view(
                 let size = config.ui.icon_size() as f32;
                 s.size(size, size)
                     .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
-            })
+            }),
         )
-        .style(|s| s.padding_right(4.0))
+        .style(|s| s.padding_right(4.0)),
     ))
     .on_click_stop(move |_| {
         expanded.update(|expanded| {
@@ -1298,7 +1297,7 @@ fn dropdown_scroll(
     window_origin: RwSignal<Point>,
     input_size: RwSignal<Size>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     dropdown_scroll_focus.set(true);
 
@@ -1313,7 +1312,7 @@ fn dropdown_scroll(
                 current_value.set(item_string.clone());
                 if let Ok(value) = serde::Serialize::serialize(
                     &item_string,
-                    toml_edit::ser::ValueSerializer::new()
+                    toml_edit::ser::ValueSerializer::new(),
                 ) {
                     LapceConfig::update_file(&kind, &field, value);
                 }
@@ -1322,7 +1321,7 @@ fn dropdown_scroll(
             .style(move |s| {
                 s.text_ellipsis().padding_horiz(10.0).hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
             })
