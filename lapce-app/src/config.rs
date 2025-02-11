@@ -5,6 +5,7 @@ use std::{
 };
 
 use ::core::slice;
+use std::rc::Rc;
 use floem::{peniko::Color, prelude::palette};
 use itertools::Itertools;
 use lapce_core::{
@@ -20,7 +21,8 @@ use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
-
+use crate::command::InternalCommand;
+use crate::window_workspace::CommonData;
 use self::{
     color::LapceColor,
     color_theme::{ColorThemeConfig, ThemeColor},
@@ -1002,7 +1004,7 @@ impl LapceConfig {
     pub fn update_file(
         parent: &str,
         key: &str,
-        value: toml_edit::Value
+        value: toml_edit::Value, common: Rc<CommonData>
     ) -> Option<()> {
         // TODO: This is a hack to fix the fact that terminal default profile is
         // saved in a different manner than other fields. As it is
@@ -1035,6 +1037,8 @@ impl LapceConfig {
         // Store
         let path = Self::settings_file()?;
         std::fs::write(path, main_table.to_string().as_bytes()).ok()?;
+
+        common.internal_command.send(InternalCommand::ReloadConfig);
 
         Some(())
     }

@@ -24,7 +24,6 @@ use indexmap::IndexMap;
 use inflector::Inflector;
 use lapce_core::icon::LapceIcons;
 use lapce_rpc::plugin::VoltID;
-use log::info;
 use serde::Serialize;
 use serde_json::Value;
 use std::str::FromStr;
@@ -495,20 +494,6 @@ pub fn settings_view(
                             config.get().color(LapceColor::LAPCE_BORDER),
                         )
                 })
-                //
-                // TextInputBuilder::new()
-                //     .build_editor(search_editor)
-                //     .placeholder(|| "Search Settings".to_string())
-                //     .keyboard_navigable()
-                //     .style(move |s| {
-                //         s.width_pct(100.0)
-                //             .border_radius(6.0)
-                //             .border(1.0)
-                //             .border_color(
-                //                 config.get().color(LapceColor::LAPCE_BORDER),
-                //             )
-                //     })
-                //     .request_focus(|| {})
             })
             .style(|s| s.padding_horiz(50.0).padding_vert(20.0)),
             container({
@@ -576,24 +561,26 @@ fn settings_item_view(
         SettingsValue::Empty => None,
     };
 
+    let common = settings_data.common.clone();
     let view = {
         let item = item.clone();
         move || {
+            let common = common.clone();
             if let Some(editor_value) = editor_value {
-                // let text_input_view = TextInputBuilder::new()
-                //     .value(editor_value)
-                //     .build(cx, editors, settings_data.common);
-
-                let query_str = create_rw_signal(editor_value);
-
+                let query_str = create_rw_signal(editor_value.clone());
                 let kind = item.kind.clone();
                 let field = item.field.clone();
                 let item_value = item.value.clone();
+
                 create_effect(move |_| {
                     let value = query_str.get();
+                    if &value == &editor_value {
+                        return;
+                    }
                     let kind = kind.clone();
                     let field = field.clone();
                     let item_value = item_value.clone();
+                    let common = common.clone();
                     let token =
                         exec_after(Duration::from_millis(500), move |token| {
                             if let Some(timer) = timer.try_get_untracked() {
@@ -625,7 +612,7 @@ fn settings_item_view(
 
                                     if let Some(value) = value {
                                         LapceConfig::update_file(
-                                            &kind, &field, value,
+                                            &kind, &field, value,  common.clone()
                                         );
                                     }
                                 }
@@ -657,7 +644,7 @@ fn settings_item_view(
                     current_value,
                     dropdown,
                     expanded,
-                    settings_data.common.window_common.size,
+                    common,
                     config,
                 )
                 .into_any()
@@ -678,7 +665,7 @@ fn settings_item_view(
             }
         }
     };
-
+    let common = settings_data.common.clone();
     stack((
         label(move || item.name.clone()).style(move |s| {
             s.font_bold()
@@ -703,6 +690,7 @@ fn settings_item_view(
 
                 let kind = item.kind.clone();
                 let field = item.field.clone();
+                let common = common.clone();
                 create_effect(move |last| {
                     let checked = checked.get();
                     if last.is_none() {
@@ -712,7 +700,7 @@ fn settings_item_view(
                         &checked,
                         toml_edit::ser::ValueSerializer::new(),
                     ) {
-                        LapceConfig::update_file(&kind, &field, value);
+                        LapceConfig::update_file(&kind, &field, value, common.clone());
                     }
                 });
 
@@ -885,9 +873,8 @@ fn color_section_list(
                                                 LapceConfig::update_file(
                                                     &format!("color-theme.{kind}"),
                                                     &field,
-                                                    value_ser
+                                                    value_ser, common
                                                 );
-                                                common.internal_command.send(InternalCommand::ReloadConfig);
                                             }
                                             // mut_config.update(|config| {
                                             //     match kind.as_str() {
@@ -1155,10 +1142,10 @@ fn dropdown_view(
     item: &SettingsItem,
     current_value: RwSignal<String>,
     dropdown: &DropdownInfo,
-    expanded: RwSignal<bool>,
-    window_size: RwSignal<Size>,
-    config: ReadSignal<LapceConfig>,
+    expanded: RwSignal<bool>, common: Rc<CommonData>,
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
+    let window_size = common.window_common.size;
     let window_origin = create_rw_signal(Point::ZERO);
     let size = create_rw_signal(Size::ZERO);
     let overlay_id = create_rw_signal(None);
@@ -1172,6 +1159,7 @@ fn dropdown_view(
             if expanded.get() {
                 let item = item.clone();
                 let dropdown = dropdown.clone();
+                let common = common.clone();
                 let id = add_overlay(Point::ZERO, move |_| {
                     dropdown_scroll(
                         &item.clone(),
@@ -1183,7 +1171,7 @@ fn dropdown_view(
                         window_origin,
                         size,
                         window_size,
-                        config,
+                        config, common.clone()
                     )
                 });
                 overlay_id.set(Some(id));
@@ -1269,7 +1257,7 @@ fn dropdown_scroll(
     window_origin: RwSignal<Point>,
     input_size: RwSignal<Size>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<LapceConfig>,
+    config: ReadSignal<LapceConfig>, common: Rc<CommonData>
 ) -> impl View {
     dropdown_scroll_focus.set(true);
 
@@ -1279,6 +1267,7 @@ fn dropdown_scroll(
         let kind = kind.clone();
         let field = field.clone();
         let local_item_string = item_string.clone();
+        let common = common.clone();
         label(move || local_item_string.clone())
             .on_click_stop(move |_| {
                 current_value.set(item_string.clone());
@@ -1286,7 +1275,7 @@ fn dropdown_scroll(
                     &item_string,
                     toml_edit::ser::ValueSerializer::new(),
                 ) {
-                    LapceConfig::update_file(&kind, &field, value);
+                    LapceConfig::update_file(&kind, &field, value, common.clone());
                 }
                 expanded.set(false);
             })

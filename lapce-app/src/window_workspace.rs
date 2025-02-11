@@ -620,7 +620,7 @@ impl WindowWorkspaceData {
         cx.create_effect(move |_| {
             let active = config.get();
             let blink_interval = active.editor.blink_interval();
-            log::info!("update blink_interval {}", blink_interval);
+            // log::info!("update blink_interval {}", blink_interval);
             cursor_blink_clone.blink_interval.set(blink_interval);
             cursor_blink_clone.blink(None);
         });
@@ -1260,7 +1260,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(scale),
+                    toml_edit::Value::from(scale), self.common.clone()
                 );
             }
             ZoomOut => {
@@ -1275,7 +1275,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(scale),
+                    toml_edit::Value::from(scale), self.common.clone()
                 );
             }
             ZoomReset => {
@@ -1284,7 +1284,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(1.0),
+                    toml_edit::Value::from(1.0), self.common.clone()
                 );
             }
 
@@ -2048,7 +2048,7 @@ impl WindowWorkspaceData {
                     LapceConfig::update_file(
                         "core",
                         "color-theme",
-                        toml_edit::Value::from(name)
+                        toml_edit::Value::from(name), self.common.clone()
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
@@ -2062,7 +2062,7 @@ impl WindowWorkspaceData {
                     LapceConfig::update_file(
                         "core",
                         "icon-theme",
-                        toml_edit::Value::from(name)
+                        toml_edit::Value::from(name), self.common.clone()
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
@@ -2075,7 +2075,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "core",
                     "modal",
-                    toml_edit::Value::from(modal)
+                    toml_edit::Value::from(modal), self.common.clone()
                 );
             },
             InternalCommand::OpenWebUri { uri } => {
