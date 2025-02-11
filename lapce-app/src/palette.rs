@@ -93,7 +93,7 @@ impl PaletteInput {
 pub struct PaletteData {
     run_id_counter:            Arc<AtomicU64>,
     pub run_id:                RwSignal<u64>,
-    pub workspace:             Arc<LapceWorkspace>,
+    pub workspace:             LapceWorkspace,
     pub status:                RwSignal<PaletteStatus>,
     pub index:                 RwSignal<usize>,
     pub preselect_index:       RwSignal<Option<usize>>,
@@ -128,7 +128,7 @@ impl std::fmt::Debug for PaletteData {
 impl PaletteData {
     pub fn new(
         cx: Scope,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         main_split: MainSplitData,
         keypress: ReadSignal<KeyPressData>,
         source_control: SourceControlData,

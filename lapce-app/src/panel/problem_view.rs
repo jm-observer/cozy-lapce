@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf};
 
 use doc::DiagnosticData;
 use floem::{
@@ -86,12 +86,12 @@ fn problem_section(
 }
 
 fn file_view(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     path: PathBuf,
     diagnostic_data: DiagnosticData,
     severity: DiagnosticSeverity,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let collpased = create_rw_signal(false);
 
@@ -264,7 +264,7 @@ fn item_view(
     icon: &'static str,
     icon_color: impl Fn() -> Color + 'static,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let related = d.diagnostic.related_information.unwrap_or_default();
     let position = if let Some((start, _)) = d.range {
@@ -326,7 +326,7 @@ fn item_view(
 fn related_view(
     related: Vec<DiagnosticRelatedInformation>,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let is_empty = related.is_empty();
     stack((

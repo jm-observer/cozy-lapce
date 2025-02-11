@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use floem::{
     View,
@@ -24,7 +24,7 @@ use crate::{
     window_workspace::WindowWorkspaceData
 };
 
-fn gutter_marker_none_svg_view(config: ReadSignal<Arc<LapceConfig>>) -> Svg {
+fn gutter_marker_none_svg_view(config: ReadSignal<LapceConfig>) -> Svg {
     svg(move || config.get().ui_svg(LapceIcons::EMPTY)).style(move |s| {
         let config = config.get();
         let size = config.ui.icon_size() as f64;
@@ -32,7 +32,7 @@ fn gutter_marker_none_svg_view(config: ReadSignal<Arc<LapceConfig>>) -> Svg {
     })
 }
 
-fn gutter_marker_breakpoint_svg_view(config: ReadSignal<Arc<LapceConfig>>) -> Svg {
+fn gutter_marker_breakpoint_svg_view(config: ReadSignal<LapceConfig>) -> Svg {
     svg(move || config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(move |s| {
         let config = config.get();
         let size = config.ui.icon_size() as f64;
@@ -108,7 +108,7 @@ fn gutter_data_view(
     data: &GutterData,
     window_tab_data: &WindowWorkspaceData,
     doc: DocSignal,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let data = data.clone();
     container((
@@ -147,7 +147,7 @@ fn gutter_data_view(
 fn marker_view(
     data: &GutterData,
     window_tab_data: WindowWorkspaceData,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     doc_signal: DocSignal
 ) -> impl View {
     let svg = match data.marker {

@@ -1,4 +1,4 @@
-use std::sync::{Arc, atomic::AtomicU64};
+use std::sync::{atomic::AtomicU64};
 
 use doc::lines::mode::{Mode, VisualMode};
 use floem::{
@@ -36,7 +36,7 @@ pub fn status(
     source_control: SourceControlData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     status_height: RwSignal<f64>,
-    _config: ReadSignal<Arc<LapceConfig>>
+    _config: ReadSignal<LapceConfig>
 ) -> impl View {
     let config = window_tab_data.common.config;
     let diagnostics = window_tab_data.main_split.diagnostics;
@@ -419,7 +419,7 @@ pub fn status(
 }
 
 fn progress_view(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>
 ) -> impl View {
     let id = AtomicU64::new(0);
@@ -448,7 +448,7 @@ fn progress_view(
 }
 
 fn status_text<S: std::fmt::Display + 'static>(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     editor: Memo<Option<EditorData>>,
     text: impl Fn() -> S + 'static
 ) -> impl View {

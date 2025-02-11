@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::{rc::Rc};
 
 use doc::lines::{
     buffer::rope_text::RopeText,
@@ -336,7 +336,7 @@ pub struct TextInput {
     cursor_pos: Point,
     on_cursor_pos: Option<Box<dyn Fn(Point)>>,
     // hide_cursor: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     style: Extractor
 }
 

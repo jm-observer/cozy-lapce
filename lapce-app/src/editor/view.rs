@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf};
 
 use anyhow::Result;
 use doc::lines::{
@@ -78,7 +78,7 @@ fn editor_wrap(config: &LapceConfig) -> WrapMethod {
 }
 
 pub fn editor_style(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     doc: DocSignal,
     s: Style
 ) -> Style {
@@ -769,7 +769,7 @@ impl EditorView {
         cx: &mut PaintCx,
         viewport: Rect,
         is_local: bool,
-        config: Arc<LapceConfig>
+        config: LapceConfig
     ) {
         const BAR_WIDTH: f64 = 10.0;
 
@@ -1376,7 +1376,7 @@ fn get_sticky_header_info(
 
 pub fn editor_container_view(
     window_tab_data: WindowWorkspaceData,
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: RwSignal<EditorData>
 ) -> impl View {
@@ -1996,9 +1996,9 @@ fn editor_gutter_folding_range(
 // }
 
 fn editor_breadcrumbs(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     e_data: EditorData,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let doc = e_data.doc_signal();
     let doc_path = create_memo(move |_| {

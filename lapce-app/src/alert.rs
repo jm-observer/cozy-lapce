@@ -1,7 +1,7 @@
 use std::{
     fmt,
     rc::Rc,
-    sync::{Arc, atomic::AtomicU64}
+    sync::{atomic::AtomicU64}
 };
 
 use floem::{
@@ -39,7 +39,7 @@ pub struct AlertBoxData {
     pub title:   RwSignal<String>,
     pub msg:     RwSignal<String>,
     pub buttons: RwSignal<Vec<AlertButton>>,
-    pub config:  ReadSignal<Arc<LapceConfig>>
+    pub config:  ReadSignal<LapceConfig>
 }
 
 impl AlertBoxData {

@@ -1,6 +1,5 @@
 use std::{
     path::{Path, PathBuf},
-    sync::Arc
 };
 
 use anyhow::{Result, anyhow};
@@ -35,7 +34,7 @@ pub enum SaveEvent {
     RecentWorkspace(LapceWorkspace),
     Doc(DocInfo),
     DisabledVolts(Vec<VoltID>),
-    WorkspaceDisabledVolts(Arc<LapceWorkspace>, Vec<VoltID>),
+    WorkspaceDisabledVolts(LapceWorkspace, Vec<VoltID>),
     PanelOrder(PanelOrder)
 }
 
@@ -132,7 +131,7 @@ impl LapceDb {
 
     pub fn save_workspace_disabled_volts(
         &self,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         volts: Vec<VoltID>
     ) {
         if let Err(err) = self
@@ -151,7 +150,7 @@ impl LapceDb {
 
     pub fn insert_workspace_disabled_volts(
         &self,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         volts: Vec<VoltID>
     ) -> Result<()> {
         let folder = self
@@ -222,7 +221,7 @@ impl LapceDb {
     }
 
     pub fn save_window_tab(&self, data: WindowWorkspaceData) -> Result<()> {
-        let workspace = (*data.workspace).clone();
+        let workspace = data.workspace.clone();
         let workspace_info = data.workspace_info();
 
         self.save_tx
@@ -354,7 +353,7 @@ impl LapceDb {
     }
 
     pub fn insert_window_tab(&self, data: WindowWorkspaceData) -> Result<()> {
-        let workspace = (*data.workspace).clone();
+        let workspace = data.workspace.clone();
         let workspace_info = data.workspace_info();
 
         self.insert_workspace(&workspace, &workspace_info)?;

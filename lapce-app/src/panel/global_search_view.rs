@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf};
 
 use floem::{
     View,
@@ -114,10 +114,10 @@ pub fn global_search_panel(
 }
 
 fn search_result(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     global_search_data: GlobalSearchData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let ui_line_height = global_search_data.common.ui_line_height;
     container({

@@ -1,5 +1,5 @@
-use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
-
+use std::{collections::HashMap, path::PathBuf, rc::Rc};
+use std::sync::Arc;
 use alacritty_terminal::{
     Term,
     grid::{Dimensions, Scroll},
@@ -42,7 +42,7 @@ use crate::{
 pub struct TerminalData {
     pub scope:        Scope,
     pub term_id:      TermId,
-    pub workspace:    Arc<LapceWorkspace>,
+    pub workspace:    LapceWorkspace,
     pub raw_id:       RwSignal<u64>,
     pub title:        RwSignal<String>,
     pub launch_error: RwSignal<Option<String>>,
@@ -282,7 +282,7 @@ impl KeyPressFocus for TerminalData {
 impl TerminalData {
     pub fn new(
         cx: Scope,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>
     ) -> Self {
@@ -291,7 +291,7 @@ impl TerminalData {
 
     pub fn new_run_debug(
         cx: Scope,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>

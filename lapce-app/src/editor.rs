@@ -1,5 +1,5 @@
-use std::{collections::HashSet, rc::Rc, str::FromStr, sync::Arc, time::Duration};
-
+use std::{collections::HashSet, rc::Rc, str::FromStr, time::Duration};
+use std::sync::Arc;
 use anyhow::Result;
 use doc::{
     EditorViewKind,

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use floem::{
     View,
@@ -80,7 +80,7 @@ fn debug_process_icons(
     dap_id: DapId,
     mode: RunDebugMode,
     stopped: bool,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let paused = move || {
         let stopped = terminal
@@ -253,7 +253,7 @@ fn debug_process_icons(
 
 fn debug_processes(
     terminal: TerminalPanelData,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     scroll({
         let terminal = terminal.clone();
@@ -475,7 +475,7 @@ fn debug_stack_frames(
     stack_trace: StackTraceData,
     stopped: RwSignal<bool>,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let expanded = stack_trace.expanded;
     stack((
@@ -583,7 +583,7 @@ fn debug_stack_frames(
 fn debug_stack_traces(
     terminal: TerminalPanelData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     container(
         scroll({

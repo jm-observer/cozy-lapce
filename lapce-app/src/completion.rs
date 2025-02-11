@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::PathBuf, str::FromStr, sync::Arc};
+use std::{borrow::Cow, path::PathBuf, str::FromStr};
 
 use doc::lines::{
     RopeTextPosition, buffer::rope_text::RopeText, movement::Movement
@@ -67,11 +67,11 @@ pub struct CompletionData {
     pub latest_editor_id: Option<EditorId>,
     /// Matcher for filtering the completion items
     matcher:              RwSignal<nucleo::Matcher>,
-    config:               ReadSignal<Arc<LapceConfig>>
+    config:               ReadSignal<LapceConfig>
 }
 
 impl CompletionData {
-    pub fn new(cx: Scope, config: ReadSignal<Arc<LapceConfig>>) -> Self {
+    pub fn new(cx: Scope, config: ReadSignal<LapceConfig>) -> Self {
         let active = cx.create_rw_signal(0);
         Self {
             status: CompletionStatus::Inactive,

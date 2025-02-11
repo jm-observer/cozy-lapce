@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use notify::{RecursiveMode, Watcher};
 use parking_lot::RwLock;
@@ -133,7 +133,7 @@ impl LapceWorkspace {
 
     pub fn watch_project_setting(
         &self,
-        watcher: &Arc<RwLock<notify::RecommendedWatcher>>
+        watcher: &std::sync::Arc<RwLock<notify::RecommendedWatcher>>
     ) {
         if let Some(path) = self.project_setting() {
             if let Err(e) = watcher
@@ -147,7 +147,7 @@ impl LapceWorkspace {
 
     pub fn unwatch_project_setting(
         &self,
-        watcher: &Arc<RwLock<notify::RecommendedWatcher>>
+        watcher: &std::sync::Arc<RwLock<notify::RecommendedWatcher>>
     ) {
         if let Some(path) = self.project_setting() {
             if let Err(e) = watcher.write_arc().unwatch(&path) {

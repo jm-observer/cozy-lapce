@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use floem::{
     kurbo::{Rect, Size},
@@ -92,7 +92,7 @@ pub fn common_tab_header<T: Clone + 'static>(
 }
 
 fn tooltip_tip<V: View + 'static>(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     child: V
 ) -> impl IntoView {
     container(child).style(move |s| {
@@ -115,7 +115,7 @@ fn tooltip_tip<V: View + 'static>(
 
 #[derive(Clone)]
 pub struct Tabs<T: Clone + 'static> {
-    pub config:        ReadSignal<Arc<LapceConfig>>,
+    pub config:        ReadSignal<LapceConfig>,
     pub close_manager: CloseManager<T>,
     pub active:        RwSignal<Option<ViewId>>,
     pub tabs:          RwSignal<Vec<Tab<T>>>,
@@ -147,7 +147,7 @@ pub struct Tab<T: Clone + 'static> {
     pub id:         ViewId,
     pub content:    String,
     pub active:     RwSignal<Option<ViewId>>,
-    pub config:     ReadSignal<Arc<LapceConfig>>,
+    pub config:     ReadSignal<LapceConfig>,
     pub rect:       RwSignal<Rect>,
     pub references: RwSignal<T>
 }
@@ -300,7 +300,7 @@ impl<T: Clone + 'static> Tab<T> {
         (self.content.clone(), "tip".to_owned())
     }
 
-    fn config(&self) -> ReadSignal<Arc<LapceConfig>> {
+    fn config(&self) -> ReadSignal<LapceConfig> {
         self.config
     }
 
@@ -310,7 +310,7 @@ impl<T: Clone + 'static> Tab<T> {
 }
 
 impl<T: Clone + 'static> Tabs<T> {
-    pub fn new(config: ReadSignal<Arc<LapceConfig>>, cx: Scope) -> Self {
+    pub fn new(config: ReadSignal<LapceConfig>, cx: Scope) -> Self {
         let active = cx.create_rw_signal(None);
         let tabs = cx.create_rw_signal(Vec::new());
         let close_manager = CloseManager { tabs };

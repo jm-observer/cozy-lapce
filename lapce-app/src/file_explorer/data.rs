@@ -4,7 +4,6 @@ use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc
 };
 
 use doc::lines::{
@@ -401,7 +400,7 @@ impl FileExplorerData {
         self.naming.set(Naming::None);
     }
 
-    pub fn click(&self, path: &Path, config: ReadSignal<Arc<LapceConfig>>) {
+    pub fn click(&self, path: &Path, config: ReadSignal<LapceConfig>) {
         if self.is_dir(path) {
             self.toggle_expand(path);
         } else if !config.get_untracked().core.file_explorer_double_click {
@@ -470,7 +469,7 @@ impl FileExplorerData {
     pub fn double_click(
         &self,
         path: &Path,
-        config: ReadSignal<Arc<LapceConfig>>
+        config: ReadSignal<LapceConfig>
     ) -> EventPropagation {
         if self.is_dir(path) {
             EventPropagation::Continue

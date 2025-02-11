@@ -1,4 +1,5 @@
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, rc::Rc};
+use std::sync::Arc;
 use std::time::Duration;
 use floem::{
     ViewId,
@@ -39,7 +40,7 @@ pub struct WindowCommonData {
     pub size:                     RwSignal<Size>,
     pub window_maximized:         RwSignal<bool>,
     pub window_tab_header_height: RwSignal<f64>,
-    pub latest_release:           ReadSignal<Arc<Option<ReleaseInfo>>>,
+    pub latest_release:           ReadSignal<Option<ReleaseInfo>>,
     pub ime_allowed:              RwSignal<bool>,
     // pub cursor_blink_timer:       RwSignal<TimerToken>,
     // the value to be update by curosr blinking
@@ -70,7 +71,7 @@ pub struct WindowData {
     pub position:     RwSignal<Point>,
     pub root_view_id: RwSignal<ViewId>,
     pub window_scale: RwSignal<f64>,
-    pub config:       RwSignal<Arc<LapceConfig>>,
+    pub config:       RwSignal<LapceConfig>,
     pub ime_enabled:  RwSignal<bool>,
     pub common:       Rc<WindowCommonData>,
     pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
@@ -83,7 +84,7 @@ impl WindowData {
         app_view_id: RwSignal<ViewId>,
         info: WindowInfo,
         window_scale: RwSignal<f64>,
-        latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
+        latest_release: ReadSignal<Option<ReleaseInfo>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
         app_command: Listener<AppCommand>,
         watcher: Arc<RwLock<notify::RecommendedWatcher>>
@@ -91,7 +92,7 @@ impl WindowData {
         let cx = Scope::new();
         let config =
             LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths);
-        let config = cx.create_rw_signal(Arc::new(config));
+        let config = cx.create_rw_signal(config);
         let root_view_id = cx.create_rw_signal(ViewId::new());
 
         let window_command = Listener::new_empty(cx);
@@ -132,7 +133,7 @@ impl WindowData {
         w.watch_project_setting(&watcher);
         let window_tabs = cx.create_rw_signal(WindowWorkspaceData::new(
             cx,
-            Arc::new(w),
+            w,
             common.clone()
         ));
 
@@ -206,7 +207,7 @@ impl WindowData {
             &[],
             &self.common.extra_plugin_paths
         );
-        self.config.set(Arc::new(config));
+        self.config.set(config);
         self.window_tabs.with_untracked(|x| x.reload_config());
     }
 
@@ -223,7 +224,6 @@ impl WindowData {
                     log::error!("{:?}", err);
                 }
                 log::info!("SetWorkspace {:?}", workspace);
-                let workspace = Arc::new(workspace);
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace.clone(),
@@ -245,7 +245,7 @@ impl WindowData {
                 workspace.watch_project_setting(&self.watcher);
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
-                    Arc::new(workspace),
+                    workspace,
                     self.common.clone()
                 );
                 self.window_tabs.set(window_tab);
@@ -340,7 +340,7 @@ impl WindowData {
 
     pub fn info(&self) -> WindowInfo {
         let workspace: LapceWorkspace =
-            self.window_tabs.get_untracked().workspace.as_ref().clone();
+            self.window_tabs.get_untracked().workspace.clone();
         WindowInfo {
             size: self.common.size.get_untracked(),
             pos: self.position.get_untracked(),

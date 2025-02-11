@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use floem::{
     View,
@@ -30,10 +30,10 @@ use crate::{
 };
 
 fn left(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     lapce_command: Listener<LapceCommand>,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     proxy_status: RwSignal<Option<ProxyStatus>>
     // num_window_tabs: Memo<usize>,
 ) -> impl View {
@@ -155,10 +155,10 @@ fn left(
 }
 
 fn middle(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     main_split: MainSplitData,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let local_workspace = workspace.clone();
     let can_jump_backward = {
@@ -308,11 +308,11 @@ fn middle(
 fn right(
     window_command: Listener<WindowCommand>,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    latest_release: ReadSignal<Arc<Option<ReleaseInfo>>>,
+    latest_release: ReadSignal<Option<ReleaseInfo>>,
     update_in_progress: RwSignal<bool>,
     // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let latest_version = create_memo(move |_| {
         let latest_release = latest_release.get();
@@ -469,7 +469,7 @@ pub fn window_controls_view(
     // is_title: bool,
     // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     stack((
         clickable_icon(

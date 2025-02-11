@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, process::Command, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, process::Command};
 
 use crossbeam_channel::Sender;
 use floem::{ext_event::create_signal_from_channel, reactive::ReadSignal};
@@ -40,7 +40,7 @@ impl ProxyData {
 }
 
 pub fn new_proxy(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     disabled_volts: Vec<VoltID>,
     extra_plugin_paths: Vec<PathBuf>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,

@@ -1,5 +1,5 @@
-use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
-
+use std::{collections::HashMap, path::PathBuf, rc::Rc};
+use std::sync::Arc;
 use anyhow::anyhow;
 use doc::lines::mode::Mode;
 use floem::{
@@ -71,7 +71,7 @@ impl TerminalTabInfo {
 #[derive(Clone)]
 pub struct TerminalPanelData {
     pub cx:         Scope,
-    pub workspace:  Arc<LapceWorkspace>,
+    pub workspace:  LapceWorkspace,
     pub tab_infos:  RwSignal<TerminalTabInfo>,
     pub debug:      RunDebugData,
     pub breakline:  Memo<Option<(usize, PathBuf)>>,
@@ -81,7 +81,7 @@ pub struct TerminalPanelData {
 
 impl TerminalPanelData {
     pub fn new(
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
         main_split: MainSplitData

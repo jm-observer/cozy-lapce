@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use floem::{
     AnyView, IntoView, View,
@@ -43,7 +43,7 @@ pub fn foldable_panel_section(
     header: impl View + 'static,
     child: impl View + 'static,
     open: RwSignal<bool>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     stack((
         h_stack((
@@ -79,12 +79,12 @@ pub fn foldable_panel_section(
 /// A builder for creating a foldable panel out of sections
 pub struct PanelBuilder {
     views:    Vec<AnyView>,
-    config:   ReadSignal<Arc<LapceConfig>>,
+    config:   ReadSignal<LapceConfig>,
     position: PanelContainerPosition
 }
 impl PanelBuilder {
     pub fn new(
-        config: ReadSignal<Arc<LapceConfig>>,
+        config: ReadSignal<LapceConfig>,
         position: PanelContainerPosition
     ) -> Self {
         Self {
@@ -418,7 +418,7 @@ fn panel_view_by_kind(
 
 pub fn panel_header(
     header: String,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     container(label(move || header.clone())).style(move |s| {
         s.padding_horiz(10.0)
@@ -431,7 +431,7 @@ pub fn panel_header(
 fn drag_line(
     position: PanelContainerPosition,
     panel: PanelData,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let panel_size = panel.size;
     let view = empty();
@@ -624,7 +624,7 @@ pub(crate) fn new_panel_picker(
 
 fn drag_event<T: IntoView>(
     view: T,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     dragging: RwSignal<Option<DragContent>>,
     panel: PanelData,
     position: PanelContainerPosition

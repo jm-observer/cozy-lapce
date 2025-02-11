@@ -7,7 +7,7 @@ use std::{
     process::Stdio,
     sync::{Arc, atomic::AtomicU64}
 };
-
+use std::collections::HashMap;
 use anyhow::{Result, anyhow};
 use clap::Parser;
 use crossbeam_channel::Sender;
@@ -167,16 +167,16 @@ pub enum AppCommand {
 
 #[derive(Clone)]
 pub struct AppData {
-    pub windows:        RwSignal<im::HashMap<WindowId, WindowData>>,
+    pub windows:        RwSignal<HashMap<WindowId, WindowData>>,
     pub active_window:  RwSignal<WindowId>,
     pub window_scale:   RwSignal<f64>,
     pub app_command:    Listener<AppCommand>,
     pub app_terminated: RwSignal<bool>,
     /// The latest release information
-    pub latest_release: RwSignal<Arc<Option<ReleaseInfo>>>,
+    pub latest_release: RwSignal<Option<ReleaseInfo>>,
     pub watcher:        Arc<RwLock<notify::RecommendedWatcher>>,
     // pub tracing_handle: Handle<Targets>,
-    pub config:         RwSignal<Arc<LapceConfig>>,
+    pub config:         RwSignal<LapceConfig>,
     /// Paths to extra plugins to load
     pub plugin_paths:   Arc<Vec<PathBuf>>
 }
@@ -185,7 +185,7 @@ impl AppData {
     pub fn reload_config(&self) {
         let config =
             LapceConfig::load(&LapceWorkspace::default(), &[], &self.plugin_paths);
-        self.config.set(Arc::new(config));
+        self.config.set(config);
         let windows = self.windows.get_untracked();
         for (_, window) in windows {
             window.reload_config();
@@ -1609,7 +1609,7 @@ fn split_resize_border(
         im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>
     >,
     split: ReadSignal<SplitData>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let content_rect = move |content: &SplitContent, tracked: bool| {
         if tracked {
@@ -1799,7 +1799,7 @@ fn split_border(
         im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>
     >,
     split: ReadSignal<SplitData>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let direction = move || split.with(|split| split.direction);
     dyn_stack(
@@ -2036,7 +2036,7 @@ pub fn not_clickable_icon<S: std::fmt::Display + 'static>(
     active_fn: impl Fn() -> bool + 'static,
     disabled_fn: impl Fn() -> bool + 'static + Copy,
     tooltip_: impl Fn() -> S + 'static + Clone,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     tooltip_label(
         config,
@@ -2058,7 +2058,7 @@ pub fn clickable_icon<S: std::fmt::Display + 'static>(
     active_fn: impl Fn() -> bool + 'static,
     disabled_fn: impl Fn() -> bool + 'static + Copy,
     tooltip_: impl Fn() -> S + 'static + Clone,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     tooltip_label(
         config,
@@ -2072,7 +2072,7 @@ pub fn clickable_icon_base_with_color(
     on_click: Option<impl Fn() + 'static>,
     active_fn: impl Fn() -> bool + 'static,
     disabled_fn: impl Fn() -> bool + 'static + Copy,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     color: Option<Color>
 ) -> impl View {
     let view = container(
@@ -2126,7 +2126,7 @@ pub fn clickable_icon_base(
     on_click: Option<impl Fn() + 'static>,
     active_fn: impl Fn() -> bool + 'static,
     disabled_fn: impl Fn() -> bool + 'static + Copy,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     clickable_icon_base_with_color(
         icon,
@@ -2142,7 +2142,7 @@ pub fn clickable_icon_base(
 /// When styling an element that has the tooltip, it will style the child rather
 /// than the tooltip label.
 pub fn tooltip_label<S: std::fmt::Display + 'static, V: View + 'static>(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     child: V,
     text: impl Fn() -> S + 'static + Clone
 ) -> impl View {
@@ -2155,7 +2155,7 @@ pub fn tooltip_label<S: std::fmt::Display + 'static, V: View + 'static>(
 }
 
 fn tooltip_tip<V: View + 'static>(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     child: V
 ) -> impl IntoView {
     container(child).style(move |s| {
@@ -2269,12 +2269,12 @@ fn workbench(window_tab_data: WindowWorkspaceData) -> impl View {
 }
 
 fn palette_item(
-    workspace: Arc<LapceWorkspace>,
+    workspace: LapceWorkspace,
     i: usize,
     item: PaletteItem,
     index: ReadSignal<usize>,
     palette_item_height: f64,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     keymap: Option<&KeyMap>
 ) -> impl View {
     match &item.content {
@@ -2895,7 +2895,7 @@ fn palette(window_tab_data: WindowWorkspaceData) -> impl View {
 
 fn window_message_view(
     messages: RwSignal<Vec<(String, ShowMessageParams)>>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let view_fn =
         move |(i, (title, message)): (usize, (String, ShowMessageParams))| {
@@ -3909,7 +3909,7 @@ pub fn launch() {
     provide_context(db.clone());
 
     let window_scale = scope.create_rw_signal(1.0);
-    let latest_release = scope.create_rw_signal(Arc::new(None));
+    let latest_release = scope.create_rw_signal(None);
     let app_command = Listener::new_empty(scope);
 
     let plugin_paths = Arc::new(cli.plugin_path);
@@ -3937,13 +3937,13 @@ pub fn launch() {
         }
     }
 
-    let windows = scope.create_rw_signal(im::HashMap::new());
+    let windows = scope.create_rw_signal(HashMap::new());
     let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths);
 
     // Restore scale from config
     window_scale.set(config.ui.scale());
 
-    let config = scope.create_rw_signal(Arc::new(config));
+    let config = scope.create_rw_signal(config);
     let app_data = AppData {
         windows,
         active_window: scope.create_rw_signal(WindowId::from_raw(0)),
@@ -4042,7 +4042,7 @@ pub fn launch() {
         let latest_release = app_data.latest_release;
         create_effect(move |_| {
             if let Some(release) = notification.get() {
-                latest_release.set(Arc::new(Some(release)));
+                latest_release.set(Some(release));
             }
         });
         std::thread::Builder::new()

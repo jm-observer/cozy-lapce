@@ -197,7 +197,7 @@ pub struct WorkProgress {
 
 #[derive(Clone)]
 pub struct CommonData {
-    pub workspace:            Arc<LapceWorkspace>,
+    pub workspace:            LapceWorkspace,
     pub scope:                Scope,
     pub focus:                SignalManager<Focus>,
     pub keypress:             RwSignal<KeyPressData>,
@@ -217,7 +217,7 @@ pub struct CommonData {
     pub view_id:              RwSignal<ViewId>,
     pub ui_line_height:       Memo<f64>,
     pub dragging:             RwSignal<Option<DragContent>>,
-    pub config:               ReadSignal<Arc<LapceConfig>>,
+    pub config:               ReadSignal<LapceConfig>,
     pub proxy_status:         RwSignal<Option<ProxyStatus>>,
     pub mouse_hover_timer:    RwSignal<TimerToken>,
     pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
@@ -238,7 +238,7 @@ impl std::fmt::Debug for CommonData {
 pub struct WindowWorkspaceData {
     pub scope:                     Scope,
     pub window_tab_id:             WindowTabId,
-    pub workspace:                 Arc<LapceWorkspace>,
+    pub workspace:                 LapceWorkspace,
     pub palette:                   PaletteData,
     pub main_split:                MainSplitData,
     pub file_explorer:             FileExplorerData,
@@ -256,7 +256,7 @@ pub struct WindowWorkspaceData {
     pub title_height:              RwSignal<f64>,
     pub status_height:             RwSignal<f64>,
     pub proxy:                     ProxyData,
-    pub set_config:                WriteSignal<Arc<LapceConfig>>,
+    pub set_config:                WriteSignal<LapceConfig>,
     pub update_in_progress:        RwSignal<bool>,
     pub progresses:                RwSignal<IndexMap<ProgressToken, WorkProgress>>,
     pub messages:                  RwSignal<Vec<(String, ShowMessageParams)>>,
@@ -356,7 +356,7 @@ impl WindowWorkspaceData {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         cx: Scope,
-        workspace: Arc<LapceWorkspace>,
+        workspace: LapceWorkspace,
         window_common: Rc<WindowCommonData>
     ) -> Self {
         let cx = cx.create_child();
@@ -410,7 +410,7 @@ impl WindowWorkspaceData {
             config.plugins.clone(),
             term_tx.clone()
         );
-        let (config, set_config) = cx.create_signal(Arc::new(config));
+        let (config, set_config) = cx.create_signal(config);
 
         let focus = SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
         let completion = cx.create_rw_signal(CompletionData::new(cx, config));
@@ -741,7 +741,7 @@ impl WindowWorkspaceData {
                 change_plugins.push(key.clone());
             }
         }
-        self.set_config.set(Arc::new(config.clone()));
+        self.set_config.set(config.clone());
         if !change_plugins.is_empty() {
             self.common
                 .proxy
@@ -1015,7 +1015,7 @@ impl WindowWorkspaceData {
             ReloadWindow => {
                 self.common.window_common.window_command.send(
                     WindowCommand::SetWorkspace {
-                        workspace: (*self.workspace).clone(),
+                        workspace: self.workspace.clone(),
                     },
                 );
             }
@@ -2051,8 +2051,7 @@ impl WindowWorkspaceData {
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
-                    Arc::make_mut(&mut new_config)
-                        .set_color_theme(&self.workspace, &name);
+                    new_config.set_color_theme(&self.workspace, &name);
                     self.set_config.set(new_config);
                 }
             },
@@ -2066,7 +2065,7 @@ impl WindowWorkspaceData {
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
-                    Arc::make_mut(&mut new_config)
+                    new_config
                         .set_icon_theme(&self.workspace, &name);
                     self.set_config.set(new_config);
                 }

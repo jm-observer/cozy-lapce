@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path};
 
 use doc::lines::selection::Selection;
 use floem::{
@@ -137,7 +137,7 @@ fn initialize_naming_editor(
 }
 
 fn file_node_text_color(
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
     node: FileNodeViewData,
     source_control: SourceControlData
 ) -> Color {

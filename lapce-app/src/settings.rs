@@ -28,7 +28,7 @@ use log::info;
 use serde::Serialize;
 use serde_json::Value;
 use std::str::FromStr;
-use std::{collections::BTreeMap, rc::Rc, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, rc::Rc, time::Duration};
 
 use crate::{
     config::{
@@ -760,7 +760,7 @@ fn settings_item_view(
 
 pub fn checkbox(
     checked: impl Fn() -> bool + 'static,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
 ) -> impl View {
     const CHECKBOX_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 16 16"><polygon points="5.19,11.83 0.18,7.44 1.82,5.56 4.81,8.17 10,1.25 12,2.75" /></svg>"#;
     let svg_str = move || if checked() { CHECKBOX_SVG } else { "" }.to_string();
@@ -1172,7 +1172,7 @@ fn dropdown_view(
     dropdown: &DropdownInfo,
     expanded: RwSignal<bool>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
 ) -> impl View {
     let window_origin = create_rw_signal(Point::ZERO);
     let size = create_rw_signal(Size::ZERO);
@@ -1284,7 +1284,7 @@ fn dropdown_scroll(
     window_origin: RwSignal<Point>,
     input_size: RwSignal<Size>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<Arc<LapceConfig>>,
+    config: ReadSignal<LapceConfig>,
 ) -> impl View {
     dropdown_scroll_focus.set(true);
 

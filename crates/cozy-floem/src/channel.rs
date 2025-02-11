@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque};
 
 use floem::{
     ext_event::{ExtSendTrigger, create_ext_action, register_ext_trigger},
@@ -13,7 +13,7 @@ pub fn create_signal_from_channel<T: Send + Clone + 'static>(
     let (read, write) = cx.create_signal(None);
     let cx = cx.create_child();
     let trigger = with_scope(cx, ExtSendTrigger::new);
-    let data = Arc::new(Mutex::new(VecDeque::new()));
+    let data = std::sync::Arc::new(Mutex::new(VecDeque::new()));
     {
         let data = data.clone();
         cx.create_effect(move |_| {
@@ -34,7 +34,7 @@ pub fn create_signal_from_channel<T: Send + Clone + 'static>(
 #[derive(Clone)]
 pub struct ExtChannel<T: Send + Clone + 'static> {
     trigger: ExtSendTrigger,
-    data:    Arc<Mutex<VecDeque<T>>>
+    data:    std::sync::Arc<Mutex<VecDeque<T>>>
 }
 
 impl<T: Send + Clone + 'static> ExtChannel<T> {

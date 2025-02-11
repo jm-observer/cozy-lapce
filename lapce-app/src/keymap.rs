@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, rc::Rc, sync::Arc};
+use std::{cmp::Ordering, rc::Rc};
 
 use doc::lines::mode::Modes;
 use floem::{
@@ -396,7 +396,7 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
 fn keyboard_picker_view(
     picker: KeymapPicker,
     ui_line_height: Memo<f64>,
-    config: ReadSignal<Arc<LapceConfig>>
+    config: ReadSignal<LapceConfig>
 ) -> impl View {
     let picker_cmd = picker.cmd;
     let view = container(

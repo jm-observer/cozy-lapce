@@ -1721,7 +1721,7 @@ impl CommonAction for Doc {
 
 // #[derive(Clone)]
 // pub struct DocStyling {
-//     config: ReadSignal<Arc<LapceConfig>>,
+//     config: ReadSignal<LapceConfig>,
 //     doc: Rc<Doc>,
 // }
 // impl DocStyling {

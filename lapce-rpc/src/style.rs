@@ -1,8 +1,8 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-pub type LineStyles = HashMap<usize, Arc<Vec<LineStyle>>>;
+pub type LineStyles = HashMap<usize, std::sync::Arc<Vec<LineStyle>>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LineStyle {

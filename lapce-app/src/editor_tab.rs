@@ -1,7 +1,6 @@
 use std::{
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc
 };
 
 use floem::{
@@ -114,7 +113,7 @@ impl EditorTabChildId {
         editors: Editors,
         diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>>,
         plugin: PluginData,
-        config: ReadSignal<Arc<LapceConfig>>
+        config: ReadSignal<LapceConfig>
     ) -> Memo<EditorTabChildViewInfo> {
         match self.clone() {
             EditorTabChildId::Editor(editor_id) => create_memo(move |_| {
