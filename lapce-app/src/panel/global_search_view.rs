@@ -10,6 +10,7 @@ use floem::{
         stack, virtual_stack
     }
 };
+use floem::views::text_input;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind},
@@ -26,7 +27,6 @@ use crate::{
     global_search::{GlobalSearchData, SearchMatchData},
     listener::Listener,
     svg,
-    text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData}
 };
 pub fn global_search_panel(
@@ -34,7 +34,6 @@ pub fn global_search_panel(
     _position: PanelContainerPosition
 ) -> impl View {
     let global_search = window_tab_data.global_search.clone();
-    let editor = global_search.editor.clone();
     let config = global_search.common.config;
     let workspace = global_search.common.workspace.clone();
     let internal_command = global_search.common.internal_command;
@@ -43,14 +42,12 @@ pub fn global_search_panel(
     let is_regex = global_search.common.find.is_regex;
 
     let focus = global_search.common.focus;
-    let is_focused = move || focus.get() == Focus::Panel(PanelKind::Search);
+    // let is_focused = move || focus.get() == Focus::Panel(PanelKind::Search);
 
     stack((
         container(
             stack((
-                TextInputBuilder::new()
-                    .is_focused(is_focused)
-                    .build_editor(editor.clone())
+                text_input(global_search.search_str)
                     .style(|s| s.width_pct(100.0)),
                 clickable_icon(
                     || LapceIcons::SEARCH_CASE_SENSITIVE,

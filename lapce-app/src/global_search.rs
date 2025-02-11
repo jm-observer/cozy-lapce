@@ -1,7 +1,7 @@
 use std::{ops::Range, path::PathBuf, rc::Rc};
 
 use doc::lines::{
-    editor_command::CommandExecuted, mode::Mode, selection::Selection
+    editor_command::CommandExecuted, mode::Mode
 };
 use floem::{
     ext_event::create_ext_action,
@@ -11,11 +11,8 @@ use floem::{
 };
 use indexmap::IndexMap;
 use lapce_rpc::proxy::{ProxyResponse, SearchMatch};
-use lapce_xi_rope::Rope;
 
 use crate::{
-    command::CommandKind,
-    editor::EditorData,
     keypress::{KeyPressFocus, condition::Condition},
     main_split::MainSplitData,
     window_workspace::CommonData
@@ -42,8 +39,8 @@ impl SearchMatchData {
 
 #[derive(Clone, Debug)]
 pub struct GlobalSearchData {
-    pub editor:        EditorData,
     pub search_result: RwSignal<IndexMap<PathBuf, SearchMatchData>>,
+    pub search_str: RwSignal<String>,
     pub main_split:    MainSplitData,
     pub common:        Rc<CommonData>
 }
@@ -59,26 +56,15 @@ impl KeyPressFocus for GlobalSearchData {
 
     fn run_command(
         &self,
-        command: &crate::command::LapceCommand,
-        count: Option<usize>,
-        mods: Modifiers
+        _command: &crate::command::LapceCommand,
+        _count: Option<usize>,
+        _mods: Modifiers
     ) -> CommandExecuted {
-        match &command.kind {
-            CommandKind::Workbench(_) => {},
-            CommandKind::Scroll(_) => {},
-            CommandKind::Focus(_) => {},
-            CommandKind::Edit(_)
-            | CommandKind::Move(_)
-            | CommandKind::MultiSelection(_) => {
-                return self.editor.run_command(command, count, mods);
-            },
-            CommandKind::MotionMode(_) => {}
-        }
         CommandExecuted::No
     }
 
-    fn receive_char(&self, c: &str) {
-        self.editor.receive_char(c);
+    fn receive_char(&self, _c: &str) {
+
     }
 }
 
@@ -109,25 +95,21 @@ impl VirtualVector<(PathBuf, SearchMatchData)> for GlobalSearchData {
 impl GlobalSearchData {
     pub fn new(cx: Scope, main_split: MainSplitData) -> Self {
         let common = main_split.common.clone();
-        let editor = main_split.editors.make_local(cx, common.clone());
         let search_result = cx.create_rw_signal(IndexMap::new());
+        let search_str = cx.create_rw_signal(String::new());
+
 
         let global_search = Self {
-            editor,
             search_result,
             main_split,
-            common
+            common, search_str
         };
 
         {
+            let buffer = global_search.search_str;
             let global_search = global_search.clone();
-            let buffer = global_search
-                .editor
-                .doc()
-                .lines
-                .with_untracked(|x| x.signal_buffer());
             cx.create_effect(move |_| {
-                let pattern = buffer.with(|buffer| buffer.to_string());
+                let pattern = buffer.get();
                 if pattern.is_empty() {
                     global_search.search_result.update(|r| r.clear());
                     return;
@@ -201,10 +183,6 @@ impl GlobalSearchData {
     }
 
     pub fn set_pattern(&self, pattern: String) {
-        let pattern_len = pattern.len();
-        self.editor.doc().reload(Rope::from(pattern), true);
-        self.editor
-            .cursor()
-            .update(|cursor| cursor.set_insert(Selection::region(0, pattern_len)));
+        self.search_str.set(pattern);
     }
 }
