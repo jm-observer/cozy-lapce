@@ -53,6 +53,7 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
+use floem::prelude::text_input;
 use lapce_core::{
     debug::RunDebugMode,
     directory::Directory,
@@ -74,7 +75,6 @@ use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use notify::Watcher;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-
 use crate::{
     about, alert,
     code_action::CodeActionStatus,
@@ -3328,17 +3328,18 @@ fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
 }
 
 fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
-    let editor = window_tab_data.rename.editor.clone();
+    let name_str = window_tab_data.rename.name_str;
     let active = window_tab_data.rename.active;
     let layout_rect = window_tab_data.rename.layout_rect;
     let config = window_tab_data.common.config;
+    let focus = window_tab_data.common.focus;
 
     container(
         container(
-            TextInputBuilder::new()
-                .is_focused(move || active.get())
-                .build_editor(editor)
-                .style(|s| s.width(150.0))
+            text_input(name_str)
+                .style(|s| s.width(150.0)).pointer_down(move || {
+                focus.set(Focus::Rename);
+            })
         )
         .style(move |s| {
             let config = config.get();

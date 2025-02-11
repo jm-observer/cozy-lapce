@@ -2,7 +2,6 @@ use std::{path::PathBuf, rc::Rc};
 
 use doc::lines::{
     command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
-    selection::Selection
 };
 use floem::{
     ext_event::create_ext_action,
@@ -10,22 +9,21 @@ use floem::{
     peniko::kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate}
 };
+use floem::reactive::batch;
 use lapce_rpc::proxy::ProxyResponse;
-use lapce_xi_rope::Rope;
 use lsp_types::Position;
 
 use crate::{
-    command::{CommandKind, InternalCommand, LapceCommand},
-    editor::EditorData,
+    command::{InternalCommand, LapceCommand},
     keypress::{KeyPressFocus, condition::Condition},
-    main_split::Editors,
     window_workspace::{CommonData, Focus}
 };
+use crate::command::CommandKind;
 
 #[derive(Clone, Debug)]
 pub struct RenameData {
     pub active:      RwSignal<bool>,
-    pub editor:      EditorData,
+    pub name_str: RwSignal<String>,
     pub start:       RwSignal<usize>,
     pub position:    RwSignal<Position>,
     pub path:        RwSignal<PathBuf>,
@@ -44,47 +42,39 @@ impl KeyPressFocus for RenameData {
 
     fn run_command(
         &self,
-        command: &LapceCommand,
-        count: Option<usize>,
-        mods: Modifiers
+        _command: &LapceCommand,
+        _count: Option<usize>,
+        _mods: Modifiers
     ) -> CommandExecuted {
-        match &command.kind {
-            CommandKind::Workbench(_) => {},
-            CommandKind::Scroll(_) => {},
+        match &_command.kind {
             CommandKind::Focus(cmd) => {
                 self.run_focus_command(cmd);
             },
-            CommandKind::Edit(_)
-            | CommandKind::Move(_)
-            | CommandKind::MultiSelection(_) => {
-                self.editor.run_command(command, count, mods);
-            },
-            CommandKind::MotionMode(_) => {}
+            _ => {}
         }
         CommandExecuted::Yes
     }
 
-    fn receive_char(&self, c: &str) {
-        self.editor.receive_char(c);
+    fn receive_char(&self, _c: &str) {
     }
 }
 
 impl RenameData {
-    pub fn new(cx: Scope, editors: Editors, common: Rc<CommonData>) -> Self {
+    pub fn new(cx: Scope, common: Rc<CommonData>) -> Self {
         let active = cx.create_rw_signal(false);
         let start = cx.create_rw_signal(0);
         let position = cx.create_rw_signal(Position::default());
         let layout_rect = cx.create_rw_signal(Rect::ZERO);
         let path = cx.create_rw_signal(PathBuf::new());
-        let editor = editors.make_local(cx, common.clone());
+        let name_str = cx.create_rw_signal(String::new());
+
         Self {
             active,
-            editor,
             start,
             position,
             layout_rect,
             path,
-            common
+            common, name_str
         }
     }
 
@@ -95,15 +85,14 @@ impl RenameData {
         start: usize,
         position: Position
     ) {
-        self.editor.doc().reload(Rope::from(&placeholder), true);
-        self.editor.cursor().update(|cursor| {
-            cursor.set_insert(Selection::region(0, placeholder.len()))
+        batch(|| {
+            self.name_str.set(placeholder);
+            self.path.set(path);
+            self.start.set(start);
+            self.position.set(position);
+            self.active.set(true);
+            self.common.focus.set(Focus::Rename);
         });
-        self.path.set(path);
-        self.start.set(start);
-        self.position.set(position);
-        self.active.set(true);
-        self.common.focus.set(Focus::Rename);
     }
 
     fn run_focus_command(&self, cmd: &FocusCommand) -> CommandExecuted {
@@ -128,10 +117,8 @@ impl RenameData {
 
     fn confirm(&self) {
         let new_name = self
-            .editor
-            .doc()
-            .lines
-            .with_untracked(|x| x.buffer().to_string());
+            .name_str.get_untracked();
+        log::info!("confirm {new_name}");
         let new_name = new_name.trim();
         if !new_name.is_empty() {
             let path = self.path.get_untracked();

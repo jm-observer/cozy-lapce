@@ -575,7 +575,7 @@ impl WindowWorkspaceData {
             );
         }
 
-        let rename = RenameData::new(cx, main_split.editors, common.clone());
+        let rename = RenameData::new(cx, common.clone());
         let global_search = GlobalSearchData::new(cx, main_split.clone());
 
         let plugin = PluginData::new(
