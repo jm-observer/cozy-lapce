@@ -381,7 +381,7 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
             .style(|s| s.absolute().size_pct(100.0, 100.0))
         )
         .style(|s| s.width_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
-        keyboard_picker_view(picker, common.ui_line_height, config)
+        keyboard_picker_view(picker, common.ui_line_height, config, common)
     ))
     .style(|s| {
         s.absolute()
@@ -396,7 +396,7 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
 fn keyboard_picker_view(
     picker: KeymapPicker,
     ui_line_height: Memo<f64>,
-    config: ReadSignal<LapceConfig>
+    config: ReadSignal<LapceConfig>, common: Rc<CommonData>
 ) -> impl View {
     let picker_cmd = picker.cmd;
     let view = container(
@@ -483,7 +483,7 @@ fn keyboard_picker_view(
                                 &keys
                                     .iter()
                                     .map(|(key, _)| key.clone())
-                                    .collect::<Vec<KeyMapPress>>()
+                                    .collect::<Vec<KeyMapPress>>(), common.clone()
                             );
                         }
                     }),
