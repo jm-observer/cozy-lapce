@@ -2016,19 +2016,24 @@ impl WindowWorkspaceData {
                 self.main_split.set_find_pattern(pattern);
             },
             InternalCommand::FindEditorReceiveChar { s } => {
-                self.main_split.find_editor.receive_char(&s);
+                info!("FindEditorReceiveChar {s}");
+                // self.main_split.find_editor.receive_char(&s);
+                self.main_split.find_str.update(|x| {
+                    x.push_str(&s);
+                });
             },
             InternalCommand::ReplaceEditorReceiveChar { s } => {
                 self.main_split.replace_editor.receive_char(&s);
             },
             InternalCommand::FindEditorCommand {
-                command,
-                count,
-                mods
+                command, ..
+                // count,
+                // mods
             } => {
-                self.main_split
-                    .find_editor
-                    .run_command(&command, count, mods);
+                log::warn!("todo FindEditorCommand {command:?}");
+                // self.main_split
+                //     .find_editor
+                //     .run_command(&command, count, mods);
             },
             InternalCommand::ReplaceEditorCommand {
                 command,

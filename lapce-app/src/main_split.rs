@@ -8,8 +8,8 @@ use anyhow::Result;
 use doc::{
     DiagnosticData,
     lines::{
-        RopeTextPosition, buffer::rope_text::RopeText, command::FocusCommand,
-        cursor::Cursor, selection::Selection
+        RopeTextPosition, command::FocusCommand,
+        cursor::Cursor,
     },
     syntax::Syntax
 };
@@ -337,7 +337,8 @@ pub struct MainSplitData {
     pub references:        Tabs<ReferencesRoot>,
     pub implementations:   Tabs<ReferencesRoot>,
     pub active_editor:     Memo<Option<EditorData>>,
-    pub find_editor:       EditorData,
+    // pub find_editor:       EditorData,
+    pub find_str:       RwSignal<String>,
     pub replace_editor:    EditorData,
     pub locations:         RwSignal<im::Vector<EditorLocation>>,
     pub current_location:  RwSignal<usize>,
@@ -374,8 +375,9 @@ impl MainSplitData {
         let hierarchy = Tabs::new(common.config, cx);
         let current_location = cx.create_rw_signal(0);
         let diagnostics = cx.create_rw_signal(im::HashMap::new());
-        let find_editor = editors.make_local(cx, common.clone());
         let replace_editor = editors.make_local(cx, common.clone());
+        let find_str = cx.create_rw_signal(String::new());
+
 
         let active_editor = cx.create_memo(move |_| -> Option<EditorData> {
             let active_editor_tab = active_editor_tab.get()?;
@@ -407,18 +409,14 @@ impl MainSplitData {
         });
 
         {
-            let buffer = find_editor
-                .doc()
-                .lines
-                .with_untracked(|x| x.signal_buffer());
             let find = common.find.clone();
             cx.create_effect(move |_| {
-                let content = buffer.with(|buffer| buffer.to_string());
-                find.set_find(&content);
+                find.set_find(&find_str.get());
             });
         }
 
         Self {
+            find_str,
             scope: cx,
             root_split: SplitId::next(),
             splits,
@@ -429,7 +427,6 @@ impl MainSplitData {
             docs,
             scratch_docs,
             active_editor,
-            find_editor,
             replace_editor,
             diagnostics,
             locations,
@@ -2427,16 +2424,11 @@ impl MainSplitData {
 
     pub fn set_find_pattern(&self, pattern: Option<String>) {
         if let Some(pattern) = pattern {
-            self.find_editor.doc().reload(Rope::from(pattern), true);
+            // self.find_editor.doc().reload(Rope::from(pattern), true);
+            self.find_str.set(pattern);
+        } else {
+            self.find_str.set(String::new());
         }
-        let pattern_len = self
-            .find_editor
-            .doc()
-            .lines
-            .with_untracked(|x| x.buffer().len());
-        self.find_editor
-            .cursor()
-            .update(|cursor| cursor.set_insert(Selection::region(0, pattern_len)));
     }
 
     pub fn open_volt_view(&self, id: VoltID) {

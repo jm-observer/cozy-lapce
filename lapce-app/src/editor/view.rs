@@ -1,5 +1,5 @@
 use std::{path::PathBuf};
-
+use std::rc::Rc;
 use anyhow::Result;
 use doc::lines::{
     buffer::{Buffer, diff::DiffLines, rope_text::RopeText},
@@ -39,6 +39,7 @@ use floem::{
         stack
     }
 };
+use floem::views::text_input;
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
@@ -56,6 +57,7 @@ use crate::{
     text_input::TextInputBuilder,
     window_workspace::{Focus, WindowWorkspaceData}
 };
+use crate::window_workspace::CommonData;
 
 #[derive(Clone, Debug, Default)]
 pub struct StickyHeaderInfo {
@@ -1395,11 +1397,13 @@ pub fn editor_container_view(
     let main_split = window_tab_data.main_split.clone();
     let editors = main_split.editors;
     let scratch_docs = main_split.scratch_docs;
-    let find_editor = main_split.find_editor;
+    // let find_editor = main_split.find_editor;
     let replace_editor = main_split.replace_editor;
     let replace_active = main_split.common.find.replace_active;
     let replace_focus = main_split.common.find.replace_focus;
     let debug_breakline = window_tab_data.terminal.breakline;
+    let find_str = main_split.find_str;
+    let common = main_split.common.clone();
 
     stack((
         editor_breadcrumbs(workspace, editor.get_untracked(), config),
@@ -1426,12 +1430,11 @@ pub fn editor_container_view(
             }),
             find_view(
                 editor,
-                find_editor,
                 find_focus,
                 replace_editor,
                 replace_active,
                 replace_focus,
-                is_active
+                is_active, common, find_str
             )
             .debug_name("find view")
         ))
@@ -2268,32 +2271,49 @@ fn editor_content(
 }
 
 fn search_editor_view(
-    find_editor: EditorData,
+    // find_editor: EditorData,
     find_focus: RwSignal<bool>,
-    is_active: impl Fn(bool) -> bool + 'static + Copy,
-    replace_focus: RwSignal<bool>
+    // todo
+    _is_active: impl Fn(bool) -> bool + 'static + Copy,
+    replace_focus: RwSignal<bool>, common: Rc<CommonData>, find_str: RwSignal<String>
 ) -> impl View {
-    let config = find_editor.common.config;
+    let config = common.config;
 
-    let case_matching = find_editor.common.find.case_matching;
-    let whole_word = find_editor.common.find.whole_words;
-    let is_regex = find_editor.common.find.is_regex;
-    let visual = find_editor.common.find.visual;
+    let case_matching = common.find.case_matching;
+    let whole_word = common.find.whole_words;
+    let is_regex = common.find.is_regex;
+    // let visual = common.find.visual;
 
-    stack((
-        TextInputBuilder::new()
-            .is_focused(move || {
-                is_active(true)
-                    && visual.get()
-                    && find_focus.get()
-                    && !replace_focus.get()
-            })
-            .build_editor(find_editor)
-            .on_event_cont(EventListener::PointerDown, move |_| {
-                find_focus.set(true);
-                replace_focus.set(false);
-            })
-            .style(|s| s.width_pct(100.0)),
+    // let focus_trace = common.scope.create_trigger();
+
+    let find_view = text_input(find_str).keyboard_navigable()
+        .pointer_down(move || {
+            find_focus.set(true);
+            replace_focus.set(false);
+        // }).request_focus(move || {
+        // focus_trace.track()
+    // }).on_event_stop(EventListener::FocusGained, |_| {
+    //     log::info!("FocusGained");
+    })
+        .style(|s| s.width_pct(100.0));
+
+    // let id = find_view.id();
+    // create_effect(move |_| {
+    //     let focus = is_active(true)
+    //         && visual.get()
+    //         && find_focus.get()
+    //         && !replace_focus.get();
+    //     log::info!("focus {focus}");
+    //     if focus {
+    //         focus_trace.notify();
+    //         id.request_focus();
+    //         id.request_layout();
+    //     }
+    //     // id.update_state((String::new(), focus));
+    // });
+
+    stack((find_view
+        ,
         clickable_icon(
             || LapceIcons::SEARCH_CASE_SENSITIVE,
             move || {
@@ -2391,14 +2411,13 @@ fn replace_editor_view(
 
 fn find_view(
     editor: RwSignal<EditorData>,
-    find_editor: EditorData,
     find_focus: RwSignal<bool>,
     replace_editor: EditorData,
     replace_active: RwSignal<bool>,
     replace_focus: RwSignal<bool>,
-    is_active: impl Fn(bool) -> bool + 'static + Copy
+    is_active: impl Fn(bool) -> bool + 'static + Copy, common: Rc<CommonData>, find_str: RwSignal<String>
 ) -> impl View {
-    let common = find_editor.common.clone();
+    // let common = find_editor.common.clone();
     let config = common.config;
     let find_visual = common.find.visual;
     let replace_doc = replace_editor.doc_signal();
@@ -2444,10 +2463,10 @@ fn find_view(
                 )
                 .style(|s| s.padding_horiz(6.0)),
                 search_editor_view(
-                    find_editor,
+                    // find_editor,
                     find_focus,
                     is_active,
-                    replace_focus
+                    replace_focus, common.clone(), find_str
                 ),
                 label(move || {
                     let (current, all) = find_pos.get();

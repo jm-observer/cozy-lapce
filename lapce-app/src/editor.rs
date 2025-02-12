@@ -2798,26 +2798,64 @@ impl EditorData {
         }
     }
 
+    pub fn selected_word(&self) -> Option<String> {
+        let doc = self.doc();
+        let region = self.cursor().with_untracked(|c| match &c.mode() {
+            CursorMode::Normal(offset) => SelRegion::caret(*offset),
+            CursorMode::Visual {
+                start,
+                end,
+                mode: _
+            } => SelRegion::new(
+                *start.min(end),
+                doc.lines.with_untracked(|buffer| {
+                    buffer.buffer().next_grapheme_offset(
+                        *start.max(end),
+                        1,
+                        buffer.buffer().len()
+                    )
+                }),
+                None
+            ),
+            CursorMode::Insert(selection) => *selection.last_inserted().unwrap()
+        });
+
+        if !region.is_caret() {
+            Some(doc.lines.with_untracked(|buffer| {
+                buffer
+                    .buffer()
+                    .slice_to_cow(region.min()..region.max())
+                    .to_string()
+            }))
+        } else {
+            None
+        }
+    }
+
     pub fn clear_search(&self) {
         self.common.find.visual.set(false);
         self.find_focus.set(false);
     }
 
     fn search(&self) {
-        let pattern = self.word_at_cursor();
-
-        let pattern = if pattern.contains('\n') || pattern.is_empty() {
-            None
+        if self.common.find.visual.get_untracked() {
+            self.clear_search();
         } else {
-            Some(pattern)
-        };
+            let pattern = self.selected_word();
 
-        self.common
-            .internal_command
-            .send(InternalCommand::Search { pattern });
-        self.common.find.visual.set(true);
-        self.find_focus.set(true);
-        self.common.find.replace_focus.set(false);
+            // let pattern = if pattern.contains('\n') || pattern.is_empty() {
+            //     None
+            // } else {
+            //     Some(pattern)
+            // };
+
+            self.common
+                .internal_command
+                .send(InternalCommand::Search { pattern });
+            self.common.find.visual.set(true);
+            self.find_focus.set(true);
+            self.common.find.replace_focus.set(false);
+        }
     }
 
     pub fn pointer_down(&self, pointer_event: &PointerInputEvent) {
@@ -3552,10 +3590,11 @@ impl KeyPressFocus for EditorData {
                 self.common.internal_command.send(
                     InternalCommand::ReplaceEditorReceiveChar { s: c.to_string() }
                 );
-            } else {
-                self.common.internal_command.send(
-                    InternalCommand::FindEditorReceiveChar { s: c.to_string() }
-                );
+                // todo 搜索框应该直接由键盘输入，而不是这样迂回
+            // } else {
+            //     self.common.internal_command.send(
+            //         InternalCommand::FindEditorReceiveChar { s: c.to_string() }
+            //     );
             }
         } else {
             self.common.hover.active.set(false);
