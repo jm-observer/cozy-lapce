@@ -113,7 +113,6 @@ use crate::{
     settings::{settings_view, theme_color_settings_view},
     status::status,
     svg,
-    text_input::TextInputBuilder,
     title::title,
     update::ReleaseInfo,
     window::{WindowData, WindowInfo},
@@ -2660,23 +2659,31 @@ fn palette_item(
 }
 
 fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
-    let editor = window_tab_data.palette.input_editor.clone();
-    let pallete_kind = window_tab_data.palette.kind.write_only();
-    let config = window_tab_data.common.config;
-    let focus = window_tab_data.common.focus;
-    let is_focused = move || {
-        let focus = focus.get() == Focus::Palette;
-        if !focus {
-            pallete_kind.set(None);
-        }
-        focus
-    };
+    let input_str = window_tab_data.palette.input_str;
+    let status = window_tab_data.palette.status.read_only();
 
-    let input = TextInputBuilder::new()
-        .is_focused(is_focused)
-        .build_editor(editor)
-        .placeholder(move || window_tab_data.palette.placeholder_text().to_owned())
+    // let pallete_kind = window_tab_data.palette.kind.write_only();
+    let config = window_tab_data.common.config;
+    // let focus = window_tab_data.common.focus;
+    // let is_focused = move || {
+    //     let focus = focus.get() == Focus::Palette;
+    //     if !focus {
+    //         pallete_kind.set(None);
+    //     }
+    //     focus
+    // };
+
+
+
+    let input = text_input(input_str)
+        .placeholder(window_tab_data.palette.placeholder_text().to_owned())
         .style(|s| s.width_full());
+    let id = input.id();
+    create_effect(move |_| {
+        if status.get() == PaletteStatus::Started {
+            id.request_focus()
+        }
+    });
 
     container(container(input).style(move |s| {
         let config = config.get();

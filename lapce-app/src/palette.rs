@@ -17,7 +17,7 @@ use doc::{
     lines::{
         buffer::rope_text::RopeText, command::FocusCommand,
         editor_command::CommandExecuted, line_ending::LineEnding, mode::Mode,
-        movement::Movement, selection::Selection
+        movement::Movement
     },
     syntax::Syntax
 };
@@ -60,6 +60,7 @@ use crate::{
     source_control::SourceControlData,
     window_workspace::{CommonData, Focus}
 };
+use crate::command::LapceWorkbenchCommand;
 
 pub mod item;
 pub mod kind;
@@ -101,7 +102,8 @@ pub struct PaletteData {
     pub filtered_items:        ReadSignal<Vector<PaletteItem>>,
     pub input:                 RwSignal<PaletteInput>,
     pub kind:                  RwSignal<Option<PaletteKind>>,
-    pub input_editor:          EditorData,
+    // pub input_editor:          EditorData,
+    pub input_str:          RwSignal<String>,
     pub preview_editor:        EditorData,
     pub has_preview:           RwSignal<bool>,
     pub keypress:              ReadSignal<KeyPressData>,
@@ -144,11 +146,8 @@ impl PaletteData {
             kind:  PaletteKind::File
         });
         let kind = cx.create_rw_signal(None);
-        let input_editor = main_split.editors.make_local_with_name(
-            cx,
-            common.clone(),
-            "PaletteData".to_string()
-        );
+
+        let input_str = cx.create_rw_signal(String::new());
         let preview_editor = main_split.editors.make_local(cx, common.clone());
         let has_preview = cx.create_rw_signal(false);
         let run_id = cx.create_rw_signal(0);
@@ -239,7 +238,7 @@ impl PaletteData {
             preselect_index,
             items,
             filtered_items,
-            input_editor,
+            input_str,
             preview_editor,
             has_preview,
             input,
@@ -270,7 +269,7 @@ impl PaletteData {
 
         {
             let palette = palette.clone();
-            let doc = palette.input_editor.doc();
+            let input_str = palette.input_str;
             let input = palette.input;
             let status = palette.status.read_only();
             let preset_kind = palette.kind;
@@ -279,8 +278,7 @@ impl PaletteData {
             cx.create_effect(move |last_input| {
                 // TODO(minor, perf): this could have perf issues if the user
                 // accidentally pasted a huge amount of text into the palette.
-                let buffer = doc.lines.with_untracked(|x| x.signal_buffer());
-                let new_input = buffer.get().to_string();
+                let new_input = input_str.get();
 
                 let status = status.get_untracked();
                 if status == PaletteStatus::Inactive {
@@ -371,11 +369,12 @@ impl PaletteData {
         self.status.set(PaletteStatus::Started);
         let symbol = kind.symbol();
         self.kind.set(Some(kind));
-        // Refresh the palette input with only the symbol prefix, losing old content.
-        self.input_editor.doc().reload(Rope::from(symbol), true);
-        self.input_editor
-            .cursor()
-            .update(|cursor| cursor.set_insert(Selection::caret(symbol.len())));
+        self.input_str.set(symbol.to_string());
+        // // Refresh the palette input with only the symbol prefix, losing old content.
+        // self.input_editor.doc().reload(Rope::from(symbol), true);
+        // self.input_editor
+        //     .cursor()
+        //     .update(|cursor| cursor.set_insert(Selection::caret(symbol.len())));
     }
 
     /// Get the placeholder text to use in the palette input field.
@@ -1596,10 +1595,11 @@ impl PaletteData {
         }
         self.has_preview.set(false);
         self.items.update(|items| items.clear());
-        self.input_editor.doc().reload(Rope::from(""), true);
-        self.input_editor
-            .cursor()
-            .update(|cursor| cursor.set_insert(Selection::caret(0)));
+        self.input_str.set(String::new());
+        // self.input_editor.doc().reload(Rope::from(""), true);
+        // self.input_editor
+        //     .cursor()
+        //     .update(|cursor| cursor.set_insert(Selection::caret(0)));
     }
 
     /// Move to the next entry in the palette list, wrapping around if needed.
@@ -1782,11 +1782,15 @@ impl KeyPressFocus for PaletteData {
     fn run_command(
         &self,
         command: &LapceCommand,
-        count: Option<usize>,
-        mods: Modifiers
+        _count: Option<usize>,
+        _mods: Modifiers
     ) -> CommandExecuted {
         match &command.kind {
-            CommandKind::Workbench(_) => {},
+            CommandKind::Workbench(_cmd) => {
+                if matches!(LapceWorkbenchCommand::OpenUIInspector, _cmd) {
+                    self.common.view_id.get_untracked().inspect();
+                }
+            },
             CommandKind::Scroll(_) => {},
             CommandKind::Focus(cmd) => {
                 self.run_focus_command(cmd);
@@ -1794,14 +1798,15 @@ impl KeyPressFocus for PaletteData {
             CommandKind::Edit(_)
             | CommandKind::Move(_)
             | CommandKind::MultiSelection(_) => {
-                self.input_editor.run_command(command, count, mods);
+                error!("todo run_command {command:?}");
+                // self.input_editor.run_command(command, count, mods);
             },
             CommandKind::MotionMode(_) => {}
         }
         CommandExecuted::Yes
     }
 
-    fn receive_char(&self, c: &str) {
-        self.input_editor.receive_char(c);
+    fn receive_char(&self, _c: &str) {
+        error!("todo receive_char");
     }
 }
