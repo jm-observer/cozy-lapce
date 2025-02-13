@@ -54,6 +54,7 @@ use floem::{
     window::{ResizeDirection, WindowConfig, WindowId}
 };
 use floem::prelude::text_input;
+use floem::reactive::batch;
 use lapce_core::{
     debug::RunDebugMode,
     directory::Directory,
@@ -599,9 +600,11 @@ impl AppData {
             .keyboard_navigable()
             .on_event(EventListener::KeyDown, move |event| {
                 if let Event::KeyDown(key_event) = event {
-                    if key_down_window_data.key_down(key_event) {
-                        view_id.request_focus();
-                    }
+                    batch(|| {
+                        if key_down_window_data.key_down(key_event) {
+                            view_id.request_focus();
+                        }
+                    });
                     EventPropagation::Stop
                 } else {
                     EventPropagation::Continue

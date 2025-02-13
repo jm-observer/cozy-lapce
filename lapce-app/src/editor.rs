@@ -2842,13 +2842,6 @@ impl EditorData {
             self.clear_search();
         } else {
             let pattern = self.selected_word();
-
-            // let pattern = if pattern.contains('\n') || pattern.is_empty() {
-            //     None
-            // } else {
-            //     Some(pattern)
-            // };
-
             self.common
                 .internal_command
                 .send(InternalCommand::Search { pattern });

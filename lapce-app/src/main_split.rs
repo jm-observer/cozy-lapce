@@ -13,14 +13,7 @@ use doc::{
     },
     syntax::Syntax
 };
-use floem::{
-    ext_event::create_ext_action,
-    file::{FileDialogOptions, FileInfo},
-    file_action::save_as,
-    keyboard::Modifiers,
-    peniko::kurbo::{Point, Rect, Vec2},
-    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch}
-};
+use floem::{ext_event::create_ext_action, file::{FileDialogOptions, FileInfo}, file_action::save_as, keyboard::Modifiers, peniko::kurbo::{Point, Rect, Vec2}, reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch}, ViewId};
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -339,6 +332,7 @@ pub struct MainSplitData {
     pub active_editor:     Memo<Option<EditorData>>,
     // pub find_editor:       EditorData,
     pub find_str:       RwSignal<String>,
+    pub find_view_id: RwSignal<Option<ViewId>>,
     pub replace_editor:    EditorData,
     pub locations:         RwSignal<im::Vector<EditorLocation>>,
     pub current_location:  RwSignal<usize>,
@@ -377,6 +371,8 @@ impl MainSplitData {
         let diagnostics = cx.create_rw_signal(im::HashMap::new());
         let replace_editor = editors.make_local(cx, common.clone());
         let find_str = cx.create_rw_signal(String::new());
+        let find_view_id = cx.create_rw_signal(None);
+
 
 
         let active_editor = cx.create_memo(move |_| -> Option<EditorData> {
@@ -416,7 +412,7 @@ impl MainSplitData {
         }
 
         Self {
-            find_str,
+            find_str, find_view_id,
             scope: cx,
             root_split: SplitId::next(),
             splits,
@@ -2428,6 +2424,9 @@ impl MainSplitData {
             self.find_str.set(pattern);
         } else {
             self.find_str.set(String::new());
+        }
+        if let Some(view_id) = self.find_view_id.get_untracked() {
+            view_id.request_focus();
         }
     }
 
