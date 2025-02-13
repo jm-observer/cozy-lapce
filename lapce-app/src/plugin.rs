@@ -94,11 +94,11 @@ pub struct AvailableVoltData {
 
 #[derive(Clone, Debug)]
 pub struct AvailableVoltList {
-    pub loading:      RwSignal<bool>,
-    pub query_id:     RwSignal<usize>,
+    pub loading:   RwSignal<bool>,
+    pub query_id:  RwSignal<usize>,
     pub query_str: RwSignal<String>,
-    pub volts:        RwSignal<IndexMap<VoltID, AvailableVoltData>>,
-    pub total:        RwSignal<usize>
+    pub volts:     RwSignal<IndexMap<VoltID, AvailableVoltData>>,
+    pub total:     RwSignal<usize>
 }
 
 #[derive(Clone, Debug)]
@@ -159,10 +159,10 @@ impl PluginData {
     ) -> Self {
         let installed = cx.create_rw_signal(IndexMap::new());
         let available = AvailableVoltList {
-            loading:      cx.create_rw_signal(false),
-            volts:        cx.create_rw_signal(IndexMap::new()),
-            total:        cx.create_rw_signal(0),
-            query_id:     cx.create_rw_signal(0),
+            loading:   cx.create_rw_signal(false),
+            volts:     cx.create_rw_signal(IndexMap::new()),
+            total:     cx.create_rw_signal(0),
+            query_id:  cx.create_rw_signal(0),
             query_str: cx.create_rw_signal(String::new())
         };
         let disabled = cx.create_rw_signal(disabled);
@@ -214,10 +214,7 @@ impl PluginData {
         {
             let plugin = plugin.clone();
             cx.create_effect(move |s| {
-                let query = plugin
-                    .available
-                    .query_str
-                    .get();
+                let query = plugin.available.query_str.get();
                 if s.as_ref() == Some(&query) {
                     return query;
                 }
@@ -476,9 +473,7 @@ impl PluginData {
             return;
         }
 
-        let query = self
-            .available
-            .query_str.get_untracked();
+        let query = self.available.query_str.get_untracked();
         let offset = self.available.volts.with_untracked(|v| v.len());
         self.load_available_volts(&query, offset, core_rpc);
     }

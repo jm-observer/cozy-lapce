@@ -8,13 +8,10 @@ use floem::{
     kurbo::Affine,
     menu::{Menu, MenuItem},
     peniko::kurbo::Rect,
-    reactive::{
-        SignalGet, SignalTrack, SignalUpdate, SignalWith
-    },
+    reactive::{Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith},
     style::{CursorStyle, Style},
     views::{Decorators, container, dyn_stack, label, scroll, stack, text}
 };
-use floem::reactive::Scope;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    rc::Rc,
+    rc::Rc
 };
 
 use doc::lines::{
@@ -47,13 +47,13 @@ enum RenamedPath {
 
 #[derive(Clone, Debug)]
 pub struct FileExplorerData {
-    pub root:               RwSignal<FileNodeItem>,
-    pub naming:             RwSignal<Naming>,
-    pub common:             Rc<CommonData>,
+    pub root:           RwSignal<FileNodeItem>,
+    pub naming:         RwSignal<Naming>,
+    pub common:         Rc<CommonData>,
     pub naming_str:     RwSignal<String>,
-    pub scroll_to_line:     RwSignal<Option<f64>>,
-    left_diff_path:         RwSignal<Option<PathBuf>>,
-    pub select:             RwSignal<Option<FileNodeViewKind>>
+    pub scroll_to_line: RwSignal<Option<f64>>,
+    left_diff_path:     RwSignal<Option<PathBuf>>,
+    pub select:         RwSignal<Option<FileNodeViewKind>>
 }
 
 impl KeyPressFocus for FileExplorerData {
@@ -93,9 +93,7 @@ impl KeyPressFocus for FileExplorerData {
 
                     CommandExecuted::Yes
                 },
-                _ => {
-                    CommandExecuted::Yes
-                }
+                _ => CommandExecuted::Yes
             }
         } else {
             CommandExecuted::No
@@ -129,14 +127,14 @@ impl FileExplorerData {
         let naming = cx.create_rw_signal(Naming::None);
         let naming_str = cx.create_rw_signal(String::new());
 
-
         let data = Self {
             root,
             naming,
             common,
             scroll_to_line: cx.create_rw_signal(None),
             left_diff_path: cx.create_rw_signal(None),
-            select: cx.create_rw_signal(None), naming_str
+            select: cx.create_rw_signal(None),
+            naming_str
         };
         if data.common.workspace.path.is_some() {
             // only fill in the child files if there is open folder
@@ -280,8 +278,8 @@ impl FileExplorerData {
             },
             Naming::NewNode(n) => {
                 // let relative_path = self.naming_editor_data.text();
-                // let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
-                // {
+                // let relative_path: Cow<OsStr> = match
+                // relative_path.slice_to_cow(..) {
                 //     Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
                 //     Cow::Owned(path) => Cow::Owned(path.into())
                 // };
@@ -291,14 +289,13 @@ impl FileExplorerData {
             },
             Naming::Duplicating(d) => {
                 // let relative_path = self.naming_editor_data.text();
-                // let relative_path: Cow<OsStr> = match relative_path.slice_to_cow(..)
-                // {
+                // let relative_path: Cow<OsStr> = match
+                // relative_path.slice_to_cow(..) {
                 //     Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
                 //     Cow::Owned(path) => Cow::Owned(path.into())
                 // };
                 let new_node = self.naming_str.get_untracked();
-                let new_path =
-                    d.path.parent().unwrap_or("".as_ref()).join(new_node);
+                let new_path = d.path.parent().unwrap_or("".as_ref()).join(new_node);
 
                 Some(new_path)
             }
@@ -322,9 +319,12 @@ impl FileExplorerData {
                 //         Cow::Borrowed(path) => Cow::Borrowed(path.as_ref()),
                 //         Cow::Owned(path) => Cow::Owned(path.into())
                 //     };
-                let new_relative_path= self.naming_str.get_untracked();
+                let new_relative_path = self.naming_str.get_untracked();
 
-                if <std::string::String as AsRef<std::ffi::OsStr>>::as_ref(&new_relative_path) == current_file_name {
+                if <std::string::String as AsRef<std::ffi::OsStr>>::as_ref(
+                    &new_relative_path
+                ) == current_file_name
+                {
                     RenamedPath::NameUnchanged
                 } else {
                     let new_path = current_path

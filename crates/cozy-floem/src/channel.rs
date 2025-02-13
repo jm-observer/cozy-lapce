@@ -1,4 +1,4 @@
-use std::{collections::VecDeque};
+use std::collections::VecDeque;
 
 use floem::{
     ext_event::{ExtSendTrigger, create_ext_action, register_ext_trigger},

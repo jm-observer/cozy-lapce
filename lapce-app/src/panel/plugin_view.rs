@@ -4,6 +4,7 @@ use floem::{
     IntoView, View,
     event::EventListener,
     peniko::kurbo::{Point, Rect, Size},
+    prelude::text_input,
     reactive::{
         RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo, create_rw_signal
     },
@@ -13,7 +14,6 @@ use floem::{
         dyn_container, img, label, scroll::scroll, stack, virtual_stack
     }
 };
-use floem::prelude::text_input;
 use indexmap::IndexMap;
 use lapce_core::{
     icon::LapceIcons,
@@ -347,22 +347,23 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             scroll(
                 text_input(query_str)
                     .placeholder("Search extensions")
-                    .keyboard_navigable().style(|s| {
-                    s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
-                // }).on_click_stop(move |event| {
-                }).pointer_down(move || {
-                    focus.set(Focus::Panel(PanelKind::Plugin));
-                })
-                // TextInputBuilder::new()
-                //     .is_focused(is_focused)
-                //     .build_editor(editor.clone())
-                //     .placeholder(|| "Search extensions".to_string())
-                //     .on_cursor_pos(move |point| {
-                //         cursor_x.set(point.x);
-                //     })
-                //     .style(|s| {
-                //         s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
-                //     })
+                    .keyboard_navigable()
+                    .style(|s| {
+                        s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
+                        // }).on_click_stop(move |event| {
+                    })
+                    .pointer_down(move || {
+                        focus.set(Focus::Panel(PanelKind::Plugin));
+                    }) /* TextInputBuilder::new()
+                        *     .is_focused(is_focused)
+                        *     .build_editor(editor.clone())
+                        *     .placeholder(|| "Search extensions".to_string())
+                        *     .on_cursor_pos(move |point| {
+                        *         cursor_x.set(point.x);
+                        *     })
+                        *     .style(|s| {
+                        *         s.padding_vert(4.0).padding_horiz(10.0).
+                        * min_width_pct(100.0)     }) */
             )
             .ensure_visible(move || {
                 Size::new(20.0, 0.0)

@@ -1,8 +1,6 @@
 use std::{ops::Range, path::PathBuf, rc::Rc};
 
-use doc::lines::{
-    editor_command::CommandExecuted, mode::Mode
-};
+use doc::lines::{editor_command::CommandExecuted, mode::Mode};
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
@@ -40,7 +38,7 @@ impl SearchMatchData {
 #[derive(Clone, Debug)]
 pub struct GlobalSearchData {
     pub search_result: RwSignal<IndexMap<PathBuf, SearchMatchData>>,
-    pub search_str: RwSignal<String>,
+    pub search_str:    RwSignal<String>,
     pub main_split:    MainSplitData,
     pub common:        Rc<CommonData>
 }
@@ -63,9 +61,7 @@ impl KeyPressFocus for GlobalSearchData {
         CommandExecuted::No
     }
 
-    fn receive_char(&self, _c: &str) {
-
-    }
+    fn receive_char(&self, _c: &str) {}
 }
 
 impl VirtualVector<(PathBuf, SearchMatchData)> for GlobalSearchData {
@@ -98,11 +94,11 @@ impl GlobalSearchData {
         let search_result = cx.create_rw_signal(IndexMap::new());
         let search_str = cx.create_rw_signal(String::new());
 
-
         let global_search = Self {
             search_result,
             main_split,
-            common, search_str
+            common,
+            search_str
         };
 
         {

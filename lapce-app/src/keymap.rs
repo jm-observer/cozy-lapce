@@ -4,6 +4,7 @@ use doc::lines::mode::Modes;
 use floem::{
     View,
     event::{Event, EventListener},
+    prelude::text_input,
     reactive::{
         Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith,
         create_effect, create_memo, create_rw_signal, create_signal
@@ -14,8 +15,8 @@ use floem::{
         scroll, stack, text, virtual_stack
     }
 };
-use floem::prelude::text_input;
 use itertools::Itertools;
+
 use crate::{
     command::LapceCommand,
     config::{LapceConfig, color::LapceColor},
@@ -46,8 +47,8 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
     };
 
     // let cx = Scope::current();
-    // let text_input_view = TextInputBuilder::new().build(cx, editors, common.clone());
-    // let doc = text_input_view.doc_signal();
+    // let text_input_view = TextInputBuilder::new().build(cx, editors,
+    // common.clone()); let doc = text_input_view.doc_signal();
     let (read_order, write_order) = create_signal(KeyMapOrder::default());
 
     let query_str = create_rw_signal(String::new());
@@ -299,14 +300,15 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
         container(
             text_input(query_str)
                 .placeholder("Search Key Bindings")
-                .keyboard_navigable().style(move |s| {
-                s.width_pct(100.0)
-                    .border_radius(2.0)
-                    .border(1.0)
-                    .border_color(config.get().color(LapceColor::LAPCE_BORDER))
-            // }).pointer_down(move || {
-            //     focus.set(Focus::Panel(PanelKind::Plugin));
-            })
+                .keyboard_navigable()
+                .style(move |s| {
+                    s.width_pct(100.0)
+                        .border_radius(2.0)
+                        .border(1.0)
+                        .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                    // }).pointer_down(move || {
+                    //     focus.set(Focus::Panel(PanelKind::Plugin));
+                })
         )
         .style(|s| s.padding_bottom(10.0).width_pct(100.0)),
         stack((
@@ -390,13 +392,15 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
             .padding_top(20.0)
             .padding_left(20.0)
             .padding_right(20.0)
-    }).debug_name("keymap view")
+    })
+    .debug_name("keymap view")
 }
 
 fn keyboard_picker_view(
     picker: KeymapPicker,
     ui_line_height: Memo<f64>,
-    config: ReadSignal<LapceConfig>, common: Rc<CommonData>
+    config: ReadSignal<LapceConfig>,
+    common: Rc<CommonData>
 ) -> impl View {
     let picker_cmd = picker.cmd;
     let view = container(
@@ -483,7 +487,8 @@ fn keyboard_picker_view(
                                 &keys
                                     .iter()
                                     .map(|(key, _)| key.clone())
-                                    .collect::<Vec<KeyMapPress>>(), common.clone()
+                                    .collect::<Vec<KeyMapPress>>(),
+                                common.clone()
                             );
                         }
                     }),

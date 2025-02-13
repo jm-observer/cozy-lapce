@@ -27,15 +27,14 @@ use self::{
     loader::KeyMapLoader
 };
 use crate::{
-    command::{CommandKind, LapceCommand, lapce_internal_commands},
+    command::{CommandKind, InternalCommand, LapceCommand, lapce_internal_commands},
     config::LapceConfig,
     keypress::{
         condition::{CheckCondition, Condition},
         keymap::KeymapMatch
-    }
+    },
+    window_workspace::CommonData
 };
-use crate::command::InternalCommand;
-use crate::window_workspace::CommonData;
 
 const DEFAULT_KEYMAPS_COMMON: &str =
     include_str!("../../defaults/keymaps-common.toml");
@@ -619,7 +618,11 @@ impl KeyPressData {
             .cloned()
     }
 
-    pub fn update_file(keymap: &KeyMap, keys: &[KeyMapPress], common: Rc<CommonData>) -> Option<()> {
+    pub fn update_file(
+        keymap: &KeyMap,
+        keys: &[KeyMapPress],
+        common: Rc<CommonData>
+    ) -> Option<()> {
         let mut array = Self::get_file_array().unwrap_or_default();
         let index = array.iter().position(|value| {
             Some(keymap.command.as_str())

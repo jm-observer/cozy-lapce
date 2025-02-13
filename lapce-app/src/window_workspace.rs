@@ -62,6 +62,7 @@ use lsp_types::{
     ProgressToken, ShowMessageParams
 };
 use serde_json::Value;
+
 use crate::{
     about::AboutData,
     alert::{AlertBoxData, AlertButton},
@@ -98,9 +99,8 @@ use crate::{
         event::{TermEvent, TermNotification, terminal_update_process},
         panel::TerminalPanelData
     },
-    window::WindowCommonData
+    window::{CursorBlink, WindowCommonData}
 };
-use crate::window::CursorBlink;
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -263,7 +263,7 @@ pub struct WindowWorkspaceData {
     pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
     pub build_data:                TreePanelData,
-    pub cursor_blink: CursorBlink
+    pub cursor_blink:              CursorBlink
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -412,7 +412,8 @@ impl WindowWorkspaceData {
         );
         let (config, set_config) = cx.create_signal(config);
 
-        let focus = SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
+        let focus =
+            SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
         let completion = cx.create_rw_signal(CompletionData::new(cx, config));
         let inline_completion = cx.create_rw_signal(InlineCompletionData::new(cx));
         let hover = HoverData::new(cx);
@@ -468,8 +469,7 @@ impl WindowWorkspaceData {
             cx.create_rw_signal(CodeActionData::new(cx, common.clone()));
         let source_control =
             SourceControlData::new(cx, main_split.editors, common.clone());
-        let file_explorer =
-            FileExplorerData::new(cx, common.clone());
+        let file_explorer = FileExplorerData::new(cx, common.clone());
 
         if let Some(info) = workspace_info.as_ref() {
             let root_split = main_split.root_split;
@@ -653,7 +653,7 @@ impl WindowWorkspaceData {
             common,
             document_symbol_scroll_to: cx.create_rw_signal(None),
             build_data,
-            cursor_blink,
+            cursor_blink
         };
 
         {

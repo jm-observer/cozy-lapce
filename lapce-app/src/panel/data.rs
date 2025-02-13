@@ -1,5 +1,5 @@
-use std::{rc::Rc};
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
+
 use floem::{
     kurbo::Size,
     reactive::{

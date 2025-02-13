@@ -1,5 +1,3 @@
-
-
 use floem::{
     kurbo::{Rect, Size},
     reactive::*,

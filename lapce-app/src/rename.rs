@@ -1,29 +1,27 @@
 use std::{path::PathBuf, rc::Rc};
 
 use doc::lines::{
-    command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
+    command::FocusCommand, editor_command::CommandExecuted, mode::Mode
 };
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch}
 };
-use floem::reactive::batch;
 use lapce_rpc::proxy::ProxyResponse;
 use lsp_types::Position;
 
 use crate::{
-    command::{InternalCommand, LapceCommand},
+    command::{CommandKind, InternalCommand, LapceCommand},
     keypress::{KeyPressFocus, condition::Condition},
     window_workspace::{CommonData, Focus}
 };
-use crate::command::CommandKind;
 
 #[derive(Clone, Debug)]
 pub struct RenameData {
     pub active:      RwSignal<bool>,
-    pub name_str: RwSignal<String>,
+    pub name_str:    RwSignal<String>,
     pub start:       RwSignal<usize>,
     pub position:    RwSignal<Position>,
     pub path:        RwSignal<PathBuf>,
@@ -52,8 +50,7 @@ impl KeyPressFocus for RenameData {
         CommandExecuted::Yes
     }
 
-    fn receive_char(&self, _c: &str) {
-    }
+    fn receive_char(&self, _c: &str) {}
 }
 
 impl RenameData {
@@ -71,7 +68,8 @@ impl RenameData {
             position,
             layout_rect,
             path,
-            common, name_str
+            common,
+            name_str
         }
     }
 
@@ -113,8 +111,7 @@ impl RenameData {
     }
 
     fn confirm(&self) {
-        let new_name = self
-            .name_str.get_untracked();
+        let new_name = self.name_str.get_untracked();
         log::info!("confirm {new_name}");
         let new_name = new_name.trim();
         if !new_name.is_empty() {

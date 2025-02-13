@@ -1,6 +1,6 @@
 use std::{
     path::{Path, PathBuf},
-    rc::Rc,
+    rc::Rc
 };
 
 use floem::{

@@ -1,9 +1,8 @@
-use std::{path::PathBuf, rc::Rc};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{path::PathBuf, rc::Rc, sync::Arc, time::Duration};
+
 use floem::{
     ViewId,
-    action::TimerToken,
+    action::{TimerToken, exec_after},
     peniko::kurbo::{Point, Size},
     reactive::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
@@ -11,18 +10,20 @@ use floem::{
     },
     window::WindowId
 };
-use floem::action::exec_after;
 use lapce_core::workspace::LapceWorkspace;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    app::AppCommand, command::WindowCommand, config::LapceConfig, db::LapceDb,
-    keypress::EventRef, listener::Listener, update::ReleaseInfo,
-    window_workspace::WindowWorkspaceData
+    app::AppCommand,
+    command::{InternalCommand, WindowCommand},
+    config::LapceConfig,
+    db::LapceDb,
+    keypress::EventRef,
+    listener::Listener,
+    update::ReleaseInfo,
+    window_workspace::{CommonData, Focus, SignalManager, WindowWorkspaceData}
 };
-use crate::command::InternalCommand;
-use crate::window_workspace::{CommonData, Focus, SignalManager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
@@ -131,13 +132,8 @@ impl WindowData {
         let w = info.workspace.clone();
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
         w.watch_project_setting(&watcher);
-        let window_tabs = cx.create_rw_signal(WindowWorkspaceData::new(
-            cx,
-            w,
-            common.clone()
-        ));
-
-
+        let window_tabs =
+            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone()));
 
         // for w in info.tabs.workspaces {
         //     log::info!("WindowData {:?}", w);
@@ -373,10 +369,10 @@ impl WindowData {
 
 #[derive(Clone)]
 pub struct CursorBlink {
-    pub hide_cursor: RwSignal<bool>,
+    pub hide_cursor:    RwSignal<bool>,
     pub blink_timer:    RwSignal<TimerToken>,
     pub blink_interval: RwSignal<u64>,
-    pub common_data: Rc<CommonData>,
+    pub common_data:    Rc<CommonData>
 }
 
 impl CursorBlink {
@@ -385,9 +381,8 @@ impl CursorBlink {
         // log::info!("CursorBlink {}", blink_interval);
         let info = self.clone();
         let blink_timer = info.blink_timer;
-        let timer_token = exec_after(
-            Duration::from_millis(blink_interval),
-            move |timer_token| {
+        let timer_token =
+            exec_after(Duration::from_millis(blink_interval), move |timer_token| {
                 let blink_timer_token = blink_timer.try_get_untracked();
                 if blink_timer_token == Some(timer_token) {
                     if let Some(hidden) = hidden {
@@ -397,16 +392,23 @@ impl CursorBlink {
                             *hide = !*hide;
                         });
                     }
-                    if should_blink(info.common_data.focus, info.common_data.keyboard_focus) {
-                        info.common_data.internal_command.send(InternalCommand::BlinkCursor);
+                    if should_blink(
+                        info.common_data.focus,
+                        info.common_data.keyboard_focus
+                    ) {
+                        info.common_data
+                            .internal_command
+                            .send(InternalCommand::BlinkCursor);
                     }
                     info.blink(None);
-                // } else {
-                //     warn!("blink_timer not equal {:?} {:?} id={:?}", blink_timer_token, timer_token, floem::prelude::SignalGet::id(&blink_timer));
+                    // } else {
+                    //     warn!("blink_timer not equal {:?} {:?} id={:?}",
+                    // blink_timer_token, timer_token,
+                    // floem::prelude::SignalGet::id(&blink_timer));
                 }
-            }
-        );
-        // warn!("set id={:?} {:?}", floem::prelude::SignalGet::id(&blink_timer), timer_token);
+            });
+        // warn!("set id={:?} {:?}", floem::prelude::SignalGet::id(&blink_timer),
+        // timer_token);
         blink_timer.set(timer_token);
     }
 
@@ -415,28 +417,27 @@ impl CursorBlink {
     }
 }
 
-
 pub fn should_blink(
     _focus: SignalManager<Focus>,
     _keyboard_focus: RwSignal<Option<ViewId>>
 ) -> bool {
-        let Some(focus) = _focus.try_get_untracked() else {
-            return false;
-        };
-        if matches!(
-            focus,
-            Focus::Workbench
-                | Focus::Palette
-                | Focus::Panel(lapce_core::panel::PanelKind::Plugin)
-                | Focus::Panel(lapce_core::panel::PanelKind::Search)
-                | Focus::Panel(lapce_core::panel::PanelKind::SourceControl)
+    let Some(focus) = _focus.try_get_untracked() else {
+        return false;
+    };
+    if matches!(
+        focus,
+        Focus::Workbench
+            | Focus::Palette
+            | Focus::Panel(lapce_core::panel::PanelKind::Plugin)
+            | Focus::Panel(lapce_core::panel::PanelKind::Search)
+            | Focus::Panel(lapce_core::panel::PanelKind::SourceControl)
             | Focus::Panel(lapce_core::panel::PanelKind::Terminal)
-        ) {
-            return true;
-        }
+    ) {
+        return true;
+    }
 
-        if _keyboard_focus.get_untracked().is_some() {
-            return true;
-        }
-        false
+    if _keyboard_focus.get_untracked().is_some() {
+        return true;
+    }
+    false
 }

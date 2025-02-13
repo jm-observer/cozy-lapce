@@ -25,7 +25,7 @@ fn test_do_insert() -> anyhow::Result<()> {
         let s = "m";
         let mut response = Vec::new();
         let edit = EditBuffer::DoInsertBuffer {
-            cursor:   &mut cursor,
+            cursor: &mut cursor,
             s,
             response: &mut response
         };

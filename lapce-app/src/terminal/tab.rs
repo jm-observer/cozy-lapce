@@ -1,4 +1,4 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 
 use floem::reactive::{RwSignal, Scope, SignalWith};
 use lapce_core::{

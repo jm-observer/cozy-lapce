@@ -133,7 +133,6 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                     .border_color(
                                         config.get().color(LapceColor::LAPCE_BORDER)
                                     )
-
                             })
                         ))
                         .style(move |s| {
@@ -165,10 +164,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                         })
                     })
                     .style(|s| {
-                        s.absolute()
-                            .padding_horiz(3.0)
-                            .size_pct(100.0, 100.0)
-
+                        s.absolute().padding_horiz(3.0).size_pct(100.0, 100.0)
                     })
                 ))
                 .on_event_cont(
@@ -262,7 +258,8 @@ fn terminal_tab_split(
             terminal_panel_data,
             terminal.launch_error,
             internal_command,
-            workspace.clone(), terminal.clone()
+            workspace.clone(),
+            terminal.clone()
         );
         let view_id = terminal_view.id();
         let have_task = terminal.run_debug.get_untracked().is_some();

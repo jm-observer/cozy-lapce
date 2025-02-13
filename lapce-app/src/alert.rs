@@ -1,8 +1,4 @@
-use std::{
-    fmt,
-    rc::Rc,
-    sync::{atomic::AtomicU64}
-};
+use std::{fmt, rc::Rc, sync::atomic::AtomicU64};
 
 use floem::{
     View,

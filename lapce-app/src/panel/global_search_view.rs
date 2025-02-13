@@ -1,4 +1,4 @@
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use floem::{
     View,
@@ -7,10 +7,9 @@ use floem::{
     style::{CursorStyle, Style},
     views::{
         Decorators, VirtualDirection, VirtualItemSize, container, label, scroll,
-        stack, virtual_stack
+        stack, text_input, virtual_stack
     }
 };
-use floem::views::text_input;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind},
@@ -47,8 +46,7 @@ pub fn global_search_panel(
     stack((
         container(
             stack((
-                text_input(global_search.search_str)
-                    .style(|s| s.width_pct(100.0)),
+                text_input(global_search.search_str).style(|s| s.width_pct(100.0)),
                 clickable_icon(
                     || LapceIcons::SEARCH_CASE_SENSITIVE,
                     move || {

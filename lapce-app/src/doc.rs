@@ -68,7 +68,7 @@ use crate::{
     panel::document_symbol::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData
     },
-    window_workspace::{CommonData}
+    window_workspace::CommonData
 };
 
 // #[derive(Clone, Debug)]

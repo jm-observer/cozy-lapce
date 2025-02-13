@@ -60,10 +60,9 @@ impl DocLines {
                             ),
                             origin_line:                  origin_line_start,
                             origin_folded_line:           origin_folded_line_index,
-                            origin_folded_line_sub_index: 0
-                            /* text_layout:
-                             * text_layout.
-                             * clone(), */
+                            origin_folded_line_sub_index: 0 /* text_layout:
+                                                             * text_layout.
+                                                             * clone(), */
                         });
                         continue;
                     }

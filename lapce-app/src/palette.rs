@@ -48,7 +48,10 @@ use self::{
     kind::PaletteKind
 };
 use crate::{
-    command::{CommandKind, InternalCommand, LapceCommand, WindowCommand},
+    command::{
+        CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand,
+        WindowCommand
+    },
     db::LapceDb,
     editor::{
         EditorData,
@@ -60,7 +63,6 @@ use crate::{
     source_control::SourceControlData,
     window_workspace::{CommonData, Focus}
 };
-use crate::command::LapceWorkbenchCommand;
 
 pub mod item;
 pub mod kind;
@@ -103,7 +105,7 @@ pub struct PaletteData {
     pub input:                 RwSignal<PaletteInput>,
     pub kind:                  RwSignal<Option<PaletteKind>>,
     // pub input_editor:          EditorData,
-    pub input_str:          RwSignal<String>,
+    pub input_str:             RwSignal<String>,
     pub preview_editor:        EditorData,
     pub has_preview:           RwSignal<bool>,
     pub keypress:              ReadSignal<KeyPressData>,
@@ -370,11 +372,12 @@ impl PaletteData {
         let symbol = kind.symbol();
         self.kind.set(Some(kind));
         self.input_str.set(symbol.to_string());
-        // // Refresh the palette input with only the symbol prefix, losing old content.
-        // self.input_editor.doc().reload(Rope::from(symbol), true);
-        // self.input_editor
+        // // Refresh the palette input with only the symbol prefix, losing old
+        // content. self.input_editor.doc().reload(Rope::from(symbol),
+        // true); self.input_editor
         //     .cursor()
-        //     .update(|cursor| cursor.set_insert(Selection::caret(symbol.len())));
+        //     .update(|cursor|
+        // cursor.set_insert(Selection::caret(symbol.len())));
     }
 
     /// Get the placeholder text to use in the palette input field.

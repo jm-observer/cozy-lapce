@@ -24,8 +24,7 @@ use floem::{
     peniko::Color,
     pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
-        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger,
-        batch
+        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch
     },
     text::{Attrs, AttrsList, TextLayout}
 };
@@ -69,7 +68,7 @@ pub struct Editor {
     pub scroll_to:    RwSignal<Option<Vec2>>,
 
     /// Modal mode register
-    pub register:    RwSignal<Register>,
+    pub register: RwSignal<Register>,
 
     pub last_movement: RwSignal<Movement>,
 
@@ -739,7 +738,6 @@ impl Editor {
     pub fn offset_of_line_col(&self, line: usize, col: usize) -> Result<usize> {
         self.rope_text().offset_of_line_col(line, col)
     }
-
 
     /// Returns the offset into the buffer of the first non blank character on
     /// the given line.
@@ -1692,11 +1690,7 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
     cx.stroke(&path, color, &peniko::kurbo::Stroke::new(1.));
 }
 
-fn paint_cursor_caret(
-    cx: &mut PaintCx,
-    ed: &Editor,
-    _screen_lines: &ScreenLines
-) {
+fn paint_cursor_caret(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines) {
     let cursor = ed.cursor;
     let caret_color = ed.doc().lines.with_untracked(|es| es.ed_caret());
     cursor.with_untracked(|cursor| {

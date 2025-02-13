@@ -1,5 +1,5 @@
-use std::{collections::HashMap, path::PathBuf, rc::Rc};
-use std::sync::Arc;
+use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
+
 use anyhow::anyhow;
 use doc::lines::mode::Mode;
 use floem::{

@@ -38,7 +38,6 @@ pub mod source_control;
 pub mod status;
 pub mod terminal;
 pub mod text_area;
-pub mod text_input;
 pub mod title;
 pub mod update;
 pub mod wave;

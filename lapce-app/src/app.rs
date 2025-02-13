@@ -1,13 +1,14 @@
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::{
+    collections::HashMap,
     io::{BufReader, IsTerminal, Read, Write},
     ops::Range,
     path::PathBuf,
     process::Stdio,
     sync::{Arc, atomic::AtomicU64}
 };
-use std::collections::HashMap;
+
 use anyhow::{Result, anyhow};
 use clap::Parser;
 use crossbeam_channel::Sender;
@@ -29,9 +30,9 @@ use floem::{
         Color,
         kurbo::{Point, Rect, Size}
     },
-    prelude::{SignalTrack, palette},
+    prelude::{SignalTrack, palette, text_input},
     reactive::{
-        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch,
         create_effect, create_memo, create_rw_signal, provide_context, use_context
     },
     style::{
@@ -53,8 +54,6 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
-use floem::prelude::text_input;
-use floem::reactive::batch;
 use lapce_core::{
     debug::RunDebugMode,
     directory::Directory,
@@ -76,6 +75,7 @@ use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use notify::Watcher;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+
 use crate::{
     about, alert,
     code_action::CodeActionStatus,
@@ -579,14 +579,11 @@ impl AppData {
                 ))
                 .debug_name("Drag Resize Areas")
                 .style(move |s| {
-                    s.absolute()
-                        .size_full()
-                        .apply_if(
-                            cfg!(target_os = "macos")
-                                || !config.get_untracked().core.custom_titlebar,
-                            |s| s.hide()
-                        )
-
+                    s.absolute().size_full().apply_if(
+                        cfg!(target_os = "macos")
+                            || !config.get_untracked().core.custom_titlebar,
+                        |s| s.hide()
+                    )
                 })
             ))
             .style(|s| s.flex_col().size_full());
@@ -967,12 +964,7 @@ fn editor_tab_header(
                             LapceColor::LAPCE_TAB_INACTIVE_UNDERLINE
                         }))
                 })
-                .style(|s| {
-                    s.absolute()
-                        .padding_horiz(3.0)
-                        .size_full()
-
-                })
+                .style(|s| s.absolute().padding_horiz(3.0).size_full())
                 .debug_name("Drop Indicator"),
             empty()
                 .style(move |s| {
@@ -1788,11 +1780,7 @@ fn split_resize_border(
             })
         }
     )
-    .style(|s| {
-        s.position(Position::Absolute)
-            .size_full()
-
-    })
+    .style(|s| s.position(Position::Absolute).size_full())
     .debug_name("Split Resize Border")
 }
 
@@ -1866,11 +1854,7 @@ fn split_border(
             })
         }
     )
-    .style(|s| {
-        s.position(Position::Absolute)
-            .size_full()
-
-    })
+    .style(|s| s.position(Position::Absolute).size_full())
     .debug_name("Split Border")
 }
 
@@ -2673,8 +2657,6 @@ fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
     //     focus
     // };
 
-
-
     let input = text_input(input_str)
         .placeholder(window_tab_data.palette.placeholder_text().to_owned())
         .style(|s| s.width_full());
@@ -3345,12 +3327,11 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
     let focus = window_tab_data.common.focus;
 
     container(
-        container(
-            text_input(name_str)
-                .style(|s| s.width(150.0)).pointer_down(move || {
+        container(text_input(name_str).style(|s| s.width(150.0)).pointer_down(
+            move || {
                 focus.set(Focus::Rename);
-            })
-        )
+            }
+        ))
         .style(move |s| {
             let config = config.get();
             s.font_family(config.editor.font_family.clone())
@@ -3542,7 +3523,7 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
 // {                                 let left = pointer_event.pos.x
 //                                     < tab_width.get_untracked() / 2.0;
 //                                 if drag_over_left.get_untracked() !=
-// Some(left) {                                     
+// Some(left) {
 // drag_over_left.set(Some(left));                                 }
 //                             }
 //                         }
@@ -3579,8 +3560,8 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
 //                             .min_width(0.0)
 //                             .items_center()
 //                             .border_right(1.0)
-//                             
-// .border_color(config.color(LapceColor::LAPCE_BORDER))                        
+//
+// .border_color(config.color(LapceColor::LAPCE_BORDER))
 // .apply_if(                                 cfg!(target_os = "macos") &&
 // index.get() == 0,                                 |s| s.border_left(1.0),
 //                             )
@@ -3593,7 +3574,7 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
 //                             .border_color(
 //                                 config
 //                                     .get()
-//                                     
+//
 // .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE),                             )
 //                     }))
 //                     .style(|s| {
@@ -3640,8 +3621,8 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
 // 3.0 },                     )
 //                     .height_full()
 //                     .border_color(
-//                         
-// config.get().color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE),                  
+//
+// config.get().color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE),
 // )                     .apply_if(drag_over_left.get().is_some(), move |s| {
 //                         let drag_over_left =
 // drag_over_left.get_untracked().unwrap();                         if
@@ -3800,8 +3781,9 @@ pub fn launch() {
 
     let _ = custom_utils::logger::logger_feature(
         "lapce",
-        "info,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,wasi_experimental_http_wasmtime=warn,\
-         hyper=info,reqwest=info,wasmtime=info,floem=info,alacritty_terminal=info,\
+        "info,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,\
+         wasi_experimental_http_wasmtime=warn,hyper=info,reqwest=info,\
+         wasmtime=info,floem=info,alacritty_terminal=info,\
          lapce_app::keypress::loader=info",
         log::LevelFilter::Info,
         true
@@ -3929,18 +3911,18 @@ pub fn launch() {
     let (tx, rx) = crossbeam_channel::bounded(1);
     let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
     // if let Some(path) = LapceConfig::settings_file() {
-    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-    //         log::error!("{:?}", err);
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
+    // {         log::error!("{:?}", err);
     //     }
     // }
     // if let Some(path) = Directory::themes_directory() {
-    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-    //         log::error!("{:?}", err);
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
+    // {         log::error!("{:?}", err);
     //     }
     // }
     // if let Some(path) = LapceConfig::keymaps_file() {
-    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-    //         log::error!("{:?}", err);
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
+    // {         log::error!("{:?}", err);
     //     }
     // }
     if let Some(path) = Directory::plugins_directory() {

@@ -1,5 +1,5 @@
-use std::{collections::HashMap, path::PathBuf, rc::Rc};
-use std::sync::Arc;
+use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
+
 use alacritty_terminal::{
     Term,
     grid::{Dimensions, Scroll},
@@ -16,7 +16,11 @@ use doc::lines::{
     register::Clipboard,
     text::SystemClipboard
 };
-use floem::{keyboard::{Key, KeyEvent, Modifiers, NamedKey}, reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}, ViewId};
+use floem::{
+    ViewId,
+    keyboard::{Key, KeyEvent, Modifiers, NamedKey},
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+};
 use lapce_core::{
     debug::{RunDebugMode, RunDebugProcess},
     workspace::LapceWorkspace
@@ -51,7 +55,7 @@ pub struct TerminalData {
     pub raw:          RwSignal<Arc<RwLock<RawTerminal>>>,
     pub run_debug:    RwSignal<Option<RunDebugProcess>>,
     pub common:       Rc<CommonData>,
-    pub view_id: RwSignal<Option<ViewId>>,
+    pub view_id:      RwSignal<Option<ViewId>>
 }
 
 impl KeyPressFocus for TerminalData {
@@ -333,7 +337,7 @@ impl TerminalData {
             visual_mode,
             common,
             launch_error,
-            view_id: cx.create_rw_signal(None),
+            view_id: cx.create_rw_signal(None)
         }
     }
 

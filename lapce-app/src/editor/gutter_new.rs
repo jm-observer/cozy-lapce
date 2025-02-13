@@ -105,8 +105,7 @@ impl GutterData {
 pub enum GutterMarker {
     None,
     CodeLen,
-    Breakpoint
-    // CodeLenAndBreakPoint,
+    Breakpoint // CodeLenAndBreakPoint,
 }
 
 #[derive(Debug, Clone, Hash, Copy, Eq, PartialEq)]

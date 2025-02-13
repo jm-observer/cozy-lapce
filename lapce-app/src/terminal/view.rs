@@ -1,5 +1,5 @@
-use std::{path::PathBuf, time::SystemTime};
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
+
 use alacritty_terminal::{
     grid::Dimensions,
     index::Side,
@@ -16,12 +16,12 @@ use floem::{
         kurbo::{Point, Rect, Size}
     },
     pointer::PointerInputEvent,
+    prelude::SignalUpdate,
     reactive::{
         ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith, create_effect
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight}
 };
-use floem::prelude::SignalUpdate;
 use lapce_core::{
     debug::RunDebugProcess, panel::PanelKind, workspace::LapceWorkspace
 };
@@ -36,9 +36,9 @@ use crate::{
     config::{LapceConfig, color::LapceColor},
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
+    terminal::data::TerminalData,
     window_workspace::Focus
 };
-use crate::terminal::data::TerminalData;
 
 /// Threshold used for double_click/triple_click.
 const CLICK_THRESHOLD: u128 = 400;
@@ -73,7 +73,7 @@ pub struct TerminalView {
     hyper_regs:            Vec<Regex>,
     previous_mouse_action: MouseAction,
     current_mouse_action:  MouseAction,
-    terminal_data: TerminalData
+    terminal_data:         TerminalData
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -85,7 +85,8 @@ pub fn terminal_view(
     terminal_panel_data: TerminalPanelData,
     launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
-    workspace: LapceWorkspace, terminal: TerminalData
+    workspace: LapceWorkspace,
+    terminal: TerminalData
 ) -> TerminalView {
     let id = ViewId::new();
 
@@ -459,10 +460,9 @@ impl TerminalView {
         }
 
         if let Some((_, x)) = line_content.cursor {
-            let rect =
-                Size::new(2.0, line_height)
-                    .to_rect()
-                    .with_origin(Point::new(x, line_content.y));
+            let rect = Size::new(2.0, line_height)
+                .to_rect()
+                .with_origin(Point::new(x, line_content.y));
             let mode = self.mode.get_untracked();
             let cursor_color = if mode == Mode::Terminal {
                 if self.run_config.with_untracked(|run_config| {
@@ -475,12 +475,18 @@ impl TerminalView {
             } else {
                 config.color(LapceColor::EDITOR_CARET)
             };
-            let hide_cursor = self.terminal_data.common.window_common.hide_cursor.get_untracked();
-            // info!("hide_cursor {}, self.is_focused={}", hide_cursor, self.is_focused);
+            let hide_cursor = self
+                .terminal_data
+                .common
+                .window_common
+                .hide_cursor
+                .get_untracked();
+            // info!("hide_cursor {}, self.is_focused={}", hide_cursor,
+            // self.is_focused);
             if self.is_focused && !hide_cursor {
                 cx.fill(&rect, cursor_color, 0.0);
-            // } else {
-            //     cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
+                // } else {
+                //     cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
             }
         }
 

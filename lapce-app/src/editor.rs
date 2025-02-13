@@ -1,5 +1,5 @@
-use std::{collections::HashSet, rc::Rc, str::FromStr, time::Duration};
-use std::sync::Arc;
+use std::{collections::HashSet, rc::Rc, str::FromStr, sync::Arc, time::Duration};
+
 use anyhow::Result;
 use doc::{
     EditorViewKind,
@@ -3584,10 +3584,10 @@ impl KeyPressFocus for EditorData {
                     InternalCommand::ReplaceEditorReceiveChar { s: c.to_string() }
                 );
                 // todo 搜索框应该直接由键盘输入，而不是这样迂回
-            // } else {
-            //     self.common.internal_command.send(
-            //         InternalCommand::FindEditorReceiveChar { s: c.to_string() }
-            //     );
+                // } else {
+                //     self.common.internal_command.send(
+                //         InternalCommand::FindEditorReceiveChar { s:
+                // c.to_string() }     );
             }
         } else {
             self.common.hover.active.set(false);
@@ -3895,9 +3895,9 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //             //                         y: line_y(rvline_info, vline_y) as f64
 // - y0,             //                         vline_y: vline_y as f64 - y0, //
 //   vline_info: rvline_info, //                     }, //                 ); //
-//   //                 if initial_y_idx + i > max_vline.0 { // break; //
-//   } //             } // //             if is_right { //                 if
-//   let Some(DiffLines::Left(r)) = last_change
+//   //                 if initial_y_idx + i > max_vline.0 { // break; // } //
+//   } // //             if is_right { //                 if let
+//   Some(DiffLines::Left(r)) = last_change
 // {             //                     // TODO: count vline count in the other
 // editor since this is skipping an amount dependent on those vlines
 // //                     let len = r.len() - r.len().min(range.len());
@@ -3968,10 +3968,10 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 // f64 - y0,             //                             vline_y: vline_y as f64
 // - y0,             //                             vline_info: rvline_info, //
 //   }, //                     ); //                 } // // y_idx += 1; // //
-//   if y_idx - 1 > max_vline.get() { // break; //                 } //
-//   } //         } //     } // last_change = Some(change); // } // ScreenLines
-//   { //     lines: Rc::new(rvlines), //     info: Rc::new(info), //
-//   diff_sections: Some(Rc::new(diff_sections)), //     base, // } } }
+//   if y_idx - 1 > max_vline.get() { // break; //                 } // } //
+//   } //     } // last_change = Some(change); // } // ScreenLines { //
+//   lines: Rc::new(rvlines), //     info: Rc::new(info), // diff_sections:
+//   Some(Rc::new(diff_sections)), //     base, // } } }
 // }
 
 fn parse_hover_resp(

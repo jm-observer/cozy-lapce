@@ -7,13 +7,18 @@ use std::{
 use anyhow::Result;
 use doc::{
     DiagnosticData,
-    lines::{
-        RopeTextPosition, command::FocusCommand,
-        cursor::Cursor,
-    },
+    lines::{RopeTextPosition, command::FocusCommand, cursor::Cursor},
     syntax::Syntax
 };
-use floem::{ext_event::create_ext_action, file::{FileDialogOptions, FileInfo}, file_action::save_as, keyboard::Modifiers, peniko::kurbo::{Point, Rect, Vec2}, reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch}, ViewId};
+use floem::{
+    ViewId,
+    ext_event::create_ext_action,
+    file::{FileDialogOptions, FileInfo},
+    file_action::save_as,
+    keyboard::Modifiers,
+    peniko::kurbo::{Point, Rect, Vec2},
+    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch}
+};
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -331,9 +336,9 @@ pub struct MainSplitData {
     pub implementations:   Tabs<ReferencesRoot>,
     pub active_editor:     Memo<Option<EditorData>>,
     // pub find_editor:       EditorData,
-    pub find_str:       RwSignal<String>,
-    pub replace_str: RwSignal<String>,
-    pub find_view_id: RwSignal<Option<ViewId>>,
+    pub find_str:          RwSignal<String>,
+    pub replace_str:       RwSignal<String>,
+    pub find_view_id:      RwSignal<Option<ViewId>>,
     pub locations:         RwSignal<im::Vector<EditorLocation>>,
     pub current_location:  RwSignal<usize>,
     pub width:             RwSignal<f64>,
@@ -373,9 +378,6 @@ impl MainSplitData {
         let find_view_id = cx.create_rw_signal(None);
         let replace_str = cx.create_rw_signal(String::new());
 
-
-
-
         let active_editor = cx.create_memo(move |_| -> Option<EditorData> {
             let active_editor_tab = active_editor_tab.get()?;
             let editor_tab = editor_tabs
@@ -413,7 +415,9 @@ impl MainSplitData {
         }
 
         Self {
-            find_str, find_view_id, replace_str,
+            find_str,
+            find_view_id,
+            replace_str,
             scope: cx,
             root_split: SplitId::next(),
             splits,
@@ -3012,9 +3016,7 @@ impl MainSplitData {
             editor_tab.children.get(editor_tab.active).cloned()
         })?;
         match child.id() {
-            EditorTabChildId::Editor(editor_id) => {
-                self.editors.editor(*editor_id)
-            },
+            EditorTabChildId::Editor(editor_id) => self.editors.editor(*editor_id),
             _ => None
         }
     }

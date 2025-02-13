@@ -1,6 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
 use crossbeam_channel::{Sender, unbounded};
@@ -267,7 +265,9 @@ impl LapceDb {
         }
 
         let info = AppInfo {
-            windows: windows.values().map(|window_data| window_data.info())
+            windows: windows
+                .values()
+                .map(|window_data| window_data.info())
                 .collect()
         };
         if info.windows.is_empty() {
@@ -298,7 +298,9 @@ impl LapceDb {
             }
         }
         let info = AppInfo {
-            windows: windows.values().map(|window_data| window_data.info())
+            windows: windows
+                .values()
+                .map(|window_data| window_data.info())
                 .collect()
         };
         self.insert_app_info(info)?;

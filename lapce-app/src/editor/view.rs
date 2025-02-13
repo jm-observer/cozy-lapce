@@ -1,5 +1,5 @@
-use std::{path::PathBuf};
-use std::rc::Rc;
+use std::{path::PathBuf, rc::Rc};
+
 use anyhow::Result;
 use doc::lines::{
     buffer::{Buffer, diff::DiffLines, rope_text::RopeText},
@@ -36,10 +36,9 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack
+        stack, text_input
     }
 };
-use floem::views::text_input;
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
@@ -54,9 +53,8 @@ use crate::{
         gutter_new::view::editor_gutter_new
     },
     svg,
-    window_workspace::{Focus, WindowWorkspaceData}
+    window_workspace::{CommonData, Focus, WindowWorkspaceData}
 };
-use crate::window_workspace::CommonData;
 
 #[derive(Clone, Debug, Default)]
 pub struct StickyHeaderInfo {
@@ -1240,7 +1238,8 @@ impl View for EditorView {
             cx,
             ed,
             viewport,
-            is_active, cursor_hidden,
+            is_active,
+            cursor_hidden,
             &screen_lines,
             show_indent_guide
         ) {
@@ -1381,8 +1380,8 @@ pub fn editor_container_view(
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: RwSignal<EditorData>
 ) -> impl View {
-    let (editor_id, sticky_header_height, editor_view, config, doc) =
-        editor.with_untracked(|editor| {
+    let (editor_id, sticky_header_height, editor_view, config, doc) = editor
+        .with_untracked(|editor| {
             (
                 editor.id(),
                 editor.sticky_header_height,
@@ -1430,7 +1429,10 @@ pub fn editor_container_view(
             find_view(
                 editor,
                 replace_active,
-                common, find_str, find_view_id, replace_str
+                common,
+                find_str,
+                find_view_id,
+                replace_str
             )
             .debug_name("find view")
         ))
@@ -1669,11 +1671,11 @@ pub fn editor_container_view(
 //             .border_radius(6.0)
 //             .hover(|s| {
 //                 s.cursor(CursorStyle::Pointer)
-//                     
-// .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))             
+//
+// .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
 // })             .active(|s| {
 //                 s.background(
-//                     
+//
 // config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),                 )
 //             })
 //     })
@@ -1981,7 +1983,7 @@ fn editor_gutter_folding_range(
 //                     })
 //                     .style(|s| s.size_pct(100.0, 100.0))
 //                     .debug_name("line number"), //
-// editor_gutter_code_actions(e_data, gutter_width, icon_padding),             
+// editor_gutter_code_actions(e_data, gutter_width, icon_padding),
 // ))             .style(|s| s.size_pct(100.0, 100.0)),
 //         )
 //         .style(move |s| s.absolute().size_pct(100.0, 100.0)),
@@ -2271,7 +2273,9 @@ fn search_editor_view(
     // find_focus: RwSignal<bool>,
     // is_active: impl Fn(bool) -> bool + 'static + Copy,
     // replace_focus: RwSignal<bool>,
-    common: Rc<CommonData>, find_str: RwSignal<String>, find_view_id: RwSignal<Option<ViewId>>,
+    common: Rc<CommonData>,
+    find_str: RwSignal<String>,
+    find_view_id: RwSignal<Option<ViewId>>
 ) -> impl View {
     let config = common.config;
 
@@ -2282,13 +2286,14 @@ fn search_editor_view(
 
     // let focus_trace = common.scope.create_trigger();
 
-    let find_view = text_input(find_str).keyboard_navigable()
+    let find_view = text_input(find_str)
+        .keyboard_navigable()
         .style(|s| s.width_pct(100.0));
 
     find_view_id.set(Some(find_view.id()));
 
-    stack((find_view
-        ,
+    stack((
+        find_view,
         clickable_icon(
             || LapceIcons::SEARCH_CASE_SENSITIVE,
             move || {
@@ -2348,15 +2353,17 @@ fn replace_editor_view(
     // replace_focus: RwSignal<bool>,
     // is_active: impl Fn(bool) -> bool + 'static + Copy,
     // find_focus: RwSignal<bool>,
-    common: Rc<CommonData>, replace_str: RwSignal<String>
+    common: Rc<CommonData>,
+    replace_str: RwSignal<String>
 ) -> impl View {
     // let config = replace_editor.common.config;
     let config = common.config;
     // let visual = replace_editor.common.find.visual;
 
     stack((
-    text_input(replace_str).keyboard_navigable()
-        .style(|s| s.width_pct(100.0)),
+        text_input(replace_str)
+            .keyboard_navigable()
+            .style(|s| s.width_pct(100.0)),
         //
         // TextInputBuilder::new()
         //     .is_focused(move || {
@@ -2395,7 +2402,7 @@ fn find_view(
     common: Rc<CommonData>,
     find_str: RwSignal<String>,
     find_view_id: RwSignal<Option<ViewId>>,
-    replace_str: RwSignal<String>,
+    replace_str: RwSignal<String>
 ) -> impl View {
     // let common = find_editor.common.clone();
     let config = common.config;
@@ -2441,9 +2448,7 @@ fn find_view(
                     config
                 )
                 .style(|s| s.padding_horiz(6.0)),
-                search_editor_view(
-                    common.clone(), find_str, find_view_id
-                ),
+                search_editor_view(common.clone(), find_str, find_view_id),
                 label(move || {
                     let (current, all) = find_pos.get();
                     if all == 0 {
@@ -2500,13 +2505,13 @@ fn find_view(
                     // replace_focus,
                     // is_active,
                     // find_focus,
-                    common.clone(), replace_str
+                    common.clone(),
+                    replace_str
                 ),
                 clickable_icon(
                     || LapceIcons::SEARCH_REPLACE,
                     move || {
-                        let text = replace_str
-                            .get_untracked();
+                        let text = replace_str.get_untracked();
                         editor.get_untracked().replace_next(&text);
                     },
                     move || false,
@@ -2518,8 +2523,7 @@ fn find_view(
                 clickable_icon(
                     || LapceIcons::SEARCH_REPLACE_ALL,
                     move || {
-                        let text = replace_str
-                            .get_untracked();
+                        let text = replace_str.get_untracked();
                         editor.get_untracked().replace_all(&text);
                     },
                     move || false,

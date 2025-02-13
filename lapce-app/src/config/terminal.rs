@@ -1,5 +1,5 @@
-use std::{collections::HashMap};
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
+
 use floem::peniko::Color;
 use serde::{Deserialize, Serialize};
 use structdesc::FieldNames;

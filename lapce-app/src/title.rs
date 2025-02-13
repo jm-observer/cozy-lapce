@@ -1,5 +1,3 @@
-
-
 use floem::{
     View,
     event::EventListener,
@@ -34,8 +32,7 @@ fn left(
     lapce_command: Listener<LapceCommand>,
     workbench_command: Listener<LapceWorkbenchCommand>,
     config: ReadSignal<LapceConfig>,
-    proxy_status: RwSignal<Option<ProxyStatus>>
-    // num_window_tabs: Memo<usize>,
+    proxy_status: RwSignal<Option<ProxyStatus>> // num_window_tabs: Memo<usize>,
 ) -> impl View {
     let is_local = workspace.kind.is_local();
     let is_macos = cfg!(target_os = "macos");

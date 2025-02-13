@@ -1,10 +1,11 @@
-use std::{path::Path};
+use std::path::Path;
 
 use floem::{
     View,
     event::{Event, EventListener},
     kurbo::Rect,
     peniko::{Color, color::Rgba8},
+    prelude::text_input,
     reactive::{
         ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
     },
@@ -15,7 +16,6 @@ use floem::{
         dyn_stack, label, scroll, stack, virtual_stack
     }
 };
-use floem::prelude::text_input;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}
@@ -105,9 +105,9 @@ fn initialize_naming_editor_with_path(data: &FileExplorerData, path: &Path) {
     // Start with the part of the file or directory name before the extension
     // selected.
     // let selection_end = {
-    //     let without_leading_dot = file_name.strip_prefix('.').unwrap_or(&file_name);
-    //     let idx = without_leading_dot
-    //         .find('.')
+    //     let without_leading_dot =
+    // file_name.strip_prefix('.').unwrap_or(&file_name);     let idx =
+    // without_leading_dot         .find('.')
     //         .unwrap_or(without_leading_dot.len());
     //
     //     idx + file_name.len() - without_leading_dot.len()
@@ -116,10 +116,7 @@ fn initialize_naming_editor_with_path(data: &FileExplorerData, path: &Path) {
     initialize_naming_editor(data, &file_name);
 }
 
-fn initialize_naming_editor(
-    data: &FileExplorerData,
-    text: &str,
-) {
+fn initialize_naming_editor(data: &FileExplorerData, text: &str) {
     // let text = Rope::from(text);
     // let selection_end = selection_end.unwrap_or(text.len());
     //
@@ -260,16 +257,15 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
     let config = data.common.config;
 
     // let is_focused = move || {
-    //     focus.with_untracked(|focus| focus == &Focus::Panel(PanelKind::FileExplorer))
-    // };
-    let text_input_view = text_input(naming_str).pointer_down(move || {
-        focus.set(Focus::Panel(PanelKind::FileExplorer))
-    })
+    //     focus.with_untracked(|focus| focus ==
+    // &Focus::Panel(PanelKind::FileExplorer)) };
+    let text_input_view = text_input(naming_str)
+        .pointer_down(move || focus.set(Focus::Panel(PanelKind::FileExplorer)))
         .on_event_stop(EventListener::FocusLost, move |_| {
-        log::info!("FocusLost {}", naming_str.get_untracked());
-        data.finish_naming();
-        data.naming.set(Naming::None);
-    })
+            log::info!("FocusLost {}", naming_str.get_untracked());
+            data.finish_naming();
+            data.naming.set(Naming::None);
+        })
         .style(move |s| {
             s.width_full()
                 .height(ui_line_height.get())

@@ -155,7 +155,7 @@ pub enum SplitContentInfo {
 //         if let Some((start, _)) = file_diagnostics[0].1[0].range {
 //             EditorPosition::Offset(start)
 //         } else {
-//             
+//
 // EditorPosition::Position(file_diagnostics[0].1[0].diagnostic.range.start)
 //         },
 //     )

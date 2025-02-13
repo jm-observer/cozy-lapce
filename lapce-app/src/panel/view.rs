@@ -1,5 +1,3 @@
-
-
 use floem::{
     AnyView, IntoView, View,
     event::{Event, EventListener, EventPropagation},
@@ -416,10 +414,7 @@ fn panel_view_by_kind(
     }
 }
 
-pub fn panel_header(
-    header: String,
-    config: ReadSignal<LapceConfig>
-) -> impl View {
+pub fn panel_header(header: String, config: ReadSignal<LapceConfig>) -> impl View {
     container(label(move || header.clone())).style(move |s| {
         s.padding_horiz(10.0)
             .padding_vert(6.0)

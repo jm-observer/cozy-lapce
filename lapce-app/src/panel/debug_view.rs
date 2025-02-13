@@ -1,5 +1,3 @@
-
-
 use floem::{
     View,
     event::EventListener,
