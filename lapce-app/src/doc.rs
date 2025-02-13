@@ -832,10 +832,7 @@ impl Doc {
                         return;
                     }
 
-                    // debug!(
-                    //     "get_semantic_full_styles {}",
-                    //     serde_json::to_string(&styles).unwrap()
-                    // );
+                    // todo remove thread
                     std::thread::spawn(move || {
                         let mut styles_span = SpansBuilder::new(len);
                         for style in styles.styles {
@@ -864,65 +861,6 @@ impl Doc {
     pub fn get_semantic_styles(&self) {
         // todo
         self.get_semantic_full_styles();
-        // let Some(id) = self.semantic_previous_rs_id.get_untracked() else {
-        //     self.get_semantic_full_styles();
-        //     return;
-        // };
-        // let path =
-        //     if let DocContent::File { path, .. } =
-        // self.content.get_untracked() {         path
-        //     } else {
-        //         return;
-        //     };
-        // let (atomic_rev, rev, len) = self
-        //     .buffer
-        //     .with_untracked(|b| (b.atomic_rev(), b.rev(), b.len()));
-        //
-        // let doc = self.clone();
-        // let send = create_ext_action(self.scope, move |styles| {
-        //     if let Some(styles) = styles {
-        //         if doc.buffer.with_untracked(|b| b.rev()) == rev {
-        //             doc.semantic_styles.set(Some(styles));
-        //             doc.clear_style_cache();
-        //         }
-        //     }
-        // });
-
-        // self.common.proxy.get_semantic_tokens_delta(
-        //     path,
-        //     id,
-        //     move |(_, _result)| {
-        //         log::warn!("todo");
-        // if let Ok(ProxyResponse::GetSemanticTokens { styles }) = result {
-        //     if styles.styles.is_empty() {
-        //         send(None);
-        //         return;
-        //     }
-        //     if atomic_rev.load(atomic::Ordering::Acquire) != rev {
-        //         send(None);
-        //         return;
-        //     }
-        //     std::thread::spawn(move || {
-        //         let mut styles_span = SpansBuilder::new(len);
-        //         for style in styles.styles {
-        //             if atomic_rev.load(atomic::Ordering::Acquire) != rev {
-        //                 send(None);
-        //                 return;
-        //             }
-        //             styles_span.add_span(
-        //                 Interval::new(style.start, style.end),
-        //                 style.style,
-        //             );
-        //         }
-
-        //         let styles = styles_span.build();
-        //         send(Some(styles));
-        //     });
-        // } else {
-        //     send(None);
-        // }
-        // },
-        // );
     }
 
     pub fn get_code_lens(&self) {
@@ -1362,6 +1300,7 @@ impl Doc {
 
             let path = path.clone();
             let proxy = self.common.proxy.clone();
+            // todo remove thread
             std::thread::spawn(move || {
                 proxy.get_buffer_head(path, move |(_, result)| {
                     send(result);

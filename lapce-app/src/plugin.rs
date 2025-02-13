@@ -192,6 +192,7 @@ impl PluginData {
                     }
                 }
             );
+            // todo remove thread
             std::thread::Builder::new()
                 .name("FindAllVolts".to_owned())
                 .spawn(move || {
@@ -282,6 +283,7 @@ impl PluginData {
                     latest.set(info);
                 }
             });
+            // todo remove thread
             std::thread::spawn(move || {
                 let info: Option<VoltInfo> = lapce_proxy::get_url(url, None)
                     .ok()
@@ -359,6 +361,7 @@ impl PluginData {
                                 });
                                 {
                                     let volt = volt.clone();
+                                    // todo remove thread
                                     std::thread::spawn(move || {
                                         let result = Self::load_icon(&volt);
                                         send(result);
@@ -393,6 +396,7 @@ impl PluginData {
             });
 
         let query = query.to_string();
+        // todo remove thread
         std::thread::spawn(move || {
             let volts = Self::query_volts(&query, offset);
             send(volts);
@@ -493,6 +497,7 @@ impl PluginData {
                     plugin.volt_installed(&meta, &icon);
                 }
             });
+            // todo remove thread??
             std::thread::spawn(move || {
                 let download = || -> Result<(VoltMetadata, Option<Vec<u8>>)> {
                     let download_volt_result = download_volt(&info);
@@ -572,6 +577,7 @@ impl PluginData {
                         plugin.volt_removed(&info);
                     }
                 });
+            // todo remove thread
             std::thread::spawn(move || {
                 let uninstall = || -> Result<()> {
                     let path = volt
@@ -928,6 +934,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                         readme.set(Some(md));
                                     }
                                 });
+                                // todo remove thread
                                 std::thread::spawn(move || {
                                     let result =
                                         PluginData::download_readme(&info, &config);

@@ -1457,6 +1457,7 @@ impl WindowWorkspaceData {
                                     update_in_progress.set(false);
                                 },
                             );
+                            // todo remove thread
                             std::thread::Builder::new().name("RestartToUpdate".to_owned()).spawn(move || {
                                 let do_update = || -> anyhow::Result<()> {
                                     let src =

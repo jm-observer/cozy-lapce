@@ -4029,30 +4029,31 @@ pub fn launch() {
             .unwrap();
     }
 
-    #[cfg(feature = "updater")]
-    {
-        let (tx, rx) = crossbeam_channel::bounded(1);
-        let notification = create_signal_from_channel(rx);
-        let latest_release = app_data.latest_release;
-        create_effect(move |_| {
-            if let Some(release) = notification.get() {
-                latest_release.set(Some(release));
-            }
-        });
-        std::thread::Builder::new()
-            .name("LapceUpdater".to_owned())
-            .spawn(move || {
-                loop {
-                    if let Ok(release) = crate::update::get_latest_release() {
-                        if let Err(err) = tx.send(release) {
-                            log::error!("{:?}", err);
-                        }
-                    }
-                    std::thread::sleep(std::time::Duration::from_secs(60 * 60));
-                }
-            })
-            .unwrap();
-    }
+    // todo restore
+    // #[cfg(feature = "updater")]
+    // {
+    //     let (tx, rx) = crossbeam_channel::bounded(1);
+    //     let notification = create_signal_from_channel(rx);
+    //     let latest_release = app_data.latest_release;
+    //     create_effect(move |_| {
+    //         if let Some(release) = notification.get() {
+    //             latest_release.set(Some(release));
+    //         }
+    //     });
+        // std::thread::Builder::new()
+        //     .name("LapceUpdater".to_owned())
+        //     .spawn(move || {
+        //         loop {
+        //             if let Ok(release) = crate::update::get_latest_release() {
+        //                 if let Err(err) = tx.send(release) {
+        //                     log::error!("{:?}", err);
+        //                 }
+        //             }
+        //             std::thread::sleep(std::time::Duration::from_secs(60 * 60));
+        //         }
+        //     })
+        //     .unwrap();
+    // }
 
     {
         let (tx, rx) = crossbeam_channel::bounded(1);

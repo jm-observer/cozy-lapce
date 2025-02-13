@@ -2518,6 +2518,7 @@ impl EditorData {
 
             let (tx, rx) = crossbeam_channel::bounded(1);
             let proxy = self.common.proxy.clone();
+            // todo remove thread
             std::thread::spawn(move || {
                 proxy.get_document_formatting(path, move |(_, result)| {
                     if let Err(err) = tx.send(result) {
@@ -2552,6 +2553,7 @@ impl EditorData {
 
             let (tx, rx) = crossbeam_channel::bounded(1);
             let proxy = self.common.proxy.clone();
+            // todo remove thread
             std::thread::spawn(move || {
                 proxy.get_document_formatting(path, move |(_, result)| {
                     if let Err(err) = tx.send(result) {
