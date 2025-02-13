@@ -72,8 +72,6 @@ use lapce_rpc::{
 };
 use log::{error, trace};
 use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
-use notify::Watcher;
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -82,7 +80,6 @@ use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     config::{
         LapceConfig, color::LapceColor, ui::TabSeparatorHeight,
-        watcher::ConfigWatcher
     },
     db::LapceDb,
     editor::{
@@ -174,7 +171,7 @@ pub struct AppData {
     pub app_terminated: RwSignal<bool>,
     /// The latest release information
     pub latest_release: RwSignal<Option<ReleaseInfo>>,
-    pub watcher:        Arc<RwLock<notify::RecommendedWatcher>>,
+    // pub watcher:        Arc<RwLock<notify::RecommendedWatcher>>,
     // pub tracing_handle: Handle<Targets>,
     pub config:         RwSignal<LapceConfig>,
     /// Paths to extra plugins to load
@@ -463,7 +460,7 @@ impl AppData {
             self.latest_release.read_only(),
             self.plugin_paths.clone(),
             self.app_command,
-            self.watcher.clone()
+            // self.watcher.clone()
         );
 
         {
@@ -3908,8 +3905,8 @@ pub fn launch() {
 
     let plugin_paths = Arc::new(cli.plugin_path);
 
-    let (tx, rx) = crossbeam_channel::bounded(1);
-    let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
+    // let (tx, rx) = crossbeam_channel::bounded(1);
+    // let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
     // if let Some(path) = LapceConfig::settings_file() {
     //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
     // {         log::error!("{:?}", err);
@@ -3925,11 +3922,11 @@ pub fn launch() {
     // {         log::error!("{:?}", err);
     //     }
     // }
-    if let Some(path) = Directory::plugins_directory() {
-        if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-            log::error!("{:?}", err);
-        }
-    }
+    // if let Some(path) = Directory::plugins_directory() {
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
+    //         log::error!("{:?}", err);
+    //     }
+    // }
 
     let windows = scope.create_rw_signal(HashMap::new());
     let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths);
@@ -3943,7 +3940,7 @@ pub fn launch() {
         active_window: scope.create_rw_signal(WindowId::from_raw(0)),
         window_scale,
         app_terminated: scope.create_rw_signal(false),
-        watcher: Arc::new(RwLock::new(watcher)),
+        // watcher: Arc::new(RwLock::new(watcher)),
         latest_release,
         app_command,
         // tracing_handle: reload_handle,
@@ -3953,16 +3950,16 @@ pub fn launch() {
 
     let app = app_data.create_windows(db.clone(), cli.paths);
 
-    {
-        let app_data = app_data.clone();
-        let notification = create_signal_from_channel(rx);
-        create_effect(move |_| {
-            if notification.get().is_some() {
-                log::debug!("notification reload_config");
-                app_data.reload_config();
-            }
-        });
-    }
+    // {
+    //     let app_data = app_data.clone();
+    //     let notification = create_signal_from_channel(rx);
+    //     create_effect(move |_| {
+    //         if notification.get().is_some() {
+    //             log::debug!("notification reload_config");
+    //             app_data.reload_config();
+    //         }
+    //     });
+    // }
 
     {
         let cx = Scope::new();

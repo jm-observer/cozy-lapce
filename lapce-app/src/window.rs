@@ -11,7 +11,6 @@ use floem::{
     window::WindowId
 };
 use lapce_core::workspace::LapceWorkspace;
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -75,7 +74,7 @@ pub struct WindowData {
     pub config:       RwSignal<LapceConfig>,
     pub ime_enabled:  RwSignal<bool>,
     pub common:       Rc<WindowCommonData>,
-    pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
+    // pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
 }
 
 impl WindowData {
@@ -88,7 +87,7 @@ impl WindowData {
         latest_release: ReadSignal<Option<ReleaseInfo>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
         app_command: Listener<AppCommand>,
-        watcher: Arc<RwLock<notify::RecommendedWatcher>>
+        // watcher: Arc<RwLock<notify::RecommendedWatcher>>
     ) -> Self {
         let cx = Scope::new();
         let config =
@@ -131,7 +130,7 @@ impl WindowData {
 
         let w = info.workspace.clone();
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
-        w.watch_project_setting(&watcher);
+        // w.watch_project_setting(&watcher);
         let window_tabs =
             cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone()));
 
@@ -171,7 +170,7 @@ impl WindowData {
             config,
             ime_enabled: cx.create_rw_signal(false),
             common,
-            watcher
+            // watcher
         };
 
         {
@@ -227,7 +226,7 @@ impl WindowData {
                 );
 
                 self.window_tabs.set(window_tab);
-                workspace.watch_project_setting(&self.watcher);
+                // workspace.watch_project_setting(&self.watcher);
             },
             WindowCommand::NewWorkspaceTab {
                 workspace,
@@ -238,7 +237,7 @@ impl WindowData {
                     log::error!("{:?}", err);
                 }
                 log::info!("NewWorkspaceTab {:?}", workspace);
-                workspace.watch_project_setting(&self.watcher);
+                // workspace.watch_project_setting(&self.watcher);
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace,
