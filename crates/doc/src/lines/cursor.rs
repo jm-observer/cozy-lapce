@@ -43,7 +43,7 @@ struct RegionsIter<'c> {
     idx:         usize
 }
 
-impl<'c> Iterator for RegionsIter<'c> {
+impl Iterator for RegionsIter<'_> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -82,7 +82,7 @@ impl<'c> Iterator for RegionsIter<'c> {
     }
 }
 
-impl<'c> ExactSizeIterator for RegionsIter<'c> {}
+impl ExactSizeIterator for RegionsIter<'_> {}
 
 impl CursorMode {
     pub fn simply_mode(&self) -> Mode {

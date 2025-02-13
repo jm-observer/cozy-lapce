@@ -36,13 +36,13 @@ pub fn gutter_data(
             if vl_info.visual_line.origin_folded_line_sub_index == 0 {
                 let is_current_line =
                     vl_info.visual_line.origin_line == current_line;
-                if code_lens.get(&vl_info.visual_line.origin_line).is_some() {
+                if code_lens.contains_key(&vl_info.visual_line.origin_line) {
                     GutterData {
                         vl_info,
                         marker: GutterMarker::CodeLen,
                         is_current_line
                     }
-                } else if breakpoints.get(&vl_info.visual_line.origin_line).is_some()
+                } else if breakpoints.contains_key(&vl_info.visual_line.origin_line)
                 {
                     GutterData {
                         vl_info,

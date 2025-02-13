@@ -574,7 +574,7 @@ fn settings_item_view(
 
                 create_effect(move |_| {
                     let value = query_str.get();
-                    if &value == &editor_value {
+                    if value == editor_value {
                         return;
                     }
                     let kind = kind.clone();

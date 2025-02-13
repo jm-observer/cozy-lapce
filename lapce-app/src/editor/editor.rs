@@ -68,15 +68,8 @@ pub struct Editor {
     pub scroll_delta: RwSignal<Vec2>,
     pub scroll_to:    RwSignal<Option<Vec2>>,
 
-    /// Holds the cache of the lines and provides many utility functions for
-    /// them.
-    // lines: RwSignal<DocLines>,
-    // pub screen_lines: RwSignal<ScreenLines>,
-
     /// Modal mode register
     pub register:    RwSignal<Register>,
-    /// Cursor rendering information, such as the cursor blinking state.
-    // pub cursor_info: CursorInfo,
 
     pub last_movement: RwSignal<Movement>,
 
@@ -89,17 +82,7 @@ pub struct Editor {
     pub floem_style_id: RwSignal<u64> // pub lines: DocLinesManager,
 }
 impl Editor {
-    /// Create a new editor into the given document, using the styling.  
-    /// `doc`: The backing [`Document`], such as
-    /// [TextDocument](self::text_document::TextDocument) `style`: How the
-    /// editor should be styled, such as
-    /// [SimpleStyling](self::text::SimpleStyling)
-    // pub fn new(cx: Scope, doc: Rc<Doc>, style: Rc<dyn Styling>, modal: bool) ->
-    // Editor {     let id = doc.editor_id();
-    //     Editor::new_id(cx, id, doc, style, modal)
-    // }
-
-    /// Create a new editor into the given document, using the styling.  
+    /// Create a new editor into the given document, using the styling.
     /// `id` should typically be constructed by [`EditorId::next`]  
     /// `doc`: The backing [`Document`], such as
     /// [TextDocument](self::text_document::TextDocument) `style`: How the
@@ -154,7 +137,7 @@ impl Editor {
         // let screen_lines =
         //     cx.create_rw_signal(ScreenLines::new(cx, viewport.get_untracked()));
 
-        let ed = Editor {
+        Editor {
             cx: Cell::new(cx),
             // lines,
             effects_cx: Cell::new(cx.create_child()),
@@ -177,11 +160,7 @@ impl Editor {
             last_movement: cx.create_rw_signal(Movement::Left),
             ime_allowed: cx.create_rw_signal(false),
             floem_style_id: cx.create_rw_signal(0)
-        };
-
-        // create_view_effects(ed.effects_cx.get(), &ed);
-
-        ed
+        }
     }
 
     pub fn id(&self) -> EditorId {
@@ -761,10 +740,6 @@ impl Editor {
         self.rope_text().offset_of_line_col(line, col)
     }
 
-    /// Get the buffer line of an offset
-    // pub fn line_of_offset(&self, offset: usize) -> usize {
-    //     self.rope_text().line_of_offset(offset)
-    // }
 
     /// Returns the offset into the buffer of the first non blank character on
     /// the given line.
@@ -973,7 +948,7 @@ impl Editor {
         affinity: CursorAffinity
     ) -> Result<Point> {
         let (line, col) = self.offset_to_line_col(offset)?;
-        Ok(self.line_point_of_visual_line_col(line, col, affinity, false)?)
+        self.line_point_of_visual_line_col(line, col, affinity, false)
     }
 
     /// Returns the point into the text layout of the line at the given line and
@@ -1214,10 +1189,6 @@ impl Editor {
             .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
     }
 
-    // pub fn lines(&self) -> DocLinesManager {
-    //     self.doc.with_untracked(|x| x.doc_lines)
-    // }
-
     pub fn viewport(&self) -> Rect {
         self.doc().lines.with_untracked(|x| x.viewport())
     }
@@ -1235,18 +1206,6 @@ impl Editor {
             .lines
             .with_untracked(|x| x.config.font_family.clone())
     }
-
-    // pub fn text_layout_trigger(&self, line: usize, trigger: bool) ->
-    // Arc<TextLayoutLine> {     let cache_rev =
-    // self.doc().cache_rev().get_untracked();     self.lines
-    //         .get_init_text_layout(cache_rev, self.config_id(), self, line,
-    // trigger) }
-
-    // fn try_get_text_layout(&self, line: usize) -> Option<Arc<TextLayoutLine>> {
-    //     let cache_rev = self.doc().cache_rev().get_untracked();
-    //     self.lines
-    //         .try_get_text_layout(cache_rev, self.config_id(), line)
-    // }
 }
 
 impl std::fmt::Debug for Editor {
@@ -1254,387 +1213,6 @@ impl std::fmt::Debug for Editor {
         f.debug_tuple("Editor").field(&self.id).finish()
     }
 }
-
-// fn strip_suffix(line_content_original: &str) -> String {
-//     if let Some(s) = line_content_original.strip_suffix("\r\n") {
-//         format!("{s}  ")
-//     } else if let Some(s) = line_content_original.strip_suffix('\n') {
-//         format!("{s} ",)
-//     } else {
-//         line_content_original.to_string()
-//     }
-// }
-//
-// fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
-//     if let Some(s) = line_content_original.strip_suffix("\r\n") {
-//         rs.push_str(s);
-//         rs.push_str("  ");
-//         // format!("{s}  ")
-//     } else if let Some(s) = line_content_original.strip_suffix('\n') {
-//         rs.push_str(s);
-//         rs.push(' ');
-//     } else {
-//         rs.push_str(line_content_original);
-//     }
-// }
-
-// impl TextLayoutProvider for Editor {
-//     // TODO: should this just return a `Rope`?
-//     fn text(&self) -> Rope {
-//         Editor::text(self)
-//     }
-//
-//     fn new_text_layout(&self, line: usize) -> Arc<TextLayoutLine> {
-//         // TODO: we could share text layouts between different editor views
-// given some knowledge of         // their wrapping
-//         let doc = self.doc();
-//         // line = doc.visual_line_of_line(line);
-//         new_text_layout(doc, line)
-//     }
-//
-//     /// 将列位置转换为合并前的位置，也就是原始文本的位置？意义？
-//     fn before_phantom_col(&self, line: usize, col: usize) -> (usize, usize) {
-//         self.new_text_layout(line)
-//             .phantom_text
-//             .origin_position_of_final_col(col)
-//         // self.doc()
-//         //     .before_phantom_col(self.id(), &self.es.get_untracked(), line,
-// col)     }
-//
-//     // fn has_multiline_phantom(&self) -> bool {
-//     //     self.doc()
-//     //         .has_multiline_phantom(self.id(), &self.es.get_untracked())
-//     // }
-// }
-
-// /// Minimum width that we'll allow the view to be wrapped at.
-// const MIN_WRAPPED_WIDTH: f32 = 100.0;
-
-/// Create various reactive effects to update the screen lines whenever relevant
-/// parts of the view, doc, text layouts, viewport, etc. change.
-/// This tries to be smart to a degree.
-// fn create_view_effects(cx: Scope, ed: &Editor) {
-    // {
-    //     let cursor_info = ed.cursor_info.clone();
-    //     let cursor = ed.cursor;
-    //     cx.create_effect(move |_| {
-    //         cursor.track();
-    //         cursor_info.reset();
-    //     });
-    // }
-
-    // let update_screen_lines = |ed: &Editor| {
-    //     // This function should not depend on the viewport signal directly.
-    //
-    //     // This is wrapped in an update to make any updates-while-updating
-    // very obvious     // which they wouldn't be if we computed and then
-    // `set`.     ed.screen_lines.update(|screen_lines| {
-    //         let new_screen_lines =
-    // ed.compute_screen_lines(screen_lines.base);
-    //
-    //         *screen_lines = new_screen_lines;
-    //     });
-    // };
-
-    // Listen for layout events, currently only when a layout is created, and
-    // update screen lines based on that
-    // ed3.lines.with_untracked(|x| x.layout_event.listen_with(cx, move |val| {
-    //     let ed = &ed2;
-    //     // TODO: Move this logic onto screen lines somehow, perhaps just an
-    // auxiliary     // function, to avoid getting confused about what is
-    // relevant where.
-    //
-    //     match val {
-    //         LayoutEvent::CreatedLayout { line, .. } => {
-    //             let sl = ed.screen_lines.get_untracked();
-    //
-    //             // Intelligently update screen lines, avoiding recalculation
-    // if possible             let should_update = sl.on_created_layout(ed,
-    // line);
-    //
-    //             if should_update {
-    //                 untrack(|| {
-    //                     update_screen_lines(ed);
-    //                 });
-    //
-    //                 // Ensure that it is created even after the base/viewport
-    // signals have been                 // updated.
-    //                 // But we have to trigger an event since it could alter
-    // the screenlines                 // TODO: this has some risk for
-    // infinite looping if we're unlucky.
-    // ed2.text_layout_trigger(line, true);             }
-    //         }
-    //     }
-    // }));
-
-    // TODO: should we have some debouncing for editor width? Ideally we'll be
-    // fast enough to not even need it, though we might not want to use a
-    // bunch of cpu whilst resizing anyway.
-
-    // let viewport_changed_trigger = cx.create_trigger();
-
-    // Watch for changes to the viewport so that we can alter the wrapping
-    // As well as updating the screen lines base
-    // cx.create_effect(move |_| {
-    //     let ed = &ed3;
-    //
-    //     let viewport = ed.viewport.get();
-    //
-    //     // let wrap = match ed.es.with(|s| s.wrap_method()) {
-    //     //     WrapMethod::None => ResolvedWrap::None,
-    //     //     WrapMethod::EditorWidth => {
-    //     //         ResolvedWrap::Width((viewport.width() as
-    // f32).max(MIN_WRAPPED_WIDTH))     //     }
-    //     //     WrapMethod::WrapColumn { .. } => todo!(),
-    //     //     WrapMethod::WrapWidth { width } => ResolvedWrap::Width(width),
-    //     // };
-    //
-    //     // ed.lines.update(|x| x.set_wrap(wrap, ed));
-    //     // ed.lines.set_wrap(wrap, ed);
-    //
-    //     // Update the base
-    //     let base = ed.screen_lines.with_untracked(|sl| sl.base);
-    //
-    //     // TODO: should this be a with or with_untracked?
-    //     if viewport != base.with_untracked(|base| base.active_viewport) {
-    //         batch(|| {
-    //             base.update(|base| {
-    //                 base.active_viewport = viewport;
-    //             });
-    //             // TODO: Can I get rid of this and just call update screen
-    // lines with an             // untrack around it?
-    //             viewport_changed_trigger.notify();
-    //         });
-    //     }
-    // });
-    // Watch for when the viewport as changed in a relevant manner
-    // and for anything that `update_screen_lines` tracks.
-    // cx.create_effect(move |_| {
-    //     viewport_changed_trigger.track();
-    //
-    //     update_screen_lines(&ed4);
-    // });
-// }
-
-// pub fn normal_compute_screen_lines(
-//     editor: &Editor,
-//     base: RwSignal<ScreenLinesBase>,
-// ) -> ScreenLines {
-//     let lines = &editor.lines;
-//     let style = editor.style.get();
-//     // TODO: don't assume universal line height!
-//     let line_height = style.line_height(editor.id(), 0);
-//
-//     let (y0, y1) = base.with_untracked(|base| (base.active_viewport.y0,
-// base.active_viewport.y1));     // Get the start and end (visual) lines that
-// are visible in the viewport     let min_vline = VLine((y0 / line_height as
-// f64).floor() as usize);     let max_vline = VLine((y1 / line_height as
-// f64).ceil() as usize);
-//
-//     let cache_rev = editor.doc.get().cache_rev().get();
-//     editor.lines.check_cache_rev(cache_rev);
-//
-//     let min_info = editor.iter_vlines(false, min_vline).next();
-//
-//     let mut rvlines = Vec::new();
-//     let mut info = HashMap::new();
-//
-//     let Some(min_info) = min_info else {
-//         return ScreenLines {
-//             lines: Rc::new(rvlines),
-//             info: Rc::new(info),
-//             diff_sections: None,
-//             base,
-//         };
-//     };
-//
-//     // TODO: the original was min_line..max_line + 1, are we iterating too
-// little now?     // the iterator is from min_vline..max_vline
-//     let count = max_vline.get() - min_vline.get();
-//     let iter = lines
-//         .iter_rvlines_init(
-//             editor.text_prov(),
-//             cache_rev,
-//             editor.config_id(),
-//             min_info.rvline,
-//             false,
-//         )
-//         .take(count);
-//
-//     for (i, vline_info) in iter.enumerate() {
-//         rvlines.push(vline_info.rvline);
-//
-//         let line_height = f64::from(style.line_height(editor.id(),
-// vline_info.rvline.line));
-//
-//         let y_idx = min_vline.get() + i;
-//         let vline_y = y_idx as f64 * line_height;
-//         let line_y = vline_y - vline_info.rvline.line_index as f64 *
-// line_height;
-//
-//         // Add the information to make it cheap to get in the future.
-//         // This y positions are shifted by the baseline y0
-//         info.insert(
-//             vline_info.rvline,
-//             LineInfo {
-//                 y: line_y - y0,
-//                 vline_y: vline_y - y0,
-//                 vline_info,
-//             },
-//         );
-//     }
-//
-//     ScreenLines {
-//         lines: Rc::new(rvlines),
-//         info: Rc::new(info),
-//         diff_sections: None,
-//         base,
-//     }
-// }
-
-// TODO: should we put `cursor` on this structure?
-/// Cursor rendering information
-// #[derive(Clone)]
-// pub struct CursorInfo {
-//     pub hidden: RwSignal<bool>,
-//
-//     pub blink_timer:    RwSignal<TimerToken>,
-//     // TODO: should these just be rwsignals?
-//     pub should_blink:   Rc<dyn Fn() -> bool + 'static>,
-//     pub blink_interval: Rc<dyn Fn() -> u64 + 'static>
-// }
-// impl CursorInfo {
-//     pub fn new(cx: Scope) -> CursorInfo {
-//         CursorInfo {
-//             hidden: cx.create_rw_signal(false),
-//
-//             blink_timer:    cx.create_rw_signal(TimerToken::INVALID),
-//             should_blink:   Rc::new(|| true),
-//             blink_interval: Rc::new(|| 500)
-//         }
-//     }
-//
-//     pub fn blink(&self) {
-//         // let info = self.clone();
-//         // let blink_interval = (info.blink_interval)();
-//         // if blink_interval > 0 && (info.should_blink)() {
-//         //     let blink_timer = info.blink_timer;
-//         //     let timer_token = exec_after(
-//         //         Duration::from_millis(blink_interval),
-//         //         move |timer_token| {
-//         //             if info.blink_timer.try_get_untracked() == Some(timer_token) {
-//         //                 log::warn!("blink");
-//         //                 info.hidden.update(|hide| {
-//         //                     *hide = !*hide;
-//         //                 });
-//         //                 info.blink();
-//         //             }
-//         //         }
-//         //     );
-//         //     blink_timer.set(timer_token);
-//         // }
-//     }
-//
-//     pub fn reset(&self) {
-//         if self.hidden.get_untracked() {
-//             self.hidden.set(false);
-//         }
-//
-//         self.blink_timer.set(TimerToken::INVALID);
-//
-//         self.blink();
-//     }
-// }
-
-// /// Get the render information for a caret cursor at the given `offset`.
-// pub fn cursor_caret(
-//     ed: &Editor,
-//     offset: usize,
-//     block: bool,
-//     affinity: CursorAffinity,
-// ) -> Result<LineRegion> {
-//     let (info, col, after_last_char) = ed.visual_line_of_offset(offset,
-// affinity)?;
-//
-//     let doc = ed.doc();
-//     let preedit_start = doc
-//         .preedit()
-//         .preedit
-//         .with_untracked(|preedit| {
-//             preedit.as_ref().and_then(|preedit| {
-//                 // todo?
-//                 let preedit_line =
-//                     ed.visual_line_of_offset(preedit.offset,
-// affinity).ok()?.0;                 preedit.cursor.map(|x| (preedit_line, x))
-//             })
-//         })
-//         .filter(|(preedit_line, _)| *preedit_line == info)
-//         .map(|(_, (start, _))| start);
-//
-//     let point = ed.line_point_of_visual_line_col(
-//         info.origin_line,
-//         col,
-//         CursorAffinity::Forward,
-//         false,
-//     );
-//
-//     let rvline = if preedit_start.is_some() {
-//         // If there's an IME edit, then we need to use the point's y to get
-// the actual y position         // that the IME cursor is at. Since it could be
-// in the middle of the IME phantom text         let y = point.y;
-//
-//         // TODO: I don't think this is handling varying line heights properly
-//         let line_height = ed.line_height(info.origin_line);
-//
-//         let line_index = (y / f64::from(line_height)).floor() as usize;
-//         RVLine::new(info.origin_line, line_index)
-//     } else {
-//         info.rvline
-//     };
-//     // error!("offset={offset} block={block}, point={point:?}
-// rvline={rvline:?} info={info:?} col={col}
-// after_last_char={after_last_char}");
-//
-//     let x0 = point.x;
-//     Ok(if block {
-//         let x0 = ed
-//             .line_point_of_visual_line_col(
-//                 info.origin_line,
-//                 col,
-//                 CursorAffinity::Forward,
-//                 true,
-//             )
-//             .x;
-//         let new_offset = ed.move_right(offset, Mode::Insert, 1);
-//         let (_, new_col) = ed.offset_to_line_col(new_offset);
-//
-//         let width = if after_last_char {
-//             CHAR_WIDTH
-//         } else {
-//             let x1 = ed
-//                 .line_point_of_visual_line_col(
-//                     info.origin_line,
-//                     new_col,
-//                     CursorAffinity::Backward,
-//                     true,
-//                 )
-//                 .x;
-//             x1 - x0
-//         };
-//
-//         LineRegion {
-//             x: x0,
-//             width,
-//             rvline,
-//         }
-//     } else {
-//         LineRegion {
-//             x: x0 - 1.0,
-//             width: 2.0,
-//             rvline,
-//         }
-//     })
-// }
 
 /// (x, y, line_height, width)
 pub fn cursor_caret_v2(

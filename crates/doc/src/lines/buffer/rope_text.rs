@@ -435,12 +435,12 @@ impl From<Rope> for RopeTextVal {
 pub struct RopeTextRef<'a> {
     pub text: &'a Rope
 }
-impl<'a> RopeTextRef<'a> {
+impl<'a>RopeTextRef<'a> {
     pub fn new(text: &'a Rope) -> Self {
         Self { text }
     }
 }
-impl<'a> RopeText for RopeTextRef<'a> {
+impl RopeText for RopeTextRef<'_> {
     fn text(&self) -> &Rope {
         self.text
     }

@@ -110,24 +110,6 @@ pub struct Doc {
     /// buffer.
     pub loaded:       RwSignal<bool>,
     pub kind:         RwSignal<EditorViewKind>,
-    // pub syntax: RwSignal<Syntax>,
-    // semantic_styles: RwSignal<Option<Spans<Style>>>,
-    // semantic_previous_rs_id: RwSignal<Option<String>>,
-    /// Inlay hints for the document
-    // pub inlay_hints: RwSignal<Option<Spans<InlayHint>>>,
-    /// Current completion lens text, if any.
-    /// This will be displayed even on views that are not focused.
-    // pub completion_lens: RwSignal<Option<String>>,
-    /// (line, col)
-    // pub completion_pos: RwSignal<(usize, usize)>,
-
-    /// Current inline completion text, if any.
-    /// This will be displayed even on views that are not focused.
-    // pub inline_completion: RwSignal<Option<String>>,
-    // /// (line, col)
-    // pub inline_completion_pos: RwSignal<(usize, usize)>,
-
-    /// (Offset -> (Plugin the code actions are from, Code Actions))
     pub code_actions: RwSignal<CodeActions>,
 
     pub code_lens: RwSignal<AllCodeLens>,
@@ -800,21 +782,6 @@ impl Doc {
     fn clear_sticky_headers_cache(&self) {
         self.sticky_headers.borrow_mut().clear();
     }
-
-    // /// Get the active style information, either the semantic styles or the
-    // /// tree-sitter syntax styles.
-    // fn styles(&self) -> Option<Spans<Style>> {
-    //     self.lines.with_untracked(|lines| lines.styles())
-    // }
-
-    /// Get the style information for the particular line from semantic/syntax
-    /// highlighting. This caches the result if possible.
-    // pub fn line_style(&self, line: usize) -> Vec<LineStyle> {
-    //     let buffer = self.buffer.get_untracked();
-    //     self.lines
-    //         .try_update(|x| x.line_style(line, &buffer))
-    //         .unwrap()
-    // }
 
     /// Request semantic styles for the buffer from the LSP through the proxy.
     // pub fn get_semantic_styles(&self) {

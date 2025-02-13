@@ -169,7 +169,7 @@ impl StyledText {
             let end_offset = rope.offset_of_line(line + 1)?;
 
             let content_origin = rope.slice_to_cow(start_offset..end_offset);
-            let content = content_origin.trim_end_matches(&trim_str);
+            let content = content_origin.trim_end_matches(trim_str);
             if start_offset == end_offset || content.is_empty() {
                 continue;
             }

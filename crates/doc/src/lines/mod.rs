@@ -807,30 +807,6 @@ impl DocLines {
         )
     }
 
-    // pub fn wrap(&self, viewport: Rect, es: &EditorStyle) ->
-    // ResolvedWrap {     match es.wrap_method() {
-    //         WrapMethod::None => ResolvedWrap::None,
-    //         WrapMethod::EditorWidth => {
-    //             ResolvedWrap::Width((viewport.width() as
-    // f32).max(MIN_WRAPPED_WIDTH))         }
-    //         WrapMethod::WrapColumn { .. } => todo!(),
-    //         WrapMethod::WrapWidth { width } =>
-    // ResolvedWrap::Width(width),     }
-    // }
-
-    /// Set the wrapping style
-    ///
-    /// Does nothing if the wrapping style is the same as the current
-    /// one. Will trigger a clear of the text layouts if the
-    /// wrapping style is different.
-    // pub fn set_wrap(&mut self, wrap: ResolvedWrap, _editor:
-    // &Editor) {     if wrap == self.wrap {
-    //         return;
-    //     }
-    //     self.wrap = wrap;
-    //     // self.update(editor);
-    // }
-
     pub fn max_width(&self) -> f64 {
         self.max_width
     }

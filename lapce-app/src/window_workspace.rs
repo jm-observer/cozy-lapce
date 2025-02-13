@@ -610,7 +610,7 @@ impl WindowWorkspaceData {
         let build_data = TreePanelData::new(cx, DocStyle::default());
         let cursor_blink_timer = cx.create_rw_signal(TimerToken::INVALID);
         let cursor_blink = CursorBlink {
-            hide_cursor: hide_cursor,
+            hide_cursor,
             blink_timer: cursor_blink_timer,
             blink_interval: cx.create_rw_signal(0),
             common_data: common.clone()
@@ -2016,33 +2016,35 @@ impl WindowWorkspaceData {
                 self.main_split.set_find_pattern(pattern);
             },
             InternalCommand::FindEditorReceiveChar { s } => {
-                info!("FindEditorReceiveChar {s}");
+                error!("FindEditorReceiveChar {s}");
                 // self.main_split.find_editor.receive_char(&s);
-                self.main_split.find_str.update(|x| {
-                    x.push_str(&s);
-                });
+                // self.main_split.find_str.update(|x| {
+                //     x.push_str(&s);
+                // });
             },
             InternalCommand::ReplaceEditorReceiveChar { s } => {
-                self.main_split.replace_editor.receive_char(&s);
+                error!("ReplaceEditorReceiveChar {s}");
+                //
+                // self.main_split.replace_editor.receive_char(&s);
             },
             InternalCommand::FindEditorCommand {
                 command, ..
                 // count,
                 // mods
             } => {
-                log::warn!("todo FindEditorCommand {command:?}");
+                log::error!("todo FindEditorCommand {command:?}");
                 // self.main_split
                 //     .find_editor
                 //     .run_command(&command, count, mods);
             },
             InternalCommand::ReplaceEditorCommand {
-                command,
-                count,
-                mods
+                command, ..
             } => {
-                self.main_split
-                    .replace_editor
-                    .run_command(&command, count, mods);
+                log::error!("todo ReplaceEditorCommand {command:?}");
+                //
+                // self.main_split
+                //     .replace_editor
+                //     .run_command(&command, count, mods);
             },
             InternalCommand::FocusEditorTab { editor_tab_id } => {
                 self.main_split.active_editor_tab.set(Some(editor_tab_id));

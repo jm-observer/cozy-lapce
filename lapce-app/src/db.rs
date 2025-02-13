@@ -260,16 +260,14 @@ impl LapceDb {
 
     pub fn save_app(&self, data: &AppData) -> Result<()> {
         let windows = data.windows.get_untracked();
-        for (_, window) in &windows {
+        for window in windows.values() {
             if let Err(err) = self.save_window(window.clone()) {
                 log::error!("{:?}", err);
             }
         }
 
         let info = AppInfo {
-            windows: windows
-                .iter()
-                .map(|(_, window_data)| window_data.info())
+            windows: windows.values().map(|window_data| window_data.info())
                 .collect()
         };
         if info.windows.is_empty() {
@@ -294,15 +292,13 @@ impl LapceDb {
             // it
             return Ok(());
         }
-        for (_, window) in &windows {
+        for window in windows.values() {
             if let Err(err) = self.insert_window(window.clone()) {
                 log::error!("{:?}", err);
             }
         }
         let info = AppInfo {
-            windows: windows
-                .iter()
-                .map(|(_, window_data)| window_data.info())
+            windows: windows.values().map(|window_data| window_data.info())
                 .collect()
         };
         self.insert_app_info(info)?;

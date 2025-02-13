@@ -173,7 +173,7 @@ impl Naming {
     }
 
     pub fn is_accepting_input(&self) -> bool {
-        self.state().map_or(false, NamingState::is_accepting_input)
+        self.state().is_some_and(NamingState::is_accepting_input)
     }
 
     pub fn editor_needs_reset(&self) -> bool {

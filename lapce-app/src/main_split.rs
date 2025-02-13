@@ -332,8 +332,8 @@ pub struct MainSplitData {
     pub active_editor:     Memo<Option<EditorData>>,
     // pub find_editor:       EditorData,
     pub find_str:       RwSignal<String>,
+    pub replace_str: RwSignal<String>,
     pub find_view_id: RwSignal<Option<ViewId>>,
-    pub replace_editor:    EditorData,
     pub locations:         RwSignal<im::Vector<EditorLocation>>,
     pub current_location:  RwSignal<usize>,
     pub width:             RwSignal<f64>,
@@ -369,9 +369,10 @@ impl MainSplitData {
         let hierarchy = Tabs::new(common.config, cx);
         let current_location = cx.create_rw_signal(0);
         let diagnostics = cx.create_rw_signal(im::HashMap::new());
-        let replace_editor = editors.make_local(cx, common.clone());
         let find_str = cx.create_rw_signal(String::new());
         let find_view_id = cx.create_rw_signal(None);
+        let replace_str = cx.create_rw_signal(String::new());
+
 
 
 
@@ -412,7 +413,7 @@ impl MainSplitData {
         }
 
         Self {
-            find_str, find_view_id,
+            find_str, find_view_id, replace_str,
             scope: cx,
             root_split: SplitId::next(),
             splits,
@@ -423,7 +424,6 @@ impl MainSplitData {
             docs,
             scratch_docs,
             active_editor,
-            replace_editor,
             diagnostics,
             locations,
             current_location,
@@ -3013,7 +3013,7 @@ impl MainSplitData {
         })?;
         match child.id() {
             EditorTabChildId::Editor(editor_id) => {
-                self.editors.editor(editor_id.clone())
+                self.editors.editor(*editor_id)
             },
             _ => None
         }
@@ -3030,7 +3030,7 @@ impl MainSplitData {
         })?;
         match child.id() {
             EditorTabChildId::Editor(editor_id) => {
-                self.editors.editor_untracked(editor_id.clone())
+                self.editors.editor_untracked(*editor_id)
             },
             _ => None
         }

@@ -46,11 +46,8 @@ impl KeyPressFocus for RenameData {
         _count: Option<usize>,
         _mods: Modifiers
     ) -> CommandExecuted {
-        match &_command.kind {
-            CommandKind::Focus(cmd) => {
-                self.run_focus_command(cmd);
-            },
-            _ => {}
+        if let CommandKind::Focus(cmd) = &_command.kind {
+            self.run_focus_command(cmd);
         }
         CommandExecuted::Yes
     }
