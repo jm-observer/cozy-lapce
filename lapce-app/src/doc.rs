@@ -1300,11 +1300,8 @@ impl Doc {
 
             let path = path.clone();
             let proxy = self.common.proxy.clone();
-            // todo remove thread
-            std::thread::spawn(move || {
-                proxy.get_buffer_head(path, move |(_, result)| {
-                    send(result);
-                });
+            proxy.get_buffer_head(path, move |(_, result)| {
+                send(result);
             });
         }
     }

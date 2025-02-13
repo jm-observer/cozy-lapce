@@ -938,6 +938,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                 std::thread::spawn(move || {
                                     let result =
                                         PluginData::download_readme(&info, &config);
+
                                     send(result);
                                 });
                             }

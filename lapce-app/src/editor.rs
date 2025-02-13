@@ -2504,7 +2504,7 @@ impl EditorData {
         if format_on_save {
             let editor = self.clone();
             let send = create_ext_action(self.scope, move |result| {
-                if let Ok(Ok(ProxyResponse::GetDocumentFormatting { edits })) =
+                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) =
                     result
                 {
                     let current_rev = editor.doc().rev();
@@ -2516,16 +2516,8 @@ impl EditorData {
                 editor.do_save(after_action);
             });
 
-            let (tx, rx) = crossbeam_channel::bounded(1);
             let proxy = self.common.proxy.clone();
-            // todo remove thread
-            std::thread::spawn(move || {
-                proxy.get_document_formatting(path, move |(_, result)| {
-                    if let Err(err) = tx.send(result) {
-                        log::error!("{:?}", err);
-                    }
-                });
-                let result = rx.recv_timeout(std::time::Duration::from_secs(1));
+            proxy.get_document_formatting(path, move |(_, result)| {
                 send(result);
             });
         } else {
@@ -2541,7 +2533,7 @@ impl EditorData {
         if let DocContent::File { path, .. } = content {
             let editor = self.clone();
             let send = create_ext_action(self.scope, move |result| {
-                if let Ok(Ok(ProxyResponse::GetDocumentFormatting { edits })) =
+                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) =
                     result
                 {
                     let current_rev = editor.doc().rev();
@@ -2551,16 +2543,8 @@ impl EditorData {
                 }
             });
 
-            let (tx, rx) = crossbeam_channel::bounded(1);
             let proxy = self.common.proxy.clone();
-            // todo remove thread
-            std::thread::spawn(move || {
-                proxy.get_document_formatting(path, move |(_, result)| {
-                    if let Err(err) = tx.send(result) {
-                        log::error!("{:?}", err);
-                    }
-                });
-                let result = rx.recv_timeout(std::time::Duration::from_secs(1));
+            proxy.get_document_formatting(path, move |(_, result)| {
                 send(result);
             });
         }

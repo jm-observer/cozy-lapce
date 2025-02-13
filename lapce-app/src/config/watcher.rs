@@ -26,7 +26,6 @@ impl notify::EventHandler for ConfigWatcher {
                     {
                         let config_mutex = self.delay_handler.clone();
                         let tx = self.tx.clone();
-                        // todo remove thread
                         std::thread::spawn(move || {
                             std::thread::sleep(std::time::Duration::from_millis(
                                 500
