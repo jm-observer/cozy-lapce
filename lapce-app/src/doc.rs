@@ -58,7 +58,7 @@ use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     editor::{
         EditorData,
-        editor::{CommonAction, Editor},
+        floem_editor::{CommonAction, Editor},
         location::{EditorLocation, EditorPosition}
     },
     find::{Find, FindProgress, FindResult},

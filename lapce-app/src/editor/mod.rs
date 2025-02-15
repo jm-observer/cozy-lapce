@@ -61,7 +61,7 @@ use crate::{
     db::LapceDb,
     doc::Doc,
     editor::{
-        editor::{Editor, do_motion_mode},
+        floem_editor::{Editor, do_motion_mode},
         movement::{do_multi_selection, move_cursor}
     },
     editor_tab::EditorTabChildId,
@@ -81,7 +81,7 @@ use crate::{
 };
 
 pub mod diff;
-pub mod editor;
+pub mod floem_editor;
 pub mod gutter;
 pub mod location;
 pub mod view;

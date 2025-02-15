@@ -115,6 +115,7 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData}
 };
+use crate::config::ui::TabCloseButton;
 
 mod grammars;
 mod logging;
@@ -714,7 +715,6 @@ fn editor_tab_header(
             let info = child.view_info(editors, diff_editors, plugin, config);
             let hovered = create_rw_signal(false);
 
-            use crate::config::ui::TabCloseButton;
 
             let tab_icon = container({
                 svg(move || info.with(|info| info.icon.clone())).style(move |s| {

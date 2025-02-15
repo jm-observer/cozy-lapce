@@ -45,14 +45,14 @@ pub mod terminal;
 pub mod ui;
 pub mod watcher;
 
-pub const LOGO: &str = include_str!("../../extra/images/logo.svg");
-const DEFAULT_SETTINGS: &str = include_str!("../../defaults/settings.toml");
-const DEFAULT_LIGHT_THEME: &str = include_str!("../../defaults/light-theme.toml");
+pub const LOGO: &str = include_str!("../../../extra/images/logo.svg");
+const DEFAULT_SETTINGS: &str = include_str!("../../../defaults/settings.toml");
+const DEFAULT_LIGHT_THEME: &str = include_str!("../../../defaults/light-theme.toml");
 
 const DEFAULT_JETBRAIN_LIGHT_THEME: &str =
-    include_str!("../../defaults/jetbrains-light-theme.toml");
-const DEFAULT_DARK_THEME: &str = include_str!("../../defaults/dark-theme.toml");
-const DEFAULT_ICON_THEME: &str = include_str!("../../defaults/icon-theme.toml");
+    include_str!("../../../defaults/jetbrains-light-theme.toml");
+const DEFAULT_DARK_THEME: &str = include_str!("../../../defaults/dark-theme.toml");
+const DEFAULT_ICON_THEME: &str = include_str!("../../../defaults/icon-theme.toml");
 
 static DEFAULT_CONFIG: Lazy<config::Config> = Lazy::new(LapceConfig::default_config);
 static DEFAULT_LAPCE_CONFIG: Lazy<LapceConfig> =

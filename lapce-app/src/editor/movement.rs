@@ -15,7 +15,7 @@ use floem::reactive::SignalGet;
 use lapce_xi_rope::Rope;
 use log::info;
 
-use crate::editor::editor::{CommonAction, Editor};
+use crate::editor::floem_editor::{CommonAction, Editor};
 
 /// Move a selection region by a given movement.
 /// Much of the time, this will just be a matter of moving the cursor, but

@@ -22,7 +22,7 @@ use super::view::foldable_panel_section;
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     config::color::LapceColor,
-    editor::{editor::cursor_caret_v2, view::editor_view},
+    editor::{floem_editor::cursor_caret_v2, view::editor_view},
     settings::checkbox,
     source_control::SourceControlData,
     svg,

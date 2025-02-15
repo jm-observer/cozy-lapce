@@ -37,11 +37,11 @@ use crate::{
 };
 
 const DEFAULT_KEYMAPS_COMMON: &str =
-    include_str!("../../defaults/keymaps-common.toml");
+    include_str!("../../../defaults/keymaps-common.toml");
 const DEFAULT_KEYMAPS_MACOS: &str =
-    include_str!("../../defaults/keymaps-macos.toml");
+    include_str!("../../../defaults/keymaps-macos.toml");
 const DEFAULT_KEYMAPS_NONMACOS: &str =
-    include_str!("../../defaults/keymaps-nonmacos.toml");
+    include_str!("../../../defaults/keymaps-nonmacos.toml");
 
 pub trait KeyPressFocus: std::fmt::Debug {
     fn get_mode(&self) -> Mode;
