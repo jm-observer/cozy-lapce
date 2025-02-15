@@ -191,7 +191,12 @@ pub fn get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
     user_agent: Option<&str>
 ) -> Result<reqwest::blocking::Response> {
-    let mut builder = if let Ok(proxy) = std::env::var("https_proxy") {
+    let mut builder = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
+        let proxy = reqwest::Proxy::all(proxy)?;
+        reqwest::blocking::Client::builder()
+            .proxy(proxy)
+            .timeout(std::time::Duration::from_secs(10))
+    } else if let Ok(proxy) = std::env::var("https_proxy") {
         let proxy = reqwest::Proxy::all(proxy)?;
         reqwest::blocking::Client::builder()
             .proxy(proxy)
