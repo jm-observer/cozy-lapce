@@ -462,7 +462,7 @@ impl AppData {
             self.plugin_paths.clone(),
             self.app_command,
             // self.watcher.clone()
-        );
+        ).unwrap();
 
         {
             let cur_window_tab = window_data.active_window_tab();

@@ -44,6 +44,7 @@ pub mod wave;
 pub mod web_link;
 pub mod window;
 pub mod window_workspace;
+mod local_task;
 
 #[cfg(windows)]
 extern crate windows_sys as windows;

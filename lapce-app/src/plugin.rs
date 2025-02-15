@@ -27,7 +27,7 @@ use floem::{
 };
 use indexmap::IndexMap;
 use lapce_core::directory::Directory;
-use lapce_proxy::plugin::{download_volt, volt_icon, wasi::find_all_volts};
+use lapce_proxy::plugin::{download_volt, volt_icon};
 use lapce_rpc::{
     core::{CoreNotification, CoreRpcHandler},
     plugin::{VoltID, VoltInfo, VoltMetadata}
@@ -47,6 +47,7 @@ use crate::{
     web_link::web_link,
     window_workspace::CommonData
 };
+use crate::local_task::{LocalRequest, LocalResponse};
 
 type PluginInfo = Option<(
     Option<VoltMetadata>,
@@ -183,33 +184,38 @@ impl PluginData {
             let plugin = plugin.clone();
             let extra_plugin_paths =
                 plugin.common.window_common.extra_plugin_paths.clone();
-
+            let common = plugin.common.clone();
             let send = create_ext_action(
                 cx,
-                move |volts: Vec<(Option<Vec<u8>>, VoltMetadata)>| {
-                    for (icon, meta) in volts {
-                        plugin.volt_installed(&meta, &icon);
+                move |volts: Result<LocalResponse>| {
+                    match volts {
+                        Ok(response) => {
+                            if let LocalResponse::FindAllVolts {
+                                volts
+                            } = response {
+                                for (icon, meta) in volts.into_iter()
+                                    .filter_map(|meta| {
+                                        if meta.wasm.is_none() {
+                                            Some((volt_icon(&meta), meta))
+                                        } else {
+                                            None
+                                        }
+                                    }) {
+                                    plugin.volt_installed(&meta, &icon);
+                                }
+                            }
+                        }
+                        Err(err) => {}
                     }
+
                 }
             );
-            // todo remove thread
-            std::thread::Builder::new()
-                .name("FindAllVolts".to_owned())
-                .spawn(move || {
-                    let volts = find_all_volts(&extra_plugin_paths);
-                    let volts = volts
-                        .into_iter()
-                        .filter_map(|meta| {
-                            if meta.wasm.is_none() {
-                                Some((volt_icon(&meta), meta))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    send(volts);
-                })
-                .unwrap();
+            common.local_task.request_async(LocalRequest::FindAllVolts {
+                extra_plugin_paths,
+            }, move |(_id, rs)| {
+                log::info!("FindAllVolts send");
+                send(rs);
+            });
         }
 
         {

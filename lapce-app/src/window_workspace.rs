@@ -101,6 +101,7 @@ use crate::{
     },
     window::{CursorBlink, WindowCommonData}
 };
+use crate::local_task::{new_local_handler, LocalTaskRequester};
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -214,6 +215,7 @@ pub struct CommonData {
     pub term_tx:              Sender<(TermId, TermEvent)>,
     pub term_notification_tx: Sender<TermNotification>,
     pub proxy:                ProxyRpcHandler,
+    pub local_task:           LocalTaskRequester,
     pub view_id:              RwSignal<ViewId>,
     pub ui_line_height:       Memo<f64>,
     pub dragging:             RwSignal<Option<DragContent>>,
@@ -353,12 +355,11 @@ impl KeyPressFocus for WindowWorkspaceData {
 }
 
 impl WindowWorkspaceData {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         cx: Scope,
         workspace: LapceWorkspace,
         window_common: Rc<WindowCommonData>
-    ) -> Self {
+    ) -> Result<Self> {
         let cx = cx.create_child();
         let db: Arc<LapceDb> = use_context().unwrap();
 
@@ -435,8 +436,10 @@ impl WindowWorkspaceData {
             TextLayout::new_with_text("W", attrs_list).size().height
         });
 
+        let local_task:           LocalTaskRequester = new_local_handler()?;
+
         let common = Rc::new(CommonData {
-            workspace: workspace.clone(),
+            workspace: workspace.clone(), local_task,
             scope: cx,
             keypress,
             focus,
@@ -708,7 +711,7 @@ impl WindowWorkspaceData {
             });
         }
 
-        window_tab_data
+        Ok(window_tab_data)
     }
 
     pub fn reload_config(&self) {

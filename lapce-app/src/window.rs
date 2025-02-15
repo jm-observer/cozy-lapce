@@ -24,6 +24,9 @@ use crate::{
     window_workspace::{CommonData, Focus, SignalManager, WindowWorkspaceData}
 };
 
+use anyhow::Result;
+use log::error;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
     pub size:      Size,
@@ -88,7 +91,7 @@ impl WindowData {
         extra_plugin_paths: Arc<Vec<PathBuf>>,
         app_command: Listener<AppCommand>,
         // watcher: Arc<RwLock<notify::RecommendedWatcher>>
-    ) -> Self {
+    ) -> Result<Self> {
         let cx = Scope::new();
         let config =
             LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths);
@@ -132,7 +135,7 @@ impl WindowData {
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
         // w.watch_project_setting(&watcher);
         let window_tabs =
-            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone()));
+            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone())?);
 
         // for w in info.tabs.workspaces {
         //     log::info!("WindowData {:?}", w);
@@ -176,7 +179,9 @@ impl WindowData {
         {
             let window_data = window_data.clone();
             window_data.common.window_command.listen(move |cmd| {
-                window_data.run_window_command(cmd);
+                if let Err(err) = window_data.run_window_command(cmd) {
+                    error!("{}", err.to_string());
+                }
             });
         }
 
@@ -193,7 +198,7 @@ impl WindowData {
         //     })
         // }
 
-        window_data
+        Ok(window_data)
     }
 
     pub fn reload_config(&self) {
@@ -206,7 +211,7 @@ impl WindowData {
         self.window_tabs.with_untracked(|x| x.reload_config());
     }
 
-    pub fn run_window_command(&self, cmd: WindowCommand) {
+    pub fn run_window_command(&self, cmd: WindowCommand) -> Result<()>{
         match cmd {
             WindowCommand::SetWorkspace { workspace } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
@@ -223,7 +228,7 @@ impl WindowData {
                     self.scope,
                     workspace.clone(),
                     self.common.clone()
-                );
+                )?;
 
                 self.window_tabs.set(window_tab);
                 // workspace.watch_project_setting(&self.watcher);
@@ -242,7 +247,7 @@ impl WindowData {
                     self.scope,
                     workspace,
                     self.common.clone()
-                );
+                )?;
                 self.window_tabs.set(window_tab);
                 // let active = self.active.get_untracked();
                 // let active = self
@@ -327,6 +332,7 @@ impl WindowData {
             }
         }
         self.app_command.send(AppCommand::SaveApp);
+        Ok(())
     }
 
     pub fn key_down<'a>(&self, event: impl Into<EventRef<'a>> + Copy) -> bool {

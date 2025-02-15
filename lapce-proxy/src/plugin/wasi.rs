@@ -280,6 +280,7 @@ pub fn load_all_volts(
 /// As well, this function skips any volt in the typical plugin directory that
 /// match the name of the dev plugin so as to support developing a plugin you
 /// actively use.
+/// todo change to async
 pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
     let Some(plugin_dir) = Directory::plugins_directory() else {
         return Vec::new();
