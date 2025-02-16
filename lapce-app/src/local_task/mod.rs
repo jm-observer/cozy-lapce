@@ -72,6 +72,9 @@ pub enum LocalRequest {
     },
     LoadIcon {
         info: VoltInfo
+    },
+    UninstallVolt {
+        dir: PathBuf,
     }
 }
 pub enum LocalResponse {
@@ -93,7 +96,8 @@ pub enum LocalResponse {
     },
     LoadIcon {
         icon: VoltIcon
-    }
+    },
+    UninstallVolt
 }
 
 pub enum LocalNotification {

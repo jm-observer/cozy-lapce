@@ -220,6 +220,7 @@ impl PluginData {
                 if s.as_ref() == Some(&query) {
                     return query;
                 }
+                // 优化限制的条件，延迟请求？
                 plugin.available.query_id.update(|id| *id += 1);
                 plugin.available.loading.set(false);
                 plugin.available.volts.update(|v| v.clear());
@@ -550,26 +551,28 @@ impl PluginData {
         if volt.wasm.is_some() {
             self.common.proxy.remove_volt(volt);
         } else {
-            let plugin = self.clone();
-            let info = volt.info();
-            let send =
-                create_ext_action(self.common.scope, move |result: Result<()>| {
-                    if let Ok(()) = result {
+            if let Some(dir) = &volt.dir {
+                let plugin = self.clone();
+                let info = volt.info();
+                let send =
+                    create_ext_action(self.common.scope, move |_| {
                         plugin.volt_removed(&info);
-                    }
-                });
-            // todo remove thread
-            std::thread::spawn(move || {
-                let uninstall = || -> Result<()> {
-                    let path = volt
-                        .dir
-                        .as_ref()
-                        .ok_or_else(|| anyhow::anyhow!("don't have dir"))?;
-                    std::fs::remove_dir_all(path)?;
-                    Ok(())
-                };
-                send(uninstall());
-            });
+                    });
+                let dir = dir.clone();
+                self.common.local_task.request_async(
+                    LocalRequest::UninstallVolt { dir },
+                    move |(_id, rs)| match rs {
+                        Ok(response) => {
+                            if let LocalResponse::UninstallVolt = response {
+                                send(());
+                            }
+                        },
+                        Err(err) => {
+                            error!("{err:?}")
+                        },
+                    },
+                );
+            }
         }
     }
 

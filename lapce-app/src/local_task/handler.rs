@@ -1,6 +1,7 @@
 use crate::local_task::{
     LocalRequest, LocalResponse, LocalResponseHandler, LocalRpc,
 };
+use crate::plugin::{VoltIcon, VoltsInfo};
 use anyhow::Result;
 use crossbeam_channel::Receiver;
 use lapce_core::directory::Directory;
@@ -8,15 +9,14 @@ use lapce_proxy::plugin::wasi::find_all_volts;
 use lapce_proxy::plugin::{async_volt_icon, download_volt};
 use lapce_rpc::RequestId;
 use lapce_rpc::plugin::VoltInfo;
+use lapce_rpc::style::SemanticStyles;
 use lapce_xi_rope::Interval;
 use lapce_xi_rope::spans::SpansBuilder;
 use parking_lot::Mutex;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::sync::{Arc};
 use sha2::{Digest, Sha256};
-use lapce_rpc::style::SemanticStyles;
-use crate::plugin::{VoltIcon, VoltsInfo};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
@@ -30,78 +30,97 @@ impl LocalTaskHandler {
         use crate::local_task::LocalRpc::*;
         for msg in &self.rx {
             match msg {
-                Request { id, request } => match request {
-                    LocalRequest::FindAllVolts { extra_plugin_paths } => {
-                        let plugin_dir = self.directory.plugins_directory.clone();
-                        let pending = self.pending.clone();
-                        tokio::spawn(async move {
-                            let rs = handle_find_all_volts(extra_plugin_paths, plugin_dir).await;
-                            handle_response(id, rs, pending);
-                        });
-                    },
-                    LocalRequest::SpansBuilder {
-                        len,
-                        styles,
-                        result_id,
-                    } => {
-                        let pending = self.pending.clone();
-                        tokio::spawn(async move {
-                            let rs = handle_spans_builder(len, styles, result_id).await;
-                            handle_response(id, rs, pending);
-                        });
-                    },
-                    LocalRequest::InstallVolt { info } => {
-                        let plugin_dir = self.directory.plugins_directory.clone();
-                        let pending = self.pending.clone();
-                        tokio::spawn(async move {
-                            let rs = handle_install_volt(info, plugin_dir).await;
-                            handle_response(id, rs, pending);
-                        });
-                    },
-                    LocalRequest::QueryVoltInfo { meta } => {
-                        let pending = self.pending.clone();
-                        tokio::spawn(async move {
-                            let url = format!(
-                                "https://plugins.lapce.dev/api/v1/plugins/{}/{}/latest",
-                                meta.author, meta.name
-                            );
-                            let rs = handle_query_volt_info(url).await;
-                            handle_response(id, rs, pending);
-                        });
-                    }
-                    LocalRequest::QueryVolts { query, offset } => {
-                        let pending = self.pending.clone();
-                        tokio::spawn(async move {
-                            let rs = handle_query_volts(&query, offset).await;
-                            handle_response(id, rs, pending);
-                        });
-                    }
-                    LocalRequest::LoadIcon { info } => {
-                        let pending = self.pending.clone();
-                        let cache_directory = self.directory.cache_directory.clone();
-                        tokio::spawn(async move {
-                            let rs = handle_load_icon(&info, cache_directory).await;
-                            handle_response(id, rs, pending);
-                        });
-                    }
+                Request { id, request } =>  {
+                    self.handle_request(id, request).await;
                 },
-                Notification { notification: _notification } => {},
+                Notification {
+                    notification: _notification,
+                } => {},
                 // Shutdown => {
                 //     return;
                 // },
             }
         }
     }
+
+    pub async fn handle_request(&self, id: RequestId, request: LocalRequest) {
+        match request {
+            LocalRequest::FindAllVolts { extra_plugin_paths } => {
+                let plugin_dir = self.directory.plugins_directory.clone();
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let rs =
+                        handle_find_all_volts(extra_plugin_paths, plugin_dir).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::SpansBuilder {
+                len,
+                styles,
+                result_id,
+            } => {
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let rs = handle_spans_builder(len, styles, result_id).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::InstallVolt { info } => {
+                let plugin_dir = self.directory.plugins_directory.clone();
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let rs = handle_install_volt(info, plugin_dir).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::QueryVoltInfo { meta } => {
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let url = format!(
+                        "https://plugins.lapce.dev/api/v1/plugins/{}/{}/latest",
+                        meta.author, meta.name
+                    );
+                    let rs = handle_query_volt_info(url).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::QueryVolts { query, offset } => {
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let rs = handle_query_volts(&query, offset).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::LoadIcon { info } => {
+                let pending = self.pending.clone();
+                let cache_directory = self.directory.cache_directory.clone();
+                tokio::spawn(async move {
+                    let rs = handle_load_icon(&info, cache_directory).await;
+                    handle_response(id, rs, pending);
+                });
+            },
+            LocalRequest::UninstallVolt { dir } => {
+                let pending = self.pending.clone();
+                tokio::spawn(async move {
+                    let rs = handle_uninstall_volt(&dir).await;
+                    handle_response(id, rs, pending);
+                });
+            }
+        }
+    }
 }
 
-async fn handle_query_volts(
-    query: &str, offset: usize
-) -> Result<LocalResponse> {
+async fn handle_uninstall_volt(dir: &Path) -> Result<LocalResponse> {
+    tokio::fs::remove_dir_all(dir).await?;
+    Ok(LocalResponse::UninstallVolt)
+}
+async fn handle_query_volts(query: &str, offset: usize) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins?q={query}&offset={offset}"
     );
-    let volts: VoltsInfo = lapce_proxy::async_get_url(url, None).await?.json().await?;
-    Ok(LocalResponse::QueryVolts { volts})
+    let volts: VoltsInfo =
+        lapce_proxy::async_get_url(url, None).await?.json().await?;
+    Ok(LocalResponse::QueryVolts { volts })
 }
 
 async fn handle_load_icon(
@@ -123,7 +142,7 @@ async fn handle_load_icon(
     if let Some(cache_file) = &cache_file_path {
         if cache_file.exists() {
             let icon = VoltIcon::from_bytes(&tokio::fs::read(cache_file).await?)?;
-            return Ok(LocalResponse::LoadIcon {icon});
+            return Ok(LocalResponse::LoadIcon { icon });
         }
     }
     let resp = lapce_proxy::async_get_url(&url, None).await?;
@@ -135,41 +154,32 @@ async fn handle_load_icon(
         tokio::fs::write(path, &buf).await?
     }
     let icon = VoltIcon::from_bytes(&buf)?;
-    Ok(LocalResponse::LoadIcon {icon})
+    Ok(LocalResponse::LoadIcon { icon })
 }
 
 async fn handle_spans_builder(
     len: usize,
-    styles:    SemanticStyles,
-    result_id: Option<String>
+    styles: SemanticStyles,
+    result_id: Option<String>,
 ) -> Result<LocalResponse> {
     let mut styles_span = SpansBuilder::new(len);
     for style in styles.styles {
         if let Some(fg) = style.style.fg_color {
-            styles_span.add_span(
-                Interval::new(style.start, style.end),
-                fg,
-            );
+            styles_span.add_span(Interval::new(style.start, style.end), fg);
         }
     }
     let styles = styles_span.build();
     Ok(LocalResponse::SpansBuilder { styles, result_id })
 }
 async fn handle_find_all_volts(
-    extra_plugin_paths:       Arc<Vec<PathBuf>>,
+    extra_plugin_paths: Arc<Vec<PathBuf>>,
     plugin_dir: PathBuf,
 ) -> Result<LocalResponse> {
-    let volts = find_all_volts(
-        &extra_plugin_paths,
-        &plugin_dir,
-    )
-        .await;
+    let volts = find_all_volts(&extra_plugin_paths, &plugin_dir).await;
     Ok(LocalResponse::FindAllVolts { volts })
 }
 
-async fn handle_query_volt_info(
-    url: String,
-) -> Result<LocalResponse> {
+async fn handle_query_volt_info(url: String) -> Result<LocalResponse> {
     let info: VoltInfo = lapce_proxy::async_get_url(url, None).await?.json().await?;
     Ok(LocalResponse::QueryVoltInfo { info })
 }
