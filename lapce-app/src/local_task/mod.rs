@@ -14,6 +14,7 @@ use lapce_xi_rope::spans::Spans;
 use lapce_core::directory::Directory;
 use lapce_rpc::style::SemanticStyles;
 pub use requester::LocalTaskRequester;
+use crate::plugin::{VoltIcon, VoltsInfo};
 
 pub trait LocalCallback:
 Send + FnOnce((u64, Result<LocalResponse>)) {
@@ -64,6 +65,13 @@ pub enum LocalRequest {
     },
     QueryVoltInfo {
         meta: VoltMetadata
+    },
+    QueryVolts {
+        query: String,
+        offset: usize,
+    },
+    LoadIcon {
+        info: VoltInfo
     }
 }
 pub enum LocalResponse {
@@ -80,6 +88,12 @@ pub enum LocalResponse {
     QueryVoltInfo {
         info: VoltInfo
     },
+    QueryVolts {
+        volts: VoltsInfo
+    },
+    LoadIcon {
+        icon: VoltIcon
+    }
 }
 
 pub enum LocalNotification {

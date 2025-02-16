@@ -14,7 +14,9 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc};
+use sha2::{Digest, Sha256};
 use lapce_rpc::style::SemanticStyles;
+use crate::plugin::{VoltIcon, VoltsInfo};
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
@@ -66,7 +68,21 @@ impl LocalTaskHandler {
                             let rs = handle_query_volt_info(url).await;
                             handle_response(id, rs, pending);
                         });
-
+                    }
+                    LocalRequest::QueryVolts { query, offset } => {
+                        let pending = self.pending.clone();
+                        tokio::spawn(async move {
+                            let rs = handle_query_volts(&query, offset).await;
+                            handle_response(id, rs, pending);
+                        });
+                    }
+                    LocalRequest::LoadIcon { info } => {
+                        let pending = self.pending.clone();
+                        let cache_directory = self.directory.cache_directory.clone();
+                        tokio::spawn(async move {
+                            let rs = handle_load_icon(&info, cache_directory).await;
+                            handle_response(id, rs, pending);
+                        });
                     }
                 },
                 Notification { notification: _notification } => {},
@@ -76,15 +92,51 @@ impl LocalTaskHandler {
             }
         }
     }
-
-    // pub fn handle_response(&self, id: RequestId, result: Result<LocalResponse>) {
-    //     let handler = { self.pending.lock().remove(&id) };
-    //     if let Some(handler) = handler {
-    //         handler.invoke(id, result);
-    //     }
-    // }
 }
 
+async fn handle_query_volts(
+    query: &str, offset: usize
+) -> Result<LocalResponse> {
+    let url = format!(
+        "https://plugins.lapce.dev/api/v1/plugins?q={query}&offset={offset}"
+    );
+    let volts: VoltsInfo = lapce_proxy::async_get_url(url, None).await?.json().await?;
+    Ok(LocalResponse::QueryVolts { volts})
+}
+
+async fn handle_load_icon(
+    volt: &VoltInfo,
+    cache_directory: Option<PathBuf>,
+) -> Result<LocalResponse> {
+    let url = format!(
+        "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/icon?id={}",
+        volt.author, volt.name, volt.version, volt.updated_at_ts
+    );
+
+    let cache_file_path = cache_directory.map(|cache_dir| {
+        let mut hasher = Sha256::new();
+        hasher.update(url.as_bytes());
+        let filename = format!("{:x}", hasher.finalize());
+        cache_dir.join(filename)
+    });
+
+    if let Some(cache_file) = &cache_file_path {
+        if cache_file.exists() {
+            let icon = VoltIcon::from_bytes(&tokio::fs::read(cache_file).await?)?;
+            return Ok(LocalResponse::LoadIcon {icon});
+        }
+    }
+    let resp = lapce_proxy::async_get_url(&url, None).await?;
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!("can't download icon"));
+    }
+    let buf = resp.bytes().await?.to_vec();
+    if let Some(path) = cache_file_path.as_ref() {
+        tokio::fs::write(path, &buf).await?
+    }
+    let icon = VoltIcon::from_bytes(&buf)?;
+    Ok(LocalResponse::LoadIcon {icon})
+}
 
 async fn handle_spans_builder(
     len: usize,
