@@ -3,8 +3,8 @@ use std::{
     rc::Rc,
     sync::{Arc, atomic::AtomicU64}
 };
-
-use anyhow::Result;
+use std::path::PathBuf;
+use anyhow::{Result};
 use doc::lines::{
     command::EditCommand, editor_command::CommandExecuted, mode::Mode
 };
@@ -26,8 +26,9 @@ use floem::{
     }
 };
 use indexmap::IndexMap;
+use log::error;
 use lapce_core::directory::Directory;
-use lapce_proxy::plugin::{download_volt, volt_icon};
+use lapce_proxy::plugin::{volt_icon};
 use lapce_rpc::{
     core::{CoreNotification, CoreRpcHandler},
     plugin::{VoltID, VoltInfo, VoltMetadata}
@@ -193,19 +194,19 @@ impl PluginData {
                             if let LocalResponse::FindAllVolts {
                                 volts
                             } = response {
-                                for (icon, meta) in volts.into_iter()
-                                    .filter_map(|meta| {
-                                        if meta.wasm.is_none() {
-                                            Some((volt_icon(&meta), meta))
-                                        } else {
-                                            None
-                                        }
-                                    }) {
-                                    plugin.volt_installed(&meta, &icon);
+                                for meta in volts {
+                                    if meta.wasm.is_none() {
+                                        let icon = volt_icon(&meta);
+                                        plugin.volt_installed(&meta, &icon);
+                                    } else {
+                                        continue
+                                    }
                                 }
                             }
                         }
-                        Err(err) => {}
+                        Err(err) => {
+                            error!("{err:?}")
+                        }
                     }
 
                 }
@@ -348,6 +349,7 @@ impl PluginData {
         let query_id = self.available.query_id;
         let current_query_id = self.available.query_id.get_untracked();
         let all = self.all;
+        let cache_directory: Option<PathBuf> = self.common.directory.cache_directory.clone();
         let send =
             create_ext_action(self.common.scope, move |new: Result<VoltsInfo>| {
                 loading.set(false);
@@ -367,9 +369,10 @@ impl PluginData {
                                 });
                                 {
                                     let volt = volt.clone();
+                                    let cache_directory = cache_directory.clone();
                                     // todo remove thread
                                     std::thread::spawn(move || {
-                                        let result = Self::load_icon(&volt);
+                                        let result = Self::load_icon(&volt, cache_directory);
                                         send(result);
                                     });
                                 }
@@ -409,13 +412,13 @@ impl PluginData {
         });
     }
 
-    fn load_icon(volt: &VoltInfo) -> Result<VoltIcon> {
+    fn load_icon(volt: &VoltInfo, cache_directory: Option<PathBuf>) -> Result<VoltIcon> {
         let url = format!(
             "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/icon?id={}",
             volt.author, volt.name, volt.version, volt.updated_at_ts
         );
 
-        let cache_file_path = Directory::cache_directory().map(|cache_dir| {
+        let cache_file_path = cache_directory.map(|cache_dir| {
             let mut hasher = Sha256::new();
             hasher.update(url.as_bytes());
             let filename = format!("{:x}", hasher.finalize());
@@ -449,7 +452,7 @@ impl PluginData {
 
     fn download_readme(
         volt: &VoltInfo,
-        config: &LapceConfig
+        config: &LapceConfig, directory: &Directory
     ) -> Result<Vec<MarkdownContent>> {
         let url = format!(
             "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
@@ -457,11 +460,11 @@ impl PluginData {
         );
         let resp = lapce_proxy::get_url(&url, None)?;
         if resp.status() != 200 {
-            let text = parse_markdown("Plugin doesn't have a README", 2.0, config);
+            let text = parse_markdown("Plugin doesn't have a README", 2.0, config, directory);
             return Ok(text);
         }
         let text = resp.text()?;
-        let text = parse_markdown(&text, 2.0, config);
+        let text = parse_markdown(&text, 2.0, config, directory);
         Ok(text)
     }
 
@@ -496,23 +499,25 @@ impl PluginData {
         });
         if info.wasm {
             self.common.proxy.install_volt(info);
-        } else {
-            let plugin = self.clone();
-            let send = create_ext_action(self.common.scope, move |result| {
-                if let Ok((meta, icon)) = result {
-                    plugin.volt_installed(&meta, &icon);
-                }
-            });
-            // todo remove thread??
-            std::thread::spawn(move || {
-                let download = || -> Result<(VoltMetadata, Option<Vec<u8>>)> {
-                    let download_volt_result = download_volt(&info);
-                    let meta = download_volt_result?;
-                    let icon = volt_icon(&meta);
-                    Ok((meta, icon))
-                };
-                send(download());
-            });
+        // } else {
+        //     let plugin = self.clone();
+        //     let send = create_ext_action(self.common.scope, move |result| {
+        //         if let Ok((meta, icon)) = result {
+        //             plugin.volt_installed(&meta, &icon);
+        //         }
+        //     });
+        //
+        //     let plugin_dir = self.common.directory.plugins_directory.clone();
+        //     // todo remove thread??
+        //     std::thread::spawn(move || {
+        //         let download = || -> Result<(VoltMetadata, Option<Vec<u8>>)> {
+        //             let download_volt_result = download_volt(&info, &plugin_dir);
+        //             let meta = download_volt_result?;
+        //             let icon = volt_icon(&meta);
+        //             Ok((meta, icon))
+        //         };
+        //         send(download());
+        //     });
         }
     }
 
@@ -699,6 +704,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
     let scroll_width: RwSignal<f64> = create_rw_signal(0.0);
     let internal_command = plugin.common.internal_command;
     let local_plugin = plugin.clone();
+    let directory = plugin.common.directory.clone();
     let plugin_info = create_memo(move |_| {
         plugin
             .installed
@@ -930,6 +936,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         let info = plugin_info
                             .as_ref()
                             .map(|(_, info, _, _, _)| info.to_owned());
+                        let directory_clone = directory.clone();
                         create_effect(move |_| {
                             let config = config.get();
                             let info = info.clone();
@@ -941,9 +948,10 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                     }
                                 });
                                 // todo remove thread
+                                let directory = directory_clone.clone();
                                 std::thread::spawn(move || {
                                     let result =
-                                        PluginData::download_readme(&info, &config);
+                                        PluginData::download_readme(&info, &config, &directory);
 
                                     send(result);
                                 });
@@ -951,13 +959,14 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         });
                         {
                             let id = AtomicU64::new(0);
+                            let directory = directory.clone();
                             dyn_stack(
                                 move || {
                                     readme.get().unwrap_or_else(|| {
                                         parse_markdown(
                                             "Loading README",
                                             2.0,
-                                            &config.get()
+                                            &config.get(), &directory
                                         )
                                     })
                                 },

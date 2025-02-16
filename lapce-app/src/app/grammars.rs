@@ -5,11 +5,11 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow};
-use lapce_core::directory::Directory;
 use log::trace;
 
 use crate::update::ReleaseInfo;
 
+#[allow(dead_code)]
 fn get_github_api(url: &str) -> Result<String> {
     let user_agent = format!("Lapce/{}", lapce_core::meta::VERSION);
     let resp = lapce_proxy::get_url(url, Some(user_agent.as_str()))?;
@@ -19,7 +19,7 @@ fn get_github_api(url: &str) -> Result<String> {
 
     Ok(resp.text()?)
 }
-
+#[allow(dead_code)]
 pub fn find_grammar_release() -> Result<ReleaseInfo> {
     let releases: Vec<ReleaseInfo> = serde_json::from_str(&get_github_api(
         "https://api.github.com/repos/lapce/tree-sitter-grammars/releases?per_page=100",
@@ -61,34 +61,34 @@ pub fn find_grammar_release() -> Result<ReleaseInfo> {
 
     Ok(release.to_owned())
 }
-
-pub fn fetch_grammars(release: &ReleaseInfo) -> Result<bool> {
-    let dir = Directory::grammars_directory()
-        .ok_or_else(|| anyhow!("can't get grammars directory"))?;
+#[allow(dead_code)]
+pub fn fetch_grammars(release: &ReleaseInfo, grammars_directory: PathBuf) -> Result<bool> {
+    // let dir = Directory::grammars_directory().await
+    //     .ok_or_else(|| anyhow!("can't get grammars directory"))?;
 
     let file_name = format!("grammars-{}-{}", env::consts::OS, env::consts::ARCH);
 
-    let updated = download_release(dir, release, &file_name)?;
+    let updated = download_release(grammars_directory, release, &file_name)?;
 
     trace!("Successfully downloaded grammars");
 
     Ok(updated)
 }
-
-pub fn fetch_queries(release: &ReleaseInfo) -> Result<bool> {
-    let dir = Directory::queries_directory()
-        .ok_or_else(|| anyhow!("can't get queries directory"))?;
+#[allow(dead_code)]
+pub fn fetch_queries(release: &ReleaseInfo, queries_directory: PathBuf) -> Result<bool> {
+    // let dir = Directory::queries_directory()
+    //     .ok_or_else(|| anyhow!("can't get queries directory"))?;
 
     let file_name = "queries";
 
-    let updated = download_release(dir, release, file_name)?;
+    let updated = download_release(queries_directory, release, file_name)?;
 
     trace!("Successfully downloaded queries");
 
     Ok(updated)
 }
-
-fn download_release(
+#[allow(dead_code)]
+fn  download_release(
     dir: PathBuf,
     release: &ReleaseInfo,
     file_name: &str

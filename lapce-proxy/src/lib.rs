@@ -16,7 +16,7 @@ use std::{
     thread
 };
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result};
 use clap::Parser;
 use dispatch::Dispatcher;
 use lapce_core::{directory::Directory, meta};
@@ -46,17 +46,20 @@ struct Cli {
 }
 
 #[allow(unused_mut, unused_variables)]
-pub fn mainloop() {
+pub async fn mainloop() -> Result<()> {
     let cli = Cli::parse();
+    let directory = Directory::new().await?;
     if !cli.proxy {
-        if let Err(e) = cli::try_open_in_existing_process(&cli.paths) {
+        let local_socket = directory.local_socket.clone();
+        if let Err(e) = cli::try_open_in_existing_process(&cli.paths, local_socket) {
             error!("failed to open path(s): {e}");
         };
         exit(1);
     }
+
     let core_rpc = CoreRpcHandler::new();
     let proxy_rpc = ProxyRpcHandler::new();
-    let mut dispatcher = Dispatcher::new(core_rpc.clone(), proxy_rpc.clone());
+    let mut dispatcher = Dispatcher::new(core_rpc.clone(), proxy_rpc.clone(), directory.clone());
 
     let (writer_tx, writer_rx) = crossbeam_channel::unbounded();
     let (reader_tx, reader_rx) = crossbeam_channel::unbounded();
@@ -129,8 +132,9 @@ pub fn mainloop() {
     });
 
     let local_proxy_rpc = proxy_rpc.clone();
+    let local_socket = directory.local_socket.clone();
     std::thread::spawn(move || {
-        if let Err(err) = listen_local_socket(local_proxy_rpc) {
+        if let Err(err) = listen_local_socket(local_proxy_rpc, local_socket) {
             log::error!("{:?}", err);
         }
     });
@@ -138,8 +142,8 @@ pub fn mainloop() {
         log::error!("{:?}", err);
     }
 
-    todo!()
-    // proxy_rpc.mainloop(&mut dispatcher).await;
+    proxy_rpc.mainloop(&mut dispatcher).await;
+    Ok(())
 }
 
 pub fn register_lapce_path() -> Result<()> {
@@ -160,12 +164,10 @@ pub fn register_lapce_path() -> Result<()> {
     Ok(())
 }
 
-fn listen_local_socket(proxy_rpc: ProxyRpcHandler) -> Result<()> {
-    let local_socket = Directory::local_socket()
-        .ok_or_else(|| anyhow!("can't get local socket folder"))?;
-    if let Err(err) = std::fs::remove_file(&local_socket) {
-        log::error!("{:?}", err);
-    }
+#[tokio::main]
+async fn listen_local_socket(proxy_rpc: ProxyRpcHandler, local_socket: PathBuf) -> Result<()> {
+    tokio::fs::remove_file(&local_socket).await?;
+    // todo change to async
     let socket =
         interprocess::local_socket::LocalSocketListener::bind(local_socket)?;
     for stream in socket.incoming().flatten() {
@@ -212,6 +214,40 @@ pub fn get_url<T: reqwest::IntoUrl + Clone>(
     let mut try_time = 0;
     loop {
         let rs = client.get(url.clone()).send();
+        if rs.is_ok() || try_time > 3 {
+            return Ok(rs?);
+        } else {
+            try_time += 1;
+        }
+    }
+}
+
+
+pub async fn async_get_url<T: reqwest::IntoUrl + Clone>(
+    url: T,
+    user_agent: Option<&str>
+) -> Result<reqwest::Response> {
+    let mut builder = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
+        let proxy = reqwest::Proxy::all(proxy)?;
+        reqwest::Client::builder()
+            .proxy(proxy)
+            .timeout(std::time::Duration::from_secs(10))
+    } else if let Ok(proxy) = std::env::var("https_proxy") {
+        let proxy = reqwest::Proxy::all(proxy)?;
+        reqwest::Client::builder()
+            .proxy(proxy)
+            .timeout(std::time::Duration::from_secs(10))
+    } else {
+        reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+    };
+    if let Some(user_agent) = user_agent {
+        builder = builder.user_agent(user_agent);
+    }
+    let client = builder.build()?;
+    let mut try_time = 0;
+    loop {
+        let rs = client.get(url.clone()).send().await;
         if rs.is_ok() || try_time > 3 {
             return Ok(rs?);
         } else {

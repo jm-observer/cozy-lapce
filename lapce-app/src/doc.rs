@@ -44,7 +44,7 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
-    debug::LapceBreakpoint, directory::Directory, doc::DocContent, id::EditorId,
+    debug::LapceBreakpoint, doc::DocContent, id::EditorId,
     workspace::LapceWorkspace
 };
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
@@ -149,8 +149,8 @@ impl Doc {
         common: Rc<CommonData>
     ) -> Self {
         let editor_id = EditorId::next();
-        let queries_directory = Directory::queries_directory().unwrap();
-        let grammars_directory = Directory::grammars_directory().unwrap();
+        let queries_directory = common.directory.queries_directory.clone();
+        let grammars_directory = common.directory.grammars_directory.clone();
         let syntax = Syntax::init(&path, &grammars_directory, &queries_directory);
         let config = common.config.get_untracked();
         let rw_config = config.get_doc_editor_config();
@@ -241,9 +241,7 @@ impl Doc {
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
             diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
         };
-        let queries_directory = Directory::queries_directory().unwrap();
-        let grammars_directory = Directory::grammars_directory().unwrap();
-        let syntax = Syntax::plaintext(&grammars_directory, &queries_directory);
+        let syntax = Syntax::plaintext(&common.directory.grammars_directory, &common.directory.queries_directory);
         let buffer = Buffer::new("");
         let kind = cx.create_rw_signal(EditorViewKind::Normal);
 
@@ -305,12 +303,10 @@ impl Doc {
         let config = common.config.get_untracked();
         let rw_config = config.get_doc_editor_config();
 
-        let queries_directory = Directory::queries_directory().unwrap();
-        let grammars_directory = Directory::grammars_directory().unwrap();
         let syntax = if let DocContent::History(history) = &content {
-            Syntax::init(&history.path, &grammars_directory, &queries_directory)
+            Syntax::init(&history.path, &common.directory.grammars_directory, &common.directory.queries_directory)
         } else {
-            Syntax::plaintext(&grammars_directory, &queries_directory)
+            Syntax::plaintext(&common.directory.grammars_directory, &common.directory.queries_directory)
         };
         // let lines = cx.create_rw_signal(Lines::new(cx));
         let viewport = Rect::ZERO;
@@ -448,13 +444,10 @@ impl Doc {
 
     /// Set the syntax highlighting this document should use.
     pub fn set_language(&self, language: LapceLanguage) {
-        let queries_directory = Directory::queries_directory().unwrap();
-        let grammars_directory = Directory::grammars_directory().unwrap();
         self.lines.update(|x| {
             if let Err(err) = x.set_syntax(Syntax::from_language(
                 language,
-                &grammars_directory,
-                &queries_directory
+                &self.common.directory.grammars_directory, &self.common.directory.queries_directory,
             )) {
                 error!("{:?}", err);
             }
@@ -743,15 +736,15 @@ impl Doc {
             }
         });
         let mut syntax = self.syntax();
+        let grammars_directory = self.common.directory.grammars_directory.clone();
+        let queries_directory = self.common.directory.queries_directory.clone();
+
         rayon::spawn(move || {
-            let queries_directory = Directory::queries_directory().unwrap();
-            let grammars_directory = Directory::grammars_directory().unwrap();
             syntax.parse(
                 rev,
                 text,
                 edits.as_deref(),
-                &grammars_directory,
-                &queries_directory
+                &grammars_directory, &queries_directory,
             );
             send(syntax);
         });

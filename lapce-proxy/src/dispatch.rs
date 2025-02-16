@@ -41,7 +41,7 @@ use lsp_types::{
     notification::{Cancel, Notification}
 };
 use parking_lot::Mutex;
-
+use lapce_core::directory::Directory;
 use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
@@ -61,7 +61,8 @@ pub struct Dispatcher {
     terminals:     Terminals,
     file_watcher:  FileWatcher,
     window_id:     usize,
-    tab_id:        usize
+    tab_id:        usize,
+    directory: Directory
 }
 
 impl ProxyHandler for Dispatcher {
@@ -1320,6 +1321,7 @@ impl ProxyHandler for Dispatcher {
 
                 let plugin_rpc = self.catalog_rpc.clone();
                 let workspace = self.workspace.clone();
+                let directory = self.directory.clone();
                 thread::spawn(move || {
                     let mut plugin = PluginCatalog::new(
                         id,
@@ -1327,7 +1329,7 @@ impl ProxyHandler for Dispatcher {
                         disabled_volts,
                         extra_plugin_paths,
                         plugin_configurations,
-                        plugin_rpc.clone()
+                        plugin_rpc.clone(), directory
                     );
                     plugin_rpc.mainloop(&mut plugin);
                 });
@@ -1347,7 +1349,7 @@ impl ProxyHandler for Dispatcher {
 }
 
 impl Dispatcher {
-    pub fn new(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler) -> Self {
+    pub fn new(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler, directory: Directory) -> Self {
         let plugin_rpc =
             PluginCatalogRpcHandler::new(core_rpc.clone(), proxy_rpc.clone());
 
@@ -1362,7 +1364,7 @@ impl Dispatcher {
             terminals: Terminals::default(),
             file_watcher,
             window_id: 1,
-            tab_id: 1
+            tab_id: 1, directory
         }
     }
 

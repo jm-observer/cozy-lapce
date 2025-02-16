@@ -2,6 +2,9 @@
 
 use lapce_app::app;
 
-pub fn main() {
-    app::launch();
+#[tokio::main]
+pub async fn main() {
+    if let Err(err) = app::launch().await {
+        eprintln!("{}", err);
+    }
 }

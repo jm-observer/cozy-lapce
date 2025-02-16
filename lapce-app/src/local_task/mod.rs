@@ -10,7 +10,7 @@ use lapce_rpc::{RequestId};
 use lapce_rpc::plugin::VoltMetadata;
 use crate::local_task::handler::LocalTaskHandler;
 use anyhow::Result;
-
+use lapce_core::directory::Directory;
 pub use requester::LocalTaskRequester;
 
 pub trait LocalCallback:
@@ -64,12 +64,12 @@ pub enum LocalNotification {
 
 
 
-pub fn new_local_handler() -> Result<LocalTaskRequester> {
+pub fn new_local_handler(directory: Directory) -> Result<LocalTaskRequester> {
     let (tx, rx) = crossbeam_channel::unbounded();
     let pending =  Arc::new(Mutex::new(HashMap::new()));
     let requester = LocalTaskRequester::new(tx, pending.clone());
     let _handler = LocalTaskHandler {
-        rx, pending
+        rx, pending, directory
     };
     start_proxy(_handler)?;
     Ok(requester)

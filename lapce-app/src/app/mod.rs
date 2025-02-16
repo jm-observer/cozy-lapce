@@ -18,13 +18,11 @@ use doc::{
         register::Clipboard,
         text::SystemClipboard
     },
-    syntax::{Syntax, highlight::reset_highlight_configs}
 };
 use floem::{
     IntoView, View,
     action::show_context_menu,
     event::{Event, EventListener, EventPropagation},
-    ext_event::{create_ext_action, create_signal_from_channel},
     menu::{Menu, MenuItem},
     peniko::{
         Color,
@@ -54,17 +52,7 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
-use lapce_core::{
-    debug::RunDebugMode,
-    directory::Directory,
-    icon::LapceIcons,
-    id::*,
-    main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind},
-    meta,
-    panel::PanelContainerPosition,
-    workspace,
-    workspace::{LapceWorkspace, LapceWorkspaceType}
-};
+use lapce_core::{debug::RunDebugMode, directory::Directory, icon::LapceIcons, id::*, main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind}, meta, panel::PanelContainerPosition, workspace, workspace::{LapceWorkspace, LapceWorkspaceType}};
 use lapce_rpc::{
     RpcMessage,
     core::{CoreMessage, CoreNotification},
@@ -176,13 +164,14 @@ pub struct AppData {
     // pub tracing_handle: Handle<Targets>,
     pub config:         RwSignal<LapceConfig>,
     /// Paths to extra plugins to load
-    pub plugin_paths:   Arc<Vec<PathBuf>>
+    pub plugin_paths:   Arc<Vec<PathBuf>>,
+    pub directory: Directory,
 }
 
 impl AppData {
     pub fn reload_config(&self) {
         let config =
-            LapceConfig::load(&LapceWorkspace::default(), &[], &self.plugin_paths);
+            LapceConfig::load(&LapceWorkspace::default(), &[], &self.plugin_paths, &self.directory);
         self.config.set(config);
         let windows = self.windows.get_untracked();
         for (_, window) in windows {
@@ -460,7 +449,7 @@ impl AppData {
             self.window_scale,
             self.latest_release.read_only(),
             self.plugin_paths.clone(),
-            self.app_command,
+            self.app_command, &self.directory
             // self.watcher.clone()
         ).unwrap();
 
@@ -3767,7 +3756,7 @@ fn window(window_data: WindowData) -> impl View {
         .debug_name("Window")
 }
 
-pub fn launch() {
+pub async fn launch() -> Result<()>{
     let cli = Cli::parse();
 
     // ?
@@ -3819,6 +3808,7 @@ pub fn launch() {
         trace!("Loading custom environment from shell");
         load_shell_env();
     }
+    let directory = Directory::new().await?;
 
     // small hack to unblock terminal if launched from it
     // launch it as a separate process that waits
@@ -3830,7 +3820,7 @@ pub fn launch() {
         cmd.creation_flags(windows::Win32::System::Threading::CREATE_NO_WINDOW); // CREATE_NO_WINDOW
 
         let stderr_file_path =
-            Directory::logs_directory().unwrap().join("stderr.log");
+            directory.logs_directory.join("stderr.log");
         let stderr_file = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -3841,7 +3831,7 @@ pub fn launch() {
         let stderr = Stdio::from(stderr_file);
 
         let stdout_file_path =
-            Directory::logs_directory().unwrap().join("stdout.log");
+            directory.logs_directory.join("stdout.log");
         let stdout_file = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -3861,23 +3851,15 @@ pub fn launch() {
             eprintln!("Failed to launch lapce: {why}");
             std::process::exit(1);
         };
-        return;
+        return Ok(());
     }
 
     // If the cli is not requesting a new window, and we're not developing a plugin,
     // we try to open in the existing Lapce process
     if !cli.new {
-        match get_socket() {
-            Ok(socket) => {
-                if let Err(e) = try_open_in_existing_process(socket, &cli.paths) {
-                    trace!("failed to open path(s): {e}");
-                };
-                return;
-            },
-            Err(err) => {
-                log::error!("{:?}", err);
-            }
-        }
+        let socket= get_socket(directory.local_socket.clone())?;
+        try_open_in_existing_process(socket, &cli.paths)?;
+        return Ok(());
     }
 
     #[cfg(feature = "updater")]
@@ -3886,7 +3868,7 @@ pub fn launch() {
     if let Err(err) = lapce_proxy::register_lapce_path() {
         log::error!("{:?}", err);
     }
-    let db = match LapceDb::new() {
+    let db = match LapceDb::new(&directory.config_directory) {
         Ok(db) => Arc::new(db),
         Err(e) => {
             #[cfg(windows)]
@@ -3929,7 +3911,7 @@ pub fn launch() {
     // }
 
     let windows = scope.create_rw_signal(HashMap::new());
-    let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths);
+    let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths, &directory);
 
     // Restore scale from config
     window_scale.set(config.ui.scale());
@@ -3945,7 +3927,7 @@ pub fn launch() {
         app_command,
         // tracing_handle: reload_handle,
         config,
-        plugin_paths
+        plugin_paths, directory
     };
 
     let app = app_data.create_windows(db.clone(), cli.paths);
@@ -3961,70 +3943,68 @@ pub fn launch() {
     //     });
     // }
 
-    {
-        let cx = Scope::new();
-        let app_data = app_data.clone();
-        let send = create_ext_action(cx, move |updated| {
-            if updated {
-                trace!("grammar or query got updated, reset highlight configs");
-                reset_highlight_configs();
-                let queries_directory = Directory::queries_directory().unwrap();
-                let grammars_directory = Directory::grammars_directory().unwrap();
-
-                for (_, window) in app_data.windows.get_untracked() {
-                    for (_, doc) in window
-                        .window_tabs
-                        .get_untracked()
-                        .main_split
-                        .docs
-                        .get_untracked()
-                    {
-                        doc.lines.update(|lines| {
-                            if let Err(err) =
-                                lines.set_syntax(Syntax::from_language(
-                                    lines.syntax.language,
-                                    &grammars_directory,
-                                    &queries_directory
-                                ))
-                            {
-                                error!("{:?}", err);
-                            }
-                        });
-                        doc.trigger_syntax_change(None);
-                    }
-                }
-            }
-        });
-        std::thread::Builder::new()
-            .name("FindGrammar".to_owned())
-            .spawn(move || {
-                use self::grammars::*;
-                let updated = match find_grammar_release() {
-                    Ok(release) => {
-                        let mut updated = false;
-                        match fetch_grammars(&release) {
-                            Err(e) => {
-                                trace!("failed to fetch grammars: {e}");
-                            },
-                            Ok(u) => updated |= u
-                        }
-                        match fetch_queries(&release) {
-                            Err(e) => {
-                                trace!("failed to fetch grammars: {e}");
-                            },
-                            Ok(u) => updated |= u
-                        }
-                        updated
-                    },
-                    Err(e) => {
-                        trace!("failed to obtain release info: {e}");
-                        false
-                    }
-                };
-                send(updated);
-            })
-            .unwrap();
-    }
+    // todo give it to local task handler
+    // {
+    //     let cx = Scope::new();
+    //     let app_data = app_data.clone();
+    //     let send = create_ext_action(cx, move |updated| {
+    //         if updated {
+    //             trace!("grammar or query got updated, reset highlight configs");
+    //             reset_highlight_configs();
+    //             for (_, window) in app_data.windows.get_untracked() {
+    //                 for (_, doc) in window
+    //                     .window_tabs
+    //                     .get_untracked()
+    //                     .main_split
+    //                     .docs
+    //                     .get_untracked()
+    //                 {
+    //                     doc.lines.update(|lines| {
+    //                         if let Err(err) =
+    //                             lines.set_syntax(Syntax::from_language(
+    //                                 lines.syntax.language,
+    //                                 &grammars_directory,
+    //                                 &queries_directory
+    //                             ))
+    //                         {
+    //                             error!("{:?}", err);
+    //                         }
+    //                     });
+    //                     doc.trigger_syntax_change(None);
+    //                 }
+    //             }
+    //         }
+    //     });
+    //     std::thread::Builder::new()
+    //         .name("FindGrammar".to_owned())
+    //         .spawn(move || {
+    //             use self::grammars::*;
+    //             let updated = match find_grammar_release() {
+    //                 Ok(release) => {
+    //                     let mut updated = false;
+    //                     match fetch_grammars(&release) {
+    //                         Err(e) => {
+    //                             trace!("failed to fetch grammars: {e}");
+    //                         },
+    //                         Ok(u) => updated |= u
+    //                     }
+    //                     match fetch_queries(&release) {
+    //                         Err(e) => {
+    //                             trace!("failed to fetch grammars: {e}");
+    //                         },
+    //                         Ok(u) => updated |= u
+    //                     }
+    //                     updated
+    //                 },
+    //                 Err(e) => {
+    //                     trace!("failed to obtain release info: {e}");
+    //                     false
+    //                 }
+    //             };
+    //             send(updated);
+    //         })
+    //         .unwrap();
+    // }
 
     // todo restore
     // #[cfg(feature = "updater")]
@@ -4052,26 +4032,27 @@ pub fn launch() {
         //     .unwrap();
     // }
 
-    {
-        let (tx, rx) = crossbeam_channel::bounded(1);
-        let notification = create_signal_from_channel(rx);
-        let app_data = app_data.clone();
-        create_effect(move |_| {
-            if let Some(CoreNotification::OpenPaths { paths }) = notification.get() {
-                if let Some(window_tab) = app_data.active_window_tab() {
-                    window_tab.open_paths(&paths);
-                }
-            }
-        });
-        std::thread::Builder::new()
-            .name("ListenLocalSocket".to_owned())
-            .spawn(move || {
-                if let Err(err) = listen_local_socket(tx) {
-                    log::error!("{:?}", err);
-                }
-            })
-            .unwrap();
-    }
+    // todo change to local task handler
+    // {
+    //     let (tx, rx) = crossbeam_channel::bounded(1);
+    //     let notification = create_signal_from_channel(rx);
+    //     let app_data = app_data.clone();
+    //     create_effect(move |_| {
+    //         if let Some(CoreNotification::OpenPaths { paths }) = notification.get() {
+    //             if let Some(window_tab) = app_data.active_window_tab() {
+    //                 window_tab.open_paths(&paths);
+    //             }
+    //         }
+    //     });
+    //     std::thread::Builder::new()
+    //         .name("ListenLocalSocket".to_owned())
+    //         .spawn(move || {
+    //             if let Err(err) = listen_local_socket(tx) {
+    //                 log::error!("{:?}", err);
+    //             }
+    //         })
+    //         .unwrap();
+    // }
 
     {
         let app_data = app_data.clone();
@@ -4096,6 +4077,7 @@ pub fn launch() {
         },
     })
     .run();
+    Ok(())
 }
 
 /// Uses a login shell to load the correct shell environment for the current
@@ -4158,9 +4140,7 @@ pub fn load_shell_env() {
         })
 }
 
-pub fn get_socket() -> Result<interprocess::local_socket::LocalSocketStream> {
-    let local_socket = Directory::local_socket()
-        .ok_or_else(|| anyhow!("can't get local socket folder"))?;
+pub fn get_socket(local_socket: PathBuf) -> Result<interprocess::local_socket::LocalSocketStream> {
     let socket =
         interprocess::local_socket::LocalSocketStream::connect(local_socket)?;
     Ok(socket)
@@ -4194,9 +4174,8 @@ pub fn try_open_in_existing_process(
     Ok(())
 }
 
-fn listen_local_socket(tx: Sender<CoreNotification>) -> Result<()> {
-    let local_socket = Directory::local_socket()
-        .ok_or_else(|| anyhow!("can't get local socket folder"))?;
+#[allow(dead_code)]
+fn listen_local_socket(tx: Sender<CoreNotification>, local_socket: PathBuf) -> Result<()> {
     if local_socket.exists() {
         if let Err(err) = std::fs::remove_file(&local_socket) {
             log::error!("{:?}", err);

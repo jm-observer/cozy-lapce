@@ -26,6 +26,7 @@ use crate::{
 
 use anyhow::Result;
 use log::error;
+use lapce_core::directory::Directory;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
@@ -49,7 +50,7 @@ pub struct WindowCommonData {
     // the value to be update by curosr blinking
     pub hide_cursor:              RwSignal<bool>,
     pub app_view_id:              RwSignal<ViewId>,
-    pub extra_plugin_paths:       Arc<Vec<PathBuf>>
+    pub extra_plugin_paths:       Arc<Vec<PathBuf>>,
 }
 
 /// `WindowData` is the application model for a top-level window.
@@ -77,6 +78,7 @@ pub struct WindowData {
     pub config:       RwSignal<LapceConfig>,
     pub ime_enabled:  RwSignal<bool>,
     pub common:       Rc<WindowCommonData>,
+    pub directory: Directory
     // pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
 }
 
@@ -89,12 +91,12 @@ impl WindowData {
         window_scale: RwSignal<f64>,
         latest_release: ReadSignal<Option<ReleaseInfo>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
-        app_command: Listener<AppCommand>,
+        app_command: Listener<AppCommand>, directory: &Directory
         // watcher: Arc<RwLock<notify::RecommendedWatcher>>
     ) -> Result<Self> {
         let cx = Scope::new();
         let config =
-            LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths);
+            LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths, directory);
         let config = cx.create_rw_signal(config);
         let root_view_id = cx.create_rw_signal(ViewId::new());
 
@@ -135,7 +137,7 @@ impl WindowData {
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
         // w.watch_project_setting(&watcher);
         let window_tabs =
-            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone())?);
+            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone(), directory)?);
 
         // for w in info.tabs.workspaces {
         //     log::info!("WindowData {:?}", w);
@@ -172,7 +174,7 @@ impl WindowData {
             app_command,
             config,
             ime_enabled: cx.create_rw_signal(false),
-            common,
+            common, directory: directory.clone()
             // watcher
         };
 
@@ -205,7 +207,7 @@ impl WindowData {
         let config = LapceConfig::load(
             &LapceWorkspace::default(),
             &[],
-            &self.common.extra_plugin_paths
+            &self.common.extra_plugin_paths, &self.directory
         );
         self.config.set(config);
         self.window_tabs.with_untracked(|x| x.reload_config());
@@ -227,7 +229,7 @@ impl WindowData {
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace.clone(),
-                    self.common.clone()
+                    self.common.clone(), &self.directory
                 )?;
 
                 self.window_tabs.set(window_tab);
@@ -246,7 +248,7 @@ impl WindowData {
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace,
-                    self.common.clone()
+                    self.common.clone(), &self.directory
                 )?;
                 self.window_tabs.set(window_tab);
                 // let active = self.active.get_untracked();

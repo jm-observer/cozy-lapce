@@ -21,7 +21,6 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
-    directory::Directory,
     doc::{DocContent, DocHistory},
     editor_tab::{DiffEditorInfo, EditorInfo, EditorTabChildInfo, EditorTabInfo},
     id::*,
@@ -2469,15 +2468,12 @@ impl MainSplitData {
             DocContent::Scratch { .. } => {
                 let send = {
                     let path = path.clone();
-
+                    let queries_directory =self.common.directory.queries_directory.clone();
+                    let grammars_directory =self.common.directory.grammars_directory.clone();
                     create_ext_action(self.scope, move |result| {
                         if let Err(err) = result {
                             warn!("Failed to save as a file: {:?}", err);
                         } else {
-                            let queries_directory =
-                                Directory::queries_directory().unwrap();
-                            let grammars_directory =
-                                Directory::grammars_directory().unwrap();
                             let syntax = Syntax::init(
                                 &path,
                                 &grammars_directory,

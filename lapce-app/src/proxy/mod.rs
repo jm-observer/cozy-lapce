@@ -11,7 +11,7 @@ use lapce_rpc::{
     terminal::TermId
 };
 use log::error;
-
+use lapce_core::directory::Directory;
 use self::{remote::start_remote, ssh::SshRemote};
 use crate::terminal::event::TermEvent;
 
@@ -44,7 +44,7 @@ pub fn new_proxy(
     disabled_volts: Vec<VoltID>,
     extra_plugin_paths: Vec<PathBuf>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-    term_tx: Sender<(TermId, TermEvent)>
+    term_tx: Sender<(TermId, TermEvent)>, directory: &Directory
 ) -> ProxyData {
     let proxy_rpc = ProxyRpcHandler::new();
     let core_rpc = CoreRpcHandler::new();
@@ -52,6 +52,7 @@ pub fn new_proxy(
     {
         let core_rpc = core_rpc.clone();
         let proxy_rpc = proxy_rpc.clone();
+        let directory = directory.clone();
         std::thread::Builder::new()
             .name("ProxyRpcHandler".to_owned())
             .spawn(move || {
@@ -71,10 +72,11 @@ pub fn new_proxy(
                     LapceWorkspaceType::Local => {
                         let core_rpc = core_rpc.clone();
                         let proxy_rpc = proxy_rpc.clone();
+                        let directory = directory.clone();
                         std::thread::Builder::new()
                             .name("Dispatcher".to_owned())
                             .spawn(move || {
-                                start_local_proxy(core_rpc, proxy_rpc);
+                                start_local_proxy(core_rpc, proxy_rpc, directory);
                             })
                             .unwrap();
                     },
@@ -84,7 +86,7 @@ pub fn new_proxy(
                                 ssh: remote.clone()
                             },
                             core_rpc.clone(),
-                            proxy_rpc.clone()
+                            proxy_rpc.clone(), &directory
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
@@ -96,7 +98,7 @@ pub fn new_proxy(
                                 wsl: remote.clone()
                             },
                             core_rpc.clone(),
-                            proxy_rpc.clone()
+                            proxy_rpc.clone(), &directory
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
@@ -165,8 +167,8 @@ pub fn new_command(program: &str) -> Command {
 }
 
 #[tokio::main]
-async fn start_local_proxy(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler) {
-    let mut dispatcher = Dispatcher::new(core_rpc, proxy_rpc);
+async fn start_local_proxy(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler, directory: Directory) {
+    let mut dispatcher = Dispatcher::new(core_rpc, proxy_rpc, directory);
     let proxy_rpc = dispatcher.proxy_rpc.clone();
     proxy_rpc.mainloop(&mut dispatcher).await;
 }

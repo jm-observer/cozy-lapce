@@ -225,7 +225,8 @@ pub struct CommonData {
     pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
     // the current focused view which will receive keyboard events
     pub keyboard_focus:       RwSignal<Option<ViewId>>,
-    pub window_common:        Rc<WindowCommonData>
+    pub window_common:        Rc<WindowCommonData>,
+    pub directory: Directory
 }
 
 impl std::fmt::Debug for CommonData {
@@ -265,7 +266,7 @@ pub struct WindowWorkspaceData {
     pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
     pub build_data:                TreePanelData,
-    pub cursor_blink:              CursorBlink
+    pub cursor_blink:              CursorBlink,
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -358,7 +359,7 @@ impl WindowWorkspaceData {
     pub fn new(
         cx: Scope,
         workspace: LapceWorkspace,
-        window_common: Rc<WindowCommonData>
+        window_common: Rc<WindowCommonData>, directory: &Directory
     ) -> Result<Self> {
         let cx = cx.create_child();
         let db: Arc<LapceDb> = use_context().unwrap();
@@ -379,16 +380,15 @@ impl WindowWorkspaceData {
             }
             info
         };
-
         let config = LapceConfig::load(
             &workspace,
             &all_disabled_volts,
-            &window_common.extra_plugin_paths
+            &window_common.extra_plugin_paths, directory
         );
         let lapce_command = Listener::new_empty(cx);
         let workbench_command = Listener::new_empty(cx);
         let internal_command = Listener::new_empty(cx);
-        let keypress = cx.create_rw_signal(KeyPressData::new(cx, &config));
+        let keypress = cx.create_rw_signal(KeyPressData::new(cx, &config, directory));
         let proxy_status = cx.create_rw_signal(None);
 
         let (term_tx, term_rx) = crossbeam_channel::unbounded();
@@ -409,7 +409,7 @@ impl WindowWorkspaceData {
             all_disabled_volts,
             window_common.extra_plugin_paths.as_ref().clone(),
             config.plugins.clone(),
-            term_tx.clone()
+            term_tx.clone(), directory
         );
         let (config, set_config) = cx.create_signal(config);
 
@@ -436,7 +436,7 @@ impl WindowWorkspaceData {
             TextLayout::new_with_text("W", attrs_list).size().height
         });
 
-        let local_task:           LocalTaskRequester = new_local_handler()?;
+        let local_task:           LocalTaskRequester = new_local_handler(directory.clone())?;
 
         let common = Rc::new(CommonData {
             workspace: workspace.clone(), local_task,
@@ -464,7 +464,7 @@ impl WindowWorkspaceData {
             window_origin: cx.create_rw_signal(Point::ZERO),
             breakpoints: cx.create_rw_signal(BTreeMap::new()),
             keyboard_focus: cx.create_rw_signal(None),
-            window_common: window_common.clone()
+            window_common: window_common.clone(),  directory: directory.clone()
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -728,7 +728,7 @@ impl WindowWorkspaceData {
         let config = LapceConfig::load(
             &self.workspace,
             &all_disabled_volts,
-            &self.common.window_common.extra_plugin_paths
+            &self.common.window_common.extra_plugin_paths, &self.common.directory
         );
         self.common.keypress.update(|keypress| {
             keypress.update_keymaps(&config);
@@ -929,7 +929,7 @@ impl WindowWorkspaceData {
                 self.main_split.open_settings();
             }
             OpenSettingsFile => {
-                if let Some(path) = LapceConfig::settings_file() {
+                if let Some(path) = LapceConfig::settings_file(&self.common.directory.config_directory) {
                     self.main_split.jump_to_location(
                         EditorLocation {
                             path,
@@ -943,9 +943,7 @@ impl WindowWorkspaceData {
                 }
             }
             OpenSettingsDirectory => {
-                if let Some(dir) = Directory::config_directory() {
-                    open_uri(&dir);
-                }
+                open_uri(&self.common.directory.config_directory);
             }
             OpenThemeColorSettings => {
                 self.main_split.open_theme_color_settings();
@@ -954,7 +952,7 @@ impl WindowWorkspaceData {
                 self.main_split.open_keymap();
             }
             OpenKeyboardShortcutsFile => {
-                if let Some(path) = LapceConfig::keymaps_file() {
+                if let Some(path) = LapceConfig::keymaps_file(&self.common.directory.config_directory) {
                     self.main_split.jump_to_location(
                         EditorLocation {
                             path,
@@ -968,45 +966,31 @@ impl WindowWorkspaceData {
                 }
             }
             OpenLogFile => {
-                if let Some(dir) = Directory::logs_directory() {
-                    self.open_paths(&[PathObject::from_path(
-                        dir.join(format!(
-                            "lapce.{}.log",
-                            chrono::prelude::Local::now().format("%Y-%m-%d")
-                        )),
-                        false,
-                    )])
-                }
+                self.open_paths(&[PathObject::from_path(
+                    self.common.directory.logs_directory.join(format!(
+                        "lapce.{}.log",
+                        chrono::prelude::Local::now().format("%Y-%m-%d")
+                    )),
+                    false,
+                )]);
             }
             OpenLogsDirectory => {
-                if let Some(dir) = Directory::logs_directory() {
-                    open_uri(&dir);
-                }
+                open_uri(&self.common.directory.logs_directory);
             }
             OpenProxyDirectory => {
-                if let Some(dir) = Directory::proxy_directory() {
-                    open_uri(&dir);
-                }
+                    open_uri(&self.common.directory.proxy_directory);
             }
             OpenThemesDirectory => {
-                if let Some(dir) = Directory::themes_directory() {
-                    open_uri(&dir);
-                }
+                    open_uri(&self.common.directory.themes_directory);
             }
             OpenPluginsDirectory => {
-                if let Some(dir) = Directory::plugins_directory() {
-                    open_uri(&dir);
-                }
+                    open_uri(&self.common.directory.plugins_directory);
             }
             OpenGrammarsDirectory => {
-                if let Some(dir) = Directory::grammars_directory() {
-                    open_uri(&dir);
-                }
+                    open_uri(&self.common.directory.grammars_directory);
             }
             OpenQueriesDirectory => {
-                if let Some(dir) = Directory::queries_directory() {
-                    open_uri(&dir);
-                }
+                    open_uri(&self.common.directory.queries_directory);
             }
 
             InstallTheme => {}
@@ -1460,11 +1444,12 @@ impl WindowWorkspaceData {
                                     update_in_progress.set(false);
                                 },
                             );
+                            let updates_directory = self.common.directory.updates_directory.clone();
                             // todo remove thread
                             std::thread::Builder::new().name("RestartToUpdate".to_owned()).spawn(move || {
                                 let do_update = || -> anyhow::Result<()> {
                                     let src =
-                                        crate::update::download_release(&release)?;
+                                        crate::update::download_release(&release, updates_directory.as_ref())?;
 
                                     let path =
                                         crate::update::extract(&src, &process_path)?;
@@ -2063,7 +2048,7 @@ impl WindowWorkspaceData {
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
-                    new_config.set_color_theme(&self.workspace, &name);
+                    new_config.set_color_theme(&self.workspace, &name, &self.common.directory.config_directory);
                     self.set_config.set(new_config);
                 }
             },
@@ -2078,7 +2063,7 @@ impl WindowWorkspaceData {
                 } else {
                     let mut new_config = self.common.config.get_untracked();
                     new_config
-                        .set_icon_theme(&self.workspace, &name);
+                        .set_icon_theme(&self.workspace, &name , &self.common.directory.config_directory);
                     self.set_config.set(new_config);
                 }
             },

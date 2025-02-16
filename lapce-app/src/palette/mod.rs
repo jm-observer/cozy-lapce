@@ -33,7 +33,6 @@ use im::Vector;
 use itertools::Itertools;
 use lapce_core::{
     debug::{RunDebugConfigs, RunDebugMode},
-    directory::Directory,
     workspace::{LapceWorkspace, LapceWorkspaceType, SshHost, WslHost}
 };
 use lapce_rpc::proxy::ProxyResponse;
@@ -1393,9 +1392,9 @@ impl PaletteData {
                             return;
                         }
                     };
-                    let queries_directory = Directory::queries_directory().unwrap();
-                    let grammars_directory =
-                        Directory::grammars_directory().unwrap();
+
+                    let queries_directory = &self.common.directory.queries_directory;
+                    let grammars_directory  = &self.common.directory.grammars_directory;
                     if name.is_empty() || name.to_lowercase().eq("plain text") {
                         doc.set_syntax(Syntax::plaintext(
                             &grammars_directory,

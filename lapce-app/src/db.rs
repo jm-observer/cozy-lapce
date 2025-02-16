@@ -1,10 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result};
 use crossbeam_channel::{Sender, unbounded};
 use floem::{peniko::kurbo::Vec2, reactive::SignalGet};
 use lapce_core::{
-    directory::Directory,
     panel::{PanelKind, PanelOrder},
     workspace::{LapceWorkspace, WorkspaceInfo}
 };
@@ -44,9 +43,8 @@ pub struct LapceDb {
 }
 
 impl LapceDb {
-    pub fn new() -> Result<Self> {
-        let folder = Directory::config_directory()
-            .ok_or_else(|| anyhow!("can't get config directory"))?
+    pub fn new(config_directory: &Path) -> Result<Self> {
+        let folder = config_directory
             .join("db");
         let workspace_folder = folder.join("workspaces");
         if let Err(err) = std::fs::create_dir_all(&workspace_folder) {

@@ -810,6 +810,7 @@ fn color_section_list(
     common: Rc<CommonData>
 ) -> impl View {
     let config = common.config;
+    let config_directory = common.directory.config_directory.clone();
 
     let kind = kind.to_string();
     stack((
@@ -951,11 +952,12 @@ fn color_section_list(
                         let key = key.clone();
                         let local_key = key.clone();
                         let local_kind = kind.clone();
+                        let config_directory = config_directory.clone();
                         text("Reset")
                             .on_click_stop(move |_| {
                                 LapceConfig::reset_setting(
                                     &format!("color-theme.{local_kind}"),
-                                    &local_key
+                                    &local_key, &config_directory
                                 );
                                 common.internal_command.send(InternalCommand::ReloadConfig);
                             })

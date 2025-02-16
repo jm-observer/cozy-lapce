@@ -30,15 +30,15 @@ use lsp_types::{
 use parking_lot::Mutex;
 use psp_types::Notification;
 use serde_json::Value;
-
+use lapce_core::directory::Directory;
 use super::{
     PluginCatalogNotification, PluginCatalogRpcHandler,
     dap::{DapClient, DapRpcHandler, DebuggerData},
     psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback},
-    wasi::{load_all_volts, start_volt}
+    wasi::{start_volt}
 };
 use crate::plugin::{
-    install_volt, psp::PluginHandlerNotification, wasi::enable_volt
+    psp::PluginHandlerNotification, wasi::enable_volt
 };
 
 pub struct PluginCatalog {
@@ -49,18 +49,20 @@ pub struct PluginCatalog {
     debuggers:             HashMap<String, DebuggerData>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
     unactivated_volts:     HashMap<VoltID, VoltMetadata>,
-    open_files:            HashMap<PathBuf, String>
+    open_files:            HashMap<PathBuf, String>,
+    directory: Directory
 }
 
 impl PluginCatalog {
     pub fn new(
-        id: u64,
+        _id: u64,
         workspace: Option<PathBuf>,
-        disabled_volts: Vec<VoltID>,
-        extra_plugin_paths: Vec<PathBuf>,
+        _disabled_volts: Vec<VoltID>,
+        _extra_plugin_paths: Vec<PathBuf>,
         plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-        plugin_rpc: PluginCatalogRpcHandler
+        plugin_rpc: PluginCatalogRpcHandler, directory: Directory
     ) -> Self {
+        let _plugin_dir = directory.plugins_directory.clone();
         let plugin = Self {
             workspace,
             plugin_rpc: plugin_rpc.clone(),
@@ -69,12 +71,13 @@ impl PluginCatalog {
             daps: HashMap::new(),
             debuggers: HashMap::new(),
             unactivated_volts: HashMap::new(),
-            open_files: HashMap::new()
+            open_files: HashMap::new(), directory
         };
 
-        thread::spawn(move || {
-            load_all_volts(plugin_rpc, &extra_plugin_paths, disabled_volts, id);
-        });
+        // todo remove
+        // thread::spawn(move || {
+        //     load_all_volts(plugin_rpc, &extra_plugin_paths, disabled_volts, id, plugin_dir);
+        // });
 
         plugin
     }
@@ -512,7 +515,7 @@ impl PluginCatalog {
         }
     }
 
-    pub fn handle_notification(&mut self, notification: PluginCatalogNotification) {
+    pub async fn handle_notification(&mut self, notification: PluginCatalogNotification) {
         use PluginCatalogNotification::*;
         match notification {
             UnactivatedVolts(volts, id) => {
@@ -566,24 +569,25 @@ impl PluginCatalog {
                     }
                 }
             },
-            InstallVolt(volt, id) => {
-                log::debug!("InstallVolt {:?}", volt);
-                let workspace = self.workspace.clone();
-                let configurations =
-                    self.plugin_configurations.get(&volt.name).cloned();
-                let catalog_rpc = self.plugin_rpc.clone();
-                catalog_rpc.stop_volt(id, volt.clone());
-                thread::spawn(move || {
-                    if let Err(err) = install_volt(
-                        catalog_rpc,
-                        workspace,
-                        configurations,
-                        volt,
-                        id
-                    ) {
-                        log::error!("{:?}", err);
-                    }
-                });
+            InstallVolt(volt, _id) => {
+                log::debug!("todo InstallVolt {:?}", volt);
+                // todo change to async
+                // let workspace = self.workspace.clone();
+                // let configurations =
+                //     self.plugin_configurations.get(&volt.name).cloned();
+                // let catalog_rpc = self.plugin_rpc.clone();
+                // catalog_rpc.stop_volt(id, volt.clone());
+                // thread::spawn(move || {
+                    // if let Err(err) = install_volt(
+                    //     catalog_rpc,
+                    //     workspace,
+                    //     configurations,
+                    //     volt,
+                    //     id
+                    // ) {
+                    //     log::error!("{:?}", err);
+                    // }
+                // });
             },
             ReloadVolt(volt, id) => {
                 log::debug!("ReloadVolt {:?}", volt);
@@ -619,8 +623,9 @@ impl PluginCatalog {
                     }
                 }
                 let plugin_rpc = self.plugin_rpc.clone();
-                thread::spawn(move || {
-                    if let Err(err) = enable_volt(plugin_rpc, volt, id) {
+                let plugin_dir = self.directory.plugins_directory.clone();
+                tokio::spawn(async move {
+                    if let Err(err) = enable_volt(plugin_rpc, volt, id, plugin_dir).await {
                         log::error!("{:?}", err);
                     }
                 });

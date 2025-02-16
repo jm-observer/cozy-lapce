@@ -8,27 +8,27 @@ use std::{
     path::{Path, PathBuf},
     process,
     sync::{Arc, RwLock},
-    thread
+    thread,
 };
 
 use anyhow::{Result, anyhow};
 use jsonrpc_lite::{Id, Params};
-use lapce_core::directory::Directory;
 use lapce_rpc::{
     RpcError,
     plugin::{PluginId, VoltID, VoltInfo, VoltMetadata},
-    style::LineStyle
+    style::LineStyle,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
 use lsp_types::{
     DocumentFilter, InitializeParams, InitializedParams,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, Url,
     VersionedTextDocumentIdentifier, WorkDoneProgressParams, WorkspaceFolder,
-    notification::Initialized, request::Initialize
+    notification::Initialized, request::Initialize,
 };
 use parking_lot::Mutex;
 use psp_types::{Notification, Request};
 use serde_json::Value;
+use tokio::io::AsyncReadExt;
 use wasi_experimental_http_wasmtime::{HttpCtx, HttpState};
 use wasmtime_wasi::WasiCtxBuilder;
 
@@ -36,15 +36,15 @@ use super::{
     PluginCatalogRpcHandler, client_capabilities,
     psp::{
         PluginHandlerNotification, PluginHostHandler, PluginServerHandler,
-        PluginServerRpc, ResponseSender, RpcCallback, handle_plugin_server_message
+        PluginServerRpc, ResponseSender, RpcCallback, handle_plugin_server_message,
     },
-    volt_icon
+    volt_icon,
 };
 use crate::plugin::psp::PluginServerRpcHandler;
 
 #[derive(Default)]
 pub struct WasiPipe {
-    buffer: VecDeque<u8>
+    buffer: VecDeque<u8>,
 }
 
 impl WasiPipe {
@@ -78,16 +78,16 @@ impl Seek for WasiPipe {
     fn seek(&mut self, _pos: std::io::SeekFrom) -> std::io::Result<u64> {
         Err(std::io::Error::new(
             std::io::ErrorKind::Other,
-            "can not seek in a pipe"
+            "can not seek in a pipe",
         ))
     }
 }
 
 pub struct Plugin {
     #[allow(dead_code)]
-    id:             PluginId,
-    host:           PluginHostHandler,
-    configurations: Option<HashMap<String, serde_json::Value>>
+    id: PluginId,
+    host: PluginHostHandler,
+    configurations: Option<HashMap<String, serde_json::Value>>,
 }
 
 impl PluginServerHandler for Plugin {
@@ -98,14 +98,14 @@ impl PluginServerHandler for Plugin {
     fn document_supported(
         &mut self,
         language_id: Option<&str>,
-        path: Option<&Path>
+        path: Option<&Path>,
     ) -> bool {
         self.host.document_supported(language_id, path)
     }
 
     fn handle_handler_notification(
         &mut self,
-        notification: PluginHandlerNotification
+        notification: PluginHandlerNotification,
     ) {
         use PluginHandlerNotification::*;
         match notification {
@@ -120,7 +120,7 @@ impl PluginServerHandler for Plugin {
             },
             SpawnedPluginLoaded { plugin_id } => {
                 self.host.handle_spawned_plugin_loaded(plugin_id);
-            }
+            },
         }
     }
 
@@ -128,7 +128,7 @@ impl PluginServerHandler for Plugin {
         &mut self,
         method: String,
         params: Params,
-        from: String
+        from: String,
     ) {
         if let Err(err) = self.host.handle_notification(method, params, from) {
             log::error!("{:?}", err);
@@ -140,7 +140,7 @@ impl PluginServerHandler for Plugin {
         id: Id,
         method: String,
         params: Params,
-        resp: ResponseSender
+        resp: ResponseSender,
     ) {
         self.host.handle_request(id, method, params, resp);
     }
@@ -150,13 +150,13 @@ impl PluginServerHandler for Plugin {
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope
+        text: Rope,
     ) {
         self.host.handle_did_save_text_document(
             language_id,
             path,
             text_document,
-            text
+            text,
         );
     }
 
@@ -170,9 +170,9 @@ impl PluginServerHandler for Plugin {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>
-            )>
-        >
+                Option<TextDocumentContentChangeEvent>,
+            )>,
+        >,
     ) {
         self.host.handle_did_change_text_document(
             language_id,
@@ -180,7 +180,7 @@ impl PluginServerHandler for Plugin {
             delta,
             text,
             new_text,
-            change
+            change,
         );
     }
 
@@ -189,7 +189,7 @@ impl PluginServerHandler for Plugin {
         id: u64,
         tokens: lsp_types::SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
     ) {
         self.host.format_semantic_tokens(id, tokens, text, f);
     }
@@ -205,21 +205,21 @@ impl Plugin {
             Initialize::METHOD,
             #[allow(deprecated)]
             InitializeParams {
-                process_id:                Some(process::id()),
-                root_path:                 None,
-                root_uri:                  root_uri.clone(),
-                capabilities:              client_capabilities(),
-                trace:                     None,
-                client_info:               None,
-                locale:                    None,
-                initialization_options:    configurations,
-                workspace_folders:         root_uri.map(|uri| {
+                process_id: Some(process::id()),
+                root_path: None,
+                root_uri: root_uri.clone(),
+                capabilities: client_capabilities(),
+                trace: None,
+                client_info: None,
+                locale: None,
+                initialization_options: configurations,
+                workspace_folders: root_uri.map(|uri| {
                     vec![WorkspaceFolder {
                         name: uri.as_str().to_string(),
-                        uri
+                        uri,
                     }]
                 }),
-                work_done_progress_params: WorkDoneProgressParams::default()
+                work_done_progress_params: WorkDoneProgressParams::default(),
             },
             None,
             None,
@@ -229,62 +229,63 @@ impl Plugin {
                 Ok(value) => {
                     if let Ok(result) = serde_json::from_value(value) {
                         server_rpc.handle_rpc(PluginServerRpc::Handler(
-                            PluginHandlerNotification::InitializeResult(result)
+                            PluginHandlerNotification::InitializeResult(result),
                         ));
                         server_rpc.server_notification(
                             Initialized::METHOD,
                             InitializedParams {},
                             None,
                             None,
-                            false
+                            false,
                         );
                     }
                 },
                 Err(err) => {
                     log::error!("{:?}", err);
-                }
-            }
+                },
+            },
         );
     }
 
     fn shutdown(&self) {}
 }
 
-pub fn load_all_volts(
+pub async fn load_all_volts(
     plugin_rpc: PluginCatalogRpcHandler,
     extra_plugin_paths: &[PathBuf],
     disabled_volts: Vec<VoltID>,
-    id: u64
+    id: u64, plugin_dir: PathBuf
 ) {
-    let all_volts = find_all_volts(extra_plugin_paths);
-    let volts = all_volts
-        .into_iter()
-        .filter_map(|meta| {
-            meta.wasm.as_ref()?;
-            let icon = volt_icon(&meta);
-            plugin_rpc.core_rpc.volt_installed(meta.clone(), icon);
-            if disabled_volts.contains(&meta.id()) {
-                return None;
-            }
-            Some(meta)
-        })
-        .collect();
+    let all_volts = find_all_volts(extra_plugin_paths, &plugin_dir).await;
+    let mut volts = Vec::with_capacity(all_volts.len());
+    for meta in all_volts {
+        let Some(_) = meta.wasm.as_ref() else {
+            continue;
+        };
+        let icon = volt_icon(&meta);
+        plugin_rpc.core_rpc.volt_installed(meta.clone(), icon);
+        if disabled_volts.contains(&meta.id()) {
+            continue;
+        }
+        volts.push(meta);
+    }
     if let Err(err) = plugin_rpc.unactivated_volts(volts, id) {
         log::error!("{:?}", err);
     }
 }
 
-/// Find all installed volts.  
+
+/// Find all installed volts.
 /// `plugin_dev_path` allows launching Lapce with a plugin on your local system
-/// for testing purposes.  
+/// for testing purposes.
 /// As well, this function skips any volt in the typical plugin directory that
 /// match the name of the dev plugin so as to support developing a plugin you
 /// actively use.
 /// todo change to async
-pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
-    let Some(plugin_dir) = Directory::plugins_directory() else {
-        return Vec::new();
-    };
+pub fn sync_find_all_volts(extra_plugin_paths: &[PathBuf], plugin_dir: &Path) -> Vec<VoltMetadata> {
+    // let Some(plugin_dir) = Directory::plugins_directory() else {
+    //     return Vec::new();
+    // };
 
     let mut plugins: Vec<VoltMetadata> = plugin_dir
         .read_dir()
@@ -302,7 +303,7 @@ pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
 
             Some(entry.path())
         })
-        .filter_map(|path| match load_volt(&path) {
+        .filter_map(|path| match sync_load_volt(&path) {
             Ok(metadata) => Some(metadata),
             Err(e) => {
                 log::error!("Failed to load plugin: {:?}", e);
@@ -312,12 +313,72 @@ pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
         .collect();
 
     for plugin_path in extra_plugin_paths {
-        let mut metadata = match load_volt(plugin_path) {
+        let mut metadata = match sync_load_volt(plugin_path) {
             Ok(metadata) => metadata,
             Err(e) => {
                 log::error!("Failed to load extra plugin: {:?}", e);
                 continue;
             }
+        };
+
+        let pos = plugins.iter().position(|meta| {
+            meta.name == metadata.name && meta.author == metadata.author
+        });
+
+        if let Some(pos) = pos {
+            std::mem::swap(&mut plugins[pos], &mut metadata);
+        } else {
+            plugins.push(metadata);
+        }
+    }
+
+    plugins
+}
+
+/// Find all installed volts.  
+/// `plugin_dev_path` allows launching Lapce with a plugin on your local system
+/// for testing purposes.  
+/// As well, this function skips any volt in the typical plugin directory that
+/// match the name of the dev plugin so as to support developing a plugin you
+/// actively use.
+/// todo change to async
+pub async fn find_all_volts(extra_plugin_paths: &[PathBuf], plugin_dir: &Path) -> Vec<VoltMetadata> {
+    // let Some(plugin_dir) = Directory::plugins_directory().await else {
+    //     return Vec::new();
+    // };
+    let mut plugins: Vec<VoltMetadata> = vec![];
+    match tokio::fs::read_dir(&plugin_dir).await {
+        Ok(mut dir) => {
+            while let Ok(Some(entry)) = dir.next_entry().await {
+                let Some(path) = entry.metadata().await.ok().and_then(|meta| {
+                    if meta.is_file() || entry.file_name().to_str()?.starts_with('.')
+                    {
+                        return None;
+                    }
+                    Some(entry.path())
+                }) else {
+                    continue
+                };
+                match load_volt(&path).await {
+                    Ok(metadata) => plugins.push(metadata),
+                    Err(e) => {
+                        log::error!("Failed to load plugin: {:?}", e);
+                    }
+                }
+            }
+        },
+        Err(err) => {
+            log::warn!("{err:?}");
+        },
+    }
+
+    for plugin_path in extra_plugin_paths {
+        let mut metadata = match load_volt(plugin_path).await {
+            Ok(metadata) => metadata,
+            Err(e) => {
+                log::error!("Failed to load extra plugin: {:?}", e);
+                continue;
+            },
         };
 
         let pos = plugins.iter().position(|meta| {
@@ -375,7 +436,7 @@ pub fn find_all_volts(extra_plugin_paths: &[PathBuf]) -> Vec<VoltMetadata> {
 /// );
 /// let _ = std::fs::remove_file(parent_path.join("volt.toml"));
 /// ```
-pub fn load_volt(path: &Path) -> Result<VoltMetadata> {
+pub fn sync_load_volt(path: &Path) -> Result<VoltMetadata> {
     let path = path.canonicalize()?;
     let mut file = fs::File::open(path.join("volt.toml"))?;
     let mut contents = String::new();
@@ -411,16 +472,50 @@ pub fn load_volt(path: &Path) -> Result<VoltMetadata> {
 
     Ok(meta)
 }
+pub async fn load_volt(path: &Path) -> Result<VoltMetadata> {
+    let path = path.canonicalize()?;
+    let mut file = tokio::fs::File::open(path.join("volt.toml")).await?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).await?;
+    let mut meta: VoltMetadata = toml::from_str(&contents)?;
 
-pub fn enable_volt(
+    meta.dir = Some(path.clone());
+    meta.wasm = meta.wasm.as_ref().and_then(|wasm| {
+        Some(path.join(wasm).canonicalize().ok()?.to_str()?.to_string())
+    });
+    // FIXME: This does `meta.color_themes = Some([])` in case, for example,
+    // it cannot find matching files, but in that case it should do
+    // `meta.color_themes = None`
+    meta.color_themes = meta.color_themes.as_ref().map(|themes| {
+        themes
+            .iter()
+            .filter_map(|theme| {
+                Some(path.join(theme).canonicalize().ok()?.to_str()?.to_string())
+            })
+            .collect()
+    });
+    // FIXME: This does `meta.icon_themes = Some([])` in case, for example,
+    // it cannot find matching files, but in that case it should do
+    // `meta.icon_themes = None`
+    meta.icon_themes = meta.icon_themes.as_ref().map(|themes| {
+        themes
+            .iter()
+            .filter_map(|theme| {
+                Some(path.join(theme).canonicalize().ok()?.to_str()?.to_string())
+            })
+            .collect()
+    });
+
+    Ok(meta)
+}
+
+pub async fn enable_volt(
     plugin_rpc: PluginCatalogRpcHandler,
     volt: VoltInfo,
-    id: u64
+    id: u64, plugins_directory: PathBuf
 ) -> Result<()> {
-    let path = Directory::plugins_directory()
-        .ok_or_else(|| anyhow!("can't get plugin directory"))?
-        .join(volt.id().to_string());
-    let meta = load_volt(&path)?;
+    let path = plugins_directory.join(volt.id().to_string());
+    let meta = load_volt(&path).await?;
     plugin_rpc.unactivated_volts(vec![meta], id)?;
     Ok(())
 }
@@ -430,20 +525,20 @@ pub fn start_volt(
     configurations: Option<HashMap<String, serde_json::Value>>,
     plugin_rpc: PluginCatalogRpcHandler,
     meta: VoltMetadata,
-    id: u64
+    id: u64,
 ) -> Result<()> {
     let engine = wasmtime::Engine::default();
     let module = wasmtime::Module::from_file(
         &engine,
         meta.wasm
             .as_ref()
-            .ok_or_else(|| anyhow!("no wasm in plugin"))?
+            .ok_or_else(|| anyhow!("no wasm in plugin"))?,
     )?;
     let mut linker = wasmtime::Linker::new(&engine);
     wasmtime_wasi::add_to_linker(&mut linker, |s| s)?;
     HttpState::new()?.add_to_linker(&mut linker, |_| HttpCtx {
-        allowed_hosts:           Some(vec!["insecure:allow-all".to_string()]),
-        max_concurrent_requests: Some(100)
+        allowed_hosts: Some(vec!["insecure:allow-all".to_string()]),
+        max_concurrent_requests: Some(100),
     })?;
 
     let volt_path = meta
@@ -467,7 +562,7 @@ pub fn start_volt(
                     "glibc"
                 }
             },
-            _ => "glibc"
+            _ => "glibc",
         }
     };
 
@@ -486,23 +581,23 @@ pub fn start_volt(
             "VOLT_URI",
             Url::from_directory_path(volt_path)
                 .map_err(|_| anyhow!("can't convert folder path to uri"))?
-                .as_ref()
+                .as_ref(),
         )?
         .stdin(Box::new(wasi_common::pipe::ReadPipe::from_shared(
-            stdin.clone()
+            stdin.clone(),
         )))
         .stdout(Box::new(wasi_common::pipe::WritePipe::from_shared(
-            stdout.clone()
+            stdout.clone(),
         )))
         .stderr(Box::new(wasi_common::pipe::WritePipe::from_shared(
-            stderr.clone()
+            stderr.clone(),
         )))
         .preopened_dir(
             wasmtime_wasi::Dir::open_ambient_dir(
                 volt_path,
-                wasmtime_wasi::ambient_authority()
+                wasmtime_wasi::ambient_authority(),
             )?,
-            "/"
+            "/",
         )?
         .build();
     let mut store = wasmtime::Store::new(&engine, wasi);
@@ -587,8 +682,8 @@ pub fn start_volt(
                 .cloned()
                 .map(|s| DocumentFilter {
                     language: Some(s),
-                    pattern:  None,
-                    scheme:   None
+                    pattern: None,
+                    scheme: None,
                 })
                 .chain(
                     meta.activation
@@ -597,16 +692,16 @@ pub fn start_volt(
                         .cloned()
                         .map(|s| DocumentFilter {
                             language: None,
-                            pattern:  Some(s),
-                            scheme:   None
-                        })
+                            pattern: Some(s),
+                            scheme: None,
+                        }),
                 )
                 .collect(),
             plugin_rpc.core_rpc.clone(),
             rpc.clone(),
-            plugin_rpc.clone()
+            plugin_rpc.clone(),
         ),
-        configurations
+        configurations,
     };
     let local_rpc = rpc.clone();
     thread::spawn(move || {

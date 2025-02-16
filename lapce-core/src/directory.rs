@@ -3,11 +3,58 @@ use std::path::PathBuf;
 use directories::{BaseDirs, ProjectDirs};
 
 use crate::meta::NAME;
-
-pub struct Directory {}
+use anyhow::{anyhow, Result};
+#[derive(Clone, Debug)]
+pub struct Directory {
+    pub home_dir: Option<PathBuf>,
+    pub project_dirs: Option<ProjectDirs>,
+    pub data_local_directory: Option<PathBuf>,
+    pub     logs_directory: PathBuf,
+    pub     cache_directory: Option<PathBuf>,
+    pub     proxy_directory: PathBuf,
+    pub     themes_directory: PathBuf,
+    pub     plugins_directory: PathBuf,
+    pub     config_directory: PathBuf,
+    pub     local_socket: PathBuf,
+    pub     updates_directory: Option<PathBuf>,
+    pub     queries_directory: PathBuf,
+    pub     grammars_directory: PathBuf
+}
 
 impl Directory {
-    pub fn home_dir() -> Option<PathBuf> {
+    pub async fn new() -> Result<Self> {
+        let home_dir = Self::home_dir();
+        let project_dirs = Self::project_dirs();
+        let data_local_directory = Self::data_local_directory().await;
+        let logs_directory = Self::logs_directory().await.ok_or(anyhow!("logs directory missing"))?;
+        let cache_directory = Self::cache_directory().await;
+
+        let proxy_directory = Self::proxy_directory().await.ok_or(anyhow!("proxy directory missing"))?;
+        let themes_directory = Self::themes_directory().await.ok_or(anyhow!("themes directory missing"))?;
+        let plugins_directory = Self::plugins_directory().await.ok_or(anyhow!("plugins directory missing"))?;
+        let config_directory = Self::config_directory().await.ok_or(anyhow!("config directory missing"))?;
+        let local_socket = Self::local_socket().await.ok_or(anyhow!("local socket missing"))?;
+
+        let updates_directory = Self::updates_directory().await;
+        let queries_directory = Self::queries_directory().await.ok_or(anyhow!("queries directory missing"))?;
+        let grammars_directory = Self::grammars_directory().await.ok_or(anyhow!("grammars directory missing"))?;
+        Ok(Self {
+            home_dir,
+            project_dirs,
+            data_local_directory,
+            logs_directory,
+            cache_directory,
+            proxy_directory,
+            themes_directory,
+            plugins_directory,
+            config_directory,
+            local_socket,
+            updates_directory,
+            queries_directory,
+            grammars_directory,
+        })
+    }
+    fn home_dir() -> Option<PathBuf> {
         BaseDirs::new().map(|d| PathBuf::from(d.home_dir()))
     }
 
@@ -32,12 +79,12 @@ impl Directory {
     // Local data directory differs from data directory
     // on some platforms and is not transferred across
     // machines
-    pub fn data_local_directory() -> Option<PathBuf> {
+    async fn data_local_directory() -> Option<PathBuf> {
         match Self::project_dirs() {
             Some(dir) => {
                 let dir = dir.data_local_dir();
                 if !dir.exists() {
-                    if let Err(err) = std::fs::create_dir_all(dir) {
+                    if let Err(err) = tokio::fs::create_dir_all(dir).await {
                         log::error!("{:?}", err);
                     }
                 }
@@ -49,8 +96,8 @@ impl Directory {
 
     /// Get the path to logs directory
     /// Each log file is for individual application startup
-    pub fn logs_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn logs_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("logs");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {
@@ -64,8 +111,8 @@ impl Directory {
     }
 
     /// Get the path to cache directory
-    pub fn cache_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn cache_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("cache");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {
@@ -81,8 +128,8 @@ impl Directory {
     /// Directory to store proxy executables used on local
     /// host as well, as ones uploaded to remote host when
     /// connecting
-    pub fn proxy_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn proxy_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("proxy");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {
@@ -97,8 +144,8 @@ impl Directory {
 
     /// Get the path to the themes folder
     /// Themes are stored within as individual toml files
-    pub fn themes_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn themes_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("themes");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {
@@ -114,11 +161,11 @@ impl Directory {
     // Get the path to plugins directory
     // Each plugin has own directory that contains
     // metadata file and plugin wasm
-    pub fn plugins_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn plugins_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("plugins");
             if !dir.exists() {
-                if let Err(err) = std::fs::create_dir(&dir) {
+                if let Err(err) = tokio::fs::create_dir(&dir).await {
                     log::error!("{:?}", err);
                 }
             }
@@ -129,12 +176,12 @@ impl Directory {
     }
 
     // Config directory contain only configuration files
-    pub fn config_directory() -> Option<PathBuf> {
+    async fn config_directory() -> Option<PathBuf> {
         match Self::project_dirs() {
             Some(dir) => {
                 let dir = dir.config_dir();
                 if !dir.exists() {
-                    if let Err(err) = std::fs::create_dir_all(dir) {
+                    if let Err(err) = tokio::fs::create_dir_all(dir).await {
                         log::error!("{:?}", err);
                     }
                 }
@@ -144,12 +191,12 @@ impl Directory {
         }
     }
 
-    pub fn local_socket() -> Option<PathBuf> {
-        Self::data_local_directory().map(|dir| dir.join("local.sock"))
+    async fn local_socket() -> Option<PathBuf> {
+        Self::data_local_directory().await.map(|dir| dir.join("local.sock"))
     }
 
-    pub fn updates_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn updates_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("updates");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {
@@ -162,11 +209,11 @@ impl Directory {
         }
     }
 
-    pub fn queries_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::config_directory() {
+    async fn queries_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::config_directory().await {
             let dir = dir.join("queries");
             if !dir.exists() {
-                if let Err(err) = std::fs::create_dir(&dir) {
+                if let Err(err) = tokio::fs::create_dir(&dir).await {
                     log::error!("{:?}", err);
                 }
             }
@@ -177,8 +224,8 @@ impl Directory {
         }
     }
 
-    pub fn grammars_directory() -> Option<PathBuf> {
-        if let Some(dir) = Self::data_local_directory() {
+    async fn grammars_directory() -> Option<PathBuf> {
+        if let Some(dir) = Self::data_local_directory().await {
             let dir = dir.join("grammars");
             if !dir.exists() {
                 if let Err(err) = std::fs::create_dir(&dir) {

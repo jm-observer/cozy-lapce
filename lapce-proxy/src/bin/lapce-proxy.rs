@@ -1,5 +1,6 @@
 use lapce_proxy::mainloop;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     mainloop();
 }

@@ -7,7 +7,6 @@ pub mod wasi;
 use std::{
     borrow::Cow,
     collections::HashMap,
-    fs,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -21,7 +20,6 @@ use crossbeam_channel::{Receiver, Sender};
 use dyn_clone::DynClone;
 use flate2::read::GzDecoder;
 use jsonrpc_lite::Id;
-use lapce_core::directory::Directory;
 use lapce_rpc::{
     RequestId, RpcError,
     core::CoreRpcHandler,
@@ -254,7 +252,8 @@ impl PluginCatalogRpcHandler {
         }
     }
 
-    pub fn mainloop(&self, plugin: &mut PluginCatalog) {
+    #[tokio::main]
+    pub async fn mainloop(&self, plugin: &mut PluginCatalog) {
         let plugin_rx = self.plugin_rx.lock().take().unwrap();
         for msg in plugin_rx {
             match msg {
@@ -299,7 +298,7 @@ impl PluginCatalogRpcHandler {
                     );
                 },
                 PluginCatalogRpc::Handler(notification) => {
-                    plugin.handle_notification(notification);
+                    plugin.handle_notification(notification).await;
                 },
                 PluginCatalogRpc::FormatSemanticTokens {
                     plugin_id,
@@ -1658,21 +1657,21 @@ pub fn volt_icon(volt: &VoltMetadata) -> Option<Vec<u8>> {
     std::fs::read(icon).ok()
 }
 
-pub fn download_volt(volt: &VoltInfo) -> Result<VoltMetadata> {
+pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<VoltMetadata> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/download",
         volt.author, volt.name, volt.version
     );
 
-    let resp = crate::get_url(url, None)?;
+    let resp = crate::async_get_url(url, None).await?;
     if !resp.status().is_success() {
         return Err(anyhow!("can't download plugin"));
     }
 
     // this is the s3 url
-    let url = resp.text()?;
+    let url = resp.text().await?;
 
-    let mut resp = crate::get_url(url, None)?;
+    let resp = crate::async_get_url(url, None).await?;
     if !resp.status().is_success() {
         return Err(anyhow!("can't download plugin"));
     }
@@ -1684,36 +1683,35 @@ pub fn download_volt(volt: &VoltInfo) -> Result<VoltMetadata> {
         == Some("application/zstd");
 
     let id = volt.id();
-    let plugin_dir = Directory::plugins_directory()
-        .ok_or_else(|| anyhow!("can't get plugin directory"))?
-        .join(id.to_string());
-    if let Err(err) = fs::remove_dir_all(&plugin_dir) {
-        log::error!("{:?}", err);
-    }
-    fs::create_dir_all(&plugin_dir)?;
 
+    let plugin_dir = plugins_directory
+        .join(id.to_string());
+    tokio::fs::remove_dir_all(&plugin_dir).await?;
+    tokio::fs::create_dir_all(&plugin_dir).await?;
+
+    let bytes = resp.bytes().await?;
     if is_zstd {
-        let tar = zstd::Decoder::new(&mut resp).unwrap();
+        let tar = zstd::Decoder::new(bytes.as_ref()).unwrap();
         let mut archive = Archive::new(tar);
         archive.unpack(&plugin_dir)?;
     } else {
-        let tar = GzDecoder::new(&mut resp);
+        let tar = GzDecoder::new(bytes.as_ref());
         let mut archive = Archive::new(tar);
         archive.unpack(&plugin_dir)?;
     }
 
-    let meta = load_volt(&plugin_dir)?;
+    let meta = load_volt(&plugin_dir).await?;
     Ok(meta)
 }
 
-pub fn install_volt(
+pub async  fn install_volt(
     catalog_rpc: PluginCatalogRpcHandler,
     workspace: Option<PathBuf>,
     configurations: Option<HashMap<String, serde_json::Value>>,
     volt: VoltInfo,
-    id: u64
+    id: u64, plugins_directory: PathBuf
 ) -> Result<()> {
-    let download_volt_result = download_volt(&volt);
+    let download_volt_result = download_volt(&volt, &plugins_directory).await;
     if download_volt_result.is_err() {
         catalog_rpc
             .core_rpc

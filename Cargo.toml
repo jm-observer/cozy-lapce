@@ -10,6 +10,7 @@ default-run  = "lapce"
 [dependencies]
 lapce-app   = { path = "./lapce-app" }
 lapce-proxy = { path = "./lapce-proxy" }
+tokio = {workspace = true}
 
 [[bin]]
 name = "lapce"
@@ -44,6 +45,7 @@ hashbrown         = { version = "0.14.5", features = ["serde"] }
 im                = { version = "15.0.0", features = ["serde"] }
 include_dir       = { version = "0.7" }
 indexmap          = { version = "2.0", features = ["serde"] }
+# todo change to async???
 interprocess      = { version = "1.2.1" }
 itertools         = { version = "0.12.1" }
 notify            = { version = "5.2.0", features = ["serde"] }
@@ -96,7 +98,7 @@ peniko = "=0.3.1"
 ahash       = "0.8.11"
 arc-swap    = "1.6.0"
 libloading  = "0.8.1"
-tokio = { version = "1.43.0", features = ["io-std", "io-util", "macros", "rt", "sync", "process", "rt-multi-thread", "time"] }
+tokio = { version = "1.43.0", features = ["io-std", "io-util", "macros", "rt", "sync", "process", "rt-multi-thread", "time", "fs"] }
 cargo_metadata = "0.19.1"
 vte = "=0.14.1"
 bitflags = "2.6.0"
@@ -111,7 +113,8 @@ unicode-segmentation = "1.12.0"
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
 [patch."https://github.com/lapce/floem"]
-floem = { git="https://github.com/jm-observer/floem", branch = "commit-no" }
+#floem = { git="https://github.com/jm-observer/floem", branch = "commit-no" }
+floem = { path = "../floem"}
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"

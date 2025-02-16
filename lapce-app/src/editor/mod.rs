@@ -51,6 +51,7 @@ use lsp_types::{
     Range, TextEdit
 };
 use nucleo::Utf32Str;
+use lapce_core::directory::Directory;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -3202,9 +3203,10 @@ impl EditorData {
         let config = self.common.config;
         let hover_data = self.common.hover.clone();
         let editor_id = self.id();
+        let directory = self.common.directory.clone();
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
-                let content = parse_hover_resp(hover, &config.get_untracked());
+                let content = parse_hover_resp(hover, &config.get_untracked(), &directory);
                 batch(|| {
                     hover_data.content.set(content);
                     hover_data.offset.set(offset);
@@ -3962,20 +3964,20 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 
 fn parse_hover_resp(
     hover: lsp_types::Hover,
-    config: &LapceConfig
+    config: &LapceConfig, directory: &Directory,
 ) -> Vec<MarkdownContent> {
     match hover.contents {
         HoverContents::Scalar(text) => match text {
-            MarkedString::String(text) => parse_markdown(&text, 1.8, config),
+            MarkedString::String(text) => parse_markdown(&text, 1.8, config, directory),
             MarkedString::LanguageString(code) => parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config
+                config, directory
             )
         },
         HoverContents::Array(array) => array
             .into_iter()
-            .map(|t| from_marked_string(t, config))
+            .map(|t| from_marked_string(t, config, directory))
             .rev()
             .reduce(|mut contents, more| {
                 contents.push(MarkdownContent::Separator);
@@ -3985,7 +3987,7 @@ fn parse_hover_resp(
             .unwrap_or_default(),
         HoverContents::Markup(content) => match content.kind {
             MarkupKind::PlainText => from_plaintext(&content.value, 1.8, config),
-            MarkupKind::Markdown => parse_markdown(&content.value, 1.8, config)
+            MarkupKind::Markdown => parse_markdown(&content.value, 1.8, config, directory)
         }
     }
 }
