@@ -1651,10 +1651,17 @@ pub enum PluginNotification {
     }
 }
 
+/// todo remove
 pub fn volt_icon(volt: &VoltMetadata) -> Option<Vec<u8>> {
     let dir = volt.dir.as_ref()?;
     let icon = dir.join(volt.icon.as_ref()?);
     std::fs::read(icon).ok()
+}
+
+pub async fn async_volt_icon(volt: &VoltMetadata) -> Option<Vec<u8>> {
+    let dir = volt.dir.as_ref()?;
+    let icon = dir.join(volt.icon.as_ref()?);
+    tokio::fs::read(icon).await.ok()
 }
 
 pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<VoltMetadata> {
@@ -1686,7 +1693,9 @@ pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<
 
     let plugin_dir = plugins_directory
         .join(id.to_string());
-    tokio::fs::remove_dir_all(&plugin_dir).await?;
+    if plugin_dir.exists() {
+        tokio::fs::remove_dir_all(&plugin_dir).await?;
+    }
     tokio::fs::create_dir_all(&plugin_dir).await?;
 
     let bytes = resp.bytes().await?;
@@ -1704,7 +1713,7 @@ pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<
     Ok(meta)
 }
 
-pub async  fn install_volt(
+pub async fn install_volt(
     catalog_rpc: PluginCatalogRpcHandler,
     workspace: Option<PathBuf>,
     configurations: Option<HashMap<String, serde_json::Value>>,

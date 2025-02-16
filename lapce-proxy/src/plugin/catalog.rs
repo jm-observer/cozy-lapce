@@ -31,12 +31,7 @@ use parking_lot::Mutex;
 use psp_types::Notification;
 use serde_json::Value;
 use lapce_core::directory::Directory;
-use super::{
-    PluginCatalogNotification, PluginCatalogRpcHandler,
-    dap::{DapClient, DapRpcHandler, DebuggerData},
-    psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback},
-    wasi::{start_volt}
-};
+use super::{PluginCatalogNotification, PluginCatalogRpcHandler, dap::{DapClient, DapRpcHandler, DebuggerData}, psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback}, wasi::{start_volt}, install_volt};
 use crate::plugin::{
     psp::PluginHandlerNotification, wasi::enable_volt
 };
@@ -569,25 +564,24 @@ impl PluginCatalog {
                     }
                 }
             },
-            InstallVolt(volt, _id) => {
-                log::debug!("todo InstallVolt {:?}", volt);
-                // todo change to async
-                // let workspace = self.workspace.clone();
-                // let configurations =
-                //     self.plugin_configurations.get(&volt.name).cloned();
-                // let catalog_rpc = self.plugin_rpc.clone();
-                // catalog_rpc.stop_volt(id, volt.clone());
-                // thread::spawn(move || {
-                    // if let Err(err) = install_volt(
-                    //     catalog_rpc,
-                    //     workspace,
-                    //     configurations,
-                    //     volt,
-                    //     id
-                    // ) {
-                    //     log::error!("{:?}", err);
-                    // }
-                // });
+            InstallVolt(volt, id) => {
+                let workspace = self.workspace.clone();
+                let configurations =
+                    self.plugin_configurations.get(&volt.name).cloned();
+                let catalog_rpc = self.plugin_rpc.clone();
+                let plugin_dir = self.directory.plugins_directory.clone();
+                catalog_rpc.stop_volt(id, volt.clone());
+                tokio::spawn(async move {
+                    if let Err(err) = install_volt(
+                        catalog_rpc,
+                        workspace,
+                        configurations,
+                        volt,
+                        id, plugin_dir
+                    ).await {
+                        log::error!("{:?}", err);
+                    }
+                });
             },
             ReloadVolt(volt, id) => {
                 log::debug!("ReloadVolt {:?}", volt);

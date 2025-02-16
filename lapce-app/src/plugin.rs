@@ -499,25 +499,27 @@ impl PluginData {
         });
         if info.wasm {
             self.common.proxy.install_volt(info);
-        // } else {
-        //     let plugin = self.clone();
-        //     let send = create_ext_action(self.common.scope, move |result| {
-        //         if let Ok((meta, icon)) = result {
-        //             plugin.volt_installed(&meta, &icon);
-        //         }
-        //     });
-        //
-        //     let plugin_dir = self.common.directory.plugins_directory.clone();
-        //     // todo remove thread??
-        //     std::thread::spawn(move || {
-        //         let download = || -> Result<(VoltMetadata, Option<Vec<u8>>)> {
-        //             let download_volt_result = download_volt(&info, &plugin_dir);
-        //             let meta = download_volt_result?;
-        //             let icon = volt_icon(&meta);
-        //             Ok((meta, icon))
-        //         };
-        //         send(download());
-        //     });
+        } else {
+            let plugin = self.clone();
+            let send = create_ext_action(self.common.scope, move |(meta, icon)| {
+                plugin.volt_installed(&meta, &icon);
+            });
+            self.common.local_task.request_async(LocalRequest::InstallVolt {
+                info
+            }, move |(_id, rs)| {
+                match rs {
+                    Ok(response) => {
+                        if let LocalResponse::InstallVolt {
+                            volt, icon
+                        } = response {
+                            send((volt, icon));
+                        }
+                    }
+                    Err(err) => {
+                        error!("{err:?}")
+                    }
+                }
+            });
         }
     }
 

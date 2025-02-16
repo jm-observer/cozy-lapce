@@ -70,7 +70,7 @@ use crate::{
     },
     window_workspace::CommonData
 };
-
+use crate::local_task::{LocalRequest, LocalResponse};
 // #[derive(Clone, Debug)]
 // pub struct DiagnosticData {
 //     pub expanded: RwSignal<bool>,
@@ -794,7 +794,11 @@ impl Doc {
         });
 
         let doc = self.clone();
+        let atomic_rev_clone = atomic_rev.clone();
         let send = create_ext_action(self.scope, move |(styles, result_id)| {
+            if atomic_rev_clone.load(atomic::Ordering::Acquire) != rev {
+                return;
+            }
             if let Some(styles) = styles {
                 // error!("{:?}", styles);
                 match doc.lines.try_update(|x| {
@@ -810,6 +814,7 @@ impl Doc {
                 }
             }
         });
+        let local_task = self.common.local_task.clone();
         self.common
             .proxy
             .get_semantic_tokens(path, move |(_, result)| {
@@ -821,28 +826,23 @@ impl Doc {
                         return;
                     }
                     if atomic_rev.load(atomic::Ordering::Acquire) != rev {
-                        send((None, result_id));
                         return;
                     }
-
-                    // todo remove thread
-                    std::thread::spawn(move || {
-                        let mut styles_span = SpansBuilder::new(len);
-                        for style in styles.styles {
-                            if atomic_rev.load(atomic::Ordering::Acquire) != rev {
-                                send((None, result_id));
-                                return;
+                    local_task.request_async(LocalRequest::SpansBuilder {
+                        styles, result_id, len
+                    }, move |(_id, rs)| {
+                        match rs {
+                            Ok(response) => {
+                                if let LocalResponse::SpansBuilder {
+                                    styles, result_id
+                                } = response {
+                                    send((Some(styles), result_id));
+                                }
                             }
-                            if let Some(fg) = style.style.fg_color {
-                                styles_span.add_span(
-                                    Interval::new(style.start, style.end),
-                                    fg
-                                );
+                            Err(err) => {
+                                error!("{err:?}")
                             }
                         }
-
-                        let styles = styles_span.build();
-                        send((Some(styles), result_id));
                     });
                 } else {
                     send((None, None));

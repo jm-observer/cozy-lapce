@@ -7,10 +7,12 @@ use std::sync::Arc;
 use std::thread;
 use parking_lot::Mutex;
 use lapce_rpc::{RequestId};
-use lapce_rpc::plugin::VoltMetadata;
+use lapce_rpc::plugin::{VoltInfo, VoltMetadata};
 use crate::local_task::handler::LocalTaskHandler;
 use anyhow::Result;
+use lapce_xi_rope::spans::Spans;
 use lapce_core::directory::Directory;
+use lapce_rpc::style::SemanticStyles;
 pub use requester::LocalTaskRequester;
 
 pub trait LocalCallback:
@@ -45,18 +47,33 @@ pub enum LocalRpc {
     Notification {
         notification: LocalNotification,
     },
-    Shutdown
+    // Shutdown
 }
 
 pub enum LocalRequest {
     FindAllVolts {
         extra_plugin_paths:       Arc<Vec<PathBuf>>
     },
+    SpansBuilder {
+        len: usize,
+        styles:    SemanticStyles,
+        result_id: Option<String>
+    },
+    InstallVolt {
+        info: VoltInfo
+    }
 }
 pub enum LocalResponse {
     FindAllVolts {
         volts:       Vec<VoltMetadata>
     },
+    SpansBuilder {
+        styles: Spans<String>,
+        result_id: Option<String>
+    },
+    InstallVolt {
+        volt: VoltMetadata, icon: Option<Vec<u8>>
+    }
 }
 
 pub enum LocalNotification {
