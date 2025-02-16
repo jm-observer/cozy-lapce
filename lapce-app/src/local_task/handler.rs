@@ -14,6 +14,7 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc};
+use lapce_rpc::style::SemanticStyles;
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
@@ -29,35 +30,23 @@ impl LocalTaskHandler {
             match msg {
                 Request { id, request } => match request {
                     LocalRequest::FindAllVolts { extra_plugin_paths } => {
-                        let volts = find_all_volts(
-                            &extra_plugin_paths,
-                            &self.directory.plugins_directory,
-                        )
-                        .await;
-                        self.handle_response(
-                            id,
-                            Ok(LocalResponse::FindAllVolts { volts }),
-                        );
+                        let plugin_dir = self.directory.plugins_directory.clone();
+                        let pending = self.pending.clone();
+                        tokio::spawn(async move {
+                            let rs = handle_find_all_volts(extra_plugin_paths, plugin_dir).await;
+                            handle_response(id, rs, pending);
+                        });
                     },
                     LocalRequest::SpansBuilder {
                         len,
                         styles,
                         result_id,
                     } => {
-                        let mut styles_span = SpansBuilder::new(len);
-                        for style in styles.styles {
-                            if let Some(fg) = style.style.fg_color {
-                                styles_span.add_span(
-                                    Interval::new(style.start, style.end),
-                                    fg,
-                                );
-                            }
-                        }
-                        let styles = styles_span.build();
-                        self.handle_response(
-                            id,
-                            Ok(LocalResponse::SpansBuilder { styles, result_id }),
-                        );
+                        let pending = self.pending.clone();
+                        tokio::spawn(async move {
+                            let rs = handle_spans_builder(len, styles, result_id).await;
+                            handle_response(id, rs, pending);
+                        });
                     },
                     LocalRequest::InstallVolt { info } => {
                         let plugin_dir = self.directory.plugins_directory.clone();
@@ -76,12 +65,42 @@ impl LocalTaskHandler {
         }
     }
 
-    pub fn handle_response(&self, id: RequestId, result: Result<LocalResponse>) {
-        let handler = { self.pending.lock().remove(&id) };
-        if let Some(handler) = handler {
-            handler.invoke(id, result);
+    // pub fn handle_response(&self, id: RequestId, result: Result<LocalResponse>) {
+    //     let handler = { self.pending.lock().remove(&id) };
+    //     if let Some(handler) = handler {
+    //         handler.invoke(id, result);
+    //     }
+    // }
+}
+
+
+async fn handle_spans_builder(
+    len: usize,
+    styles:    SemanticStyles,
+    result_id: Option<String>
+) -> Result<LocalResponse> {
+    let mut styles_span = SpansBuilder::new(len);
+    for style in styles.styles {
+        if let Some(fg) = style.style.fg_color {
+            styles_span.add_span(
+                Interval::new(style.start, style.end),
+                fg,
+            );
         }
     }
+    let styles = styles_span.build();
+    Ok(LocalResponse::SpansBuilder { styles, result_id })
+}
+async fn handle_find_all_volts(
+    extra_plugin_paths:       Arc<Vec<PathBuf>>,
+    plugin_dir: PathBuf,
+) -> Result<LocalResponse> {
+    let volts = find_all_volts(
+        &extra_plugin_paths,
+        &plugin_dir,
+    )
+        .await;
+    Ok(LocalResponse::FindAllVolts { volts })
 }
 
 async fn handle_install_volt(
