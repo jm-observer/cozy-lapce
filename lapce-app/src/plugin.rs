@@ -20,7 +20,6 @@ use floem::{
     },
 };
 use indexmap::IndexMap;
-use lapce_core::directory::Directory;
 use lapce_proxy::plugin::volt_icon;
 use lapce_rpc::{
     core::{CoreNotification, CoreRpcHandler},
@@ -38,7 +37,7 @@ use std::{
 use crate::local_task::{LocalRequest, LocalResponse};
 use crate::{
     command::CommandKind,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     db::LapceDb,
     keypress::{KeyPressFocus, condition::Condition},
     markdown::{MarkdownContent, parse_markdown},
@@ -424,30 +423,6 @@ impl PluginData {
         );
     }
 
-    fn download_readme(
-        volt: &VoltInfo,
-        config: &LapceConfig,
-        directory: &Directory,
-    ) -> Result<Vec<MarkdownContent>> {
-        let url = format!(
-            "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
-            volt.author, volt.name, volt.version
-        );
-        let resp = lapce_proxy::get_url(&url, None)?;
-        if resp.status() != 200 {
-            let text = parse_markdown(
-                "Plugin doesn't have a README",
-                2.0,
-                config,
-                directory,
-            );
-            return Ok(text);
-        }
-        let text = resp.text()?;
-        let text = parse_markdown(&text, 2.0, config, directory);
-        Ok(text)
-    }
-
     fn all_loaded(&self) -> bool {
         self.available.volts.with_untracked(|v| v.len())
             >= self.available.total.get_untracked()
@@ -678,6 +653,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
     let internal_command = plugin.common.internal_command;
     let local_plugin = plugin.clone();
     let directory = plugin.common.directory.clone();
+    let local_task = plugin.common.local_task.clone();
     let plugin_info = create_memo(move |_| {
         plugin
             .installed
@@ -909,26 +885,28 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         let info = plugin_info
                             .as_ref()
                             .map(|(_, info, _, _, _)| info.to_owned());
-                        let directory_clone = directory.clone();
+                        let local_task = local_task.clone();
                         create_effect(move |_| {
-                            let config = config.get();
+                            let _config = config.get();
                             let info = info.clone();
                             if let Some(info) = info {
                                 let cx = Scope::current();
-                                let send = create_ext_action(cx, move |result| {
-                                    if let Ok(md) = result {
+                                let send = create_ext_action(cx, move |md| {
                                         readme.set(Some(md));
-                                    }
                                 });
-                                // todo remove thread
-                                let directory = directory_clone.clone();
-                                std::thread::spawn(move || {
-                                    let result = PluginData::download_readme(
-                                        &info, &config, &directory,
-                                    );
-
-                                    send(result);
-                                });
+                                local_task.request_async(
+                                    LocalRequest::DownloadVoltReadme { info },
+                                    move |(_id, rs)| match rs {
+                                        Ok(response) => {
+                                            if let LocalResponse::DownloadVoltReadme { readme } = response {
+                                                send(readme);
+                                            }
+                                        },
+                                        Err(err) => {
+                                            error!("{err:?}")
+                                        },
+                                    },
+                                );
                             }
                         });
                         {

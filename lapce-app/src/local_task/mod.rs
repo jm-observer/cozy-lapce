@@ -1,24 +1,25 @@
-mod requester;
 mod handler;
+mod requester;
 
+use crate::local_task::handler::LocalTaskHandler;
+use crate::plugin::{VoltIcon, VoltsInfo};
+use anyhow::Result;
+use lapce_core::directory::Directory;
+use lapce_rpc::RequestId;
+use lapce_rpc::plugin::{VoltInfo, VoltMetadata};
+use lapce_rpc::style::SemanticStyles;
+use lapce_xi_rope::spans::Spans;
+use parking_lot::Mutex;
+pub use requester::LocalTaskRequester;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use parking_lot::Mutex;
-use lapce_rpc::{RequestId};
-use lapce_rpc::plugin::{VoltInfo, VoltMetadata};
-use crate::local_task::handler::LocalTaskHandler;
-use anyhow::Result;
-use lapce_xi_rope::spans::Spans;
-use lapce_core::directory::Directory;
-use lapce_rpc::style::SemanticStyles;
-pub use requester::LocalTaskRequester;
-use crate::plugin::{VoltIcon, VoltsInfo};
+use crossbeam_channel::Receiver;
+use crate::config::LapceConfig;
+use crate::markdown::MarkdownContent;
 
-pub trait LocalCallback:
-Send + FnOnce((u64, Result<LocalResponse>)) {
-}
+pub trait LocalCallback: Send + FnOnce((u64, Result<LocalResponse>)) {}
 
 impl<F: Send + FnOnce((u64, Result<LocalResponse>))> LocalCallback for F {}
 
@@ -40,10 +41,10 @@ impl LocalResponseHandler {
     }
 }
 
-
 pub enum LocalRpc {
     Request {
-        id: RequestId, request: LocalRequest
+        id: RequestId,
+        request: LocalRequest,
     },
     Notification {
         notification: LocalNotification,
@@ -51,20 +52,22 @@ pub enum LocalRpc {
     // Shutdown
 }
 
+
+#[derive(Debug)]
 pub enum LocalRequest {
     FindAllVolts {
-        extra_plugin_paths:       Arc<Vec<PathBuf>>
+        extra_plugin_paths: Arc<Vec<PathBuf>>,
     },
     SpansBuilder {
         len: usize,
-        styles:    SemanticStyles,
-        result_id: Option<String>
+        styles: SemanticStyles,
+        result_id: Option<String>,
     },
     InstallVolt {
-        info: VoltInfo
+        info: VoltInfo,
     },
     QueryVoltInfo {
-        meta: VoltMetadata
+        meta: VoltMetadata,
     },
     QueryVolts {
         query: String,
@@ -75,56 +78,62 @@ pub enum LocalRequest {
     },
     UninstallVolt {
         dir: PathBuf,
-    }
+    },
+    DownloadVoltReadme {
+        info: VoltInfo,
+    },
 }
 pub enum LocalResponse {
     FindAllVolts {
-        volts:       Vec<VoltMetadata>
+        volts: Vec<VoltMetadata>,
     },
     SpansBuilder {
         styles: Spans<String>,
-        result_id: Option<String>
+        result_id: Option<String>,
     },
     InstallVolt {
-        volt: VoltMetadata, icon: Option<Vec<u8>>
+        volt: VoltMetadata,
+        icon: Option<Vec<u8>>,
     },
     QueryVoltInfo {
-        info: VoltInfo
+        info: VoltInfo,
     },
     QueryVolts {
-        volts: VoltsInfo
+        volts: VoltsInfo,
     },
     LoadIcon {
-        icon: VoltIcon
+        icon: VoltIcon,
     },
-    UninstallVolt
+    UninstallVolt,
+    DownloadVoltReadme {
+        readme: Vec<MarkdownContent>,
+    },
 }
 
-pub enum LocalNotification {
-}
+pub enum LocalNotification {}
 
-
-
-pub fn new_local_handler(directory: Directory) -> Result<LocalTaskRequester> {
+pub fn new_local_handler(directory: Directory, config: LapceConfig) -> Result<LocalTaskRequester> {
     let (tx, rx) = crossbeam_channel::unbounded();
-    let pending =  Arc::new(Mutex::new(HashMap::new()));
+    let pending = Arc::new(Mutex::new(HashMap::new()));
     let requester = LocalTaskRequester::new(tx, pending.clone());
     let _handler = LocalTaskHandler {
-        rx, pending, directory
+        config,
+        pending,
+        directory,
     };
-    start_proxy(_handler)?;
+    start_proxy(_handler, rx)?;
     Ok(requester)
 }
 
-
-fn start_proxy(_handler: LocalTaskHandler) -> Result<thread::JoinHandle<()>> {
-    Ok(thread::Builder::new().name("Local Task Handler".to_string()).spawn(move || {
-        main_start_proxy(_handler);
-    })?)
+fn start_proxy(_handler: LocalTaskHandler, rx: Receiver<LocalRpc>) -> Result<thread::JoinHandle<()>> {
+    Ok(thread::Builder::new()
+        .name("Local Task Handler".to_string())
+        .spawn(move || {
+            main_start_proxy(_handler, rx);
+        })?)
 }
 
 #[tokio::main]
-async fn main_start_proxy(_handler: LocalTaskHandler) {
-    _handler.handle().await;
+async fn main_start_proxy(mut _handler: LocalTaskHandler, rx: Receiver<LocalRpc>) {
+    _handler.handle(rx).await;
 }
-

@@ -17,18 +17,21 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use log::info;
+use crate::config::LapceConfig;
+use crate::markdown::parse_markdown;
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
     pub directory: Directory,
-    pub(crate) rx: Receiver<LocalRpc>,
+    pub config: LapceConfig,
     pub(crate) pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
 }
 
 impl LocalTaskHandler {
-    pub async fn handle(&self) {
+    pub async fn handle(&mut self, rx: Receiver<LocalRpc>) {
         use crate::local_task::LocalRpc::*;
-        for msg in &self.rx {
+        for msg in &rx {
             match msg {
                 Request { id, request } =>  {
                     self.handle_request(id, request).await;
@@ -43,7 +46,8 @@ impl LocalTaskHandler {
         }
     }
 
-    pub async fn handle_request(&self, id: RequestId, request: LocalRequest) {
+    pub async fn handle_request(&mut self, id: RequestId, request: LocalRequest) {
+        info!("handler handle_request {request:?}");
         match request {
             LocalRequest::FindAllVolts { extra_plugin_paths } => {
                 let plugin_dir = self.directory.plugins_directory.clone();
@@ -105,9 +109,39 @@ impl LocalTaskHandler {
                     let rs = handle_uninstall_volt(&dir).await;
                     handle_response(id, rs, pending);
                 });
-            }
+            },
+            LocalRequest::DownloadVoltReadme { info } => {
+                let pending = self.pending.clone();
+                let config = self.config.clone();
+                let dir = self.directory.clone();
+                tokio::spawn(async move {
+                    let rs = handle_download_readme(&info, &config, &dir).await;
+                    handle_response(id, rs, pending);
+                });
+            },
         }
     }
+}
+
+async fn handle_download_readme(volt: &VoltInfo, config: &LapceConfig,
+                                directory: &Directory) -> Result<LocalResponse> {
+    let url = format!(
+        "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
+        volt.author, volt.name, volt.version
+    );
+    let resp = lapce_proxy::async_get_url(&url, None).await?;
+    if resp.status() != 200 {
+        let text = parse_markdown(
+            "Plugin doesn't have a README",
+            2.0,
+            config,
+            directory,
+        );
+        return Ok(LocalResponse::DownloadVoltReadme { readme: text });
+    }
+    let text = resp.text().await?;
+    let text = parse_markdown(&text, 2.0, config, directory);
+    Ok(LocalResponse::DownloadVoltReadme { readme: text })
 }
 
 async fn handle_uninstall_volt(dir: &Path) -> Result<LocalResponse> {

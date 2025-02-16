@@ -1,6 +1,5 @@
 use std::{
     collections::{BTreeMap, HashSet},
-    env,
     fmt::Debug,
     path::{Path, PathBuf},
     rc::Rc,
@@ -42,7 +41,6 @@ use lapce_core::{
     main_split::{
         SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection
     },
-    meta,
     panel::{PanelContainerPosition, PanelKind, PanelSection, default_panel_order},
     workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo}
 };
@@ -436,7 +434,7 @@ impl WindowWorkspaceData {
             TextLayout::new_with_text("W", attrs_list).size().height
         });
 
-        let local_task:           LocalTaskRequester = new_local_handler(directory.clone())?;
+        let local_task:           LocalTaskRequester = new_local_handler(directory.clone(), config.get_untracked())?;
 
         let common = Rc::new(CommonData {
             workspace: workspace.clone(), local_task,
@@ -1426,48 +1424,49 @@ impl WindowWorkspaceData {
 
             // ==== Updating ====
             RestartToUpdate => {
-                if let Some(release) = self
-                    .common
-                    .window_common
-                    .latest_release
-                    .get_untracked()
-                    .as_ref()
-                {
-                    let release = release.clone();
-                    let update_in_progress = self.update_in_progress;
-                    if release.version != *meta::VERSION {
-                        if let Ok(process_path) = env::current_exe() {
-                            update_in_progress.set(true);
-                            let send = create_ext_action(
-                                self.common.scope,
-                                move |_started| {
-                                    update_in_progress.set(false);
-                                },
-                            );
-                            let updates_directory = self.common.directory.updates_directory.clone();
-                            // todo remove thread
-                            std::thread::Builder::new().name("RestartToUpdate".to_owned()).spawn(move || {
-                                let do_update = || -> anyhow::Result<()> {
-                                    let src =
-                                        crate::update::download_release(&release, updates_directory.as_ref())?;
-
-                                    let path =
-                                        crate::update::extract(&src, &process_path)?;
-
-                                    crate::update::restart(&path)?;
-
-                                    Ok(())
-                                };
-
-                                if let Err(err) = do_update() {
-                                    error!("Failed to update: {err}");
-                                }
-
-                                send(false);
-                            }).unwrap();
-                        }
-                    }
-                }
+                log::error!("todo restart to update");
+                // if let Some(release) = self
+                //     .common
+                //     .window_common
+                //     .latest_release
+                //     .get_untracked()
+                //     .as_ref()
+                // {
+                //     let release = release.clone();
+                //     let update_in_progress = self.update_in_progress;
+                //     if release.version != *meta::VERSION {
+                //         if let Ok(process_path) = env::current_exe() {
+                //             update_in_progress.set(true);
+                //             let send = create_ext_action(
+                //                 self.common.scope,
+                //                 move |_started| {
+                //                     update_in_progress.set(false);
+                //                 },
+                //             );
+                //             let updates_directory = self.common.directory.updates_directory.clone();
+                //             // todo remove thread
+                //             std::thread::Builder::new().name("RestartToUpdate".to_owned()).spawn(move || {
+                //                 let do_update = || -> anyhow::Result<()> {
+                //                     let src =
+                //                         crate::update::download_release(&release, updates_directory.as_ref())?;
+                //
+                //                     let path =
+                //                         crate::update::extract(&src, &process_path)?;
+                //
+                //                     crate::update::restart(&path)?;
+                //
+                //                     Ok(())
+                //                 };
+                //
+                //                 if let Err(err) = do_update() {
+                //                     error!("Failed to update: {err}");
+                //                 }
+                //
+                //                 send(false);
+                //             }).unwrap();
+                //         }
+                //     }
+                // }
             }
 
             // ==== Movement ====
