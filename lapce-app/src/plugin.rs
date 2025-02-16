@@ -26,7 +26,7 @@ use floem::{
     }
 };
 use indexmap::IndexMap;
-use log::error;
+use log::{error, info};
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{volt_icon};
 use lapce_rpc::{
@@ -281,21 +281,25 @@ impl PluginData {
 
         let latest = volt_data.latest;
         if !is_latest {
-            let url = format!(
-                "https://plugins.lapce.dev/api/v1/plugins/{}/{}/latest",
-                volt.author, volt.name
-            );
             let send = create_ext_action(self.common.scope, move |info| {
-                if let Some(info) = info {
-                    latest.set(info);
-                }
+                info!("volt_installed {info:?}");
+                latest.set(info);
             });
-            // todo remove thread
-            std::thread::spawn(move || {
-                let info: Option<VoltInfo> = lapce_proxy::get_url(url, None)
-                    .ok()
-                    .and_then(|r| r.json().ok());
-                send(info);
+            self.common.local_task.request_async(LocalRequest::QueryVoltInfo {
+                meta: volt.clone(),
+            }, move |(_id, rs)| {
+                match rs {
+                    Ok(response) => {
+                        if let LocalResponse::QueryVoltInfo {
+                            info
+                        } = response {
+                            send(info);
+                        }
+                    }
+                    Err(err) => {
+                        error!("{err:?}")
+                    }
+                }
             });
         }
     }

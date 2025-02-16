@@ -61,6 +61,9 @@ pub enum LocalRequest {
     },
     InstallVolt {
         info: VoltInfo
+    },
+    QueryVoltInfo {
+        meta: VoltMetadata
     }
 }
 pub enum LocalResponse {
@@ -73,7 +76,10 @@ pub enum LocalResponse {
     },
     InstallVolt {
         volt: VoltMetadata, icon: Option<Vec<u8>>
-    }
+    },
+    QueryVoltInfo {
+        info: VoltInfo
+    },
 }
 
 pub enum LocalNotification {

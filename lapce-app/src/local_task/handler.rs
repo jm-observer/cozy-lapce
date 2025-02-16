@@ -56,6 +56,18 @@ impl LocalTaskHandler {
                             handle_response(id, rs, pending);
                         });
                     },
+                    LocalRequest::QueryVoltInfo { meta } => {
+                        let pending = self.pending.clone();
+                        tokio::spawn(async move {
+                            let url = format!(
+                                "https://plugins.lapce.dev/api/v1/plugins/{}/{}/latest",
+                                meta.author, meta.name
+                            );
+                            let rs = handle_query_volt_info(url).await;
+                            handle_response(id, rs, pending);
+                        });
+
+                    }
                 },
                 Notification { notification: _notification } => {},
                 // Shutdown => {
@@ -101,6 +113,13 @@ async fn handle_find_all_volts(
     )
         .await;
     Ok(LocalResponse::FindAllVolts { volts })
+}
+
+async fn handle_query_volt_info(
+    url: String,
+) -> Result<LocalResponse> {
+    let info: VoltInfo = lapce_proxy::async_get_url(url, None).await?.json().await?;
+    Ok(LocalResponse::QueryVoltInfo { info })
 }
 
 async fn handle_install_volt(
