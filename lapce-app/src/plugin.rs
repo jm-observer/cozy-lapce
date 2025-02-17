@@ -379,7 +379,6 @@ impl PluginData {
                                         }
                                     }
                                 );
-                                error!("{err:?}")
                             }
                         }
                     );

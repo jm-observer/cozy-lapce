@@ -249,7 +249,7 @@ impl Plugin {
 
     fn shutdown(&self) {}
 }
-
+#[tokio::main]
 pub async fn load_all_volts(
     plugin_rpc: PluginCatalogRpcHandler,
     extra_plugin_paths: &[PathBuf],
