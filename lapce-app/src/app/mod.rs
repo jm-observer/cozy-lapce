@@ -507,6 +507,8 @@ impl AppData {
         let window_scale = window_data.window_scale;
         let app_command = window_data.app_command;
         let config = window_data.config;
+        let focus = window_data.window_tabs.get_untracked().common.focus;
+
         // The KeyDown and PointerDown event handlers both need ownership of a
         // WindowData object.
         let key_down_window_data = window_data.clone();
@@ -618,6 +620,9 @@ impl AppData {
                 move |event| {
                     if let Event::PointerDown(pointer_event) = event {
                         window_data.key_down(pointer_event);
+                        if focus.get_untracked() != Focus::Workbench {
+                            focus.set(Focus::Workbench);
+                        }
                         EventPropagation::Stop
                     } else {
                         EventPropagation::Continue
@@ -2664,7 +2669,14 @@ fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
 
     let input = text_input(input_str)
         .placeholder(window_tab_data.palette.placeholder_text().to_owned())
-        .style(|s| s.width_full());
+        .style(|s| s.width_full()).debug_name("Pallete Input").on_event(EventListener::KeyDown, |event| {
+            if let Event::KeyDown(_key_event) = event {
+                log::info!("KeyDown Stop");
+                EventPropagation::Stop
+            } else {
+                EventPropagation::Continue
+            }
+    });
     let id = input.id();
     create_effect(move |_| {
         if status.get() == PaletteStatus::Started {
