@@ -2226,7 +2226,6 @@ fn editor_content(
             cursor_origin_position(
                 &e_data.editor,
                 offset,
-                !cursor.is_insert(),
                 cursor.affinity
             )
         else {

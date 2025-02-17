@@ -129,7 +129,6 @@ pub fn source_control_panel(
                     if let Some((x, y, width, line_height)) = cursor_caret_v2(
                         &e_data.editor,
                         offset,
-                        !cursor.is_insert(),
                         cursor.affinity
                     ) {
                         let rect =
