@@ -2646,7 +2646,7 @@ impl EditorData {
             &self.common.workspace,
             path,
             cursor_offset,
-            scroll_offset
+            scroll_offset, &self.common.local_task
         );
     }
 

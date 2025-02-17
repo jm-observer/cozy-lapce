@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result};
-use crossbeam_channel::{Sender, unbounded};
 use floem::{peniko::kurbo::Vec2, reactive::SignalGet};
 use lapce_core::{
     panel::{PanelKind, PanelOrder},
@@ -16,6 +15,7 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::WindowWorkspaceData
 };
+use crate::local_task::{LocalNotification, LocalTaskRequester};
 
 const APP: &str = "app";
 const WINDOW: &str = "window";
@@ -39,7 +39,7 @@ pub enum SaveEvent {
 pub struct LapceDb {
     folder:           PathBuf,
     workspace_folder: PathBuf,
-    save_tx:          Sender<SaveEvent>
+    // save_tx:          Sender<SaveEvent>,
 }
 
 impl LapceDb {
@@ -51,65 +51,20 @@ impl LapceDb {
             log::error!("{:?}", err);
         }
 
-        let (save_tx, save_rx) = unbounded();
 
         let db = Self {
-            save_tx,
             workspace_folder,
             folder
         };
-        let local_db = db.clone();
-        std::thread::Builder::new()
-            .name("SaveEventHandler".to_owned())
-            .spawn(move || -> Result<()> {
-                loop {
-                    let event = save_rx.recv()?;
-                    match event {
-                        SaveEvent::App(info) => {
-                            if let Err(err) = local_db.insert_app_info(info) {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::Workspace(workspace, info) => {
-                            if let Err(err) =
-                                local_db.insert_workspace(&workspace, &info)
-                            {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::RecentWorkspace(workspace) => {
-                            if let Err(err) =
-                                local_db.insert_recent_workspace(workspace)
-                            {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::Doc(info) => {
-                            if let Err(err) = local_db.insert_doc(&info) {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::DisabledVolts(volts) => {
-                            if let Err(err) = local_db.insert_disabled_volts(volts) {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::WorkspaceDisabledVolts(workspace, volts) => {
-                            if let Err(err) = local_db
-                                .insert_workspace_disabled_volts(workspace, volts)
-                            {
-                                log::error!("{:?}", err);
-                            }
-                        },
-                        SaveEvent::PanelOrder(order) => {
-                            if let Err(err) = local_db.insert_panel_orders(&order) {
-                                log::error!("{:?}", err);
-                            }
-                        }
-                    }
-                }
-            })
-            .unwrap();
+        // let local_db = db.clone();
+        // std::thread::Builder::new()
+        //     .name("SaveEventHandler".to_owned())
+        //     .spawn(move || -> Result<()> {
+        //         loop {
+        //             let event = save_rx.recv()?;
+
+        //     })
+        //     .unwrap();
         Ok(db)
     }
 
@@ -119,23 +74,16 @@ impl LapceDb {
         Ok(volts)
     }
 
-    pub fn save_disabled_volts(&self, volts: Vec<VoltID>) {
-        if let Err(err) = self.save_tx.send(SaveEvent::DisabledVolts(volts)) {
-            log::error!("{:?}", err);
-        }
+    pub fn save_disabled_volts(&self, volts: Vec<VoltID>, requester: &LocalTaskRequester) {
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::DisabledVolts(volts)));
     }
 
     pub fn save_workspace_disabled_volts(
         &self,
         workspace: LapceWorkspace,
-        volts: Vec<VoltID>
+        volts: Vec<VoltID>, requester: &LocalTaskRequester
     ) {
-        if let Err(err) = self
-            .save_tx
-            .send(SaveEvent::WorkspaceDisabledVolts(workspace, volts))
-        {
-            log::error!("{:?}", err);
-        }
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::WorkspaceDisabledVolts(workspace, volts)));
     }
 
     pub fn insert_disabled_volts(&self, volts: Vec<VoltID>) -> Result<()> {
@@ -178,16 +126,14 @@ impl LapceDb {
         Ok(workspaces)
     }
 
-    pub fn update_recent_workspace(&self, workspace: &LapceWorkspace) -> Result<()> {
+    pub fn update_recent_workspace(&self, workspace: &LapceWorkspace, requester: &LocalTaskRequester) {
         if workspace.path.is_none() {
-            return Ok(());
+            return ;
         }
-        self.save_tx
-            .send(SaveEvent::RecentWorkspace(workspace.clone()))?;
-        Ok(())
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::RecentWorkspace(workspace.clone())));
     }
 
-    fn insert_recent_workspace(&self, workspace: LapceWorkspace) -> Result<()> {
+    pub fn insert_recent_workspace(&self, workspace: LapceWorkspace) -> Result<()> {
         let mut workspaces = self.recent_workspaces().unwrap_or_default();
 
         let mut exits = false;
@@ -216,15 +162,11 @@ impl LapceDb {
         Ok(())
     }
 
-    pub fn save_window_tab(&self, data: WindowWorkspaceData) -> Result<()> {
+    pub fn save_window_tab(&self, data: WindowWorkspaceData, requester: &LocalTaskRequester) {
         let workspace = data.workspace.clone();
         let workspace_info = data.workspace_info();
 
-        self.save_tx
-            .send(SaveEvent::Workspace(workspace, workspace_info))?;
-        // self.insert_unsaved_buffer(main_split)?;
-
-        Ok(())
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::Workspace(workspace, workspace_info)));
     }
 
     pub fn get_workspace_info(
@@ -240,7 +182,7 @@ impl LapceDb {
         Ok(info)
     }
 
-    fn insert_workspace(
+    pub(crate) fn insert_workspace(
         &self,
         workspace: &LapceWorkspace,
         info: &WorkspaceInfo
@@ -254,12 +196,10 @@ impl LapceDb {
         Ok(())
     }
 
-    pub fn save_app(&self, data: &AppData) -> Result<()> {
+    pub fn save_app(&self, data: &AppData) {
         let windows = data.windows.get_untracked();
         for window in windows.values() {
-            if let Err(err) = self.save_window(window.clone()) {
-                log::error!("{:?}", err);
-            }
+            self.save_window(window.clone());
         }
 
         let info = AppInfo {
@@ -269,12 +209,10 @@ impl LapceDb {
                 .collect()
         };
         if info.windows.is_empty() {
-            return Ok(());
+            return ;
         }
 
-        self.save_tx.send(SaveEvent::App(info))?;
-
-        Ok(())
+        data.local_task.notification(LocalNotification::DbSaveEvent(SaveEvent::App(info)));
     }
 
     pub fn insert_app_info(&self, info: AppInfo) -> Result<()> {
@@ -331,11 +269,8 @@ impl LapceDb {
         Ok(info)
     }
 
-    pub fn save_window(&self, data: WindowData) -> Result<()> {
-        if let Err(err) = self.save_window_tab(data.window_tabs.get_untracked()) {
-            log::error!("{:?}", err);
-        }
-        Ok(())
+    pub fn save_window(&self, data: WindowData) {
+        self.save_window_tab(data.window_tabs.get_untracked(), &data.local_task);
     }
 
     pub fn insert_window(&self, data: WindowData) -> Result<()> {
@@ -374,13 +309,11 @@ impl LapceDb {
         Ok(panel_orders)
     }
 
-    pub fn save_panel_orders(&self, order: PanelOrder) {
-        if let Err(err) = self.save_tx.send(SaveEvent::PanelOrder(order)) {
-            log::error!("{:?}", err);
-        }
+    pub fn save_panel_orders(&self, order: PanelOrder, requester: &LocalTaskRequester) {
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::PanelOrder(order)));
     }
 
-    fn insert_panel_orders(&self, order: &PanelOrder) -> Result<()> {
+    pub(crate) fn insert_panel_orders(&self, order: &PanelOrder) -> Result<()> {
         let info = serde_json::to_string_pretty(order)?;
         std::fs::write(self.folder.join(PANEL_ORDERS), info)?;
         Ok(())
@@ -391,7 +324,7 @@ impl LapceDb {
         workspace: &LapceWorkspace,
         path: PathBuf,
         cursor_offset: usize,
-        scroll_offset: Vec2
+        scroll_offset: Vec2, requester: &LocalTaskRequester
     ) {
         let info = DocInfo {
             workspace: workspace.clone(),
@@ -399,12 +332,10 @@ impl LapceDb {
             scroll_offset: (scroll_offset.x, scroll_offset.y),
             cursor_offset
         };
-        if let Err(err) = self.save_tx.send(SaveEvent::Doc(info)) {
-            log::error!("{:?}", err);
-        }
+        requester.notification(LocalNotification::DbSaveEvent(SaveEvent::Doc(info)));
     }
 
-    fn insert_doc(&self, info: &DocInfo) -> Result<()> {
+    pub(crate) fn insert_doc(&self, info: &DocInfo) -> Result<()> {
         let folder = self
             .workspace_folder
             .join(workspace_folder_name(&info.workspace))

@@ -27,6 +27,7 @@ use crate::{
 use anyhow::Result;
 use log::error;
 use lapce_core::directory::Directory;
+use crate::local_task::LocalTaskRequester;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
@@ -78,7 +79,8 @@ pub struct WindowData {
     pub config:       RwSignal<LapceConfig>,
     pub ime_enabled:  RwSignal<bool>,
     pub common:       Rc<WindowCommonData>,
-    pub directory: Directory
+    pub directory: Directory,
+    pub local_task: LocalTaskRequester
     // pub watcher:      Arc<RwLock<notify::RecommendedWatcher>>
 }
 
@@ -91,13 +93,13 @@ impl WindowData {
         window_scale: RwSignal<f64>,
         latest_release: ReadSignal<Option<ReleaseInfo>>,
         extra_plugin_paths: Arc<Vec<PathBuf>>,
-        app_command: Listener<AppCommand>, directory: &Directory
+        app_command: Listener<AppCommand>, directory: &Directory, local_task: LocalTaskRequester, config: RwSignal<LapceConfig>
         // watcher: Arc<RwLock<notify::RecommendedWatcher>>
     ) -> Result<Self> {
         let cx = Scope::new();
-        let config =
-            LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths, directory);
-        let config = cx.create_rw_signal(config);
+        // let config =
+        //     LapceConfig::load(&LapceWorkspace::default(), &[], &extra_plugin_paths, directory);
+        // let config = cx.create_rw_signal(config);
         let root_view_id = cx.create_rw_signal(ViewId::new());
 
         let window_command = Listener::new_empty(cx);
@@ -137,7 +139,7 @@ impl WindowData {
         log::info!("WindowData {:?} window_id={}", w, window_id.into_raw());
         // w.watch_project_setting(&watcher);
         let window_tabs =
-            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone(), directory)?);
+            cx.create_rw_signal(WindowWorkspaceData::new(cx, w, common.clone(), directory, local_task.clone(), config)?);
 
         // for w in info.tabs.workspaces {
         //     log::info!("WindowData {:?}", w);
@@ -174,7 +176,7 @@ impl WindowData {
             app_command,
             config,
             ime_enabled: cx.create_rw_signal(false),
-            common, directory: directory.clone()
+            common, directory: directory.clone(), local_task
             // watcher
         };
 
@@ -217,9 +219,7 @@ impl WindowData {
         match cmd {
             WindowCommand::SetWorkspace { workspace } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
-                if let Err(err) = db.update_recent_workspace(&workspace) {
-                    log::error!("{:?}", err);
-                }
+                db.update_recent_workspace(&workspace, &self.local_task);
                 if let Err(err) =
                     db.insert_window_tab(self.window_tabs.get_untracked().clone())
                 {
@@ -229,7 +229,7 @@ impl WindowData {
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace.clone(),
-                    self.common.clone(), &self.directory
+                    self.common.clone(), &self.directory, self.local_task.clone(), self.config
                 )?;
 
                 self.window_tabs.set(window_tab);
@@ -240,15 +240,13 @@ impl WindowData {
                 end: _end
             } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
-                if let Err(err) = db.update_recent_workspace(&workspace) {
-                    log::error!("{:?}", err);
-                }
+                db.update_recent_workspace(&workspace, &self.local_task);
                 log::info!("NewWorkspaceTab {:?}", workspace);
                 // workspace.watch_project_setting(&self.watcher);
                 let window_tab = WindowWorkspaceData::new(
                     self.scope,
                     workspace,
-                    self.common.clone(), &self.directory
+                    self.common.clone(), &self.directory, self.local_task.clone(), self.config
                 )?;
                 self.window_tabs.set(window_tab);
                 // let active = self.active.get_untracked();

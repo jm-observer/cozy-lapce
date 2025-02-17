@@ -104,6 +104,7 @@ use crate::{
     window_workspace::{Focus, WindowWorkspaceData}
 };
 use crate::config::ui::TabCloseButton;
+use crate::local_task::{new_local_handler, LocalTaskRequester};
 
 mod grammars;
 mod logging;
@@ -166,6 +167,7 @@ pub struct AppData {
     /// Paths to extra plugins to load
     pub plugin_paths:   Arc<Vec<PathBuf>>,
     pub directory: Directory,
+    pub local_task: LocalTaskRequester
 }
 
 impl AppData {
@@ -253,9 +255,7 @@ impl AppData {
         match cmd {
             AppCommand::SaveApp => {
                 let db: Arc<LapceDb> = use_context().unwrap();
-                if let Err(err) = db.save_app(self) {
-                    log::error!("{:?}", err);
-                }
+                db.save_app(self);
             },
             AppCommand::WindowClosed(window_id) => {
                 if self.app_terminated.get_untracked() {
@@ -274,9 +274,7 @@ impl AppData {
                 if let Some(window_data) = window_data {
                     window_data.scope.dispose();
                 }
-                if let Err(err) = db.save_app(self) {
-                    log::error!("{:?}", err);
-                }
+                db.save_app(self);
             },
             AppCommand::CloseWindow(window_id) => {
                 floem::close_window(window_id);
@@ -449,7 +447,7 @@ impl AppData {
             self.window_scale,
             self.latest_release.read_only(),
             self.plugin_paths.clone(),
-            self.app_command, &self.directory
+            self.app_command, &self.directory, self.local_task.clone(), self.config
             // self.watcher.clone()
         ).unwrap();
 
@@ -3868,6 +3866,10 @@ pub async fn launch() -> Result<()>{
     if let Err(err) = lapce_proxy::register_lapce_path() {
         log::error!("{:?}", err);
     }
+
+    let plugin_paths = Arc::new(cli.plugin_path);
+    let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths, &directory);
+
     let db = match LapceDb::new(&directory.config_directory) {
         Ok(db) => Arc::new(db),
         Err(e) => {
@@ -3878,6 +3880,8 @@ pub async fn launch() -> Result<()>{
             std::process::exit(1);
         }
     };
+
+    let local_task: LocalTaskRequester = new_local_handler(directory.clone(), config.clone(), db.clone())?;
     let scope = Scope::new();
     provide_context(db.clone());
 
@@ -3885,7 +3889,7 @@ pub async fn launch() -> Result<()>{
     let latest_release = scope.create_rw_signal(None);
     let app_command = Listener::new_empty(scope);
 
-    let plugin_paths = Arc::new(cli.plugin_path);
+
 
     // let (tx, rx) = crossbeam_channel::bounded(1);
     // let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
@@ -3911,7 +3915,6 @@ pub async fn launch() -> Result<()>{
     // }
 
     let windows = scope.create_rw_signal(HashMap::new());
-    let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths, &directory);
 
     // Restore scale from config
     window_scale.set(config.ui.scale());
@@ -3927,7 +3930,7 @@ pub async fn launch() -> Result<()>{
         app_command,
         // tracing_handle: reload_handle,
         config,
-        plugin_paths, directory
+        plugin_paths, directory, local_task
     };
 
     let app = app_data.create_windows(db.clone(), cli.paths);

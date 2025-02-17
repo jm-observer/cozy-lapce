@@ -1,6 +1,7 @@
-use crate::local_task::{
-    LocalRequest, LocalResponse, LocalResponseHandler, LocalRpc,
-};
+use crate::config::LapceConfig;
+use crate::db::{LapceDb, SaveEvent};
+use crate::local_task::{LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler, LocalRpc};
+use crate::markdown::parse_markdown;
 use crate::plugin::{VoltIcon, VoltsInfo};
 use anyhow::Result;
 use crossbeam_channel::Receiver;
@@ -12,20 +13,19 @@ use lapce_rpc::plugin::VoltInfo;
 use lapce_rpc::style::SemanticStyles;
 use lapce_xi_rope::Interval;
 use lapce_xi_rope::spans::SpansBuilder;
+use log::info;
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use log::info;
-use crate::config::LapceConfig;
-use crate::markdown::parse_markdown;
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
     pub directory: Directory,
     pub config: LapceConfig,
     pub(crate) pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
+    pub db: Arc<LapceDb>,
 }
 
 impl LocalTaskHandler {
@@ -33,12 +33,22 @@ impl LocalTaskHandler {
         use crate::local_task::LocalRpc::*;
         for msg in &rx {
             match msg {
-                Request { id, request } =>  {
+                Request { id, request } => {
                     self.handle_request(id, request).await;
                 },
                 Notification {
                     notification: _notification,
-                } => {},
+                } => {
+                    match _notification {
+                        LocalNotification::DbSaveEvent(event) => {
+                            let db = self.db.clone();
+                            tokio::spawn(async move {
+                                handle_notification_db_save_event(db, event).await;
+                            });
+                            
+                        }
+                    }
+                },
                 // Shutdown => {
                 //     return;
                 // },
@@ -123,20 +133,19 @@ impl LocalTaskHandler {
     }
 }
 
-async fn handle_download_readme(volt: &VoltInfo, config: &LapceConfig,
-                                directory: &Directory) -> Result<LocalResponse> {
+async fn handle_download_readme(
+    volt: &VoltInfo,
+    config: &LapceConfig,
+    directory: &Directory,
+) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
         volt.author, volt.name, volt.version
     );
     let resp = lapce_proxy::async_get_url(&url, None).await?;
     if resp.status() != 200 {
-        let text = parse_markdown(
-            "Plugin doesn't have a README",
-            2.0,
-            config,
-            directory,
-        );
+        let text =
+            parse_markdown("Plugin doesn't have a README", 2.0, config, directory);
         return Ok(LocalResponse::DownloadVoltReadme { readme: text });
     }
     let text = resp.text().await?;
@@ -235,5 +244,48 @@ fn handle_response(
     let handler = { pending.lock().remove(&id) };
     if let Some(handler) = handler {
         handler.invoke(id, result);
+    }
+}
+
+/// todo 内部是否可以异步
+async fn handle_notification_db_save_event(db: Arc<LapceDb>, event: SaveEvent) {
+    match event {
+        SaveEvent::App(info) => {
+            if let Err(err) = db.insert_app_info(info) {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::Workspace(workspace, info) => {
+            if let Err(err) = db.insert_workspace(&workspace, &info) {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::RecentWorkspace(workspace) => {
+            if let Err(err) = db.insert_recent_workspace(workspace) {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::Doc(info) => {
+            if let Err(err) = db.insert_doc(&info) {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::DisabledVolts(volts) => {
+            if let Err(err) = db.insert_disabled_volts(volts) {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::WorkspaceDisabledVolts(workspace, volts) => {
+            if let Err(err) =
+                db.insert_workspace_disabled_volts(workspace, volts)
+            {
+                log::error!("{:?}", err);
+            }
+        },
+        SaveEvent::PanelOrder(order) => {
+            if let Err(err) = db.insert_panel_orders(&order) {
+                log::error!("{:?}", err);
+            }
+        },
     }
 }

@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::thread;
 use crossbeam_channel::Receiver;
 use crate::config::LapceConfig;
+use crate::db::{LapceDb, SaveEvent};
 use crate::markdown::MarkdownContent;
 
 pub trait LocalCallback: Send + FnOnce((u64, Result<LocalResponse>)) {}
@@ -110,16 +111,18 @@ pub enum LocalResponse {
     },
 }
 
-pub enum LocalNotification {}
+pub enum LocalNotification {
+    DbSaveEvent(SaveEvent)
+}
 
-pub fn new_local_handler(directory: Directory, config: LapceConfig) -> Result<LocalTaskRequester> {
+pub fn new_local_handler(directory: Directory, config: LapceConfig, db: Arc<LapceDb>) -> Result<LocalTaskRequester> {
     let (tx, rx) = crossbeam_channel::unbounded();
     let pending = Arc::new(Mutex::new(HashMap::new()));
     let requester = LocalTaskRequester::new(tx, pending.clone());
     let _handler = LocalTaskHandler {
         config,
         pending,
-        directory,
+        directory, db
     };
     start_proxy(_handler, rx)?;
     Ok(requester)

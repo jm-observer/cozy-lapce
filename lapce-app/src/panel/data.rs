@@ -320,7 +320,7 @@ impl PanelData {
         });
 
         let db: Arc<LapceDb> = use_context().unwrap();
-        db.save_panel_orders(self.panels.get_untracked());
+        db.save_panel_orders(self.panels.get_untracked(), &self.common.local_task);
     }
 
     pub fn section_open(&self, section: PanelSection) -> RwSignal<bool> {

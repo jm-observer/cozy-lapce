@@ -99,7 +99,7 @@ use crate::{
     },
     window::{CursorBlink, WindowCommonData}
 };
-use crate::local_task::{new_local_handler, LocalTaskRequester};
+use crate::local_task::{LocalTaskRequester};
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -357,7 +357,7 @@ impl WindowWorkspaceData {
     pub fn new(
         cx: Scope,
         workspace: LapceWorkspace,
-        window_common: Rc<WindowCommonData>, directory: &Directory
+        window_common: Rc<WindowCommonData>, directory: &Directory, local_task: LocalTaskRequester, config: RwSignal<LapceConfig>
     ) -> Result<Self> {
         let cx = cx.create_child();
         let db: Arc<LapceDb> = use_context().unwrap();
@@ -378,15 +378,16 @@ impl WindowWorkspaceData {
             }
             info
         };
-        let config = LapceConfig::load(
-            &workspace,
-            &all_disabled_volts,
-            &window_common.extra_plugin_paths, directory
-        );
+        // let config = LapceConfig::load(
+        //     &workspace,
+        //     &all_disabled_volts,
+        //     &window_common.extra_plugin_paths, directory
+        // );
+        let config_val = config.get_untracked();
         let lapce_command = Listener::new_empty(cx);
         let workbench_command = Listener::new_empty(cx);
         let internal_command = Listener::new_empty(cx);
-        let keypress = cx.create_rw_signal(KeyPressData::new(cx, &config, directory));
+        let keypress = cx.create_rw_signal(KeyPressData::new(cx, &config_val, directory));
         let proxy_status = cx.create_rw_signal(None);
 
         let (term_tx, term_rx) = crossbeam_channel::unbounded();
@@ -402,18 +403,19 @@ impl WindowWorkspaceData {
                 .unwrap();
         }
 
+        let read_config = config.read_only();
         let proxy = new_proxy(
             workspace.clone(),
             all_disabled_volts,
             window_common.extra_plugin_paths.as_ref().clone(),
-            config.plugins.clone(),
+            config_val.plugins.clone(),
             term_tx.clone(), directory
         );
-        let (config, set_config) = cx.create_signal(config);
+        // let (config, set_config) = cx.create_signal(config);
 
         let focus =
             SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
-        let completion = cx.create_rw_signal(CompletionData::new(cx, config));
+        let completion = cx.create_rw_signal(CompletionData::new(cx, read_config));
         let inline_completion = cx.create_rw_signal(InlineCompletionData::new(cx));
         let hover = HoverData::new(cx);
 
@@ -433,8 +435,6 @@ impl WindowWorkspaceData {
             let attrs_list = AttrsList::new(attrs);
             TextLayout::new_with_text("W", attrs_list).size().height
         });
-
-        let local_task:           LocalTaskRequester = new_local_handler(directory.clone(), config.get_untracked())?;
 
         let common = Rc::new(CommonData {
             workspace: workspace.clone(), local_task,
@@ -456,7 +456,7 @@ impl WindowWorkspaceData {
             ui_line_height,
             dragging: cx.create_rw_signal(None),
             workbench_size: cx.create_rw_signal(Size::ZERO),
-            config,
+            config: read_config,
             proxy_status,
             mouse_hover_timer: cx.create_rw_signal(TimerToken::INVALID),
             window_origin: cx.create_rw_signal(Point::ZERO),
@@ -647,7 +647,7 @@ impl WindowWorkspaceData {
             title_height,
             status_height,
             proxy,
-            set_config,
+            set_config: config.write_only(),
             update_in_progress: cx.create_rw_signal(false),
             progresses: cx.create_rw_signal(IndexMap::new()),
             messages: cx.create_rw_signal(Vec::new()),

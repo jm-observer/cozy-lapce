@@ -306,7 +306,7 @@ impl PluginData {
             });
             let db: Arc<LapceDb> = use_context().unwrap();
             db.save_disabled_volts(
-                self.disabled.get_untracked().into_iter().collect(),
+                self.disabled.get_untracked().into_iter().collect(), &self.common.local_task
             );
         }
 
@@ -320,7 +320,7 @@ impl PluginData {
                 self.workspace_disabled
                     .get_untracked()
                     .into_iter()
-                    .collect(),
+                    .collect(), &self.common.local_task
             );
         }
     }
@@ -481,7 +481,7 @@ impl PluginData {
             self.common.proxy.enable_volt(volt);
         }
         let db: Arc<LapceDb> = use_context().unwrap();
-        db.save_disabled_volts(self.disabled.get_untracked().into_iter().collect());
+        db.save_disabled_volts(self.disabled.get_untracked().into_iter().collect(), &self.common.local_task);
     }
 
     pub fn disable_volt(&self, volt: VoltInfo) {
@@ -491,7 +491,7 @@ impl PluginData {
         });
         self.common.proxy.disable_volt(volt);
         let db: Arc<LapceDb> = use_context().unwrap();
-        db.save_disabled_volts(self.disabled.get_untracked().into_iter().collect());
+        db.save_disabled_volts(self.disabled.get_untracked().into_iter().collect(), &self.common.local_task);
     }
 
     pub fn enable_volt_for_ws(&self, volt: VoltInfo) {
@@ -505,7 +505,7 @@ impl PluginData {
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
             self.common.workspace.clone(),
-            self.disabled.get_untracked().into_iter().collect(),
+            self.disabled.get_untracked().into_iter().collect(),&self.common.local_task
         );
     }
 
@@ -518,7 +518,7 @@ impl PluginData {
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
             self.common.workspace.clone(),
-            self.disabled.get_untracked().into_iter().collect(),
+            self.disabled.get_untracked().into_iter().collect(),&self.common.local_task
         );
     }
 
