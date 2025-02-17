@@ -76,7 +76,10 @@ pub fn parse_file_line_column(path: &str) -> Result<PathObject, Error> {
     })
 }
 
-pub fn try_open_in_existing_process(paths: &[PathObject], local_socket: PathBuf) -> Result<()> {
+pub fn try_open_in_existing_process(
+    paths: &[PathObject],
+    local_socket: PathBuf
+) -> Result<()> {
     let mut socket =
         interprocess::local_socket::LocalSocketStream::connect(local_socket)?;
 

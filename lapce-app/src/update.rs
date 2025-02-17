@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
-use lapce_core::{meta};
+use lapce_core::meta;
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug)]
@@ -52,9 +52,11 @@ pub fn get_latest_release() -> Result<ReleaseInfo> {
     Ok(release)
 }
 
-pub fn download_release(release: &ReleaseInfo, updates_directory: Option<&PathBuf>) -> Result<PathBuf> {
-    let dir =
-        updates_directory.ok_or_else(|| anyhow!("no directory"))?;
+pub fn download_release(
+    release: &ReleaseInfo,
+    updates_directory: Option<&PathBuf>
+) -> Result<PathBuf> {
+    let dir = updates_directory.ok_or_else(|| anyhow!("no directory"))?;
     let name = match std::env::consts::OS {
         "macos" => "Lapce-macos.dmg",
         "linux" => match std::env::consts::ARCH {

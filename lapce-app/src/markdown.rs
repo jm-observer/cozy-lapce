@@ -21,7 +21,8 @@ pub enum MarkdownContent {
 pub fn parse_markdown(
     text: &str,
     line_height: f64,
-    config: &LapceConfig, directory: &Directory
+    config: &LapceConfig,
+    directory: &Directory
 ) -> Vec<MarkdownContent> {
     let mut res = Vec::new();
 
@@ -102,7 +103,8 @@ pub fn parse_markdown(
                                 language,
                                 &last_text,
                                 start_offset,
-                                config, directory
+                                config,
+                                directory
                             );
                             builder_dirty = true;
                         },
@@ -282,10 +284,16 @@ pub fn highlight_as_code(
     language: Option<LapceLanguage>,
     text: &str,
     start_offset: usize,
-    config: &LapceConfig, directory: &Directory
+    config: &LapceConfig,
+    directory: &Directory
 ) {
-    let syntax = language
-        .map(|x| Syntax::from_language(x, &directory.grammars_directory, &directory.queries_directory));
+    let syntax = language.map(|x| {
+        Syntax::from_language(
+            x,
+            &directory.grammars_directory,
+            &directory.queries_directory
+        )
+    });
 
     let styles = syntax
         .map(|mut syntax| {
@@ -293,7 +301,8 @@ pub fn highlight_as_code(
                 0,
                 Rope::from(text),
                 None,
-                &directory.grammars_directory, &directory.queries_directory
+                &directory.grammars_directory,
+                &directory.queries_directory
             );
             syntax.styles
         })
@@ -315,7 +324,8 @@ pub fn highlight_as_code(
 
 pub fn from_marked_string(
     text: MarkedString,
-    config: &LapceConfig, directory: &Directory,
+    config: &LapceConfig,
+    directory: &Directory
 ) -> Vec<MarkdownContent> {
     match text {
         MarkedString::String(text) => parse_markdown(&text, 1.8, config, directory),
@@ -326,7 +336,8 @@ pub fn from_marked_string(
             parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config, directory
+                config,
+                directory
             )
         }
     }

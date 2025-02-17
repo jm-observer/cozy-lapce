@@ -1,8 +1,5 @@
-use std::{
-    env,
-};
-use std::io::Write;
-use std::path::Path;
+use std::{env, io::Write, path::Path};
+
 use anyhow::{Context, Result, anyhow};
 use log::trace;
 
@@ -60,7 +57,10 @@ pub async fn find_grammar_release() -> Result<ReleaseInfo> {
 
     Ok(release.to_owned())
 }
-pub async fn fetch_grammars(release: &ReleaseInfo, grammars_directory: &Path) -> Result<bool> {
+pub async fn fetch_grammars(
+    release: &ReleaseInfo,
+    grammars_directory: &Path
+) -> Result<bool> {
     // let dir = Directory::grammars_directory().await
     //     .ok_or_else(|| anyhow!("can't get grammars directory"))?;
 
@@ -72,7 +72,10 @@ pub async fn fetch_grammars(release: &ReleaseInfo, grammars_directory: &Path) ->
 
     Ok(updated)
 }
-pub async fn fetch_queries(release: &ReleaseInfo, queries_directory: &Path) -> Result<bool> {
+pub async fn fetch_queries(
+    release: &ReleaseInfo,
+    queries_directory: &Path
+) -> Result<bool> {
     // let dir = Directory::queries_directory()
     //     .ok_or_else(|| anyhow!("can't get queries directory"))?;
 
@@ -84,7 +87,7 @@ pub async fn fetch_queries(release: &ReleaseInfo, queries_directory: &Path) -> R
 
     Ok(updated)
 }
-async fn  download_release(
+async fn download_release(
     dir: &Path,
     release: &ReleaseInfo,
     file_name: &str
@@ -94,8 +97,9 @@ async fn  download_release(
         fs::create_dir(&dir).await?;
     }
 
-    let current_version =
-        fs::read_to_string(dir.join("version")).await.unwrap_or_default();
+    let current_version = fs::read_to_string(dir.join("version"))
+        .await
+        .unwrap_or_default();
     let release_version = if release.tag_name == "nightly" {
         format!("nightly-{}", &release.target_commitish[..7])
     } else {
@@ -108,7 +112,8 @@ async fn  download_release(
 
     for asset in &release.assets {
         if asset.name.starts_with(file_name) {
-            let resp = lapce_proxy::async_get_url(&asset.browser_download_url, None).await?;
+            let resp = lapce_proxy::async_get_url(&asset.browser_download_url, None)
+                .await?;
             if !resp.status().is_success() {
                 return Err(anyhow!("download file error {}", resp.text().await?));
             }

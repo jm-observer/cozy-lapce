@@ -2468,8 +2468,10 @@ impl MainSplitData {
             DocContent::Scratch { .. } => {
                 let send = {
                     let path = path.clone();
-                    let queries_directory =self.common.directory.queries_directory.clone();
-                    let grammars_directory =self.common.directory.grammars_directory.clone();
+                    let queries_directory =
+                        self.common.directory.queries_directory.clone();
+                    let grammars_directory =
+                        self.common.directory.grammars_directory.clone();
                     create_ext_action(self.scope, move |result| {
                         if let Err(err) = result {
                             warn!("Failed to save as a file: {:?}", err);

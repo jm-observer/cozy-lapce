@@ -20,6 +20,7 @@ use grep_matcher::Matcher;
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{SearcherBuilder, sinks::UTF8};
 use indexmap::IndexMap;
+use lapce_core::directory::Directory;
 use lapce_rpc::{
     RequestId, RpcError,
     buffer::BufferId,
@@ -41,7 +42,7 @@ use lsp_types::{
     notification::{Cancel, Notification}
 };
 use parking_lot::Mutex;
-use lapce_core::directory::Directory;
+
 use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
@@ -62,7 +63,7 @@ pub struct Dispatcher {
     file_watcher:  FileWatcher,
     window_id:     usize,
     tab_id:        usize,
-    directory: Directory
+    directory:     Directory
 }
 
 impl ProxyHandler for Dispatcher {
@@ -1329,7 +1330,8 @@ impl ProxyHandler for Dispatcher {
                         disabled_volts,
                         extra_plugin_paths,
                         plugin_configurations,
-                        plugin_rpc.clone(), directory
+                        plugin_rpc.clone(),
+                        directory
                     );
                     plugin_rpc.mainloop(&mut plugin);
                 });
@@ -1349,7 +1351,11 @@ impl ProxyHandler for Dispatcher {
 }
 
 impl Dispatcher {
-    pub fn new(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler, directory: Directory) -> Self {
+    pub fn new(
+        core_rpc: CoreRpcHandler,
+        proxy_rpc: ProxyRpcHandler,
+        directory: Directory
+    ) -> Self {
         let plugin_rpc =
             PluginCatalogRpcHandler::new(core_rpc.clone(), proxy_rpc.clone());
 
@@ -1364,7 +1370,8 @@ impl Dispatcher {
             terminals: Terminals::default(),
             file_watcher,
             window_id: 1,
-            tab_id: 1, directory
+            tab_id: 1,
+            directory
         }
     }
 

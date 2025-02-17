@@ -1,31 +1,36 @@
-use crate::config::LapceConfig;
-use crate::db::{LapceDb, SaveEvent};
-use crate::local_task::{LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler, LocalRpc};
-use crate::markdown::parse_markdown;
-use crate::plugin::{VoltIcon, VoltsInfo};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc
+};
+
 use anyhow::Result;
 use crossbeam_channel::Receiver;
 use lapce_core::directory::Directory;
-use lapce_proxy::plugin::wasi::find_all_volts;
-use lapce_proxy::plugin::{async_volt_icon, download_volt};
-use lapce_rpc::RequestId;
-use lapce_rpc::plugin::VoltInfo;
-use lapce_rpc::style::SemanticStyles;
-use lapce_xi_rope::Interval;
-use lapce_xi_rope::spans::SpansBuilder;
-use log::{debug};
+use lapce_proxy::plugin::{async_volt_icon, download_volt, wasi::find_all_volts};
+use lapce_rpc::{RequestId, plugin::VoltInfo, style::SemanticStyles};
+use lapce_xi_rope::{Interval, spans::SpansBuilder};
+use log::debug;
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+
+use crate::{
+    config::LapceConfig,
+    db::{LapceDb, SaveEvent},
+    local_task::{
+        LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler,
+        LocalRpc
+    },
+    markdown::parse_markdown,
+    plugin::{VoltIcon, VoltsInfo}
+};
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
-    pub directory: Directory,
-    pub config: LapceConfig,
+    pub directory:      Directory,
+    pub config:         LapceConfig,
     pub(crate) pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
-    pub db: Arc<LapceDb>,
+    pub db:             Arc<LapceDb>
 }
 
 impl LocalTaskHandler {
@@ -37,18 +42,15 @@ impl LocalTaskHandler {
                     self.handle_request(id, request).await;
                 },
                 Notification {
-                    notification: _notification,
-                } => {
-                    match _notification {
-                        LocalNotification::DbSaveEvent(event) => {
-                            let db = self.db.clone();
-                            tokio::spawn(async move {
-                                handle_notification_db_save_event(db, event).await;
-                            });
-                            
-                        }
+                    notification: _notification
+                } => match _notification {
+                    LocalNotification::DbSaveEvent(event) => {
+                        let db = self.db.clone();
+                        tokio::spawn(async move {
+                            handle_notification_db_save_event(db, event).await;
+                        });
                     }
-                },
+                }
                 // Shutdown => {
                 //     return;
                 // },
@@ -71,7 +73,7 @@ impl LocalTaskHandler {
             LocalRequest::SpansBuilder {
                 len,
                 styles,
-                result_id,
+                result_id
             } => {
                 let pending = self.pending.clone();
                 tokio::spawn(async move {
@@ -134,7 +136,9 @@ impl LocalTaskHandler {
                 let grammars_directory = self.directory.grammars_directory.clone();
                 let queries_directory = self.directory.queries_directory.clone();
                 tokio::spawn(async move {
-                    let rs = handle_find_grammar(&grammars_directory, &queries_directory).await;
+                    let rs =
+                        handle_find_grammar(&grammars_directory, &queries_directory)
+                            .await;
                     handle_response(id, rs, pending);
                 });
             }
@@ -142,20 +146,22 @@ impl LocalTaskHandler {
     }
 }
 
-async fn handle_find_grammar(grammars_directory: &Path,  queries_directory: &Path
+async fn handle_find_grammar(
+    grammars_directory: &Path,
+    queries_directory: &Path
 ) -> Result<LocalResponse> {
     use crate::app::grammars::*;
     let release = find_grammar_release().await?;
     let mut updated = false;
     updated |= fetch_grammars(&release, grammars_directory).await?;
     updated |= fetch_queries(&release, queries_directory).await?;
-    Ok(LocalResponse::FindGrammar {updated})
+    Ok(LocalResponse::FindGrammar { updated })
 }
 
 async fn handle_download_readme(
     volt: &VoltInfo,
     config: &LapceConfig,
-    directory: &Directory,
+    directory: &Directory
 ) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
@@ -187,7 +193,7 @@ async fn handle_query_volts(query: &str, offset: usize) -> Result<LocalResponse>
 
 async fn handle_load_icon(
     volt: &VoltInfo,
-    cache_directory: Option<PathBuf>,
+    cache_directory: Option<PathBuf>
 ) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/icon?id={}",
@@ -222,7 +228,7 @@ async fn handle_load_icon(
 async fn handle_spans_builder(
     len: usize,
     styles: SemanticStyles,
-    result_id: Option<String>,
+    result_id: Option<String>
 ) -> Result<LocalResponse> {
     let mut styles_span = SpansBuilder::new(len);
     for style in styles.styles {
@@ -235,7 +241,7 @@ async fn handle_spans_builder(
 }
 async fn handle_find_all_volts(
     extra_plugin_paths: Arc<Vec<PathBuf>>,
-    plugin_dir: PathBuf,
+    plugin_dir: PathBuf
 ) -> Result<LocalResponse> {
     let volts = find_all_volts(&extra_plugin_paths, &plugin_dir).await;
     Ok(LocalResponse::FindAllVolts { volts })
@@ -248,7 +254,7 @@ async fn handle_query_volt_info(url: String) -> Result<LocalResponse> {
 
 async fn handle_install_volt(
     info: VoltInfo,
-    plugin_dir: PathBuf,
+    plugin_dir: PathBuf
 ) -> Result<LocalResponse> {
     let volt = download_volt(&info, &plugin_dir).await?;
     let icon = async_volt_icon(&volt).await;
@@ -258,7 +264,7 @@ async fn handle_install_volt(
 fn handle_response(
     id: RequestId,
     result: Result<LocalResponse>,
-    pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
+    pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>
 ) {
     let handler = { pending.lock().remove(&id) };
     if let Some(handler) = handler {
@@ -295,9 +301,7 @@ async fn handle_notification_db_save_event(db: Arc<LapceDb>, event: SaveEvent) {
             }
         },
         SaveEvent::WorkspaceDisabledVolts(workspace, volts) => {
-            if let Err(err) =
-                db.insert_workspace_disabled_volts(workspace, volts)
-            {
+            if let Err(err) = db.insert_workspace_disabled_volts(workspace, volts) {
                 log::error!("{:?}", err);
             }
         },
@@ -305,6 +309,6 @@ async fn handle_notification_db_save_event(db: Arc<LapceDb>, event: SaveEvent) {
             if let Err(err) = db.insert_panel_orders(&order) {
                 log::error!("{:?}", err);
             }
-        },
+        }
     }
 }

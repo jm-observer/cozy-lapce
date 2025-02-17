@@ -4,8 +4,13 @@ pub mod keymap;
 mod loader;
 mod press;
 
-use std::{path::PathBuf, rc::Rc, str::FromStr, time::SystemTime};
-use std::path::Path;
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+    str::FromStr,
+    time::SystemTime
+};
+
 use anyhow::Result;
 use doc::lines::{
     editor_command::CommandExecuted,
@@ -18,8 +23,9 @@ use floem::{
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
-use log::trace;
 use lapce_core::directory::Directory;
+use log::trace;
+
 pub use self::press::KeyPress;
 use self::{
     key::KeyInput,
@@ -163,7 +169,8 @@ pub struct KeyPressData {
 impl KeyPressData {
     pub fn new(cx: Scope, config: &LapceConfig, directory: &Directory) -> Self {
         let (keymaps, command_keymaps) =
-            Self::get_keymaps(config, &directory.config_directory).unwrap_or((IndexMap::new(), IndexMap::new()));
+            Self::get_keymaps(config, &directory.config_directory)
+                .unwrap_or((IndexMap::new(), IndexMap::new()));
         let mut keypress = Self {
             count:                   cx.create_rw_signal(None),
             pending_keypress:        cx.create_rw_signal((Vec::new(), None)),
@@ -172,14 +179,16 @@ impl KeyPressData {
             commands:                Rc::new(lapce_internal_commands()),
             commands_with_keymap:    Rc::new(Vec::new()),
             commands_without_keymap: Rc::new(Vec::new()),
-            directory: directory.clone()
+            directory:               directory.clone()
         };
         keypress.load_commands();
         keypress
     }
 
     pub fn update_keymaps(&mut self, config: &LapceConfig) {
-        if let Ok((new_keymaps, new_command_keymaps)) = Self::get_keymaps(config, &self.directory.config_directory) {
+        if let Ok((new_keymaps, new_command_keymaps)) =
+            Self::get_keymaps(config, &self.directory.config_directory)
+        {
             self.keymaps = Rc::new(new_keymaps);
             self.command_keymaps = Rc::new(new_command_keymaps);
             self.load_commands();
@@ -571,7 +580,8 @@ impl KeyPressData {
 
     #[allow(clippy::type_complexity)]
     fn get_keymaps(
-        config: &LapceConfig, config_directory: &Path
+        config: &LapceConfig,
+        config_directory: &Path
     ) -> Result<(
         IndexMap<Vec<KeyMapPress>, Vec<KeyMap>>,
         IndexMap<String, Vec<KeyMap>>
@@ -625,7 +635,8 @@ impl KeyPressData {
         keys: &[KeyMapPress],
         common: Rc<CommonData>
     ) -> Option<()> {
-        let mut array = Self::get_file_array(&common.directory.config_directory).unwrap_or_default();
+        let mut array = Self::get_file_array(&common.directory.config_directory)
+            .unwrap_or_default();
         let index = array.iter().position(|value| {
             Some(keymap.command.as_str())
                 == value.get("command").and_then(|c| c.as_str())

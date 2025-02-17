@@ -76,7 +76,8 @@ pub trait Remote: Sized {
 pub fn start_remote(
     remote: impl Remote,
     core_rpc: CoreRpcHandler,
-    proxy_rpc: ProxyRpcHandler, directory: &Directory
+    proxy_rpc: ProxyRpcHandler,
+    directory: &Directory
 ) -> Result<()> {
     // Note about platforms:
     // Windows can use either cmd.exe, powershell.exe or pwsh.exe as
@@ -136,7 +137,8 @@ pub fn start_remote(
             &platform,
             &architecture,
             &remote_proxy_path,
-            &remote_proxy_file, &directory.proxy_directory
+            &remote_proxy_file,
+            &directory.proxy_directory
         )?;
     };
 
@@ -258,14 +260,14 @@ fn download_remote(
     platform: &HostPlatform,
     architecture: &HostArchitecture,
     remote_proxy_path: &str,
-    remote_proxy_file: &str, proxy_directory: &Path
+    remote_proxy_file: &str,
+    proxy_directory: &Path
 ) -> Result<()> {
     use base64::{Engine as _, engine::general_purpose};
 
     let script_install = match platform {
         HostPlatform::Windows => {
-            let local_proxy_script =
-                proxy_directory.join("proxy.ps1");
+            let local_proxy_script = proxy_directory.join("proxy.ps1");
 
             let mut proxy_script = std::fs::OpenOptions::new()
                 .create(true)
@@ -340,8 +342,7 @@ fn download_remote(
         };
         if !cmd.success() {
             let proxy_filename = format!("lapce-proxy-{platform}-{architecture}");
-            let local_proxy_file = proxy_directory
-                .join(&proxy_filename);
+            let local_proxy_file = proxy_directory.join(&proxy_filename);
             // remove possibly outdated proxy
             if local_proxy_file.exists() {
                 // TODO: add proper proxy version detection and update proxy

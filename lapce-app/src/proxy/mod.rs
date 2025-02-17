@@ -2,7 +2,10 @@ use std::{collections::HashMap, path::PathBuf, process::Command};
 
 use crossbeam_channel::Sender;
 use floem::{ext_event::create_signal_from_channel, reactive::ReadSignal};
-use lapce_core::workspace::{LapceWorkspace, LapceWorkspaceType};
+use lapce_core::{
+    directory::Directory,
+    workspace::{LapceWorkspace, LapceWorkspaceType}
+};
 use lapce_proxy::dispatch::Dispatcher;
 use lapce_rpc::{
     core::{CoreHandler, CoreNotification, CoreRpcHandler},
@@ -11,7 +14,7 @@ use lapce_rpc::{
     terminal::TermId
 };
 use log::error;
-use lapce_core::directory::Directory;
+
 use self::{remote::start_remote, ssh::SshRemote};
 use crate::terminal::event::TermEvent;
 
@@ -44,7 +47,8 @@ pub fn new_proxy(
     disabled_volts: Vec<VoltID>,
     extra_plugin_paths: Vec<PathBuf>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-    term_tx: Sender<(TermId, TermEvent)>, directory: &Directory
+    term_tx: Sender<(TermId, TermEvent)>,
+    directory: &Directory
 ) -> ProxyData {
     let proxy_rpc = ProxyRpcHandler::new();
     let core_rpc = CoreRpcHandler::new();
@@ -86,7 +90,8 @@ pub fn new_proxy(
                                 ssh: remote.clone()
                             },
                             core_rpc.clone(),
-                            proxy_rpc.clone(), &directory
+                            proxy_rpc.clone(),
+                            &directory
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
@@ -98,7 +103,8 @@ pub fn new_proxy(
                                 wsl: remote.clone()
                             },
                             core_rpc.clone(),
-                            proxy_rpc.clone(), &directory
+                            proxy_rpc.clone(),
+                            &directory
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
@@ -167,7 +173,11 @@ pub fn new_command(program: &str) -> Command {
 }
 
 #[tokio::main]
-async fn start_local_proxy(core_rpc: CoreRpcHandler, proxy_rpc: ProxyRpcHandler, directory: Directory) {
+async fn start_local_proxy(
+    core_rpc: CoreRpcHandler,
+    proxy_rpc: ProxyRpcHandler,
+    directory: Directory
+) {
     let mut dispatcher = Dispatcher::new(core_rpc, proxy_rpc, directory);
     let proxy_rpc = dispatcher.proxy_rpc.clone();
     proxy_rpc.mainloop(&mut dispatcher).await;

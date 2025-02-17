@@ -44,8 +44,7 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
-    debug::LapceBreakpoint, doc::DocContent, id::EditorId,
-    workspace::LapceWorkspace
+    debug::LapceBreakpoint, doc::DocContent, id::EditorId, workspace::LapceWorkspace
 };
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
@@ -64,13 +63,13 @@ use crate::{
     find::{Find, FindProgress, FindResult},
     history::DocumentHistory,
     keypress::KeyPressFocus,
+    local_task::{LocalRequest, LocalResponse},
     main_split::Editors,
     panel::document_symbol::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData
     },
     window_workspace::CommonData
 };
-use crate::local_task::{LocalRequest, LocalResponse};
 // #[derive(Clone, Debug)]
 // pub struct DiagnosticData {
 //     pub expanded: RwSignal<bool>,
@@ -241,7 +240,10 @@ impl Doc {
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
             diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
         };
-        let syntax = Syntax::plaintext(&common.directory.grammars_directory, &common.directory.queries_directory);
+        let syntax = Syntax::plaintext(
+            &common.directory.grammars_directory,
+            &common.directory.queries_directory
+        );
         let buffer = Buffer::new("");
         let kind = cx.create_rw_signal(EditorViewKind::Normal);
 
@@ -304,9 +306,16 @@ impl Doc {
         let rw_config = config.get_doc_editor_config();
 
         let syntax = if let DocContent::History(history) = &content {
-            Syntax::init(&history.path, &common.directory.grammars_directory, &common.directory.queries_directory)
+            Syntax::init(
+                &history.path,
+                &common.directory.grammars_directory,
+                &common.directory.queries_directory
+            )
         } else {
-            Syntax::plaintext(&common.directory.grammars_directory, &common.directory.queries_directory)
+            Syntax::plaintext(
+                &common.directory.grammars_directory,
+                &common.directory.queries_directory
+            )
         };
         // let lines = cx.create_rw_signal(Lines::new(cx));
         let viewport = Rect::ZERO;
@@ -447,7 +456,8 @@ impl Doc {
         self.lines.update(|x| {
             if let Err(err) = x.set_syntax(Syntax::from_language(
                 language,
-                &self.common.directory.grammars_directory, &self.common.directory.queries_directory,
+                &self.common.directory.grammars_directory,
+                &self.common.directory.queries_directory
             )) {
                 error!("{:?}", err);
             }
@@ -744,7 +754,8 @@ impl Doc {
                 rev,
                 text,
                 edits.as_deref(),
-                &grammars_directory, &queries_directory,
+                &grammars_directory,
+                &queries_directory
             );
             send(syntax);
         });
@@ -828,22 +839,27 @@ impl Doc {
                     if atomic_rev.load(atomic::Ordering::Acquire) != rev {
                         return;
                     }
-                    local_task.request_async(LocalRequest::SpansBuilder {
-                        styles, result_id, len
-                    }, move |(_id, rs)| {
-                        match rs {
+                    local_task.request_async(
+                        LocalRequest::SpansBuilder {
+                            styles,
+                            result_id,
+                            len
+                        },
+                        move |(_id, rs)| match rs {
                             Ok(response) => {
                                 if let LocalResponse::SpansBuilder {
-                                    styles, result_id
-                                } = response {
+                                    styles,
+                                    result_id
+                                } = response
+                                {
                                     send((Some(styles), result_id));
                                 }
-                            }
+                            },
                             Err(err) => {
                                 error!("{err:?}")
                             }
                         }
-                    });
+                    );
                 } else {
                     send((None, None));
                 }

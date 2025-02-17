@@ -16,7 +16,7 @@ use std::{
     thread
 };
 
-use anyhow::{Result};
+use anyhow::Result;
 use clap::Parser;
 use dispatch::Dispatcher;
 use lapce_core::{directory::Directory, meta};
@@ -59,7 +59,8 @@ pub async fn mainloop() -> Result<()> {
 
     let core_rpc = CoreRpcHandler::new();
     let proxy_rpc = ProxyRpcHandler::new();
-    let mut dispatcher = Dispatcher::new(core_rpc.clone(), proxy_rpc.clone(), directory.clone());
+    let mut dispatcher =
+        Dispatcher::new(core_rpc.clone(), proxy_rpc.clone(), directory.clone());
 
     let (writer_tx, writer_rx) = crossbeam_channel::unbounded();
     let (reader_tx, reader_rx) = crossbeam_channel::unbounded();
@@ -165,7 +166,10 @@ pub fn register_lapce_path() -> Result<()> {
 }
 
 #[tokio::main]
-async fn listen_local_socket(proxy_rpc: ProxyRpcHandler, local_socket: PathBuf) -> Result<()> {
+async fn listen_local_socket(
+    proxy_rpc: ProxyRpcHandler,
+    local_socket: PathBuf
+) -> Result<()> {
     tokio::fs::remove_file(&local_socket).await?;
     // todo change to async
     let socket =
@@ -222,7 +226,6 @@ pub fn get_url<T: reqwest::IntoUrl + Clone>(
     }
 }
 
-
 pub async fn async_get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
     user_agent: Option<&str>
@@ -238,8 +241,7 @@ pub async fn async_get_url<T: reqwest::IntoUrl + Clone>(
             .proxy(proxy)
             .timeout(std::time::Duration::from_secs(10))
     } else {
-        reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
+        reqwest::Client::builder().timeout(std::time::Duration::from_secs(10))
     };
     if let Some(user_agent) = user_agent {
         builder = builder.user_agent(user_agent);

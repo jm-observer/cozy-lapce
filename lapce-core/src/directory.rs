@@ -1,24 +1,24 @@
 use std::path::PathBuf;
 
+use anyhow::{Result, anyhow};
 use directories::{BaseDirs, ProjectDirs};
 
 use crate::meta::NAME;
-use anyhow::{anyhow, Result};
 #[derive(Clone, Debug)]
 pub struct Directory {
-    pub home_dir: Option<PathBuf>,
-    pub project_dirs: Option<ProjectDirs>,
+    pub home_dir:             Option<PathBuf>,
+    pub project_dirs:         Option<ProjectDirs>,
     pub data_local_directory: Option<PathBuf>,
-    pub     logs_directory: PathBuf,
-    pub     cache_directory: Option<PathBuf>,
-    pub     proxy_directory: PathBuf,
-    pub     themes_directory: PathBuf,
-    pub     plugins_directory: PathBuf,
-    pub     config_directory: PathBuf,
-    pub     local_socket: PathBuf,
-    pub     updates_directory: Option<PathBuf>,
-    pub     queries_directory: PathBuf,
-    pub     grammars_directory: PathBuf
+    pub logs_directory:       PathBuf,
+    pub cache_directory:      Option<PathBuf>,
+    pub proxy_directory:      PathBuf,
+    pub themes_directory:     PathBuf,
+    pub plugins_directory:    PathBuf,
+    pub config_directory:     PathBuf,
+    pub local_socket:         PathBuf,
+    pub updates_directory:    Option<PathBuf>,
+    pub queries_directory:    PathBuf,
+    pub grammars_directory:   PathBuf
 }
 
 impl Directory {
@@ -26,18 +26,34 @@ impl Directory {
         let home_dir = Self::home_dir();
         let project_dirs = Self::project_dirs();
         let data_local_directory = Self::data_local_directory().await;
-        let logs_directory = Self::logs_directory().await.ok_or(anyhow!("logs directory missing"))?;
+        let logs_directory = Self::logs_directory()
+            .await
+            .ok_or(anyhow!("logs directory missing"))?;
         let cache_directory = Self::cache_directory().await;
 
-        let proxy_directory = Self::proxy_directory().await.ok_or(anyhow!("proxy directory missing"))?;
-        let themes_directory = Self::themes_directory().await.ok_or(anyhow!("themes directory missing"))?;
-        let plugins_directory = Self::plugins_directory().await.ok_or(anyhow!("plugins directory missing"))?;
-        let config_directory = Self::config_directory().await.ok_or(anyhow!("config directory missing"))?;
-        let local_socket = Self::local_socket().await.ok_or(anyhow!("local socket missing"))?;
+        let proxy_directory = Self::proxy_directory()
+            .await
+            .ok_or(anyhow!("proxy directory missing"))?;
+        let themes_directory = Self::themes_directory()
+            .await
+            .ok_or(anyhow!("themes directory missing"))?;
+        let plugins_directory = Self::plugins_directory()
+            .await
+            .ok_or(anyhow!("plugins directory missing"))?;
+        let config_directory = Self::config_directory()
+            .await
+            .ok_or(anyhow!("config directory missing"))?;
+        let local_socket = Self::local_socket()
+            .await
+            .ok_or(anyhow!("local socket missing"))?;
 
         let updates_directory = Self::updates_directory().await;
-        let queries_directory = Self::queries_directory().await.ok_or(anyhow!("queries directory missing"))?;
-        let grammars_directory = Self::grammars_directory().await.ok_or(anyhow!("grammars directory missing"))?;
+        let queries_directory = Self::queries_directory()
+            .await
+            .ok_or(anyhow!("queries directory missing"))?;
+        let grammars_directory = Self::grammars_directory()
+            .await
+            .ok_or(anyhow!("grammars directory missing"))?;
         Ok(Self {
             home_dir,
             project_dirs,
@@ -51,9 +67,10 @@ impl Directory {
             local_socket,
             updates_directory,
             queries_directory,
-            grammars_directory,
+            grammars_directory
         })
     }
+
     fn home_dir() -> Option<PathBuf> {
         BaseDirs::new().map(|d| PathBuf::from(d.home_dir()))
     }
@@ -192,7 +209,9 @@ impl Directory {
     }
 
     async fn local_socket() -> Option<PathBuf> {
-        Self::data_local_directory().await.map(|dir| dir.join("local.sock"))
+        Self::data_local_directory()
+            .await
+            .map(|dir| dir.join("local.sock"))
     }
 
     async fn updates_directory() -> Option<PathBuf> {

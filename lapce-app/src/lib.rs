@@ -23,6 +23,7 @@ pub mod inline_completion;
 pub mod keymap;
 pub mod keypress;
 pub mod listener;
+mod local_task;
 mod log;
 pub mod lsp;
 pub mod main_split;
@@ -44,7 +45,6 @@ pub mod wave;
 pub mod web_link;
 pub mod window;
 pub mod window_workspace;
-mod local_task;
 
 #[cfg(windows)]
 extern crate windows_sys as windows;

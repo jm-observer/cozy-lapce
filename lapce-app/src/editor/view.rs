@@ -49,7 +49,9 @@ use crate::{
     command::InternalCommand,
     config::{LapceConfig, color::LapceColor, editor::WrapStyle},
     editor::{
-        floem_editor::{Editor, cursor_origin_position, paint_selection, paint_text},
+        floem_editor::{
+            Editor, cursor_origin_position, paint_selection, paint_text
+        },
         gutter_new::view::editor_gutter_new
     },
     svg,

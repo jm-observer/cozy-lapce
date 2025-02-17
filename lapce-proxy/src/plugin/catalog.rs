@@ -10,6 +10,7 @@ use std::{
 };
 
 use jsonrpc_lite::Id;
+use lapce_core::directory::Directory;
 use lapce_rpc::{
     RpcError,
     dap_types::{
@@ -30,11 +31,15 @@ use lsp_types::{
 use parking_lot::Mutex;
 use psp_types::Notification;
 use serde_json::Value;
-use lapce_core::directory::Directory;
-use super::{PluginCatalogNotification, PluginCatalogRpcHandler, dap::{DapClient, DapRpcHandler, DebuggerData}, psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback}, wasi::{start_volt}, install_volt};
-use crate::plugin::{
-    psp::PluginHandlerNotification, wasi::enable_volt
+
+use super::{
+    PluginCatalogNotification, PluginCatalogRpcHandler,
+    dap::{DapClient, DapRpcHandler, DebuggerData},
+    install_volt,
+    psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback},
+    wasi::start_volt
 };
+use crate::plugin::{psp::PluginHandlerNotification, wasi::enable_volt};
 
 pub struct PluginCatalog {
     workspace:             Option<PathBuf>,
@@ -45,7 +50,7 @@ pub struct PluginCatalog {
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
     unactivated_volts:     HashMap<VoltID, VoltMetadata>,
     open_files:            HashMap<PathBuf, String>,
-    directory: Directory
+    directory:             Directory
 }
 
 impl PluginCatalog {
@@ -55,7 +60,8 @@ impl PluginCatalog {
         _disabled_volts: Vec<VoltID>,
         _extra_plugin_paths: Vec<PathBuf>,
         plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-        plugin_rpc: PluginCatalogRpcHandler, directory: Directory
+        plugin_rpc: PluginCatalogRpcHandler,
+        directory: Directory
     ) -> Self {
         let _plugin_dir = directory.plugins_directory.clone();
         let plugin = Self {
@@ -66,13 +72,14 @@ impl PluginCatalog {
             daps: HashMap::new(),
             debuggers: HashMap::new(),
             unactivated_volts: HashMap::new(),
-            open_files: HashMap::new(), directory
+            open_files: HashMap::new(),
+            directory
         };
 
         // todo remove
         // thread::spawn(move || {
-        //     load_all_volts(plugin_rpc, &extra_plugin_paths, disabled_volts, id, plugin_dir);
-        // });
+        //     load_all_volts(plugin_rpc, &extra_plugin_paths, disabled_volts, id,
+        // plugin_dir); });
 
         plugin
     }
@@ -510,7 +517,10 @@ impl PluginCatalog {
         }
     }
 
-    pub async fn handle_notification(&mut self, notification: PluginCatalogNotification) {
+    pub async fn handle_notification(
+        &mut self,
+        notification: PluginCatalogNotification
+    ) {
         use PluginCatalogNotification::*;
         match notification {
             UnactivatedVolts(volts, id) => {
@@ -577,8 +587,11 @@ impl PluginCatalog {
                         workspace,
                         configurations,
                         volt,
-                        id, plugin_dir
-                    ).await {
+                        id,
+                        plugin_dir
+                    )
+                    .await
+                    {
                         log::error!("{:?}", err);
                     }
                 });
@@ -619,7 +632,9 @@ impl PluginCatalog {
                 let plugin_rpc = self.plugin_rpc.clone();
                 let plugin_dir = self.directory.plugins_directory.clone();
                 tokio::spawn(async move {
-                    if let Err(err) = enable_volt(plugin_rpc, volt, id, plugin_dir).await {
+                    if let Err(err) =
+                        enable_volt(plugin_rpc, volt, id, plugin_dir).await
+                    {
                         log::error!("{:?}", err);
                     }
                 });

@@ -82,6 +82,7 @@ use crate::{
     inline_completion::InlineCompletionData,
     keypress::{EventRef, KeyPressData, KeyPressFocus, condition::Condition},
     listener::Listener,
+    local_task::LocalTaskRequester,
     lsp::path_from_url,
     main_split::{MainSplitData, SplitData},
     palette::{DEFAULT_RUN_TOML, PaletteData, PaletteStatus, kind::PaletteKind},
@@ -99,7 +100,6 @@ use crate::{
     },
     window::{CursorBlink, WindowCommonData}
 };
-use crate::local_task::{LocalTaskRequester};
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -224,7 +224,7 @@ pub struct CommonData {
     // the current focused view which will receive keyboard events
     pub keyboard_focus:       RwSignal<Option<ViewId>>,
     pub window_common:        Rc<WindowCommonData>,
-    pub directory: Directory
+    pub directory:            Directory
 }
 
 impl std::fmt::Debug for CommonData {
@@ -264,7 +264,7 @@ pub struct WindowWorkspaceData {
     pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
     pub build_data:                TreePanelData,
-    pub cursor_blink:              CursorBlink,
+    pub cursor_blink:              CursorBlink
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -357,7 +357,10 @@ impl WindowWorkspaceData {
     pub fn new(
         cx: Scope,
         workspace: LapceWorkspace,
-        window_common: Rc<WindowCommonData>, directory: &Directory, local_task: LocalTaskRequester, config: RwSignal<LapceConfig>
+        window_common: Rc<WindowCommonData>,
+        directory: &Directory,
+        local_task: LocalTaskRequester,
+        config: RwSignal<LapceConfig>
     ) -> Result<Self> {
         let cx = cx.create_child();
         let db: Arc<LapceDb> = use_context().unwrap();
@@ -387,7 +390,8 @@ impl WindowWorkspaceData {
         let lapce_command = Listener::new_empty(cx);
         let workbench_command = Listener::new_empty(cx);
         let internal_command = Listener::new_empty(cx);
-        let keypress = cx.create_rw_signal(KeyPressData::new(cx, &config_val, directory));
+        let keypress =
+            cx.create_rw_signal(KeyPressData::new(cx, &config_val, directory));
         let proxy_status = cx.create_rw_signal(None);
 
         let (term_tx, term_rx) = crossbeam_channel::unbounded();
@@ -409,7 +413,8 @@ impl WindowWorkspaceData {
             all_disabled_volts,
             window_common.extra_plugin_paths.as_ref().clone(),
             config_val.plugins.clone(),
-            term_tx.clone(), directory
+            term_tx.clone(),
+            directory
         );
         // let (config, set_config) = cx.create_signal(config);
 
@@ -437,7 +442,8 @@ impl WindowWorkspaceData {
         });
 
         let common = Rc::new(CommonData {
-            workspace: workspace.clone(), local_task,
+            workspace: workspace.clone(),
+            local_task,
             scope: cx,
             keypress,
             focus,
@@ -462,7 +468,8 @@ impl WindowWorkspaceData {
             window_origin: cx.create_rw_signal(Point::ZERO),
             breakpoints: cx.create_rw_signal(BTreeMap::new()),
             keyboard_focus: cx.create_rw_signal(None),
-            window_common: window_common.clone(),  directory: directory.clone()
+            window_common: window_common.clone(),
+            directory: directory.clone()
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -726,7 +733,8 @@ impl WindowWorkspaceData {
         let config = LapceConfig::load(
             &self.workspace,
             &all_disabled_volts,
-            &self.common.window_common.extra_plugin_paths, &self.common.directory
+            &self.common.window_common.extra_plugin_paths,
+            &self.common.directory
         );
         self.common.keypress.update(|keypress| {
             keypress.update_keymaps(&config);

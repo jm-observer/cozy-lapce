@@ -1,9 +1,17 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use crossbeam_channel::{Sender};
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering}
+    }
+};
+
+use crossbeam_channel::Sender;
 use parking_lot::Mutex;
-use crate::local_task::{LocalCallback, LocalNotification, LocalRequest, LocalResponseHandler, LocalRpc};
+
+use crate::local_task::{
+    LocalCallback, LocalNotification, LocalRequest, LocalResponseHandler, LocalRpc
+};
 
 #[derive(Clone)]
 pub struct LocalTaskRequester {
@@ -13,27 +21,34 @@ pub struct LocalTaskRequester {
 }
 
 impl LocalTaskRequester {
-
-    pub(super) fn new(tx:      Sender<LocalRpc>, pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>) -> Self {
+    pub(super) fn new(
+        tx: Sender<LocalRpc>,
+        pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>
+    ) -> Self {
         Self {
-            tx, pending,
+            tx,
+            pending,
             id: Arc::new(AtomicU64::new(0))
         }
     }
 
-    fn request_common(&self, request: LocalRequest, rh: LocalResponseHandler) -> u64 {
+    fn request_common(
+        &self,
+        request: LocalRequest,
+        rh: LocalResponseHandler
+    ) -> u64 {
         let id = self.id.fetch_add(1, Ordering::Relaxed);
 
         self.pending.lock().insert(id, rh);
 
-        if let Err(err) = self.tx.send(LocalRpc::Request{id, request}) {
+        if let Err(err) = self.tx.send(LocalRpc::Request { id, request }) {
             log::error!("{:?}", err);
         }
         id
     }
 
-    // pub fn request(&self, request: LocalRequest) -> Result<LocalResponse, RpcError> {
-    //     let (tx, rx) = crossbeam_channel::bounded(1);
+    // pub fn request(&self, request: LocalRequest) -> Result<LocalResponse,
+    // RpcError> {     let (tx, rx) = crossbeam_channel::bounded(1);
     //     self.request_common(request, LocalResponseHandler::Chan(tx));
     //     rx.recv()
     //         .map_err(|err| RpcError {
@@ -52,7 +67,7 @@ impl LocalTaskRequester {
     }
 
     pub fn notification(&self, notification: LocalNotification) {
-        if let Err(err) = self.tx.send(LocalRpc::Notification{notification}) {
+        if let Err(err) = self.tx.send(LocalRpc::Notification { notification }) {
             log::error!("{:?}", err);
         }
     }

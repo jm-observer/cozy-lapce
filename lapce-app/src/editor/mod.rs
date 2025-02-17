@@ -36,6 +36,7 @@ use floem::{
     }
 };
 use lapce_core::{
+    directory::Directory,
     doc::DocContent,
     editor_tab::EditorInfo,
     id::*,
@@ -51,7 +52,6 @@ use lsp_types::{
     Range, TextEdit
 };
 use nucleo::Utf32Str;
-use lapce_core::directory::Directory;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -2505,9 +2505,7 @@ impl EditorData {
         if format_on_save {
             let editor = self.clone();
             let send = create_ext_action(self.scope, move |result| {
-                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) =
-                    result
-                {
+                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) = result {
                     let current_rev = editor.doc().rev();
                     if current_rev == rev {
                         // log::debug!("{:?}", edits);
@@ -2534,9 +2532,7 @@ impl EditorData {
         if let DocContent::File { path, .. } = content {
             let editor = self.clone();
             let send = create_ext_action(self.scope, move |result| {
-                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) =
-                    result
-                {
+                if let Ok(ProxyResponse::GetDocumentFormatting { edits }) = result {
                     let current_rev = editor.doc().rev();
                     if current_rev == rev {
                         editor.do_text_edit(&edits, true);
@@ -2646,7 +2642,8 @@ impl EditorData {
             &self.common.workspace,
             path,
             cursor_offset,
-            scroll_offset, &self.common.local_task
+            scroll_offset,
+            &self.common.local_task
         );
     }
 
@@ -3206,7 +3203,8 @@ impl EditorData {
         let directory = self.common.directory.clone();
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
-                let content = parse_hover_resp(hover, &config.get_untracked(), &directory);
+                let content =
+                    parse_hover_resp(hover, &config.get_untracked(), &directory);
                 batch(|| {
                     hover_data.content.set(content);
                     hover_data.offset.set(offset);
@@ -3883,8 +3881,8 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //             //                         y: line_y(rvline_info, vline_y) as f64
 // - y0,             //                         vline_y: vline_y as f64 - y0, //
 //   vline_info: rvline_info, //                     }, //                 ); //
-//   //                 if initial_y_idx + i > max_vline.0 { // break; // } //
-//   } // //             if is_right { //                 if let
+//   //                 if initial_y_idx + i > max_vline.0 { // break; // } // }
+//   // //             if is_right { //                 if let
 //   Some(DiffLines::Left(r)) = last_change
 // {             //                     // TODO: count vline count in the other
 // editor since this is skipping an amount dependent on those vlines
@@ -3956,23 +3954,27 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 // f64 - y0,             //                             vline_y: vline_y as f64
 // - y0,             //                             vline_info: rvline_info, //
 //   }, //                     ); //                 } // // y_idx += 1; // //
-//   if y_idx - 1 > max_vline.get() { // break; //                 } // } //
-//   } //     } // last_change = Some(change); // } // ScreenLines { //
-//   lines: Rc::new(rvlines), //     info: Rc::new(info), // diff_sections:
+//   if y_idx - 1 > max_vline.get() { // break; //                 } // } // }
+//   //     } // last_change = Some(change); // } // ScreenLines { // lines:
+//   Rc::new(rvlines), //     info: Rc::new(info), // diff_sections:
 //   Some(Rc::new(diff_sections)), //     base, // } } }
 // }
 
 fn parse_hover_resp(
     hover: lsp_types::Hover,
-    config: &LapceConfig, directory: &Directory,
+    config: &LapceConfig,
+    directory: &Directory
 ) -> Vec<MarkdownContent> {
     match hover.contents {
         HoverContents::Scalar(text) => match text {
-            MarkedString::String(text) => parse_markdown(&text, 1.8, config, directory),
+            MarkedString::String(text) => {
+                parse_markdown(&text, 1.8, config, directory)
+            },
             MarkedString::LanguageString(code) => parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config, directory
+                config,
+                directory
             )
         },
         HoverContents::Array(array) => array
@@ -3987,7 +3989,9 @@ fn parse_hover_resp(
             .unwrap_or_default(),
         HoverContents::Markup(content) => match content.kind {
             MarkupKind::PlainText => from_plaintext(&content.value, 1.8, config),
-            MarkupKind::Markdown => parse_markdown(&content.value, 1.8, config, directory)
+            MarkupKind::Markdown => {
+                parse_markdown(&content.value, 1.8, config, directory)
+            },
         }
     }
 }

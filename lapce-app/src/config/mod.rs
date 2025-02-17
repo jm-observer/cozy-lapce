@@ -13,7 +13,7 @@ use lapce_core::{
     icon::LapceIcons,
     workspace::{LapceWorkspace, LapceWorkspaceType}
 };
-use lapce_proxy::plugin::wasi::{sync_find_all_volts};
+use lapce_proxy::plugin::wasi::sync_find_all_volts;
 use lapce_rpc::plugin::VoltID;
 use log::error;
 use lsp_types::{CompletionItemKind, SymbolKind};
@@ -138,16 +138,18 @@ pub struct LapceConfig {
     icon_theme_list:            im::Vector<String>,
     /// The couple names for the wrap style
     #[serde(skip)]
-    wrap_style_list:            im::Vector<String>,
+    wrap_style_list:            im::Vector<String>
 }
 
 impl LapceConfig {
     pub fn load(
         workspace: &LapceWorkspace,
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf], directory: &Directory
+        extra_plugin_paths: &[PathBuf],
+        directory: &Directory
     ) -> Self {
-        let config = Self::merge_config(workspace, None, None, &directory.config_directory);
+        let config =
+            Self::merge_config(workspace, None, None, &directory.config_directory);
         let mut lapce_config: LapceConfig = match config.try_deserialize() {
             Ok(config) => config,
             Err(error) => {
@@ -156,10 +158,17 @@ impl LapceConfig {
             }
         };
 
-        lapce_config.available_color_themes =
-            Self::load_color_themes(disabled_volts, extra_plugin_paths, &directory.themes_directory, &directory.plugins_directory);
-        lapce_config.available_icon_themes =
-            Self::load_icon_themes(disabled_volts, extra_plugin_paths, &directory.plugins_directory);
+        lapce_config.available_color_themes = Self::load_color_themes(
+            disabled_volts,
+            extra_plugin_paths,
+            &directory.themes_directory,
+            &directory.plugins_directory
+        );
+        lapce_config.available_icon_themes = Self::load_icon_themes(
+            disabled_volts,
+            extra_plugin_paths,
+            &directory.plugins_directory
+        );
         lapce_config.resolve_theme(workspace, &directory.config_directory);
 
         lapce_config.color_theme_list = lapce_config
@@ -193,7 +202,8 @@ impl LapceConfig {
     fn merge_config(
         workspace: &LapceWorkspace,
         color_theme_config: Option<config::Config>,
-        icon_theme_config: Option<config::Config>, config_dir: &Path
+        icon_theme_config: Option<config::Config>,
+        config_dir: &Path
     ) -> config::Config {
         let mut config = DEFAULT_CONFIG.clone();
 
@@ -297,7 +307,8 @@ impl LapceConfig {
         if let Ok(new) = Self::merge_config(
             workspace,
             Some(color_theme_config.clone()),
-            Some(icon_theme_config.clone()), config_dir
+            Some(icon_theme_config.clone()),
+            config_dir
         )
         .try_deserialize::<LapceConfig>()
         {
@@ -320,13 +331,18 @@ impl LapceConfig {
 
     fn load_color_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf], themes_directory: &Path, plugin_dir: &Path
+        extra_plugin_paths: &[PathBuf],
+        themes_directory: &Path,
+        plugin_dir: &Path
     ) -> HashMap<String, (String, config::Config)> {
-        let mut themes = Self::load_local_themes(themes_directory).unwrap_or_default();
+        let mut themes =
+            Self::load_local_themes(themes_directory).unwrap_or_default();
 
-        for (key, theme) in
-            Self::load_plugin_color_themes(disabled_volts, extra_plugin_paths, plugin_dir)
-        {
+        for (key, theme) in Self::load_plugin_color_themes(
+            disabled_volts,
+            extra_plugin_paths,
+            plugin_dir
+        ) {
             themes.insert(key, theme);
         }
 
@@ -349,14 +365,24 @@ impl LapceConfig {
 
     /// Set the active color theme.
     /// Note that this does not save the config.
-    pub fn set_color_theme(&mut self, workspace: &LapceWorkspace, theme: &str, config_dir: &Path) {
+    pub fn set_color_theme(
+        &mut self,
+        workspace: &LapceWorkspace,
+        theme: &str,
+        config_dir: &Path
+    ) {
         self.core.color_theme = theme.to_string();
         self.resolve_theme(workspace, config_dir);
     }
 
     /// Set the active icon theme.  
     /// Note that this does not save the config.
-    pub fn set_icon_theme(&mut self, workspace: &LapceWorkspace, theme: &str, config_dir: &Path) {
+    pub fn set_icon_theme(
+        &mut self,
+        workspace: &LapceWorkspace,
+        theme: &str,
+        config_dir: &Path
+    ) {
         self.core.icon_theme = theme.to_string();
         self.resolve_theme(workspace, config_dir);
     }
@@ -438,7 +464,9 @@ impl LapceConfig {
         // };
     }
 
-    fn load_local_themes(themes_directory: &Path) -> Option<HashMap<String, (String, config::Config)>> {
+    fn load_local_themes(
+        themes_directory: &Path
+    ) -> Option<HashMap<String, (String, config::Config)>> {
         let themes: HashMap<String, (String, config::Config)> =
             std::fs::read_dir(themes_directory)
                 .ok()?
@@ -478,13 +506,16 @@ impl LapceConfig {
 
     fn load_icon_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf], plugin_dir: &Path
+        extra_plugin_paths: &[PathBuf],
+        plugin_dir: &Path
     ) -> HashMap<String, (String, config::Config, Option<PathBuf>)> {
         let mut themes = HashMap::new();
 
-        for (key, (name, theme, path)) in
-            Self::load_plugin_icon_themes(disabled_volts, extra_plugin_paths, plugin_dir)
-        {
+        for (key, (name, theme, path)) in Self::load_plugin_icon_themes(
+            disabled_volts,
+            extra_plugin_paths,
+            plugin_dir
+        ) {
             themes.insert(key, (name, theme, Some(path)));
         }
 
@@ -507,7 +538,8 @@ impl LapceConfig {
 
     fn load_plugin_color_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf], plugin_dir: &Path
+        extra_plugin_paths: &[PathBuf],
+        plugin_dir: &Path
     ) -> HashMap<String, (String, config::Config)> {
         let mut themes: HashMap<String, (String, config::Config)> = HashMap::new();
         for meta in sync_find_all_volts(extra_plugin_paths, plugin_dir) {
@@ -529,7 +561,8 @@ impl LapceConfig {
 
     fn load_plugin_icon_themes(
         disabled_volts: &[VoltID],
-        extra_plugin_paths: &[PathBuf], plugin_dir: &Path
+        extra_plugin_paths: &[PathBuf],
+        plugin_dir: &Path
     ) -> HashMap<String, (String, config::Config, PathBuf)> {
         let mut themes: HashMap<String, (String, config::Config, PathBuf)> =
             HashMap::new();
@@ -973,8 +1006,13 @@ impl LapceConfig {
         Some(document)
     }
 
-    pub fn reset_setting(parent: &str, key: &str, config_directory: &Path) -> Option<()> {
-        let mut main_table = Self::get_file_table(config_directory).unwrap_or_default();
+    pub fn reset_setting(
+        parent: &str,
+        key: &str,
+        config_directory: &Path
+    ) -> Option<()> {
+        let mut main_table =
+            Self::get_file_table(config_directory).unwrap_or_default();
 
         // Find the container table
         let mut table = main_table.as_table_mut();
@@ -1018,7 +1056,8 @@ impl LapceConfig {
             (parent, key)
         };
 
-        let mut main_table = Self::get_file_table(config_directory).unwrap_or_default();
+        let mut main_table =
+            Self::get_file_table(config_directory).unwrap_or_default();
 
         // Find the container table
         let mut table = main_table.as_table_mut();

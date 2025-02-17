@@ -18,11 +18,13 @@ use doc::{
         register::Clipboard,
         text::SystemClipboard
     },
+    syntax::{Syntax, highlight::reset_highlight_configs}
 };
 use floem::{
     IntoView, View,
     action::show_context_menu,
     event::{Event, EventListener, EventPropagation},
+    ext_event::create_ext_action,
     menu::{Menu, MenuItem},
     peniko::{
         Color,
@@ -52,8 +54,17 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
-use floem::ext_event::create_ext_action;
-use lapce_core::{debug::RunDebugMode, directory::Directory, icon::LapceIcons, id::*, main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind}, meta, panel::PanelContainerPosition, workspace, workspace::{LapceWorkspace, LapceWorkspaceType}};
+use lapce_core::{
+    debug::RunDebugMode,
+    directory::Directory,
+    icon::LapceIcons,
+    id::*,
+    main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind},
+    meta,
+    panel::PanelContainerPosition,
+    workspace,
+    workspace::{LapceWorkspace, LapceWorkspaceType}
+};
 use lapce_rpc::{
     RpcMessage,
     core::{CoreMessage, CoreNotification},
@@ -62,14 +73,15 @@ use lapce_rpc::{
 use log::{error, trace};
 use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use serde::{Deserialize, Serialize};
-use doc::syntax::highlight::reset_highlight_configs;
-use doc::syntax::Syntax;
+
 use crate::{
     about, alert,
     code_action::CodeActionStatus,
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     config::{
-        LapceConfig, color::LapceColor, ui::TabSeparatorHeight,
+        LapceConfig,
+        color::LapceColor,
+        ui::{TabCloseButton, TabSeparatorHeight}
     },
     db::LapceDb,
     editor::{
@@ -85,6 +97,9 @@ use crate::{
     keymap::keymap_view,
     keypress::keymap::KeyMap,
     listener::Listener,
+    local_task::{
+        LocalRequest, LocalResponse, LocalTaskRequester, new_local_handler
+    },
     main_split::SplitData,
     markdown::MarkdownContent,
     palette::{
@@ -105,8 +120,6 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData}
 };
-use crate::config::ui::TabCloseButton;
-use crate::local_task::{new_local_handler, LocalRequest, LocalResponse, LocalTaskRequester};
 
 pub(crate) mod grammars;
 mod logging;
@@ -168,14 +181,18 @@ pub struct AppData {
     pub config:         RwSignal<LapceConfig>,
     /// Paths to extra plugins to load
     pub plugin_paths:   Arc<Vec<PathBuf>>,
-    pub directory: Directory,
-    pub local_task: LocalTaskRequester
+    pub directory:      Directory,
+    pub local_task:     LocalTaskRequester
 }
 
 impl AppData {
     pub fn reload_config(&self) {
-        let config =
-            LapceConfig::load(&LapceWorkspace::default(), &[], &self.plugin_paths, &self.directory);
+        let config = LapceConfig::load(
+            &LapceWorkspace::default(),
+            &[],
+            &self.plugin_paths,
+            &self.directory
+        );
         self.config.set(config);
         let windows = self.windows.get_untracked();
         for (_, window) in windows {
@@ -449,9 +466,12 @@ impl AppData {
             self.window_scale,
             self.latest_release.read_only(),
             self.plugin_paths.clone(),
-            self.app_command, &self.directory, self.local_task.clone(), self.config
-            // self.watcher.clone()
-        ).unwrap();
+            self.app_command,
+            &self.directory,
+            self.local_task.clone(),
+            self.config // self.watcher.clone()
+        )
+        .unwrap();
 
         {
             let cur_window_tab = window_data.active_window_tab();
@@ -703,7 +723,6 @@ fn editor_tab_header(
         let child_view = {
             let info = child.view_info(editors, diff_editors, plugin, config);
             let hovered = create_rw_signal(false);
-
 
             let tab_icon = container({
                 svg(move || info.with(|info| info.icon.clone())).style(move |s| {
@@ -3756,7 +3775,7 @@ fn window(window_data: WindowData) -> impl View {
         .debug_name("Window")
 }
 
-pub async fn launch() -> Result<()>{
+pub async fn launch() -> Result<()> {
     let cli = Cli::parse();
 
     // ?
@@ -3819,8 +3838,7 @@ pub async fn launch() -> Result<()>{
         #[cfg(target_os = "windows")]
         cmd.creation_flags(windows::Win32::System::Threading::CREATE_NO_WINDOW); // CREATE_NO_WINDOW
 
-        let stderr_file_path =
-            directory.logs_directory.join("stderr.log");
+        let stderr_file_path = directory.logs_directory.join("stderr.log");
         let stderr_file = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -3830,8 +3848,7 @@ pub async fn launch() -> Result<()>{
             .unwrap();
         let stderr = Stdio::from(stderr_file);
 
-        let stdout_file_path =
-            directory.logs_directory.join("stdout.log");
+        let stdout_file_path = directory.logs_directory.join("stdout.log");
         let stdout_file = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -3857,7 +3874,7 @@ pub async fn launch() -> Result<()>{
     // If the cli is not requesting a new window, and we're not developing a plugin,
     // we try to open in the existing Lapce process
     if !cli.new {
-        let socket= get_socket(directory.local_socket.clone())?;
+        let socket = get_socket(directory.local_socket.clone())?;
         try_open_in_existing_process(socket, &cli.paths)?;
         return Ok(());
     }
@@ -3870,7 +3887,12 @@ pub async fn launch() -> Result<()>{
     }
 
     let plugin_paths = Arc::new(cli.plugin_path);
-    let config = LapceConfig::load(&LapceWorkspace::default(), &[], &plugin_paths, &directory);
+    let config = LapceConfig::load(
+        &LapceWorkspace::default(),
+        &[],
+        &plugin_paths,
+        &directory
+    );
 
     let db = match LapceDb::new(&directory.config_directory) {
         Ok(db) => Arc::new(db),
@@ -3883,7 +3905,8 @@ pub async fn launch() -> Result<()>{
         }
     };
 
-    let local_task: LocalTaskRequester = new_local_handler(directory.clone(), config.clone(), db.clone())?;
+    let local_task: LocalTaskRequester =
+        new_local_handler(directory.clone(), config.clone(), db.clone())?;
     let scope = Scope::new();
     provide_context(db.clone());
 
@@ -3891,10 +3914,9 @@ pub async fn launch() -> Result<()>{
     let latest_release = scope.create_rw_signal(None);
     let app_command = Listener::new_empty(scope);
 
-
-
     // let (tx, rx) = crossbeam_channel::bounded(1);
-    // let mut watcher = notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
+    // let mut watcher =
+    // notify::recommended_watcher(ConfigWatcher::new(tx)).unwrap();
     // if let Some(path) = LapceConfig::settings_file() {
     //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
     // {         log::error!("{:?}", err);
@@ -3911,8 +3933,8 @@ pub async fn launch() -> Result<()>{
     //     }
     // }
     // if let Some(path) = Directory::plugins_directory() {
-    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive) {
-    //         log::error!("{:?}", err);
+    //     if let Err(err) = watcher.watch(&path, notify::RecursiveMode::Recursive)
+    // {         log::error!("{:?}", err);
     //     }
     // }
 
@@ -3932,7 +3954,9 @@ pub async fn launch() -> Result<()>{
         app_command,
         // tracing_handle: reload_handle,
         config,
-        plugin_paths, directory, local_task
+        plugin_paths,
+        directory,
+        local_task
     };
 
     let app = app_data.create_windows(db.clone(), cli.paths);
@@ -3984,20 +4008,17 @@ pub async fn launch() -> Result<()>{
         });
         app_data.local_task.request_async(
             LocalRequest::FindGrammar,
-            move |(_id, rs)| {
-                match rs {
-                    Ok(response) => {
-                        if let LocalResponse::FindGrammar {
-                            updated
-                        } = response {
-                            send(updated);
-                        }
+            move |(_id, rs)| match rs {
+                Ok(response) => {
+                    if let LocalResponse::FindGrammar { updated } = response {
+                        send(updated);
                     }
-                    Err(err) => {
-                        error!("{err:?}")
-                    }
+                },
+                Err(err) => {
+                    error!("{err:?}")
                 }
-            });
+            }
+        );
     }
 
     // todo restore
@@ -4011,19 +4032,19 @@ pub async fn launch() -> Result<()>{
     //             latest_release.set(Some(release));
     //         }
     //     });
-        // std::thread::Builder::new()
-        //     .name("LapceUpdater".to_owned())
-        //     .spawn(move || {
-        //         loop {
-        //             if let Ok(release) = crate::update::get_latest_release() {
-        //                 if let Err(err) = tx.send(release) {
-        //                     log::error!("{:?}", err);
-        //                 }
-        //             }
-        //             std::thread::sleep(std::time::Duration::from_secs(60 * 60));
-        //         }
-        //     })
-        //     .unwrap();
+    // std::thread::Builder::new()
+    //     .name("LapceUpdater".to_owned())
+    //     .spawn(move || {
+    //         loop {
+    //             if let Ok(release) = crate::update::get_latest_release() {
+    //                 if let Err(err) = tx.send(release) {
+    //                     log::error!("{:?}", err);
+    //                 }
+    //             }
+    //             std::thread::sleep(std::time::Duration::from_secs(60 * 60));
+    //         }
+    //     })
+    //     .unwrap();
     // }
 
     // todo change to local task handler
@@ -4032,10 +4053,10 @@ pub async fn launch() -> Result<()>{
     //     let notification = create_signal_from_channel(rx);
     //     let app_data = app_data.clone();
     //     create_effect(move |_| {
-    //         if let Some(CoreNotification::OpenPaths { paths }) = notification.get() {
-    //             if let Some(window_tab) = app_data.active_window_tab() {
-    //                 window_tab.open_paths(&paths);
-    //             }
+    //         if let Some(CoreNotification::OpenPaths { paths }) =
+    // notification.get() {             if let Some(window_tab) =
+    // app_data.active_window_tab() {                 
+    // window_tab.open_paths(&paths);             }
     //         }
     //     });
     //     std::thread::Builder::new()
@@ -4134,7 +4155,9 @@ pub fn load_shell_env() {
         })
 }
 
-pub fn get_socket(local_socket: PathBuf) -> Result<interprocess::local_socket::LocalSocketStream> {
+pub fn get_socket(
+    local_socket: PathBuf
+) -> Result<interprocess::local_socket::LocalSocketStream> {
     let socket =
         interprocess::local_socket::LocalSocketStream::connect(local_socket)?;
     Ok(socket)
@@ -4169,7 +4192,10 @@ pub fn try_open_in_existing_process(
 }
 
 #[allow(dead_code)]
-fn listen_local_socket(tx: Sender<CoreNotification>, local_socket: PathBuf) -> Result<()> {
+fn listen_local_socket(
+    tx: Sender<CoreNotification>,
+    local_socket: PathBuf
+) -> Result<()> {
     if local_socket.exists() {
         if let Err(err) = std::fs::remove_file(&local_socket) {
             log::error!("{:?}", err);

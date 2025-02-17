@@ -1664,7 +1664,10 @@ pub async fn async_volt_icon(volt: &VoltMetadata) -> Option<Vec<u8>> {
     tokio::fs::read(icon).await.ok()
 }
 
-pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<VoltMetadata> {
+pub async fn download_volt(
+    volt: &VoltInfo,
+    plugins_directory: &Path
+) -> Result<VoltMetadata> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/download",
         volt.author, volt.name, volt.version
@@ -1691,8 +1694,7 @@ pub async fn download_volt(volt: &VoltInfo, plugins_directory: &Path) -> Result<
 
     let id = volt.id();
 
-    let plugin_dir = plugins_directory
-        .join(id.to_string());
+    let plugin_dir = plugins_directory.join(id.to_string());
     if plugin_dir.exists() {
         tokio::fs::remove_dir_all(&plugin_dir).await?;
     }
@@ -1718,7 +1720,8 @@ pub async fn install_volt(
     workspace: Option<PathBuf>,
     configurations: Option<HashMap<String, serde_json::Value>>,
     volt: VoltInfo,
-    id: u64, plugins_directory: PathBuf
+    id: u64,
+    plugins_directory: PathBuf
 ) -> Result<()> {
     let download_volt_result = download_volt(&volt, &plugins_directory).await;
     if download_volt_result.is_err() {

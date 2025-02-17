@@ -1394,7 +1394,8 @@ impl PaletteData {
                     };
 
                     let queries_directory = &self.common.directory.queries_directory;
-                    let grammars_directory  = &self.common.directory.grammars_directory;
+                    let grammars_directory =
+                        &self.common.directory.grammars_directory;
                     if name.is_empty() || name.to_lowercase().eq("plain text") {
                         doc.set_syntax(Syntax::plaintext(
                             &grammars_directory,
