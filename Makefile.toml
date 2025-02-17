@@ -18,7 +18,7 @@ dependencies = ["_build-dev"]
 [tasks._build-dev]
 description = "Build the project"
 command = "cargo"
-args = ["build", "--profile", "fastdev", "--bin", "lapce"]
+args = ["build", "--profile", "fastdev", "--features", "dev", "--no-default-features", "--bin", "lapce"]
 [tasks._build-release]
 command = "cargo"
 args = ["build", "--release", "--bin", "lapce"]

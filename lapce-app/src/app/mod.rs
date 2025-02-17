@@ -130,7 +130,7 @@ mod logging;
 #[derive(Debug)]
 struct Cli {
     /// Launch new window even if Lapce is already running
-    #[clap(short, long, action)]
+    #[clap(short, long, action, default_value_t = true)]
     new:  bool,
     /// Don't return instantly when opened in a terminal
     #[clap(short, long, action)]
@@ -3795,7 +3795,7 @@ pub async fn launch() -> Result<()> {
     )
     .build();
 
-    trace!("Starting up Lapce..");
+    log::info!("Starting up Lapce.. {cli:?}");
 
     #[cfg(feature = "vendored-fonts")]
     {
@@ -3828,7 +3828,7 @@ pub async fn launch() -> Result<()> {
         load_shell_env();
     }
     let directory = Directory::new().await?;
-
+    trace!("{:?}", directory);
     // small hack to unblock terminal if launched from it
     // launch it as a separate process that waits
     if !cli.wait {
@@ -3878,7 +3878,7 @@ pub async fn launch() -> Result<()> {
         try_open_in_existing_process(socket, &cli.paths)?;
         return Ok(());
     }
-
+    trace!("try_open_in_existing_process");
     #[cfg(feature = "updater")]
     crate::update::cleanup();
 
@@ -3900,13 +3900,13 @@ pub async fn launch() -> Result<()> {
             #[cfg(windows)]
             logging::error_modal("Error", &format!("Failed to create LapceDb: {e}"));
 
-            trace!("Failed to create LapceDb: {e}");
+            error!("Failed to create LapceDb: {e}");
             std::process::exit(1);
         }
     };
 
     let local_task: LocalTaskRequester =
-        new_local_handler(directory.clone(), config.clone(), db.clone())?;
+        new_local_handler(directory.clone(), config.clone(), db.clone()).map_err(|x| anyhow!("new_local_handler fail: {:?}", x))?;
     let scope = Scope::new();
     provide_context(db.clone());
 
@@ -3972,7 +3972,6 @@ pub async fn launch() -> Result<()> {
     //     });
     // }
 
-    // todo give it to local task handler
     {
         let cx = Scope::new();
         let app_data = app_data.clone();

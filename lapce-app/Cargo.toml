@@ -76,7 +76,8 @@ workspace = true
 features  = ["Win32_Foundation", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"]
 
 [features]
-default        = ["updater", "vendored-fonts"]
+default        = ["updater", "vendored-fonts", "custom-utils/prod"]
+dev        = ["custom-utils/dev"]
 portable       = ["lapce-core/portable"]
 updater        = []
 vendored-fonts = []

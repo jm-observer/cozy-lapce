@@ -396,7 +396,12 @@ pub struct CursorBlink {
 
 impl CursorBlink {
     pub fn blink(&self, hidden: Option<bool>) {
-        let blink_interval = self.blink_interval.get_untracked();
+        let mut blink_interval = self.blink_interval.get_untracked();
+        if blink_interval == 0 {
+            return;
+        } else if blink_interval < 500 {
+            blink_interval = 500;
+        }
         // log::info!("CursorBlink {}", blink_interval);
         let info = self.clone();
         let blink_timer = info.blink_timer;
