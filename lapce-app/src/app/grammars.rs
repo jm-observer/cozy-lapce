@@ -1,29 +1,28 @@
 use std::{
     env,
-    fs::{self},
-    path::PathBuf
 };
-
+use std::io::Write;
+use std::path::Path;
 use anyhow::{Context, Result, anyhow};
 use log::trace;
 
 use crate::update::ReleaseInfo;
 
 #[allow(dead_code)]
-fn get_github_api(url: &str) -> Result<String> {
+async fn get_github_api(url: &str) -> Result<String> {
     let user_agent = format!("Lapce/{}", lapce_core::meta::VERSION);
-    let resp = lapce_proxy::get_url(url, Some(user_agent.as_str()))?;
+    let resp = lapce_proxy::async_get_url(url, Some(user_agent.as_str())).await?;
     if !resp.status().is_success() {
-        return Err(anyhow!("get release info failed {}", resp.text()?));
+        return Err(anyhow!("get release info failed {}", resp.text().await?));
     }
 
-    Ok(resp.text()?)
+    Ok(resp.text().await?)
 }
 #[allow(dead_code)]
-pub fn find_grammar_release() -> Result<ReleaseInfo> {
+pub async fn find_grammar_release() -> Result<ReleaseInfo> {
     let releases: Vec<ReleaseInfo> = serde_json::from_str(&get_github_api(
         "https://api.github.com/repos/lapce/tree-sitter-grammars/releases?per_page=100",
-    ).context("Failed to retrieve releases for tree-sitter-grammars")?)?;
+    ).await.context("Failed to retrieve releases for tree-sitter-grammars")?)?;
 
     use lapce_core::meta::{RELEASE, ReleaseType, VERSION};
 
@@ -61,44 +60,42 @@ pub fn find_grammar_release() -> Result<ReleaseInfo> {
 
     Ok(release.to_owned())
 }
-#[allow(dead_code)]
-pub fn fetch_grammars(release: &ReleaseInfo, grammars_directory: PathBuf) -> Result<bool> {
+pub async fn fetch_grammars(release: &ReleaseInfo, grammars_directory: &Path) -> Result<bool> {
     // let dir = Directory::grammars_directory().await
     //     .ok_or_else(|| anyhow!("can't get grammars directory"))?;
 
     let file_name = format!("grammars-{}-{}", env::consts::OS, env::consts::ARCH);
 
-    let updated = download_release(grammars_directory, release, &file_name)?;
+    let updated = download_release(grammars_directory, release, &file_name).await?;
 
     trace!("Successfully downloaded grammars");
 
     Ok(updated)
 }
-#[allow(dead_code)]
-pub fn fetch_queries(release: &ReleaseInfo, queries_directory: PathBuf) -> Result<bool> {
+pub async fn fetch_queries(release: &ReleaseInfo, queries_directory: &Path) -> Result<bool> {
     // let dir = Directory::queries_directory()
     //     .ok_or_else(|| anyhow!("can't get queries directory"))?;
 
     let file_name = "queries";
 
-    let updated = download_release(queries_directory, release, file_name)?;
+    let updated = download_release(queries_directory, release, file_name).await?;
 
     trace!("Successfully downloaded queries");
 
     Ok(updated)
 }
-#[allow(dead_code)]
-fn  download_release(
-    dir: PathBuf,
+async fn  download_release(
+    dir: &Path,
     release: &ReleaseInfo,
     file_name: &str
 ) -> Result<bool> {
+    use tokio::fs;
     if !dir.exists() {
-        fs::create_dir(&dir)?;
+        fs::create_dir(&dir).await?;
     }
 
     let current_version =
-        fs::read_to_string(dir.join("version")).unwrap_or_default();
+        fs::read_to_string(dir.join("version")).await.unwrap_or_default();
     let release_version = if release.tag_name == "nightly" {
         format!("nightly-{}", &release.target_commitish[..7])
     } else {
@@ -111,19 +108,17 @@ fn  download_release(
 
     for asset in &release.assets {
         if asset.name.starts_with(file_name) {
-            let mut resp = lapce_proxy::get_url(&asset.browser_download_url, None)?;
+            let resp = lapce_proxy::async_get_url(&asset.browser_download_url, None).await?;
             if !resp.status().is_success() {
-                return Err(anyhow!("download file error {}", resp.text()?));
+                return Err(anyhow!("download file error {}", resp.text().await?));
             }
 
-            let file = tempfile::tempfile()?;
+            let mut file = tempfile::tempfile()?;
 
             {
-                use std::io::{Seek, Write};
-                let file = &mut &file;
-                resp.copy_to(file)?;
+                let bytes = resp.bytes().await?;
+                file.write_all(&bytes)?;
                 file.flush()?;
-                file.rewind()?;
             }
 
             if asset.name.ends_with(".zip") {
@@ -135,7 +130,7 @@ fn  download_release(
                 archive.unpack(&dir)?;
             }
 
-            fs::write(dir.join("version"), &release_version)?;
+            fs::write(dir.join("version"), &release_version).await?;
         }
     }
     Ok(true)

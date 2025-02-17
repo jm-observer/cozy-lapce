@@ -13,7 +13,7 @@ use lapce_rpc::plugin::VoltInfo;
 use lapce_rpc::style::SemanticStyles;
 use lapce_xi_rope::Interval;
 use lapce_xi_rope::spans::SpansBuilder;
-use log::info;
+use log::{debug};
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -57,7 +57,7 @@ impl LocalTaskHandler {
     }
 
     pub async fn handle_request(&mut self, id: RequestId, request: LocalRequest) {
-        info!("handler handle_request {request:?}");
+        debug!("handler handle_request {request:?}");
         match request {
             LocalRequest::FindAllVolts { extra_plugin_paths } => {
                 let plugin_dir = self.directory.plugins_directory.clone();
@@ -129,8 +129,27 @@ impl LocalTaskHandler {
                     handle_response(id, rs, pending);
                 });
             },
+            LocalRequest::FindGrammar => {
+                let pending = self.pending.clone();
+                let grammars_directory = self.directory.grammars_directory.clone();
+                let queries_directory = self.directory.queries_directory.clone();
+                tokio::spawn(async move {
+                    let rs = handle_find_grammar(&grammars_directory, &queries_directory).await;
+                    handle_response(id, rs, pending);
+                });
+            }
         }
     }
+}
+
+async fn handle_find_grammar(grammars_directory: &Path,  queries_directory: &Path
+) -> Result<LocalResponse> {
+    use crate::app::grammars::*;
+    let release = find_grammar_release().await?;
+    let mut updated = false;
+    updated |= fetch_grammars(&release, grammars_directory).await?;
+    updated |= fetch_queries(&release, queries_directory).await?;
+    Ok(LocalResponse::FindGrammar {updated})
 }
 
 async fn handle_download_readme(

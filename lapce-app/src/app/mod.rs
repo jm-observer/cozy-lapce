@@ -52,6 +52,7 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
+use floem::ext_event::create_ext_action;
 use lapce_core::{debug::RunDebugMode, directory::Directory, icon::LapceIcons, id::*, main_split::{SplitContent, SplitDirection, SplitMoveDirection, TabCloseKind}, meta, panel::PanelContainerPosition, workspace, workspace::{LapceWorkspace, LapceWorkspaceType}};
 use lapce_rpc::{
     RpcMessage,
@@ -61,7 +62,8 @@ use lapce_rpc::{
 use log::{error, trace};
 use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use serde::{Deserialize, Serialize};
-
+use doc::syntax::highlight::reset_highlight_configs;
+use doc::syntax::Syntax;
 use crate::{
     about, alert,
     code_action::CodeActionStatus,
@@ -104,9 +106,9 @@ use crate::{
     window_workspace::{Focus, WindowWorkspaceData}
 };
 use crate::config::ui::TabCloseButton;
-use crate::local_task::{new_local_handler, LocalTaskRequester};
+use crate::local_task::{new_local_handler, LocalRequest, LocalResponse, LocalTaskRequester};
 
-mod grammars;
+pub(crate) mod grammars;
 mod logging;
 
 #[derive(Parser)]
@@ -3947,67 +3949,56 @@ pub async fn launch() -> Result<()>{
     // }
 
     // todo give it to local task handler
-    // {
-    //     let cx = Scope::new();
-    //     let app_data = app_data.clone();
-    //     let send = create_ext_action(cx, move |updated| {
-    //         if updated {
-    //             trace!("grammar or query got updated, reset highlight configs");
-    //             reset_highlight_configs();
-    //             for (_, window) in app_data.windows.get_untracked() {
-    //                 for (_, doc) in window
-    //                     .window_tabs
-    //                     .get_untracked()
-    //                     .main_split
-    //                     .docs
-    //                     .get_untracked()
-    //                 {
-    //                     doc.lines.update(|lines| {
-    //                         if let Err(err) =
-    //                             lines.set_syntax(Syntax::from_language(
-    //                                 lines.syntax.language,
-    //                                 &grammars_directory,
-    //                                 &queries_directory
-    //                             ))
-    //                         {
-    //                             error!("{:?}", err);
-    //                         }
-    //                     });
-    //                     doc.trigger_syntax_change(None);
-    //                 }
-    //             }
-    //         }
-    //     });
-    //     std::thread::Builder::new()
-    //         .name("FindGrammar".to_owned())
-    //         .spawn(move || {
-    //             use self::grammars::*;
-    //             let updated = match find_grammar_release() {
-    //                 Ok(release) => {
-    //                     let mut updated = false;
-    //                     match fetch_grammars(&release) {
-    //                         Err(e) => {
-    //                             trace!("failed to fetch grammars: {e}");
-    //                         },
-    //                         Ok(u) => updated |= u
-    //                     }
-    //                     match fetch_queries(&release) {
-    //                         Err(e) => {
-    //                             trace!("failed to fetch grammars: {e}");
-    //                         },
-    //                         Ok(u) => updated |= u
-    //                     }
-    //                     updated
-    //                 },
-    //                 Err(e) => {
-    //                     trace!("failed to obtain release info: {e}");
-    //                     false
-    //                 }
-    //             };
-    //             send(updated);
-    //         })
-    //         .unwrap();
-    // }
+    {
+        let cx = Scope::new();
+        let app_data = app_data.clone();
+        let grammars_directory = app_data.directory.grammars_directory.clone();
+        let queries_directory = app_data.directory.queries_directory.clone();
+        let send = create_ext_action(cx, move |updated| {
+            if updated {
+                trace!("grammar or query got updated, reset highlight configs");
+                reset_highlight_configs();
+                for (_, window) in app_data.windows.get_untracked() {
+                    for (_, doc) in window
+                        .window_tabs
+                        .get_untracked()
+                        .main_split
+                        .docs
+                        .get_untracked()
+                    {
+                        doc.lines.update(|lines| {
+                            if let Err(err) =
+                                lines.set_syntax(Syntax::from_language(
+                                    lines.syntax.language,
+                                    &grammars_directory,
+                                    &queries_directory
+                                ))
+                            {
+                                error!("{:?}", err);
+                            }
+                        });
+                        doc.trigger_syntax_change(None);
+                    }
+                }
+            }
+        });
+        app_data.local_task.request_async(
+            LocalRequest::FindGrammar,
+            move |(_id, rs)| {
+                match rs {
+                    Ok(response) => {
+                        if let LocalResponse::FindGrammar {
+                            updated
+                        } = response {
+                            send(updated);
+                        }
+                    }
+                    Err(err) => {
+                        error!("{err:?}")
+                    }
+                }
+            });
+    }
 
     // todo restore
     // #[cfg(feature = "updater")]

@@ -83,6 +83,7 @@ pub enum LocalRequest {
     DownloadVoltReadme {
         info: VoltInfo,
     },
+    FindGrammar,
 }
 pub enum LocalResponse {
     FindAllVolts {
@@ -109,6 +110,9 @@ pub enum LocalResponse {
     DownloadVoltReadme {
         readme: Vec<MarkdownContent>,
     },
+    FindGrammar {
+        updated: bool,
+    }
 }
 
 pub enum LocalNotification {
