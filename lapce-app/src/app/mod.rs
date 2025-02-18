@@ -507,7 +507,7 @@ impl AppData {
         let window_scale = window_data.window_scale;
         let app_command = window_data.app_command;
         let config = window_data.config;
-        let focus = window_data.window_tabs.get_untracked().common.focus;
+        // let focus = window_data.window_tabs.get_untracked().common.focus;
 
         // The KeyDown and PointerDown event handlers both need ownership of a
         // WindowData object.
@@ -620,9 +620,6 @@ impl AppData {
                 move |event| {
                     if let Event::PointerDown(pointer_event) = event {
                         window_data.key_down(pointer_event);
-                        if focus.get_untracked() != Focus::Workbench {
-                            focus.set(Focus::Workbench);
-                        }
                         EventPropagation::Stop
                     } else {
                         EventPropagation::Continue

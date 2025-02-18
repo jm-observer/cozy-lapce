@@ -2550,15 +2550,15 @@ impl WindowWorkspaceData {
             _ => None
         };
 
-        if let Some(handle) = &handle {
+        if let Some(handle) = handle {
             if handle.handled {
                 true
             } else {
                 keypress
                     .handle_keymatch(
                         self,
-                        handle.keymatch.clone(),
-                        handle.keypress.clone()
+                        handle.keymatch,
+                        handle.keypress
                     )
                     .handled
             }

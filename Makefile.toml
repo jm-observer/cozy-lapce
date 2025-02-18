@@ -3,9 +3,9 @@
 default_to_workspace = false # 启用工作空间支持
 
 [tasks.release.windows]
+#cmd /c if exist "C:\Users\36225\Desktop\lapce.exe" del /f "C:\Users\36225\Desktop\lapce.exe"
 script = '''
-cmd /c if exist "C:\Users\36225\Desktop\lapce.exe" del /f "C:\Users\36225\Desktop\lapce.exe"
-cmd /c move "target\release\lapce.exe" "C:\Users\36225\Desktop\"
+cmd /c copy /Y "target\release\lapce.exe" "C:\Users\36225\Desktop\"
 '''
 dependencies = ["_build-release"]
 

@@ -10,7 +10,6 @@ use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{async_volt_icon, download_volt, wasi::find_all_volts};
 use lapce_rpc::{RequestId, plugin::VoltInfo, style::SemanticStyles};
 use lapce_xi_rope::{Interval, spans::SpansBuilder};
-use log::debug;
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 
@@ -59,7 +58,7 @@ impl LocalTaskHandler {
     }
 
     pub async fn handle_request(&mut self, id: RequestId, request: LocalRequest) {
-        debug!("handler handle_request {request:?}");
+        // debug!("handler handle_request {request:?}");
         match request {
             LocalRequest::FindAllVolts { extra_plugin_paths } => {
                 let plugin_dir = self.directory.plugins_directory.clone();
