@@ -25,7 +25,7 @@ use floem::{
     kurbo::Size,
     peniko::kurbo::{Point, Rect, Vec2},
     reactive::{
-        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
+        Memo, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
         SignalWith, WriteSignal, batch, use_context
     },
     text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout}
@@ -409,6 +409,7 @@ impl WindowWorkspaceData {
         }
 
         let read_config = config.read_only();
+        let write_only = config.write_only();
         let proxy = new_proxy(
             workspace.clone(),
             all_disabled_volts,
@@ -421,7 +422,8 @@ impl WindowWorkspaceData {
 
         let focus =
             SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
-        let completion = cx.create_rw_signal(CompletionData::new(cx, read_config));
+        let config = WithLapceConfig::new(read_config);
+        let completion = cx.create_rw_signal(CompletionData::new(cx, config));
         let inline_completion = cx.create_rw_signal(InlineCompletionData::new(cx));
         let hover = HoverData::new(cx);
 
@@ -430,13 +432,17 @@ impl WindowWorkspaceData {
         let find = Find::new(cx);
 
         let ui_line_height = cx.create_memo(move |_| {
-            let config = config.get();
+            let (font_family, font_size) = config.with(|config| {
+                (
+                    config.ui.font_family.clone(), config.ui.font_size() as f32
+                )
+            });
 
             let family: Vec<FamilyOwned> =
-                FamilyOwned::parse_list(&config.ui.font_family).collect();
+                FamilyOwned::parse_list(&font_family).collect();
             let attrs = Attrs::new()
                 .family(&family)
-                .font_size(config.ui.font_size() as f32)
+                .font_size(font_size)
                 .line_height(LineHeightValue::Normal(1.8));
             let attrs_list = AttrsList::new(attrs);
             TextLayout::new_with_text("W", attrs_list).size().height
@@ -463,7 +469,7 @@ impl WindowWorkspaceData {
             ui_line_height,
             dragging: cx.create_rw_signal(None),
             workbench_size: cx.create_rw_signal(Size::ZERO),
-            config: read_config,
+            config,
             proxy_status,
             mouse_hover_timer: cx.create_rw_signal(TimerToken::INVALID),
             window_origin: cx.create_rw_signal(Point::ZERO),
@@ -627,8 +633,7 @@ impl WindowWorkspaceData {
 
         let cursor_blink_clone = cursor_blink.clone();
         cx.create_effect(move |_| {
-            let active = config.get();
-            let blink_interval = active.editor.blink_interval();
+            let blink_interval = config.with(|config| config.editor.blink_interval() );
             // log::info!("update blink_interval {}", blink_interval);
             cursor_blink_clone.blink_interval.set(blink_interval);
             cursor_blink_clone.blink(None);
@@ -655,7 +660,7 @@ impl WindowWorkspaceData {
             title_height,
             status_height,
             proxy,
-            set_config: config.write_only(),
+            set_config: write_only,
             update_in_progress: cx.create_rw_signal(false),
             progresses: cx.create_rw_signal(IndexMap::new()),
             messages: cx.create_rw_signal(Vec::new()),

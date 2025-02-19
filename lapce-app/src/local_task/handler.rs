@@ -125,8 +125,6 @@ impl LocalTaskHandler {
             },
             LocalRequest::DownloadVoltReadme { info } => {
                 let pending = self.pending.clone();
-                let config = self.config.clone();
-
                 let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) =
                     (
                         self.config.editor.font_family.clone(),

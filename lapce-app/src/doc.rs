@@ -269,7 +269,7 @@ impl Doc {
         .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
-            let editor_config = config.get().get_doc_editor_config();
+            let editor_config = config.with(|x| x.get_doc_editor_config());
             lines.update(|x| {
                 if let Err(err) = x.update_config(editor_config) {
                     error!("{:?}", err);
@@ -407,27 +407,13 @@ impl Doc {
     /// be registered appropriately to create the [`EditorData`] and such.
     pub fn create_editor(self: &Rc<Doc>, cx: Scope, is_local: bool) -> Editor {
         let common = &self.common;
-        let config = common.config.get_untracked();
-        let modal = config.core.modal && !is_local;
+        let modal = common.config.with_untracked(|x| x.core.modal) && !is_local;
 
         let register = common.register;
-        // TODO: we could have these Rcs created once and stored somewhere, maybe on
-        // common, to avoid recreating them everytime.
-        // let cursor_info = CursorInfo {
-        //     blink_interval: Rc::new(move || config.editor.blink_interval()),
-        //     blink_timer:    common.window_common.cursor_blink_timer,
-        //     hidden:         common.window_common.hide_cursor,
-        //     should_blink:   Rc::new(should_blink(
-        //         common.focus,
-        //         common.keyboard_focus
-        //     ))
-        // };
         let mut editor = Editor::new(cx, self.clone(), modal);
 
         editor.register = register;
-        // editor.cursor_info = cursor_info;
         editor.ime_allowed = common.window_common.ime_allowed;
-
         editor.recreate_view_effects();
 
         editor

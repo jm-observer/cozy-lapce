@@ -7,7 +7,7 @@ use std::{
 
 use ::core::slice;
 use floem::{peniko::Color, prelude::palette};
-use floem::prelude::SignalWith;
+use floem::prelude::{SignalGet, SignalWith};
 use floem::reactive::ReadSignal;
 use itertools::Itertools;
 use lapce_core::{
@@ -117,6 +117,12 @@ impl WithLapceConfig {
         Self {
             config
         }
+    }
+    pub fn get(&self) -> LapceConfig {
+        self.config.get()
+    }
+    pub fn get_untracked(&self) -> LapceConfig {
+        self.config.get_untracked()
     }
 
     pub fn with_untracked<O>(&self, f: impl FnOnce(&LapceConfig) -> O) -> O {

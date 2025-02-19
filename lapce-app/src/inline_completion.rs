@@ -12,7 +12,7 @@ use floem::reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch};
 use log::error;
 use lsp_types::InsertTextFormat;
 
-use crate::{config::LapceConfig, doc::Doc, editor::EditorData, snippet::Snippet};
+use crate::{doc::Doc, editor::EditorData, snippet::Snippet};
 
 // TODO: we could integrate completion lens with this, so it is considered at
 // the same time
@@ -219,11 +219,10 @@ impl InlineCompletionData {
 
     pub fn update_inline_completion(
         &self,
-        config: &LapceConfig,
         doc: &Doc,
-        cursor_offset: usize
+        cursor_offset: usize, enable_inline_completion: bool
     ) {
-        if !config.editor.enable_inline_completion {
+        if !enable_inline_completion {
             doc.clear_inline_completion();
             return;
         }

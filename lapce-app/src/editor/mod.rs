@@ -59,7 +59,6 @@ use self::location::{EditorLocation, EditorPosition};
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     completion::CompletionStatus,
-    config::LapceConfig,
     db::LapceDb,
     doc::Doc,
     editor::{
@@ -1686,9 +1685,9 @@ impl EditorData {
                 && completion.path == path
         });
         if has_relevant {
-            let config = self.common.config.get_untracked();
+            let enable_inline_completion = self.common.config.with_untracked(|config| config.editor.enable_inline_completion);
             inline_completion.update(|completion| {
-                completion.update_inline_completion(&config, &doc, offset);
+                completion.update_inline_completion(&doc, offset, enable_inline_completion);
             });
         }
 
@@ -2861,7 +2860,7 @@ impl EditorData {
                 let y = pointer_event.pos.y - self.editor.viewport().y0;
                 if self.sticky_header_height.get_untracked() > y {
                     let index = y as usize
-                        / self.common.config.get_untracked().editor.line_height();
+                        / self.common.config.with_untracked(|config| config.editor.line_height());
                     if let (Some(path), Some(line)) = (
                         self.doc().content.get_untracked().path(),
                         self.sticky_header_info
@@ -3006,7 +3005,7 @@ impl EditorData {
                 }
             }
         }
-        let hover_delay = self.common.config.get_untracked().editor.hover_delay;
+        let hover_delay = self.common.config.with_untracked(|x| x.editor.hover_delay);
         if hover_delay > 0 {
             if is_inside {
                 let editor = self.clone();
@@ -3215,7 +3214,7 @@ impl EditorData {
                     )
                 });
                 let content =
-                    parse_hover_resp(hover, &directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link);
+                    parse_hover_resp(hover, &directory, &font_family, editor_fg, &style_colors, font_size, markdown_blockquote, editor_link);
                 batch(|| {
                     hover_data.content.set(content);
                     hover_data.offset.set(offset);
@@ -3471,7 +3470,7 @@ impl KeyPressFocus for EditorData {
                     && self.common.find.replace_focus.get_untracked()
             },
             Condition::SearchActive => {
-                if self.common.config.get_untracked().core.modal
+                if self.common.config.with_untracked(|x| x.core.modal)
                     && self.cursor().with_untracked(|c| !c.is_normal())
                 {
                     false

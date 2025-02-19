@@ -342,15 +342,11 @@ impl TerminalView {
         content: RenderableContent,
         line_height: f64,
         char_size: Size,
-        config: &LapceConfig
+        config: &LapceConfig, cursor: Color, error: Color, caret: Color, terminal_font_family: &str, terminal_font_size: usize, terminal_bg: Color
     ) {
-        let term_bg = config.color(LapceColor::TERMINAL_BACKGROUND);
-
-        let font_size = config.terminal_font_size();
-        let font_family = config.terminal_font_family();
         let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(font_family).collect();
-        let attrs = Attrs::new().family(&family).font_size(font_size as f32);
+            FamilyOwned::parse_list(&terminal_font_family).collect();
+        let attrs = Attrs::new().family(&family).font_size(terminal_font_size as f32);
 
         let char_width = char_size.width;
 
@@ -377,8 +373,7 @@ impl TerminalView {
                     cx,
                     &line_content,
                     line_height,
-                    char_width,
-                    config
+                    char_width, cursor, error, caret
                 );
                 line_content.y = y;
                 line_content.bg.clear();
@@ -399,7 +394,7 @@ impl TerminalView {
                 std::mem::swap(&mut fg, &mut bg);
             }
 
-            if term_bg != bg {
+            if terminal_bg != bg {
                 let mut extend = false;
                 if let Some((_, end, color)) = line_content.bg.last_mut() {
                     if color == &bg && *end == point.column.0 {
@@ -422,7 +417,7 @@ impl TerminalView {
                 || cell.flags.contains(Flags::DIM_BOLD);
 
             if &point == cursor_point && self.is_focused {
-                fg = term_bg;
+                fg = terminal_bg;
             }
 
             if cell.c != ' ' && cell.c != '\t' {
@@ -433,7 +428,7 @@ impl TerminalView {
                 line_content.chars.push((cell.c, attrs, x, char_y));
             }
         }
-        self.paint_line_content(cx, &line_content, line_height, char_width, config);
+        self.paint_line_content(cx, &line_content, line_height, char_width, cursor, error, caret);
     }
 
     fn paint_line_content(
@@ -441,8 +436,7 @@ impl TerminalView {
         cx: &mut PaintCx,
         line_content: &TerminalLineContent,
         line_height: f64,
-        char_width: f64,
-        config: &LapceConfig
+        char_width: f64,cursor: Color, error: Color, caret: Color
     ) {
         for (start, end, bg) in &line_content.bg {
             let rect = Size::new(
@@ -471,12 +465,12 @@ impl TerminalView {
                 if self.run_config.with_untracked(|run_config| {
                     run_config.as_ref().map(|r| r.stopped).unwrap_or(false)
                 }) {
-                    config.color(LapceColor::LAPCE_ERROR)
+                    error
                 } else {
-                    config.color(LapceColor::TERMINAL_CURSOR)
+                    cursor
                 }
             } else {
-                config.color(LapceColor::EDITOR_CARET)
+                caret
             };
             let hide_cursor = self
                 .terminal_data
@@ -637,7 +631,7 @@ impl View for TerminalView {
     }
 
     fn paint(&mut self, cx: &mut floem::context::PaintCx) {
-        let config = self.config.get_untracked();
+        let config = self.config.get();
         let mode = self.mode.get_untracked();
         let line_height = config.terminal_line_height() as f64;
         let font_family = config.terminal_font_family();
@@ -716,7 +710,11 @@ impl View for TerminalView {
             );
         }
 
-        self.paint_content(cx, content, line_height, char_size, &config);
+        let (cursor, error, caret, terminal_font_family, terminal_font_size, terminal_bg) =
+        (config.color(LapceColor::EDITOR_CARET), config.color(LapceColor::TERMINAL_CURSOR), config.color(LapceColor::LAPCE_ERROR),config.terminal_font_family()
+        , config.terminal_font_size(), config.color(LapceColor::TERMINAL_BACKGROUND));
+
+        self.paint_content(cx, content, line_height, char_size, &config, cursor, error, caret, terminal_font_family, terminal_font_size, terminal_bg);
     }
 }
 

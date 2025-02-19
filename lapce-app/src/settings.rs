@@ -12,7 +12,7 @@ use floem::{
     },
     prelude::{text_input, v_stack},
     reactive::{
-        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
         create_effect, create_memo, create_rw_signal
     },
     style::CursorStyle,
@@ -157,7 +157,6 @@ impl SettingsData {
         let kinds = cx.create_rw_signal(im::Vector::new());
         cx.create_effect(move |_| {
             let config = config.get();
-
             let mut data_items = im::Vector::new();
             let mut data_kinds = im::Vector::new();
             let mut item_height_accum = 0.0;
@@ -879,9 +878,9 @@ fn color_section_list(
                                                     .syntax
                                                     .get(&field),
                                                 _ => None
-                                            }
+                                            }.cloned()
                                         });
-                                        if default != Some(&value) {
+                                        if default.as_ref() != Some(&value) {
                                             // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
                                             let value_ser = serde::Serialize::serialize(
                                                 &value,
