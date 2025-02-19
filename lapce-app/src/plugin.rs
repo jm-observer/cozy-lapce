@@ -726,38 +726,34 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
             ),
             label(move || control(local_version_info.clone()))
                 .style(move |s| {
-                    let config = config.get();
+                    let (fg, bg, dim) = config.with(|config| {
+                        (
+                            config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND), config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND), config.color(LapceColor::EDITOR_DIM)
+                        )
+                    });
                     s.margin_left(10)
                         .padding_horiz(10)
                         .border_radius(6.0)
                         .color(
-                            config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND)
+                            fg
                         )
                         .background(
-                            config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND)
+                            bg
                         )
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
-                                config
-                                    .color(
-                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND
-                                    )
+                                bg
                                     .multiply_alpha(0.8)
                             )
                         })
                         .active(|s| {
                             s.background(
-                                config
-                                    .color(
-                                        LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND
-                                    )
+                                bg
                                     .multiply_alpha(0.6)
                             )
                         })
                         .disabled(|s| {
-                            s.background(config.color(LapceColor::EDITOR_DIM))
+                            s.background(dim)
                         })
                         .selectable(false)
                 })
@@ -853,8 +849,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                         move || local_repo.clone(),
                                         move || {
                                             config
-                                                .get()
-                                                .color(LapceColor::EDITOR_LINK)
+                                                .with_color(LapceColor::EDITOR_LINK)
                                         },
                                         internal_command,
                                     ),
@@ -896,7 +891,6 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             .map(|(_, info, _, _, _)| info.to_owned());
                         let local_task = local_task.clone();
                         create_effect(move |_| {
-                            let _config = config.get();
                             let info = info.clone();
                             if let Some(info) = info {
                                 let cx = Scope::current();
@@ -923,12 +917,21 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             let directory = directory.clone();
                             dyn_stack(
                                 move || {
+                                    // todo improve "Loading README"
+                                    let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) = config.with(|config| {
+                                        (
+                                            config.editor.font_family.clone(),
+                                            config.color(LapceColor::EDITOR_FOREGROUND),
+                                            config.style_colors(),
+                                            config.ui.font_size() as f32,
+                                            config.color(LapceColor::MARKDOWN_BLOCKQUOTE), config.color(LapceColor::EDITOR_LINK)
+                                        )
+                                    });
                                     readme.get().unwrap_or_else(|| {
                                         parse_markdown(
                                             "Loading README",
                                             2.0,
-                                            &config.get(),
-                                            &directory,
+                                            &directory, &font_family, editor_fg, &style_colors, font_size, markdown_blockquote, editor_link
                                         )
                                     })
                                 },

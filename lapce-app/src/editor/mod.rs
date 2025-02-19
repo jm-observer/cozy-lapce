@@ -1,5 +1,5 @@
 use std::{collections::HashSet, rc::Rc, str::FromStr, sync::Arc, time::Duration};
-
+use std::collections::HashMap;
 use anyhow::Result;
 use doc::{
     EditorViewKind,
@@ -35,6 +35,7 @@ use floem::{
         SignalWith, batch, use_context
     }
 };
+use floem::peniko::Color;
 use lapce_core::{
     directory::Directory,
     doc::DocContent,
@@ -80,6 +81,7 @@ use crate::{
     snippet::Snippet,
     window_workspace::{CommonData, Focus, WindowWorkspaceData}
 };
+use crate::config::color::LapceColor;
 
 pub mod diff;
 pub mod floem_editor;
@@ -443,7 +445,6 @@ impl EditorData {
         let mut cursor = self.editor.cursor.get_untracked();
         let rope_text = self.rope_text();
         let doc = self.doc();
-        let config = self.common.config.get_untracked();
 
         // This is currently special-cased in Lapce because floem editor does not
         // have 'find'
@@ -461,8 +462,7 @@ impl EditorData {
                         };
                         let search_str = rope_text.slice_to_cow(start..end);
                         let case_sensitive = find.case_sensitive(false);
-                        let multicursor_case_sensitive =
-                            config.editor.multicursor_case_sensitive;
+                        let multicursor_case_sensitive = self.common.config.with_untracked(|config| config.editor.multicursor_case_sensitive);
                         let case_sensitive =
                             multicursor_case_sensitive || case_sensitive;
                         // let search_whole_word =
@@ -500,8 +500,9 @@ impl EditorData {
                             let search_str =
                                 rope_text.slice_to_cow(r.min()..r.max());
                             let case_sensitive = find.case_sensitive(false);
+                            let multicursor_case_sensitive = self.common.config.with_untracked(|config| config.editor.multicursor_case_sensitive);
                             let case_sensitive =
-                                config.editor.multicursor_case_sensitive
+                                multicursor_case_sensitive
                                     || case_sensitive;
                             // let search_whole_word =
                             // config.editor.multicursor_whole_words;
@@ -2134,15 +2135,15 @@ impl EditorData {
     }
 
     fn check_auto_save(&self) {
-        let config = self.common.config.get_untracked();
-        if config.editor.autosave_interval > 0 {
+        let autosave_interval = self.common.config.with_untracked(|config| config.editor.autosave_interval);
+        if autosave_interval > 0 {
             if self.doc().content.with_untracked(|c| c.path().is_none()) {
                 return;
             };
             let editor = self.clone();
             let rev = self.doc().rev();
             exec_after(
-                Duration::from_millis(config.editor.autosave_interval),
+                Duration::from_millis(autosave_interval),
                 move |_| {
                     let is_pristine = editor
                         .doc()
@@ -2345,8 +2346,8 @@ impl EditorData {
                 return;
             }
         };
-        let config = self.common.config.get_untracked();
-        self.cursor().set(if config.core.modal {
+        let modal = self.common.config.with_untracked(|config| config.core.modal);
+        self.cursor().set(if modal {
             Cursor::new(CursorMode::Normal(offset), None, None)
         } else {
             Cursor::new(CursorMode::Insert(Selection::caret(offset)), None, None)
@@ -2483,7 +2484,8 @@ impl EditorData {
             return;
         }
 
-        let config = self.common.config.get_untracked();
+        let (normalize_line_endings, format_on_save) = self.common.config.with_untracked(|config| (config.editor.normalize_line_endings, config.editor.format_on_save));
+
         let DocContent::File { path, .. } = content else {
             return;
         };
@@ -2492,7 +2494,7 @@ impl EditorData {
         // formatting), then we skip normalizing line endings as a common
         // reason for that is large files. (but if the save is typical, even
         // if config format_on_save is false, we normalize)
-        if allow_formatting && config.editor.normalize_line_endings {
+        if allow_formatting && normalize_line_endings {
             if let Err(err) =
                 self.run_edit_command(&EditCommand::NormalizeLineEndings)
             {
@@ -2501,7 +2503,7 @@ impl EditorData {
         }
 
         let rev = doc.rev();
-        let format_on_save = allow_formatting && config.editor.format_on_save;
+        let format_on_save = allow_formatting && format_on_save;
         if format_on_save {
             let editor = self.clone();
             let send = create_ext_action(self.scope, move |result| {
@@ -3203,8 +3205,17 @@ impl EditorData {
         let directory = self.common.directory.clone();
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
+                let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) = config.with_untracked(|config| {
+                    (
+                        config.editor.font_family.clone(),
+                        config.color(LapceColor::EDITOR_FOREGROUND),
+                        config.style_colors(),
+                        config.ui.font_size() as f32,
+                        config.color(LapceColor::MARKDOWN_BLOCKQUOTE), config.color(LapceColor::EDITOR_LINK)
+                    )
+                });
                 let content =
-                    parse_hover_resp(hover, &config.get_untracked(), &directory);
+                    parse_hover_resp(hover, &directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link);
                 batch(|| {
                     hover_data.content.set(content);
                     hover_data.offset.set(offset);
@@ -3962,24 +3973,22 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 
 fn parse_hover_resp(
     hover: lsp_types::Hover,
-    config: &LapceConfig,
-    directory: &Directory
+    directory: &Directory, font_family: &str, editor_fg: Color, style_colors: &HashMap<String, Color>, font_size: f32, markdown_blockquote: Color, editor_link: Color
 ) -> Vec<MarkdownContent> {
     match hover.contents {
         HoverContents::Scalar(text) => match text {
             MarkedString::String(text) => {
-                parse_markdown(&text, 1.8, config, directory)
+                parse_markdown(&text, 1.8, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link)
             },
             MarkedString::LanguageString(code) => parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config,
-                directory
+                directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link
             )
         },
         HoverContents::Array(array) => array
             .into_iter()
-            .map(|t| from_marked_string(t, config, directory))
+            .map(|t| from_marked_string(t, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link))
             .rev()
             .reduce(|mut contents, more| {
                 contents.push(MarkdownContent::Separator);
@@ -3988,9 +3997,9 @@ fn parse_hover_resp(
             })
             .unwrap_or_default(),
         HoverContents::Markup(content) => match content.kind {
-            MarkupKind::PlainText => from_plaintext(&content.value, 1.8, config),
+            MarkupKind::PlainText => from_plaintext(&content.value, 1.8, font_size),
             MarkupKind::Markdown => {
-                parse_markdown(&content.value, 1.8, config, directory)
+                parse_markdown(&content.value, 1.8, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link)
             },
         }
     }

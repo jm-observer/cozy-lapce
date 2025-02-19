@@ -58,18 +58,19 @@ pub fn common_reference_panel(
                     ReferenceLocation::File { path, open, .. } => stack((
                         container(
                             svg(move || {
-                                let config = config.get();
                                 let svg_str = match open.get() {
                                     true => LapceIcons::ITEM_OPENED,
                                     false => LapceIcons::ITEM_CLOSED,
                                 };
-                                config.ui_svg(svg_str)
+                                config.with_ui_svg(svg_str)
                             })
                             .style(move |s| {
-                                let config = config.get();
-                                let size = config.ui.icon_size() as f32;
-                                s.size(size, size).color(
-                                    config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                                let (caret_color, size) = config.with(|config| {
+                                    (
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                                    )
+                                });
+                                s.size(size, size).color(caret_color
                                 )
                             }),
                         )
@@ -82,24 +83,27 @@ pub fn common_reference_panel(
                             }
                         }),
                         svg(move || {
-                            let config = config.get();
-                            config
-                                .symbol_svg(&SymbolKind::FILE)
-                                .unwrap_or_else(|| config.ui_svg(LapceIcons::FILE))
+                            config.with(|config| {
+                                config
+                                    .symbol_svg(&SymbolKind::FILE)
+                                    .unwrap_or(config.ui_svg(LapceIcons::FILE))
+                            })
                         })
                         .style(move |s| {
-                            let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                            let (size, color) = config.with(|config| {
+                                (
+                                    config.ui.icon_size() as f32, config
+                                    .symbol_color(&SymbolKind::FILE)
+                                    .unwrap_or(
+                                        config
+                                            .color(LapceColor::LAPCE_ICON_ACTIVE)
+                                    )
+                                )
+                            });
                             s.min_width(size)
                                 .size(size, size)
                                 .margin_right(5.0)
-                                .color(
-                                    config
-                                        .symbol_color(&SymbolKind::FILE)
-                                        .unwrap_or_else(|| {
-                                            config
-                                                .color(LapceColor::LAPCE_ICON_ACTIVE)
-                                        }),
+                                .color(color
                                 )
                         }),
                         label(move || format!("{:?}", path))

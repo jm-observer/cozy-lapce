@@ -151,8 +151,10 @@ impl Doc {
         let queries_directory = common.directory.queries_directory.clone();
         let grammars_directory = common.directory.grammars_directory.clone();
         let syntax = Syntax::init(&path, &grammars_directory, &queries_directory);
-        let config = common.config.get_untracked();
-        let rw_config = config.get_doc_editor_config();
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
+            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
+             config.editor.bracket_colorization_limit)
+        });
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let buffer = Buffer::new("");
@@ -163,8 +165,8 @@ impl Doc {
             syntax,
             BracketParser::new(
                 String::new(),
-                config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit
+                bracket_pair_colorization,
+                bracket_colorization_limit
             ),
             viewport,
             editor_style,
@@ -175,7 +177,7 @@ impl Doc {
         .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
-            let editor_config = config.get().get_doc_editor_config();
+            let editor_config = config.with(|x| x.get_doc_editor_config());
             lines.update(|x| {
                 if let Err(err) = x.update_config(editor_config) {
                     error!("{err:?}");
@@ -231,8 +233,10 @@ impl Doc {
     ) -> Self {
         let editor_id = EditorId::next();
         let cx = cx.create_child();
-        let config = common.config.get_untracked();
-        let rw_config = config.get_doc_editor_config();
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
+            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
+             config.editor.bracket_colorization_limit)
+        });
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let diagnostics = DiagnosticData {
@@ -253,8 +257,8 @@ impl Doc {
             syntax,
             BracketParser::new(
                 String::new(),
-                config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit
+                bracket_pair_colorization,
+                bracket_colorization_limit
             ),
             viewport,
             editor_style,
@@ -302,9 +306,10 @@ impl Doc {
         common: Rc<CommonData>
     ) -> Self {
         let editor_id = EditorId::next();
-        let config = common.config.get_untracked();
-        let rw_config = config.get_doc_editor_config();
-
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
+            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
+             config.editor.bracket_colorization_limit)
+        });
         let syntax = if let DocContent::History(history) = &content {
             Syntax::init(
                 &history.path,
@@ -334,8 +339,8 @@ impl Doc {
             syntax,
             BracketParser::new(
                 String::new(),
-                config.editor.bracket_pair_colorization,
-                config.editor.bracket_colorization_limit
+                bracket_pair_colorization,
+                bracket_colorization_limit
             ),
             viewport,
             editor_style,
@@ -346,7 +351,7 @@ impl Doc {
         .unwrap();
         let config = common.config;
         cx.create_effect(move |_| {
-            let editor_config = config.get().get_doc_editor_config();
+            let editor_config = config.with(|x| x.get_doc_editor_config());
             lines.update(|x| {
                 if let Err(err) = x.update_config(editor_config) {
                     error!("{:?}", err);

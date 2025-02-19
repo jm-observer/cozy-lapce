@@ -1017,13 +1017,12 @@ fn editor_tab_header(
             layout_rect.set(rect);
         })
         .style(move |s| {
-            let config = config.get();
             s.height_full()
                 .flex_col()
                 .items_center()
                 .justify_center()
                 .cursor(CursorStyle::Pointer)
-                .hover(|s| s.background(config.color(LapceColor::HOVER_BACKGROUND)))
+                .hover(|s| s.background(config.with_color(LapceColor::HOVER_BACKGROUND)))
         })
         .debug_name("Tab and Active Indicator")
     };
@@ -1035,14 +1034,17 @@ fn editor_tab_header(
             let size = create_rw_signal(Size::ZERO);
             (
                 clip(empty().style(move |s| {
-                    let config = config.get();
+                    let (caret_color, bg) = config.with(|config| {
+                        (
+                            config.color(LapceColor::PANEL_BACKGROUND), config.color(LapceColor::LAPCE_DROPDOWN_SHADOW)
+                        )
+                    });
                     s.absolute()
                         .height_full()
                         .width(size.get().width as f32)
-                        .background(config.color(LapceColor::PANEL_BACKGROUND))
+                        .background(caret_color)
                         .box_shadow_blur(3.0)
-                        .box_shadow_color(
-                            config.color(LapceColor::LAPCE_DROPDOWN_SHADOW)
+                        .box_shadow_color(bg
                         )
                 }))
                 .style(move |s| {
@@ -1121,15 +1123,18 @@ fn editor_tab_header(
             (
                 clip({
                     empty().style(move |s| {
-                        let config = config.get();
+                        let (caret_color, bg) = config.with(|config| {
+                            (
+                                config.color(LapceColor::LAPCE_DROPDOWN_SHADOW), config.color(LapceColor::PANEL_BACKGROUND)
+                            )
+                        });
                         s.absolute()
                             .height_full()
                             .margin_left(30.0)
                             .width(size.get().width as f32)
-                            .background(config.color(LapceColor::PANEL_BACKGROUND))
+                            .background(bg)
                             .box_shadow_blur(3.0)
-                            .box_shadow_color(
-                                config.color(LapceColor::LAPCE_DROPDOWN_SHADOW)
+                            .box_shadow_color(caret_color
                             )
                     })
                 })

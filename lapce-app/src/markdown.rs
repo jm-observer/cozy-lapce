@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use floem::prelude::Color;
 use doc::{language::LapceLanguage, syntax::Syntax};
 use floem::text::{
     Attrs, AttrsList, FamilyOwned, LineHeightValue, Style, TextLayout, Weight
@@ -9,7 +11,7 @@ use lsp_types::MarkedString;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Options, Parser, Tag};
 use smallvec::SmallVec;
 
-use crate::config::{LapceConfig, color::LapceColor};
+use crate::config::{LapceConfig, color::LapceColor, WithLapceConfig};
 
 #[derive(Clone)]
 pub enum MarkdownContent {
@@ -21,18 +23,16 @@ pub enum MarkdownContent {
 pub fn parse_markdown(
     text: &str,
     line_height: f64,
-    config: &LapceConfig,
-    directory: &Directory
+    directory: &Directory, font_family: &str, editor_fg: Color, style_colors: &HashMap<String, Color>, font_size: f32, markdown_blockquote: Color, editor_link: Color
 ) -> Vec<MarkdownContent> {
     let mut res = Vec::new();
-
     let mut current_text = String::new();
     let code_font_family: Vec<FamilyOwned> =
-        FamilyOwned::parse_list(&config.editor.font_family).collect();
+        FamilyOwned::parse_list(font_family).collect();
 
     let default_attrs = Attrs::new()
-        .color(config.color(LapceColor::EDITOR_FOREGROUND))
-        .font_size(config.ui.font_size() as f32)
+        .color(editor_fg)
+        .font_size(font_size)
         .line_height(LineHeightValue::Normal(line_height as f32));
     let mut attr_list = AttrsList::new(default_attrs);
 
@@ -77,8 +77,7 @@ pub fn parse_markdown(
                     if let Some(attrs) = attribute_for_tag(
                         default_attrs,
                         &tag,
-                        &code_font_family,
-                        config
+                        &code_font_family, font_size, markdown_blockquote, editor_link
                     ) {
                         attr_list
                             .add_span(start_offset..pos.max(start_offset), attrs);
@@ -103,8 +102,7 @@ pub fn parse_markdown(
                                 language,
                                 &last_text,
                                 start_offset,
-                                config,
-                                directory
+                                directory, &style_colors
                             );
                             builder_dirty = true;
                         },
@@ -170,7 +168,7 @@ pub fn parse_markdown(
                     pos..pos + text.len(),
                     default_attrs
                         .family(&code_font_family)
-                        .color(config.color(LapceColor::MARKDOWN_BLOCKQUOTE))
+                        .color(markdown_blockquote)
                 );
                 current_text.push_str(&text);
                 pos += text.len();
@@ -207,7 +205,7 @@ fn attribute_for_tag<'a>(
     default_attrs: Attrs<'a>,
     tag: &Tag,
     code_font_family: &'a [FamilyOwned],
-    config: &LapceConfig
+    font_size: f32, markdown_blockquote: Color, editor_link: Color
 ) -> Option<Attrs<'a>> {
     use pulldown_cmark::HeadingLevel;
     match tag {
@@ -220,24 +218,24 @@ fn attribute_for_tag<'a>(
             // The size calculations are based on the em values given at
             // https://drafts.csswg.org/css2/#html-stylesheet
             let font_scale = match level {
-                HeadingLevel::H1 => 2.0,
+                HeadingLevel::H1 => 2.0f32,
                 HeadingLevel::H2 => 1.5,
                 HeadingLevel::H3 => 1.17,
                 HeadingLevel::H4 => 1.0,
                 HeadingLevel::H5 => 0.83,
                 HeadingLevel::H6 => 0.75
             };
-            let font_size = font_scale * config.ui.font_size() as f64;
+            let font_size = font_scale * font_size;
             Some(
                 default_attrs
-                    .font_size(font_size as f32)
+                    .font_size(font_size)
                     .weight(Weight::BOLD)
             )
         },
         Tag::BlockQuote(_block_quote) => Some(
             default_attrs
                 .style(Style::Italic)
-                .color(config.color(LapceColor::MARKDOWN_BLOCKQUOTE))
+                .color(markdown_blockquote)
         ),
         Tag::CodeBlock(_) => Some(default_attrs.family(code_font_family)),
         Tag::Emphasis => Some(default_attrs.style(Style::Italic)),
@@ -250,7 +248,7 @@ fn attribute_for_tag<'a>(
             id: _
         } => {
             // TODO: Link support
-            Some(default_attrs.color(config.color(LapceColor::EDITOR_LINK)))
+            Some(default_attrs.color(editor_link))
         },
         // All other tags are currently ignored
         _ => None
@@ -284,8 +282,7 @@ pub fn highlight_as_code(
     language: Option<LapceLanguage>,
     text: &str,
     start_offset: usize,
-    config: &LapceConfig,
-    directory: &Directory
+    directory: &Directory, style_colors: &HashMap<String, Color>
 ) {
     let syntax = language.map(|x| {
         Syntax::from_language(
@@ -310,10 +307,10 @@ pub fn highlight_as_code(
 
     if let Some(styles) = styles {
         for (range, fg) in styles.iter() {
-            if let Some(color) = config.style_color(fg) {
+            if let Some(color) = style_colors.get(fg) {
                 attr_list.add_span(
                     start_offset + range.start..start_offset + range.end,
-                    default_attrs.color(color)
+                    default_attrs.color(*color)
                 );
             } else {
                 warn!("fg {} is not found color", fg);
@@ -324,11 +321,10 @@ pub fn highlight_as_code(
 
 pub fn from_marked_string(
     text: MarkedString,
-    config: &LapceConfig,
-    directory: &Directory
+    directory: &Directory, font_family: &str, editor_fg: Color, style_colors: &HashMap<String, Color>, font_size: f32, markdown_blockquote: Color, editor_link: Color
 ) -> Vec<MarkdownContent> {
     match text {
-        MarkedString::String(text) => parse_markdown(&text, 1.8, config, directory),
+        MarkedString::String(text) => parse_markdown(&text, 1.8, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link),
         // This is a short version of a code block
         MarkedString::LanguageString(code) => {
             // TODO: We could simply construct the MarkdownText directly
@@ -336,8 +332,7 @@ pub fn from_marked_string(
             parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                config,
-                directory
+                directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link
             )
         }
     }
@@ -345,14 +340,13 @@ pub fn from_marked_string(
 
 pub fn from_plaintext(
     text: &str,
-    line_height: f64,
-    config: &LapceConfig
+    line_height: f64, font_size: f32
 ) -> Vec<MarkdownContent> {
     let text_layout = TextLayout::new_with_text(
         text,
         AttrsList::new(
             Attrs::new()
-                .font_size(config.ui.font_size() as f32)
+                .font_size(font_size)
                 .line_height(LineHeightValue::Normal(line_height as f32))
         )
     );

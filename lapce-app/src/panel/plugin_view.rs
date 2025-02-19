@@ -244,29 +244,32 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 plugin.install_volt(info.get_untracked());
             })
             .style(move |s| {
-                let config = config.get();
-                s.color(config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND))
+                let (fg, bg, dim) = config.with(|config| {
+                    (
+                        config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND), config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
+                        config.color(LapceColor::EDITOR_DIM)
+                    )
+                });
+                s.color(fg)
                     .background(
-                        config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND)
+                        bg
                     )
                     .margin_left(6.0)
                     .padding_horiz(6.0)
                     .border_radius(6.0)
                     .hover(|s| {
                         s.cursor(CursorStyle::Pointer).background(
-                            config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND)
+                            bg
                                 .multiply_alpha(0.8)
                         )
                     })
                     .active(|s| {
                         s.background(
-                            config
-                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND)
+                            bg
                                 .multiply_alpha(0.6)
                         )
                     })
-                    .disabled(|s| s.background(config.color(LapceColor::EDITOR_DIM)))
+                    .disabled(|s| s.background(dim))
             })
         };
 
@@ -375,14 +378,18 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             })
             .scroll_style(|s| s.hide_bars(true))
             .style(move |s| {
-                let config = config.get();
+                let (caret_color, bg) = config.with(|config| {
+                    (
+                        config.color(LapceColor::EDITOR_BACKGROUND), config.color(LapceColor::LAPCE_BORDER)
+                    )
+                });
                 s.width_pct(100.0)
                     .cursor(CursorStyle::Text)
                     .items_center()
-                    .background(config.color(LapceColor::EDITOR_BACKGROUND))
+                    .background(caret_color)
                     .border(1.0)
                     .border_radius(6.0)
-                    .border_color(config.color(LapceColor::LAPCE_BORDER))
+                    .border_color(bg)
             })
         })
         .style(|s| s.padding(10.0).width_pct(100.0)),

@@ -496,6 +496,10 @@ impl LapceConfig {
         self.color.syntax.get(name).copied()
     }
 
+    pub fn style_colors(&self) -> HashMap<String, Color> {
+        self.color.syntax.clone()
+    }
+
     pub fn completion_color(
         &self,
         kind: Option<CompletionItemKind>

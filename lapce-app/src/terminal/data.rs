@@ -74,7 +74,6 @@ impl KeyPressFocus for TerminalData {
         _mods: Modifiers
     ) -> CommandExecuted {
         self.common.view_id.get_untracked().request_paint();
-        let config = self.common.config.get_untracked();
         match &command.kind {
             CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);

@@ -1090,7 +1090,6 @@ impl PaletteData {
     }
 
     fn get_icon_themes(&self) {
-        let config = self.common.config.get_untracked();
         let (items, name) = self.common.config.with_untracked(|config| {
             (config
                  .icon_theme_list()
@@ -1178,7 +1177,7 @@ impl PaletteData {
     }
 
     fn get_terminal_profiles(&self) {
-        let profiles = self.common.config.get().terminal.profiles.clone();
+        let profiles = self.common.config.with(|x| x.terminal.profiles.clone());
         let mut items: im::Vector<PaletteItem> = im::Vector::new();
 
         for (name, profile) in profiles.into_iter() {

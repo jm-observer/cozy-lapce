@@ -389,8 +389,7 @@ pub fn symbol_panel(
                                 .hover(|s| {
                                     s.background(
                                         config
-                                            .get()
-                                            .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                            .with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                     )
                                         .cursor(CursorStyle::Pointer)
                                 }).apply_if(

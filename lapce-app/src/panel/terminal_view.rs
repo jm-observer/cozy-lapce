@@ -101,8 +101,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                             container(
                                 svg(move || config.with_ui_svg(svg_string()))
                                     .style(move |s| {
-                                        let config = config.get();
-                                        let size = config.ui.icon_size() as f32;
+                                        let size = config.with_icon_size() as f32;
                                         s.size(size, size).color(palette::css::GREEN)
                                     })
                             )
@@ -231,12 +230,16 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
         EventPropagation::Stop
     })
     .style(move |s| {
-        let config = config.get();
+        let (caret_color, bg) = config.with(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+            )
+        });
         s.width_pct(100.0)
             .items_center()
             .border_bottom(1.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .background(config.color(LapceColor::PANEL_BACKGROUND))
+            .border_color(caret_color)
+            .background(bg)
     })
 }
 

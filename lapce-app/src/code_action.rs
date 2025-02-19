@@ -140,9 +140,9 @@ impl CodeActionData {
     }
 
     pub fn next_page(&self) {
-        let config = self.common.config.get_untracked();
+        let line_height = self.common.config.with_untracked(|x| x.editor.line_height() as f64);
         let count = ((self.layout_rect.size().height
-            / config.editor.line_height() as f64)
+            / line_height)
             .floor() as usize)
             .saturating_sub(1);
         let active = self.active.get_untracked();
@@ -156,9 +156,10 @@ impl CodeActionData {
     }
 
     pub fn previous_page(&self) {
-        let config = self.common.config.get_untracked();
+        let line_height = self.common.config.with_untracked(|x| x.editor.line_height() as f64);
+
         let count = ((self.layout_rect.size().height
-            / config.editor.line_height() as f64)
+            / line_height)
             .floor() as usize)
             .saturating_sub(1);
         let active = self.active.get_untracked();

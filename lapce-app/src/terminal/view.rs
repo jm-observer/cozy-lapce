@@ -156,11 +156,11 @@ pub fn terminal_view(
 impl TerminalView {
     fn char_size(&self) -> Size {
         let (font_family, font_size) = self.config.with_untracked(|config| {
-        (config.terminal_font_family().clone(),
+        (config.terminal_font_family().to_string(),
         config.terminal_font_size())
         });
         let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(font_family).collect();
+            FamilyOwned::parse_list(&font_family).collect();
         let attrs = Attrs::new().family(&family).font_size(font_size as f32);
         let attrs_list = AttrsList::new(attrs);
         let text_layout = TextLayout::new_with_text("W", attrs_list);
