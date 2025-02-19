@@ -1568,6 +1568,8 @@ fn editor_gutter_folding_view(
     folding_display_item: FoldingDisplayItem,
 ) -> impl View {
     let config = window_tab_data.common.config;
+    let line_height = window_tab_data.common.ui_line_height;
+
     let view = container(
         svg(move || {
             let icon_str = match folding_display_item.ty {
@@ -1605,9 +1607,9 @@ fn editor_gutter_folding_view(
         })
     });
     container(view).style(move |s| {
-        let line_height = config.with_line_height();
+        let line_height = line_height.get();
         s.absolute()
-            .height(line_height as f32)
+            .height(line_height)
             .justify_center()
             .items_center()
             .margin_top(folding_display_item.y as f32)

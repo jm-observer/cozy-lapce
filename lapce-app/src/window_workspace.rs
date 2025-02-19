@@ -2653,7 +2653,7 @@ impl WindowWorkspaceData {
         if completion.status == CompletionStatus::Inactive {
             return Ok(Point::ZERO);
         }
-        let line_height = self.common.config.with_line_height() as f64;
+        let line_height = self.common.ui_line_height.get();
         let editor_data =
             if let Some(editor) = self.main_split.active_editor.get_untracked() {
                 editor
@@ -2702,7 +2702,7 @@ impl WindowWorkspaceData {
 
     pub fn code_action_origin(&self) -> Result<Point> {
         let code_action = self.code_action.get();
-        let line_height = self.common.config.with_line_height() as f64;
+        let line_height = self.common.ui_line_height.get();
         if code_action.status.get_untracked() == CodeActionStatus::Inactive {
             return Ok(Point::ZERO);
         }
@@ -2754,7 +2754,7 @@ impl WindowWorkspaceData {
     }
 
     pub fn rename_origin(&self) -> Result<Point> {
-        let line_height = self.common.config.with_line_height() as f64;
+        let line_height = self.common.ui_line_height.get();
         if !self.rename.active.get() {
             return Ok(Point::ZERO);
         }

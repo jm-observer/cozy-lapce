@@ -108,6 +108,7 @@ fn gutter_data_view(
     config: WithLapceConfig
 ) -> impl View {
     let data = data.clone();
+    let line_height = window_tab_data.common.ui_line_height;
     container((
         static_label(data.display_line_num()).style(move |style| {
             let doc = doc.get();
@@ -142,7 +143,7 @@ fn gutter_data_view(
         style
             .absolute()
             .inset_top(data.vl_info.visual_line_y)
-            .height(config.with_line_height() as f64)
+            .height(line_height.get())
     })
 }
 

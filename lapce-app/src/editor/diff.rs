@@ -18,6 +18,7 @@ use floem::{
     style::CursorStyle,
     views::{Decorators, clip, dyn_stack, empty, label, stack}
 };
+use floem::taffy::prelude::line;
 use lapce_core::{
     editor_tab::DiffEditorInfo,
     icon::LapceIcons,
@@ -226,6 +227,7 @@ pub fn diff_show_more_section_view(
     let right_editor_view = right_editor.kind_rw();
     let viewport = right_editor.signal_viewport();
     let config = right_editor.common.config;
+    let line_height = right_editor.common.ui_line_height;
 
     let each_fn = move || {
         let editor_view = right_editor_view.get();
@@ -432,14 +434,14 @@ pub fn diff_show_more_section_view(
             })
         ))
         .style(move |s| {
-            let line_height = config.with_line_height() ;
+            let line_height = line_height.get() ;
             s.absolute()
                 .width_pct(100.0)
-                .height(line_height as f32)
+                .height(line_height)
                 .justify_center()
                 .items_center()
                 .margin_top(
-                    (section.visual_line * line_height) as f32
+                    (section.visual_line as f32) * line_height as f32
                         - viewport.get().y0 as f32
                 )
                 .hover(|s| s.cursor(CursorStyle::Default))
@@ -448,7 +450,7 @@ pub fn diff_show_more_section_view(
 
     stack((
         empty().style(move |s| {
-            s.height(config.with_line_height() as f32 + 1.0)
+            s.height(line_height.get() as f32 + 1.0)
         }),
         clip(
             dyn_stack(each_fn, key_fn, view_fn)

@@ -3174,6 +3174,7 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
     let completion_data = window_tab_data.common.completion;
     let active_editor = window_tab_data.main_split.active_editor;
     let config = window_tab_data.common.config;
+    let line_height = window_tab_data.common.ui_line_height;
     let active = completion_data.with_untracked(|c| c.active);
     let request_id =
         move || completion_data.with_untracked(|c| (c.request_id, c.input_id));
@@ -3181,7 +3182,7 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
         virtual_stack(
             VirtualDirection::Vertical,
             VirtualItemSize::Fixed(Box::new(move || {
-                config.with_line_height() as f64
+                line_height.get()
             })),
             move || completion_data.with(|c| VectorItems(c.filtered_items.clone())),
             move |(i, _item)| (request_id(), *i),
@@ -3257,7 +3258,7 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                 .style(move |s| {
                     s.align_items(Some(AlignItems::Center))
                         .width_full()
-                        .height(config.with_line_height() as f32)
+                        .height(line_height.get())
                 })
             }
         )
@@ -3268,7 +3269,7 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
         })
     )
     .ensure_visible(move || {
-        let line_height = config.with_line_height() as f64;
+        let line_height = line_height.get();
         let active = active.get();
         Size::new(1.0, line_height)
             .to_rect()
@@ -3315,6 +3316,8 @@ fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
     let code_action = window_tab_data.code_action;
     let (status, active) = code_action
         .with_untracked(|code_action| (code_action.status, code_action.active));
+
+    let line_height = window_tab_data.common.ui_line_height;
     let request_id =
         move || code_action.with_untracked(|code_action| code_action.request_id);
     scroll(
@@ -3368,7 +3371,7 @@ fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
         .style(|s| s.width_full().padding_vert(4.0))
     )
     .ensure_visible(move || {
-        let line_height = config.with_line_height() as f64;
+        let line_height = line_height.get();
         let active = active.get();
         Size::new(1.0, line_height)
             .to_rect()
