@@ -217,7 +217,7 @@ pub fn _show_hierarchy_panel(
                         label(move || {
                             data.item.detail.clone().unwrap_or_default().replace('\n', "↵")
                         }).style(move |s| s.margin_left(6.0)
-                                                .color(config.get().color(LapceColor::EDITOR_DIM))
+                                                .color(config.with_color(LapceColor::EDITOR_DIM))
                         ).into_any()
                     } else {
                         empty().into_any()
@@ -230,9 +230,7 @@ pub fn _show_hierarchy_panel(
                         .items_center()
                         .hover(|s| {
                             s.background(
-                                config
-                                    .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                             .cursor(CursorStyle::Pointer)
                         })

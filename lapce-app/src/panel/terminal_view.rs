@@ -99,7 +99,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                     container({
                         stack((
                             container(
-                                svg(move || config.get().ui_svg(svg_string()))
+                                svg(move || config.with_ui_svg(svg_string()))
                                     .style(move |s| {
                                         let config = config.get();
                                         let size = config.ui.icon_size() as f32;
@@ -131,13 +131,13 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                     .height(header_height.get() - 15.0)
                                     .border_right(1.0)
                                     .border_color(
-                                        config.get().color(LapceColor::LAPCE_BORDER)
+                                        config.with_color(LapceColor::LAPCE_BORDER)
                                     )
                             })
                         ))
                         .style(move |s| {
                             s.items_center().width(200.0).border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER)
                             )
                         })
                     })
@@ -152,7 +152,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                         0.0
                                     }
                                 )
-                                .border_color(config.get().color(
+                                .border_color(config.with_color(
                                     if focus.get()
                                         == Focus::Panel(PanelKind::Terminal)
                                     {
@@ -283,7 +283,7 @@ fn terminal_tab_split(
         s.size_pct(100.0, 100.0).padding_horiz(10.0)
         // .apply_if(index.get() > 0, |s| {
         //     s.border_left(1.0)
-        //         .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+        //         .border_color(config.with_color(LapceColor::LAPCE_BORDER))
         // })
     })
 }

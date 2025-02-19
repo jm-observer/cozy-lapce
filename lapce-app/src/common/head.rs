@@ -15,13 +15,14 @@ use lapce_core::icon::LapceIcons;
 use crate::{
     app::clickable_icon,
     config::{
-        LapceConfig,
         color::LapceColor,
         ui::{TabCloseButton, TabSeparatorHeight}
     },
     svg,
     window_workspace::WindowWorkspaceData
 };
+use crate::config::WithLapceConfig;
+
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 pub fn common_tab_header<T: Clone + 'static>(
@@ -76,36 +77,48 @@ pub fn common_tab_header<T: Clone + 'static>(
         tabs.view_close()
     ))
     .style(move |s| {
-        let config = config.get();
+        let (border_color, bg, header_height) = config.with(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER)
+             , config.color(LapceColor::PANEL_BACKGROUND)
+             , config.ui.header_height()
+            )
+        });
         s.items_center()
             .flex_row()
             .width_full()
             .max_width_full()
             .border_bottom(1.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .background(config.color(LapceColor::PANEL_BACKGROUND))
-            .height(config.ui.header_height() as i32)
+            .border_color(border_color)
+            .background(bg)
+            .height(header_height as i32)
     })
     .debug_name("Tab Header")
 }
 
 fn tooltip_tip<V: View + 'static>(
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     child: V
 ) -> impl IntoView {
     container(child).style(move |s| {
-        let config = config.get();
+        let (border, shadow, fg, bg, font_size, font_family) = config.with(|config| {
+            (config.color(LapceColor::LAPCE_BORDER)
+             ,config.color(LapceColor::LAPCE_DROPDOWN_SHADOW)
+                           ,config.color(LapceColor::TOOLTIP_FOREGROUND)
+                                         ,config.color(LapceColor::TOOLTIP_BACKGROUND)
+            ,config.ui.font_size(), config.ui.font_family.clone())
+        });
         s.padding_horiz(10.0)
             .padding_vert(5.0)
-            .font_size(config.ui.font_size() as f32)
-            .font_family(config.ui.font_family.clone())
-            .color(config.color(LapceColor::TOOLTIP_FOREGROUND))
-            .background(config.color(LapceColor::TOOLTIP_BACKGROUND))
+            .font_size(font_size as f32)
+            .font_family(font_family)
+            .color(fg)
+            .background(bg)
             .border(1)
             .border_radius(6)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
+            .border_color(border)
             .box_shadow_blur(3.0)
-            .box_shadow_color(config.color(LapceColor::LAPCE_DROPDOWN_SHADOW))
+            .box_shadow_color(shadow)
             .margin_left(0.0)
             .margin_top(4.0)
     })
@@ -113,7 +126,7 @@ fn tooltip_tip<V: View + 'static>(
 
 #[derive(Clone)]
 pub struct Tabs<T: Clone + 'static> {
-    pub config:        ReadSignal<LapceConfig>,
+    pub config:        WithLapceConfig,
     pub close_manager: CloseManager<T>,
     pub active:        RwSignal<Option<ViewId>>,
     pub tabs:          RwSignal<Vec<Tab<T>>>,
@@ -145,7 +158,7 @@ pub struct Tab<T: Clone + 'static> {
     pub id:         ViewId,
     pub content:    String,
     pub active:     RwSignal<Option<ViewId>>,
-    pub config:     ReadSignal<LapceConfig>,
+    pub config:     WithLapceConfig,
     pub rect:       RwSignal<Rect>,
     pub references: RwSignal<T>
 }
@@ -168,7 +181,7 @@ impl<T: Clone + 'static> Tab<T> {
             config
         )
         .style(move |s| {
-            let tab_close_button = config.get().ui.tab_close_button;
+            let tab_close_button = config.with_tab_close_button();
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(1),
@@ -194,7 +207,7 @@ impl<T: Clone + 'static> Tab<T> {
             move || tooltip_tip(config, text(tip.clone()))
         )
         .style(move |s| {
-            let tab_close_button = config.get().ui.tab_close_button;
+            let tab_close_button = config.with_tab_close_button();
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(2),
@@ -210,14 +223,13 @@ impl<T: Clone + 'static> Tab<T> {
     fn tab_icon(&self) -> impl View + 'static {
         let config = self.config();
         container({
-            svg(move || config.get().ui_svg(LapceIcons::FILE)).style(move |s| {
-                let config = config.get();
-                let size = config.ui.icon_size() as f32;
+            svg(move || config.with_ui_svg(LapceIcons::FILE)).style(move |s| {
+                let size = config.with_icon_size() as f32;
                 s.size(size, size)
             })
         })
         .style(move |s| {
-            let tab_close_button = config.get().ui.tab_close_button;
+            let tab_close_button = config.with_tab_close_button();
             s.padding(4.)
                 .apply_if(tab_close_button == TabCloseButton::Left, |s| {
                     s.grid_column(Line {
@@ -244,14 +256,14 @@ impl<T: Clone + 'static> Tab<T> {
                     .justify_center()
                     // .border_left(if i.get() == 0 { 1.0 } else { 0.0 })
                     .border_right(1.0)
-                    .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                    .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                     .padding_horiz(6.)
                     .gap(6.)
                     .grid()
                     .grid_template_columns(vec![auto(), fr(1.), auto()])
                     .apply_if(
-                        config.get().ui.tab_separator_height
-                            == TabSeparatorHeight::Full,
+                        config.with(|x| x.ui.tab_separator_height) == TabSeparatorHeight::Full
+                            ,
                         |s| s.height_full(),
                     )
             }),
@@ -260,7 +272,7 @@ impl<T: Clone + 'static> Tab<T> {
                     let active = active.get().map(|x| id == x).unwrap_or_default();
                     s.size_full()
                         .border_bottom(if active { 2.0 } else { 0.0 })
-                        .border_color(config.get().color(if active {
+                        .border_color(config.with_color(if active {
                             LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE
                         } else {
                             LapceColor::LAPCE_TAB_INACTIVE_UNDERLINE
@@ -271,9 +283,7 @@ impl<T: Clone + 'static> Tab<T> {
             empty()
                 .style(move |s| {
                     s.absolute().height_full().border_color(
-                        config
-                            .get()
-                            .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                        config.with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                             .multiply_alpha(0.5)
                     )
                 })
@@ -284,13 +294,12 @@ impl<T: Clone + 'static> Tab<T> {
         })
         .on_resize(move |x| rect.set(x))
         .style(move |s| {
-            let config = config.get();
             s.height_full()
                 .flex_col()
                 .items_center()
                 .justify_center()
                 .cursor(CursorStyle::Pointer)
-                .hover(|s| s.background(config.color(LapceColor::HOVER_BACKGROUND)))
+                .hover(|s| s.background(config.with_color(LapceColor::HOVER_BACKGROUND)))
         })
     }
 
@@ -298,7 +307,7 @@ impl<T: Clone + 'static> Tab<T> {
         (self.content.clone(), "tip".to_owned())
     }
 
-    fn config(&self) -> ReadSignal<LapceConfig> {
+    fn config(&self) -> WithLapceConfig {
         self.config
     }
 
@@ -308,7 +317,7 @@ impl<T: Clone + 'static> Tab<T> {
 }
 
 impl<T: Clone + 'static> Tabs<T> {
-    pub fn new(config: ReadSignal<LapceConfig>, cx: Scope) -> Self {
+    pub fn new(config: WithLapceConfig, cx: Scope) -> Self {
         let active = cx.create_rw_signal(None);
         let tabs = cx.create_rw_signal(Vec::new());
         let close_manager = CloseManager { tabs };
@@ -487,9 +496,7 @@ impl<T: Clone + 'static> Tabs<T> {
             empty()
                 .style(move |s| {
                     s.absolute().height_full().border_color(
-                        config
-                            .get()
-                            .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                        config.with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                             .multiply_alpha(0.5)
                     )
                 })

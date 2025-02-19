@@ -42,6 +42,7 @@ use crate::{
     svg,
     window_workspace::CommonData
 };
+use crate::config::WithLapceConfig;
 
 #[derive(Debug, Clone)]
 pub enum SettingsValue {
@@ -467,7 +468,7 @@ pub fn settings_view(
             s.width_pct(100.0)
                 .flex_col()
                 .line_height(1.8)
-                .font_size(config.get().ui.font_size() as f32 + 1.0)
+                .font_size(config.with_font_size() as f32 + 1.0)
         })
     };
 
@@ -483,7 +484,7 @@ pub fn settings_view(
             s.height_pct(100.0)
                 .width(200.0)
                 .border_right(1.0)
-                .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                .border_color(config.with_color(LapceColor::LAPCE_BORDER))
         }),
         stack((
             container({
@@ -495,7 +496,7 @@ pub fn settings_view(
                             .border_radius(2.0)
                             .border(1.0)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER)
                             )
                     })
             })
@@ -626,7 +627,7 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                     .keyboard_navigable()
                     .style(move |s| {
                         s.width(300.0).border(1.0).border_radius(6.0).border_color(
-                            config.get().color(LapceColor::LAPCE_BORDER)
+                            config.with_color(LapceColor::LAPCE_BORDER)
                         )
                     })
                     .into_any()
@@ -674,7 +675,7 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                 .min_width(0.0)
                 .max_width_pct(100.0)
                 .line_height(1.8)
-                .font_size(config.get().ui.font_size() as f32 + 1.0)
+                .font_size(config.with_font_size() as f32 + 1.0)
         }),
         stack((
             label(move || item.description.clone()).style(move |s| {
@@ -682,7 +683,7 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                     .max_width_pct(100.0)
                     .line_height(1.8)
                     .apply_if(is_ticked.is_some(), |s| {
-                        s.margin_left(config.get().ui.font_size() as f32 + 8.0)
+                        s.margin_left(config.with_font_size() as f32 + 8.0)
                     })
                     .apply_if(item.header, |s| s.hide())
             }),
@@ -754,7 +755,7 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
 
 pub fn checkbox(
     checked: impl Fn() -> bool + 'static,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     const CHECKBOX_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 16 16"><polygon points="5.19,11.83 0.18,7.44 1.82,5.56 4.81,8.17 10,1.25 12,2.75" /></svg>"#;
     let svg_str = move || if checked() { CHECKBOX_SVG } else { "" }.to_string();
@@ -930,7 +931,7 @@ fn color_section_list(
                             .border(1)
                             .border_radius(6)
                             .border_color(
-                                config.get().color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER)
                             )
                     }),
                     empty().style(move |s| {
@@ -1062,7 +1063,7 @@ pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
                     s.width_pct(100.0)
                         .border_radius(2.0)
                         .border(1.0)
-                        .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                        .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                 })
         })
         .style(|s| s.padding_vert(20.0).padding_horiz(20.0).width_full()),
@@ -1152,7 +1153,7 @@ fn dropdown_view(
     dropdown: &DropdownInfo,
     expanded: RwSignal<bool>,
     common: Rc<CommonData>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let window_size = common.window_common.size;
     let window_origin = create_rw_signal(Point::ZERO);
@@ -1202,9 +1203,9 @@ fn dropdown_view(
         container(
             svg(move || {
                 if expanded.get() {
-                    config.get().ui_svg(LapceIcons::CLOSE)
+                    config.with_ui_svg(LapceIcons::CLOSE)
                 } else {
-                    config.get().ui_svg(LapceIcons::DROPDOWN_ARROW)
+                    config.with_ui_svg(LapceIcons::DROPDOWN_ARROW)
                 }
             })
             .style(move |s| {
@@ -1233,7 +1234,7 @@ fn dropdown_view(
     .style(move |s| {
         s.items_center()
             .cursor(CursorStyle::Pointer)
-            .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            .border_color(config.with_color(LapceColor::LAPCE_BORDER))
             .border(1.0)
             .border_radius(6.0)
             .width(250.0)
@@ -1267,7 +1268,7 @@ fn dropdown_scroll(
     window_origin: RwSignal<Point>,
     input_size: RwSignal<Size>,
     window_size: RwSignal<Size>,
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     common: Rc<CommonData>
 ) -> impl View {
     dropdown_scroll_focus.set(true);
@@ -1293,7 +1294,7 @@ fn dropdown_scroll(
             .style(move |s| {
                 s.text_ellipsis().padding_horiz(10.0).hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
             })

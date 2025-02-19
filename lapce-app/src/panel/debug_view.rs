@@ -4,7 +4,7 @@ use floem::{
     peniko::Color,
     prelude::palette,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
+        RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
     },
     style::CursorStyle,
     text::Style as FontStyle,
@@ -27,7 +27,7 @@ use super::view::PanelBuilder;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     debug::{DapVariable, StackTraceData, update_breakpoints},
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -36,6 +36,7 @@ use crate::{
     terminal::panel::TerminalPanelData,
     window_workspace::WindowWorkspaceData
 };
+use crate::config::WithLapceConfig;
 
 pub fn debug_panel(
     window_tab_data: WindowWorkspaceData,
@@ -78,7 +79,7 @@ fn debug_process_icons(
     dap_id: DapId,
     mode: RunDebugMode,
     stopped: bool,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let paused = move || {
         let stopped = terminal
@@ -251,7 +252,7 @@ fn debug_process_icons(
 
 fn debug_processes(
     terminal: TerminalPanelData,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     scroll({
         let terminal = terminal.clone();
@@ -275,9 +276,8 @@ fn debug_processes(
                                 LapceIcons::DEBUG_DISCONNECT
                             },
                         };
-                        svg(move || config.get().ui_svg(svg_str)).style(move |s| {
-                            let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                        svg(move || config.with_ui_svg(svg_str)).style(move |s| {
+                            let size = config.with_icon_size() as f32;
                             s.size(size, size)
                                 .margin_vert(5.0)
                                 .margin_horiz(10.0)
@@ -313,18 +313,23 @@ fn debug_processes(
                     is_hovered.set(false);
                 })
                 .style(move |s| {
-                    let config = config.get();
+                    let (cbg, hbg) = config.with(|config| {
+                        (
+                            config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                            , config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        )
+                    });
                     s.padding_vert(6.0)
                         .width_pct(100.0)
                         .items_center()
                         .apply_if(is_active(), |s| {
                             s.background(
-                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                                cbg
                             )
                         })
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
-                                (config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
+                                hbg
                                     .multiply_alpha(0.3)
                             )
                         })
@@ -386,22 +391,23 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     let type_exists = ty.map(|ty| !ty.is_empty()).unwrap_or(false);
                     stack((
                         svg(move || {
-                            let config = config.get();
                             let svg_str = match node.expanded {
                                 true => LapceIcons::ITEM_OPENED,
                                 false => LapceIcons::ITEM_CLOSED
                             };
-                            config.ui_svg(svg_str)
+                            config.with_ui_svg(svg_str)
                         })
                         .style(move |s| {
-                            let config = config.get();
-                            let size = config.ui.icon_size() as f32;
-
-                            let color = if reference > 0 {
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                            } else {
-                                Color::TRANSPARENT
-                            };
+                            let (color, size) = config.with(|config| {
+                                (
+                                    if reference > 0 {
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                    } else {
+                                        Color::TRANSPARENT
+                                    }
+                                    , config.ui.icon_size() as f32
+                                )
+                            });
                             s.size(size, size).margin_left(10.0).color(color)
                         }),
                         text(name),
@@ -409,7 +415,7 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             s.apply_if(!type_exists || reference == 0, |s| s.hide())
                         }),
                         text(node.item.ty().unwrap_or("")).style(move |s| {
-                            s.color(config.get().style_color("type").unwrap())
+                            s.color(config.with(|x| x.style_color("type").unwrap()))
                                 .apply_if(!type_exists || reference == 0, |s| {
                                     s.hide()
                                 })
@@ -450,7 +456,7 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             .hover(|s| {
                                 s.apply_if(reference > 0, |s| {
                                     s.background(
-                                        config.get().color(
+                                        config.with_color(
                                             LapceColor::PANEL_HOVERED_BACKGROUND
                                         )
                                     )
@@ -473,7 +479,7 @@ fn debug_stack_frames(
     stack_trace: StackTraceData,
     stopped: RwSignal<bool>,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let expanded = stack_trace.expanded;
     stack((
@@ -486,7 +492,7 @@ fn debug_stack_frames(
             .style(move |s| {
                 s.padding_horiz(10.0).min_width_pct(100.0).hover(move |s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
             }),
@@ -520,15 +526,13 @@ fn debug_stack_frames(
                     label(move || frame.name.clone()).style(move |s| {
                         s.hover(|s| {
                             s.background(
-                                config
-                                    .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                             )
                         })
                     }),
                     label(move || source_path.clone()).style(move |s| {
                         s.margin_left(10.0)
-                            .color(config.get().color(LapceColor::EDITOR_DIM))
+                            .color(config.with_color(LapceColor::EDITOR_DIM))
                             .font_style(FontStyle::Italic)
                             .apply_if(!has_source, |s| s.hide())
                     })
@@ -556,16 +560,21 @@ fn debug_stack_frames(
                     });
                 })
                 .style(move |s| {
-                    let config = config.get();
+                    let (ed, hbg) = config.with(|config| {
+                        (
+                            config.color(LapceColor::EDITOR_DIM)
+                            , config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        )
+                    });
                     s.padding_left(20.0)
                         .padding_right(10.0)
                         .min_width_pct(100.0)
                         .apply_if(!has_source, |s| {
-                            s.color(config.color(LapceColor::EDITOR_DIM))
+                            s.color(ed)
                         })
                         .hover(|s| {
                             s.background(
-                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                hbg
                             )
                             .apply_if(has_source, |s| s.cursor(CursorStyle::Pointer))
                         })
@@ -581,7 +590,7 @@ fn debug_stack_frames(
 fn debug_stack_traces(
     terminal: TerminalPanelData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     container(
         scroll({
@@ -744,7 +753,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             }),
                         text(format!("{file_name}:{}", breakpoint.line + 1)).style(
                             move |s| {
-                                let size = config.get().ui.icon_size() as f32;
+                                let size = config.with_icon_size() as f32;
                                 s.text_ellipsis().max_width(
                                     available_width.get() as f32
                                         - 20.0
@@ -759,7 +768,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             s.text_ellipsis()
                                 .flex_grow(1.0)
                                 .flex_basis(0.0)
-                                .color(config.get().color(LapceColor::EDITOR_DIM))
+                                .color(config.with_color(LapceColor::EDITOR_DIM))
                                 .min_width(0.0)
                                 .margin_left(6.0)
                                 .apply_if(folder_empty, |s| s.hide())
@@ -769,9 +778,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                         s.items_center().padding_horiz(10.0).width_pct(100.0).hover(
                             |s| {
                                 s.background(
-                                    config
-                                        .get()
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                                 )
                             }
                         )

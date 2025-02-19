@@ -26,18 +26,19 @@ use crate::{
     update::ReleaseInfo,
     window_workspace::WindowWorkspaceData
 };
+use crate::config::WithLapceConfig;
 
 fn left(
     workspace: LapceWorkspace,
     lapce_command: Listener<LapceCommand>,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     proxy_status: RwSignal<Option<ProxyStatus>> // num_window_tabs: Memo<usize>,
 ) -> impl View {
     let is_local = workspace.kind.is_local();
     let is_macos = cfg!(target_os = "macos");
     stack((
-        container(svg(move || config.get().ui_svg(LapceIcons::LOGO)).style(
+        container(svg(move || config.with_ui_svg(LapceIcons::LOGO)).style(
             move |s| {
                 let config = config.get();
                 s.size(16.0, 16.0)
@@ -60,7 +61,7 @@ fn left(
         }),
         tooltip_label(
             config,
-            container(svg(move || config.get().ui_svg(LapceIcons::REMOTE)).style(
+            container(svg(move || config.with_ui_svg(LapceIcons::REMOTE)).style(
                 move |s| {
                     let config = config.get();
                     let size = (config.ui.icon_size() as f32 + 2.0).min(30.0);
@@ -155,7 +156,7 @@ fn middle(
     workspace: LapceWorkspace,
     main_split: MainSplitData,
     workbench_command: Listener<LapceWorkbenchCommand>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let local_workspace = workspace.clone();
     let can_jump_backward = {
@@ -225,7 +226,7 @@ fn middle(
         }),
         container(
             stack((
-                svg(move || config.get().ui_svg(LapceIcons::SEARCH)).style(
+                svg(move || config.with_ui_svg(LapceIcons::SEARCH)).style(
                     move |s| {
                         let config = config.get();
                         let icon_size = config.ui.icon_size() as f32;
@@ -309,7 +310,7 @@ fn right(
     update_in_progress: RwSignal<bool>,
     // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let latest_version = create_memo(move |_| {
         let latest_release = latest_release.get();
@@ -466,7 +467,7 @@ pub fn window_controls_view(
     // is_title: bool,
     // num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     stack((
         clickable_icon(

@@ -17,7 +17,7 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     menu::{Menu, MenuItem},
-    reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
 };
 use globset::Glob;
 use lapce_rpc::{
@@ -30,10 +30,10 @@ use lapce_rpc::{
 
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
-    config::LapceConfig,
     keypress::{KeyPressFocus, condition::Condition},
     window_workspace::CommonData
 };
+use crate::config::WithLapceConfig;
 
 #[derive(Debug)]
 enum RenamedPath {
@@ -208,7 +208,7 @@ impl FileExplorerData {
                         // TODO: do not recreate glob every time we read a directory
                         // Retain only items that are not excluded from view by the
                         // configuration
-                        match Glob::new(&config.get().editor.files_exclude) {
+                        match Glob::new(&config.with(|x| x.editor.files_exclude.clone())) {
                             Ok(glob) => {
                                 let matcher = glob.compile_matcher();
                                 items.retain(|i| !matcher.is_match(&i.path));
@@ -402,10 +402,10 @@ impl FileExplorerData {
         self.naming.set(Naming::None);
     }
 
-    pub fn click(&self, path: &Path, config: ReadSignal<LapceConfig>) {
+    pub fn click(&self, path: &Path, config: WithLapceConfig) {
         if self.is_dir(path) {
             self.toggle_expand(path);
-        } else if !config.get_untracked().core.file_explorer_double_click {
+        } else if !config.with_untracked(|x| x.core.file_explorer_double_click) {
             self.common
                 .internal_command
                 .send(InternalCommand::OpenFile {
@@ -471,11 +471,11 @@ impl FileExplorerData {
     pub fn double_click(
         &self,
         path: &Path,
-        config: ReadSignal<LapceConfig>
+        config: WithLapceConfig
     ) -> EventPropagation {
         if self.is_dir(path) {
             EventPropagation::Continue
-        } else if config.get_untracked().core.file_explorer_double_click {
+        } else if config.with_untracked(|x| x.core.file_explorer_double_click) {
             self.common.internal_command.send(
                 InternalCommand::OpenAndConfirmedFile {
                     path: path.to_path_buf()

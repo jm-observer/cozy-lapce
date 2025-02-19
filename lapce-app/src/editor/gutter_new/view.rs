@@ -4,7 +4,6 @@ use floem::{
         Decorators, RwSignal, SignalGet, SignalWith, Svg, clip, container, palette,
         static_label
     },
-    reactive::ReadSignal,
     style::{CursorStyle, StyleValue},
     taffy::{AlignItems, JustifyContent},
     views::dyn_stack
@@ -13,7 +12,7 @@ use lapce_core::icon::LapceIcons;
 use log::{error, warn};
 
 use crate::{
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     editor::{
         DocSignal, EditorData,
         gutter_new::{GutterData, GutterMarker, gutter_data}
@@ -21,21 +20,23 @@ use crate::{
     svg,
     window_workspace::WindowWorkspaceData
 };
+use crate::config::WithLapceConfig;
 
-fn gutter_marker_none_svg_view(config: ReadSignal<LapceConfig>) -> Svg {
-    svg(move || config.get().ui_svg(LapceIcons::EMPTY)).style(move |s| {
-        let config = config.get();
-        let size = config.ui.icon_size() as f64;
+fn gutter_marker_none_svg_view(config: WithLapceConfig) -> Svg {
+    svg(move || config.with_ui_svg(LapceIcons::EMPTY)).style(move |s| {
+        let size = config.with_icon_size() as f64;
         s.size(size, size).padding(2.0)
     })
 }
 
-fn gutter_marker_breakpoint_svg_view(config: ReadSignal<LapceConfig>) -> Svg {
-    svg(move || config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(move |s| {
-        let config = config.get();
-        let size = config.ui.icon_size() as f64;
+fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
+    svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(move |s| {
+        let (icon_size, color) = config.with(|config| {
+            (config.ui.icon_size(), config.color(LapceColor::DEBUG_BREAKPOINT_HOVER))
+        });
+        let size = icon_size as f64;
         s.size(size, size)
-            .color(config.color(LapceColor::DEBUG_BREAKPOINT_HOVER))
+            .color(color)
     })
 }
 
@@ -45,10 +46,9 @@ fn gutter_marker_code_len_svg_view(
     doc: DocSignal
 ) -> Svg {
     let config = window_tab_data.common.config;
-    svg(move || config.get().ui_svg(LapceIcons::START))
+    svg(move || config.with_ui_svg(LapceIcons::START))
         .style(move |s| {
-            let config = config.get();
-            let size = config.ui.icon_size() as f64;
+            let size = config.with_icon_size() as f64;
             s.size(size, size)
                 .color(palette::css::GREEN)
                 .hover(|s| s.cursor(CursorStyle::Pointer))
@@ -82,16 +82,15 @@ pub fn editor_gutter_new(
             .style(|style| style.height_full().width_full())
         )
         .style(move |style| {
-            let config = config.get();
             style
                 .width_full()
                 .height_pct(100.0)
-                .background(config.color(LapceColor::PANEL_BACKGROUND))
+                .background(config.with_color(LapceColor::PANEL_BACKGROUND))
         })
     )
     .style(move |style| {
         let doc = doc.get();
-        let size = config.get().ui.icon_size() as f64;
+        let size = config.with_icon_size() as f64;
         let width = doc.lines.with_untracked(|x| x.signal_last_line()).get().1
             + size * 2.0
             + 8.0;
@@ -106,7 +105,7 @@ fn gutter_data_view(
     data: &GutterData,
     window_tab_data: &WindowWorkspaceData,
     doc: DocSignal,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let data = data.clone();
     container((
@@ -114,38 +113,43 @@ fn gutter_data_view(
             let doc = doc.get();
             let width =
                 doc.lines.with_untracked(|x| x.signal_last_line()).get().1 + 8.0;
-            let config = config.get();
+            let (fg, dim, font_size, font_family) = config.with(|config| {
+                (
+                    config.color(LapceColor::EDITOR_FOREGROUND)
+                    , config.color(LapceColor::EDITOR_DIM)
+                    , config.editor.font_size()
+                    , config.editor.font_family.clone()
+                )
+            });
             let color = if data.is_current_line {
-                config.color(LapceColor::EDITOR_FOREGROUND)
+                fg
             } else {
-                config.color(LapceColor::EDITOR_DIM)
+                dim
             };
             style
                 .height_full()
                 .width(width)
-                .color(config.color(LapceColor::EDITOR_DIM))
-                .font_size(config.editor.font_size() as f32)
+                .font_size(font_size as f32)
                 .color(color)
                 .padding_horiz(4.0)
-                .font_family(StyleValue::Val(config.editor.font_family.clone()))
+                .font_family(StyleValue::Val(font_family))
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
         }),
         marker_view(&data, window_tab_data.clone(), config, doc)
     ))
     .style(move |style| {
-        config.get().editor.line_height();
         style
             .absolute()
             .inset_top(data.vl_info.visual_line_y)
-            .height(config.get().editor.line_height() as f64)
+            .height(config.with_line_height() as f64)
     })
 }
 
 fn marker_view(
     data: &GutterData,
     window_tab_data: WindowWorkspaceData,
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     doc_signal: DocSignal
 ) -> impl View {
     let svg = match data.marker {
@@ -159,8 +163,7 @@ fn marker_view(
     };
     container(svg)
         .style(move |s| {
-            let config = config.get();
-            let size = config.ui.icon_size() as f64;
+            let size = config.with_icon_size() as f64;
             let padding_left = 4.0;
             let padding_right = 10.0;
             let width = padding_left + padding_right + size;

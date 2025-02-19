@@ -34,6 +34,7 @@ use crate::{
     },
     window_workspace::{DragContent, WindowWorkspaceData}
 };
+use crate::config::WithLapceConfig;
 
 pub(crate) const PANEL_PICKER_SIZE: f32 = 40.0;
 
@@ -41,7 +42,7 @@ pub fn foldable_panel_section(
     header: impl View + 'static,
     child: impl View + 'static,
     open: RwSignal<bool>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     stack((
         h_stack((
@@ -65,7 +66,7 @@ pub fn foldable_panel_section(
                 .padding_vert(6.0)
                 .width_pct(100.0)
                 .cursor(CursorStyle::Pointer)
-                .background(config.get().color(LapceColor::PANEL_BACKGROUND))
+                .background(config.with_color(LapceColor::PANEL_BACKGROUND))
         })
         .on_click_stop(move |_| {
             open.update(|open| *open = !*open);
@@ -77,12 +78,12 @@ pub fn foldable_panel_section(
 /// A builder for creating a foldable panel out of sections
 pub struct PanelBuilder {
     views:    Vec<AnyView>,
-    config:   ReadSignal<LapceConfig>,
+    config:   WithLapceConfig,
     position: PanelContainerPosition
 }
 impl PanelBuilder {
     pub fn new(
-        config: ReadSignal<LapceConfig>,
+        config: WithLapceConfig,
         position: PanelContainerPosition
     ) -> Self {
         Self {
@@ -245,7 +246,7 @@ pub fn new_left_panel_container_view(
             s
                 .width(panel.size.get().left as f32)
                 .height_pct(100.0)
-                .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                 .border_right(1.0)
                 .apply_if(
                     !panel.is_position_shown(&position, true)
@@ -304,7 +305,7 @@ pub fn new_bottom_panel_container_view(
             s.flex_col()
                 .height(panel.size.get().bottom as f32)
                 .width_pct(100.0)
-                .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                 .border_top(1.0)
                 .apply_if(
                     !panel.is_position_shown(&position, true)
@@ -351,7 +352,7 @@ pub fn new_right_panel_container_view(
         ))
         .style(move |s| s.width(panel.size.get().right as f32).height_pct(100.0)
             .border_left(1.0)
-            .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            .border_color(config.with_color(LapceColor::LAPCE_BORDER))
             .apply_if(
                 !panel.is_position_shown(&position, true)
                     || panel.is_position_empty(&position, true),
@@ -414,19 +415,19 @@ fn panel_view_by_kind(
     }
 }
 
-pub fn panel_header(header: String, config: ReadSignal<LapceConfig>) -> impl View {
+pub fn panel_header(header: String, config: WithLapceConfig) -> impl View {
     container(label(move || header.clone())).style(move |s| {
         s.padding_horiz(10.0)
             .padding_vert(6.0)
             .width_pct(100.0)
-            .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+            .background(config.with_color(LapceColor::EDITOR_BACKGROUND))
     })
 }
 
 fn drag_line(
     position: PanelContainerPosition,
     panel: PanelData,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let panel_size = panel.size;
     let view = empty();
@@ -612,14 +613,14 @@ pub(crate) fn new_panel_picker(
     .style(move |s| {
         s.flex_row()
             .padding(1.0)
-            .background(config.get().color(LapceColor::PANEL_BACKGROUND))
+            .background(config.with_color(LapceColor::PANEL_BACKGROUND))
     })
     .event(move |x| drag_event(x, config, dragging, panel.clone(), position))
 }
 
 fn drag_event<T: IntoView>(
     view: T,
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     dragging: RwSignal<Option<DragContent>>,
     panel: PanelData,
     position: PanelContainerPosition
@@ -663,7 +664,7 @@ fn drag_event<T: IntoView>(
         //     .with(|d| d.as_ref().map(|d| d.is_panel()))
         //     .unwrap_or(false);
         s.apply_if(dragging_over.get(), |s| {
-            s.background(config.get().color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
+            s.background(config.with_color(LapceColor::EDITOR_DRAG_DROP_BACKGROUND))
         })
         // .apply_if(!is_dragging_panel, |s| s)
     })

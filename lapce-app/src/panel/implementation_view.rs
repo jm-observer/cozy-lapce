@@ -105,7 +105,7 @@ pub fn common_reference_panel(
                         label(move || format!("{:?}", path))
                             .style(move |s| {
                                 s.margin_left(6.0).color(
-                                    config.get().color(LapceColor::EDITOR_DIM),
+                                    config.with_color(LapceColor::EDITOR_DIM),
                                 )
                             })
                             .into_any(),
@@ -117,9 +117,7 @@ pub fn common_reference_panel(
                             .items_center()
                             .hover(|s| {
                                 s.background(
-                                    config
-                                        .get()
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
                                 .cursor(CursorStyle::Pointer)
                             })
@@ -128,7 +126,7 @@ pub fn common_reference_panel(
                         label(move || format!("{} {}", file_line.position.line + 1, file_line.content))
                             .style(move |s| {
                                 s.margin_left(6.0).color(
-                                    config.get().color(LapceColor::EDITOR_DIM),
+                                    config.with_color(LapceColor::EDITOR_DIM),
                                 )
                             })
                             .into_any(),
@@ -140,9 +138,7 @@ pub fn common_reference_panel(
                             .items_center()
                             .hover(|s| {
                                 s.background(
-                                    config
-                                        .get()
-                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 )
                                 .cursor(CursorStyle::Pointer)
                             })
@@ -176,9 +172,7 @@ pub fn common_reference_panel(
                         .items_center()
                         .hover(|s| {
                             s.background(
-                                config
-                                    .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                             )
                             .cursor(CursorStyle::Pointer)
                         })

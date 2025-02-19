@@ -187,7 +187,7 @@ fn installed_view(plugin: PluginData) -> impl View {
                 .padding_vert(5.0)
                 .hover(|s| {
                     s.background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
         })
@@ -330,7 +330,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 .padding_vert(5.0)
                 .hover(|s| {
                     s.background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
         })

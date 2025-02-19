@@ -5,7 +5,7 @@ use doc::lines::{
 };
 use floem::{
     peniko::kurbo::Rect,
-    reactive::{ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
 };
 use lapce_core::id::EditorId;
 use lapce_rpc::{plugin::PluginId, proxy::ProxyRpcHandler};
@@ -16,7 +16,8 @@ use lsp_types::{
 };
 use nucleo::Utf32Str;
 
-use crate::{config::LapceConfig, editor::EditorData, snippet::Snippet};
+use crate::{editor::EditorData, snippet::Snippet};
+use crate::config::WithLapceConfig;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CompletionStatus {
@@ -67,11 +68,11 @@ pub struct CompletionData {
     pub latest_editor_id: Option<EditorId>,
     /// Matcher for filtering the completion items
     matcher:              RwSignal<nucleo::Matcher>,
-    config:               ReadSignal<LapceConfig>
+    config:               WithLapceConfig
 }
 
 impl CompletionData {
-    pub fn new(cx: Scope, config: ReadSignal<LapceConfig>) -> Self {
+    pub fn new(cx: Scope, config: WithLapceConfig) -> Self {
         let active = cx.create_rw_signal(0);
         Self {
             status: CompletionStatus::Inactive,
@@ -265,8 +266,10 @@ impl CompletionData {
 
     /// The amount of items that can be displayed in the current layout.
     fn display_count(&self) -> usize {
-        let config = self.config.get_untracked();
-        ((self.layout_rect.size().height / config.editor.line_height() as f64)
+        let line_height = self.config.with_untracked(|config | {
+            config.editor.line_height()
+        });
+        ((self.layout_rect.size().height / line_height as f64)
             .floor() as usize)
             .saturating_sub(1)
     }
@@ -315,9 +318,11 @@ impl CompletionData {
             return;
         }
 
-        let config = self.config.get_untracked();
+        let enable_completion_lens = self.config.with_untracked(|config| {
+            config.editor.enable_completion_lens
+        });
 
-        if !config.editor.enable_completion_lens {
+        if !enable_completion_lens {
             doc.clear_completion_lens();
             return;
         }

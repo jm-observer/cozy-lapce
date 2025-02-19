@@ -104,7 +104,7 @@
 //                         .margin_top(cursor_pos.y as f32)
 //                         .border_left(2.0)
 //
-// .border_color(config.get().color(LapceColor::EDITOR_CARET))
+// .border_color(config.with_color(LapceColor::EDITOR_CARET))
 // .apply_if(!is_active(), |s| s.hide())                 }),
 //             ))
 //             .style(|s| s.width_pct(100.0).padding(6.0)),

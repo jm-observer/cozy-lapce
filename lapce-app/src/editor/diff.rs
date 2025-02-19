@@ -298,12 +298,12 @@ pub fn diff_show_more_section_view(
             wave_box().style(move |s| {
                 s.absolute()
                     .size_pct(100.0, 100.0)
-                    .color(config.get().color(LapceColor::PANEL_BACKGROUND))
+                    .color(config.with_color(LapceColor::PANEL_BACKGROUND))
             }),
             label(move || format!("{} Hidden Lines", section.lines)),
             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
             stack((
-                svg(move || config.get().ui_svg(LapceIcons::FOLD)).style(move |s| {
+                svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
                     let config = config.get();
                     let size = config.ui.icon_size() as f32;
                     s.size(size, size)
@@ -342,7 +342,7 @@ pub fn diff_show_more_section_view(
             }),
             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
             stack((
-                svg(move || config.get().ui_svg(LapceIcons::FOLD_UP)).style(
+                svg(move || config.with_ui_svg(LapceIcons::FOLD_UP)).style(
                     move |s| {
                         let config = config.get();
                         let size = config.ui.icon_size() as f32;
@@ -383,7 +383,7 @@ pub fn diff_show_more_section_view(
             }),
             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
             stack((
-                svg(move || config.get().ui_svg(LapceIcons::FOLD_DOWN)).style(
+                svg(move || config.with_ui_svg(LapceIcons::FOLD_DOWN)).style(
                     move |s| {
                         let config = config.get();
                         let size = config.ui.icon_size() as f32;
@@ -440,7 +440,7 @@ pub fn diff_show_more_section_view(
 
     stack((
         empty().style(move |s| {
-            s.height(config.get().editor.line_height() as f32 + 1.0)
+            s.height(config.with_line_height() as f32 + 1.0)
         }),
         clip(
             dyn_stack(each_fn, key_fn, view_fn)

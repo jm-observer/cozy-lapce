@@ -32,6 +32,7 @@ use crate::{
     plugin::PluginData,
     window_workspace::WindowWorkspaceData
 };
+use crate::config::WithLapceConfig;
 
 pub enum EditorTabChildSource {
     Editor { path: PathBuf, doc: Rc<Doc> },
@@ -113,7 +114,7 @@ impl EditorTabChildId {
         editors: Editors,
         diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>>,
         plugin: PluginData,
-        config: ReadSignal<LapceConfig>
+        config: WithLapceConfig
     ) -> Memo<EditorTabChildViewInfo> {
         match self.clone() {
             EditorTabChildId::Editor(editor_id) => create_memo(move |_| {

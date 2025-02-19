@@ -270,7 +270,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                         }
                     });
                 }),
-            svg(move || config.get().file_svg(&path).0).style(move |s| {
+            svg(move || config.with_file_svg(&path).0).style(move |s| {
                 let config = config.get();
                 let size = config.ui.icon_size() as f32;
                 let color = config.file_svg(&style_path).1;
@@ -300,7 +300,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                 s.text_ellipsis()
                     .flex_grow(1.0)
                     .flex_basis(0.0)
-                    .color(config.get().color(LapceColor::EDITOR_DIM))
+                    .color(config.with_color(LapceColor::EDITOR_DIM))
                     .min_width(0.0)
                     .selectable(false)
             }),
@@ -312,7 +312,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                         FileDiff::Deleted(_) => LapceIcons::SCM_DIFF_REMOVED,
                         FileDiff::Renamed(_, _) => LapceIcons::SCM_DIFF_RENAMED
                     };
-                    config.get().ui_svg(svg)
+                    config.with_ui_svg(svg)
                 })
                 .style(move |s| {
                     let config = config.get();

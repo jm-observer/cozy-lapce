@@ -39,6 +39,7 @@ use crate::{
     terminal::data::TerminalData,
     window_workspace::Focus
 };
+use crate::config::WithLapceConfig;
 
 /// Threshold used for double_click/triple_click.
 const CLICK_THRESHOLD: u128 = 400;
@@ -64,7 +65,7 @@ pub struct TerminalView {
     mode:                  ReadSignal<Mode>,
     size:                  Size,
     is_focused:            bool,
-    config:                ReadSignal<LapceConfig>,
+    config:                WithLapceConfig,
     run_config:            ReadSignal<Option<RunDebugProcess>>,
     proxy:                 ProxyRpcHandler,
     launch_error:          RwSignal<Option<String>>,

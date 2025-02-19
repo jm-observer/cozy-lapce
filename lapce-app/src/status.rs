@@ -30,13 +30,14 @@ use crate::{
     svg,
     window_workspace::{WindowWorkspaceData, WorkProgress}
 };
+use crate::config::WithLapceConfig;
 
 pub fn status(
     window_tab_data: WindowWorkspaceData,
     source_control: SourceControlData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     status_height: RwSignal<f64>,
-    _config: ReadSignal<LapceConfig>
+    _config: WithLapceConfig
 ) -> impl View {
     let config = window_tab_data.common.config;
     let diagnostics = window_tab_data.main_split.diagnostics;
@@ -128,7 +129,7 @@ pub fn status(
                     .selectable(false)
             }),
             stack((
-                svg(move || config.get().ui_svg(LapceIcons::SCM)).style(move |s| {
+                svg(move || config.with_ui_svg(LapceIcons::SCM)).style(move |s| {
                     let config = config.get();
                     let icon_size = config.ui.icon_size() as f32;
                     s.size(icon_size, icon_size)
@@ -136,7 +137,7 @@ pub fn status(
                 }),
                 label(branch).style(move |s| {
                     s.margin_left(10.0)
-                        .color(config.get().color(LapceColor::STATUS_FOREGROUND))
+                        .color(config.with_color(LapceColor::STATUS_FOREGROUND))
                         .selectable(false)
                 })
             ))
@@ -151,7 +152,7 @@ pub fn status(
                 .align_items(Some(AlignItems::Center))
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer).background(
-                        config.get().color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                     )
                 })
             })
@@ -172,7 +173,7 @@ pub fn status(
             {
                 let panel = panel.clone();
                 stack((
-                    svg(move || config.get().ui_svg(LapceIcons::ERROR)).style(
+                    svg(move || config.with_ui_svg(LapceIcons::ERROR)).style(
                         move |s| {
                             let config = config.get();
                             let size = config.ui.icon_size() as f32;
@@ -184,14 +185,12 @@ pub fn status(
                         move |s| {
                             s.margin_left(5.0)
                                 .color(
-                                    config
-                                        .get()
-                                        .color(LapceColor::STATUS_FOREGROUND)
+                                    config.with_color(LapceColor::STATUS_FOREGROUND)
                                 )
                                 .selectable(false)
                         }
                     ),
-                    svg(move || config.get().ui_svg(LapceIcons::WARNING)).style(
+                    svg(move || config.with_ui_svg(LapceIcons::WARNING)).style(
                         move |s| {
                             let config = config.get();
                             let size = config.ui.icon_size() as f32;
@@ -204,9 +203,7 @@ pub fn status(
                         move |s| {
                             s.margin_left(5.0)
                                 .color(
-                                    config
-                                        .get()
-                                        .color(LapceColor::STATUS_FOREGROUND)
+                                    config.with_color(LapceColor::STATUS_FOREGROUND)
                                 )
                                 .selectable(false)
                         }
@@ -221,9 +218,7 @@ pub fn status(
                         .items_center()
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
-                                config
-                                    .get()
-                                    .color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
                             )
                         })
                 })
@@ -319,7 +314,7 @@ pub fn status(
         .style(move |s| {
             s.height_pct(100.0)
                 .items_center()
-                .color(config.get().color(LapceColor::STATUS_FOREGROUND))
+                .color(config.with_color(LapceColor::STATUS_FOREGROUND))
         }),
         stack({
             let palette_clone = palette.clone();
@@ -419,7 +414,7 @@ pub fn status(
 }
 
 fn progress_view(
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>
 ) -> impl View {
     let id = AtomicU64::new(0);
@@ -440,7 +435,7 @@ fn progress_view(
                     .text_ellipsis()
                     .selectable(false)
                     .items_center()
-                    .color(config.get().color(LapceColor::STATUS_FOREGROUND))
+                    .color(config.with_color(LapceColor::STATUS_FOREGROUND))
             })
         }
     )
@@ -448,7 +443,7 @@ fn progress_view(
 }
 
 fn status_text<S: std::fmt::Display + 'static>(
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     editor: Memo<Option<EditorData>>,
     text: impl Fn() -> S + 'static
 ) -> impl View {

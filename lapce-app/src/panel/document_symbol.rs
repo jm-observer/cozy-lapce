@@ -366,7 +366,7 @@ pub fn symbol_panel(
                     label(move || {
                         data.detail.clone().unwrap_or_default()
                     }).style(move |s| s.margin_left(6.0)
-                        .color(config.get().color(LapceColor::EDITOR_DIM))
+                        .color(config.with_color(LapceColor::EDITOR_DIM))
                         .selectable(false)
                         .apply_if(
                             data.item.detail.clone().is_none(),
@@ -394,7 +394,7 @@ pub fn symbol_panel(
                                 },
                                 |x| {
                                     x.background(
-                                        config.get().color(
+                                        config.with_color(
                                             LapceColor::PANEL_CURRENT_BACKGROUND,
                                         ),
                                     )

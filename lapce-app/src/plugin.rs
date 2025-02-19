@@ -816,7 +816,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             )
                             .style(move |s| {
                                 s.font_bold().font_size(
-                                    (config.get().ui.font_size() as f32 * 1.6)
+                                    (config.with_font_size() as f32 * 1.6)
                                         .round(),
                                 )
                             }),
@@ -867,7 +867,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                     .unwrap_or(""),
                             )
                             .style(move |s| {
-                                s.color(config.get().color(LapceColor::EDITOR_DIM))
+                                s.color(config.with_color(LapceColor::EDITOR_DIM))
                             }),
                             version_view(local_plugin.clone(), plugin_info.clone()),
                         ))
@@ -887,7 +887,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                         s.margin_vert(6)
                             .height(1)
                             .width_full()
-                            .background(config.get().color(LapceColor::LAPCE_BORDER))
+                            .background(config.with_color(LapceColor::LAPCE_BORDER))
                     }),
                     {
                         let readme = create_rw_signal(None);
@@ -953,7 +953,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                                 .margin_vert(5.0)
                                                 .height(1.0)
                                                 .background(
-                                                    config.get().color(
+                                                    config.with_color(
                                                         LapceColor::LAPCE_BORDER,
                                                     ),
                                                 )

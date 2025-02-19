@@ -7,6 +7,8 @@ use std::{
 
 use ::core::slice;
 use floem::{peniko::Color, prelude::palette};
+use floem::prelude::SignalWith;
+use floem::reactive::ReadSignal;
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -33,6 +35,7 @@ use self::{
     ui::UIConfig
 };
 use crate::{command::InternalCommand, window_workspace::CommonData};
+use crate::config::ui::TabCloseButton;
 
 pub mod color;
 pub mod color_theme;
@@ -104,6 +107,87 @@ pub struct DropdownInfo {
     pub items:        im::Vector<String>
 }
 
+#[derive(Clone, Copy)]
+pub struct WithLapceConfig {
+    config: ReadSignal<LapceConfig>
+}
+
+impl WithLapceConfig {
+    pub fn new(config: ReadSignal<LapceConfig>) -> Self {
+        Self {
+            config
+        }
+    }
+
+    pub fn with_untracked<O>(&self, f: impl FnOnce(&LapceConfig) -> O) -> O {
+        self.config.with_untracked(f)
+    }
+
+    pub fn with<O>(&self, f: impl FnOnce(&LapceConfig) -> O) -> O {
+        self.config.with(f)
+    }
+
+    pub fn with_ui_svg(&self, svg: &str) -> String{
+        self.with(|config| {
+            config.ui_svg(svg)
+        })
+    }
+    pub fn with_file_svg(&self, path: &Path) -> (String, Option<Color>) {
+        self.with(|config| {
+            config.file_svg(path)
+        })
+    }
+
+    pub fn with_tab_close_button(&self) -> TabCloseButton {
+        self.with(|config| {
+            config.ui.tab_close_button
+        })
+    }
+    pub fn with_color(&self, color: &str) -> Color{
+        self.with(|config| {
+            config.color(color)
+        })
+    }
+
+    pub fn with_font_size(&self) -> usize{
+        self.with(|config| {
+            config.ui.font_size()
+        })
+    }
+
+    pub fn with_icon_size(&self) -> usize{
+        self.with(|config| {
+            config.ui.icon_size()
+        })
+    }
+
+    pub fn with_line_height(&self) -> usize{
+        self.with(|config| {
+            config.editor.line_height()
+        })
+    }
+
+    // pub fn get(&self) -> LapceConfig{
+    //     self.config.get()
+    // }
+
+}
+
+pub struct UiColor {
+    color: HashMap<String, Color>
+}
+
+impl UiColor {
+    pub fn get(&self, name: &str) -> Color {
+        match self.color.get(name) {
+            Some(c) => *c,
+            None => {
+                error!("Failed to find key: {name}");
+                palette::css::HOT_PINK
+            }
+        }
+    }
+}
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct LapceConfig {
@@ -1114,6 +1198,12 @@ impl LapceConfig {
                 .color(LapceColor::COMPLETION_LENS_FOREGROUND),
             editor_foreground: self.color(LapceColor::EDITOR_FOREGROUND),
             syntax: self.color.syntax.clone()
+        }
+    }
+
+    pub fn ui_color(&self) -> UiColor {
+        UiColor {
+            color: self.color.ui.clone()
         }
     }
 }

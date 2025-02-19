@@ -28,7 +28,7 @@ use floem::{
     },
     prelude::SvgColor,
     reactive::{
-        Memo, ReadSignal, RwSignal, SignalGet, SignalTrack, SignalUpdate,
+        Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate,
         SignalWith, create_effect, create_memo, create_rw_signal,
     },
     style::{CursorColor, CursorStyle, Style, TextColor},
@@ -57,6 +57,7 @@ use crate::{
     svg,
     window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
+use crate::config::WithLapceConfig;
 
 #[derive(Clone, Debug, Default)]
 pub struct StickyHeaderInfo {
@@ -65,25 +66,41 @@ pub struct StickyHeaderInfo {
     pub y_diff: f64,
 }
 
-fn editor_wrap(config: &LapceConfig) -> WrapMethod {
+fn editor_wrap(wrap_style: WrapStyle, wrap_with: usize) -> WrapMethod {
     /// Minimum width that we'll allow the view to be wrapped at.
     const MIN_WRAPPED_WIDTH: f32 = 100.0;
 
-    match config.editor.wrap_style {
+    match wrap_style {
         WrapStyle::None => WrapMethod::None,
         WrapStyle::EditorWidth => WrapMethod::EditorWidth,
         WrapStyle::WrapWidth => WrapMethod::WrapWidth {
-            width: (config.editor.wrap_width as f32).max(MIN_WRAPPED_WIDTH),
+            width: (wrap_with as f32).max(MIN_WRAPPED_WIDTH),
         },
     }
 }
 
 pub fn editor_style(
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
     doc: DocSignal,
     s: Style,
 ) -> Style {
-    let config = config.get();
+    let (config,scroll_beyond_last_line
+        ,show_indent_guide,modal
+        ,modal_mode_relative_line_numbers,smart_tab
+        ,cursor_surrounding_lines, render_whitespace, wrap_style, wrap_with) = config.with(|config| {
+        (config.ui_color()
+        , config.editor.scroll_beyond_last_line
+        , config.editor.show_indent_guide
+        , config.core.modal
+        , config.editor.modal_mode_relative_line_numbers
+        , config.editor.smart_tab
+        , config.editor.cursor_surrounding_lines
+        , config.editor.render_whitespace
+        ,config.editor.wrap_style
+            , config.editor.wrap_width
+        )
+    });
+
     let doc = doc.get();
 
     s.set(
@@ -91,42 +108,42 @@ pub fn editor_style(
         doc.lines
             .with_untracked(|x| Buffer::indent_style(x.buffer())),
     )
-    .set(CursorColor, config.color(LapceColor::EDITOR_CARET))
-    .set(SelectionColor, config.color(LapceColor::EDITOR_SELECTION))
+    .set(CursorColor, config.get(LapceColor::EDITOR_CARET))
+    .set(SelectionColor, config.get(LapceColor::EDITOR_SELECTION))
     .set(
         CurrentLineColor,
-        config.color(LapceColor::EDITOR_CURRENT_LINE),
+        config.get(LapceColor::EDITOR_CURRENT_LINE),
     )
     .set(
         VisibleWhitespaceColor,
-        config.color(LapceColor::EDITOR_VISIBLE_WHITESPACE),
+        config.get(LapceColor::EDITOR_VISIBLE_WHITESPACE),
     )
     .set(
         IndentGuideColor,
-        config.color(LapceColor::EDITOR_INDENT_GUIDE),
+        config.get(LapceColor::EDITOR_INDENT_GUIDE),
     )
-    .set(ScrollBeyondLastLine, config.editor.scroll_beyond_last_line)
-    .color(config.color(LapceColor::EDITOR_FOREGROUND))
-    .set(TextColor, config.color(LapceColor::EDITOR_FOREGROUND))
-    .set(PhantomColor, config.color(LapceColor::EDITOR_DIM))
-    .set(PlaceholderColor, config.color(LapceColor::EDITOR_DIM))
+    .set(ScrollBeyondLastLine, scroll_beyond_last_line)
+    .color(config.get(LapceColor::EDITOR_FOREGROUND))
+    .set(TextColor, config.get(LapceColor::EDITOR_FOREGROUND))
+    .set(PhantomColor, config.get(LapceColor::EDITOR_DIM))
+    .set(PlaceholderColor, config.get(LapceColor::EDITOR_DIM))
     .set(
         PreeditUnderlineColor,
-        config.color(LapceColor::EDITOR_FOREGROUND),
+        config.get(LapceColor::EDITOR_FOREGROUND),
     )
-    .set(ShowIndentGuide, config.editor.show_indent_guide)
-    .set(Modal, config.core.modal)
+    .set(ShowIndentGuide, show_indent_guide)
+    .set(Modal, modal)
     .set(
         ModalRelativeLine,
-        config.editor.modal_mode_relative_line_numbers,
+        modal_mode_relative_line_numbers,
     )
-    .set(SmartTab, config.editor.smart_tab)
-    .set(WrapProp, editor_wrap(&config))
+    .set(SmartTab, smart_tab)
+    .set(WrapProp, editor_wrap(wrap_style, wrap_with))
     .set(
         CursorSurroundingLines,
-        config.editor.cursor_surrounding_lines,
+        cursor_surrounding_lines,
     )
-    .set(RenderWhitespaceProp, config.editor.render_whitespace)
+    .set(RenderWhitespaceProp, render_whitespace)
 }
 
 #[allow(dead_code)]
@@ -506,7 +523,7 @@ impl EditorView {
     fn paint_find(
         &self,
         cx: &mut PaintCx,
-        screen_lines: &ScreenLines,
+        screen_lines: &ScreenLines, color: Color,
     ) -> Result<()> {
         let find_visual = self.editor.common.find.visual.get_untracked();
         if !find_visual && self.editor.on_screen_find.with_untracked(|f| !f.active) {
@@ -516,24 +533,13 @@ impl EditorView {
             return Ok(());
         }
 
-        // let min_vline = *screen_lines.lines.first().unwrap();
-        // let max_vline = *screen_lines.lines.last().unwrap();
-        // let min_line =
-        // screen_lines.info(min_vline).unwrap().vline_info.rvline.line;
-        // let max_line =
-        // screen_lines.info(max_vline).unwrap().vline_info.rvline.line;
-
         let (start, end) = screen_lines.offset_interval()?;
 
         let e_data = &self.editor;
         let ed = &e_data.editor;
         let doc = e_data.doc();
 
-        let config = self.editor.common.config;
         let occurrences = doc.find_result.occurrences;
-
-        let config = config.get_untracked();
-        let color = config.color(LapceColor::EDITOR_FOREGROUND);
 
         // let start = ed.offset_of_line(min_line);
         // let end = ed.offset_of_line(max_line + 1);
@@ -904,8 +910,7 @@ impl View for EditorView {
 
             let inner_node = self.inner_node.unwrap();
 
-            let config = self.editor.common.config.get_untracked();
-            let line_height = config.editor.line_height() as f64;
+            let line_height = self.editor.common.config.with_untracked(|config| config.editor.line_height()) as f64;
 
             let is_local = e_data.doc().content.with_untracked(|c| c.is_local());
 
@@ -987,7 +992,7 @@ impl View for EditorView {
             editor_bracket_color,
             sticky_header,
             lapce_dropdown_shadow_color,
-            editor_sticky_header_background_color,
+            editor_sticky_header_background_color, editor_fg
         ) = e_data.common.config.with_untracked(|config| {
             let editor_debug_break_line_color =
                 config.color(LapceColor::EDITOR_DEBUG_BREAK_LINE);
@@ -1011,6 +1016,8 @@ impl View for EditorView {
             let editor_sticky_header_background_color =
                 config.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND);
 
+            let editor_fg =
+                config.color(LapceColor::EDITOR_FOREGROUND);
             (
                 editor_debug_break_line_color,
                 lapce_scroll_bar_color,
@@ -1023,7 +1030,7 @@ impl View for EditorView {
                 editor_bracket_color,
                 sticky_header,
                 lapce_dropdown_shadow_color,
-                editor_sticky_header_background_color,
+                editor_sticky_header_background_color, editor_fg
             )
         });
 
@@ -1064,7 +1071,7 @@ impl View for EditorView {
             &editor_dim_color,
         );
         // let screen_lines = ed.screen_lines.get_untracked();
-        if let Err(err) = self.paint_find(cx, &screen_lines) {
+        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg) {
             error!("{err:?}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();
@@ -1260,8 +1267,9 @@ pub fn editor_container_view(
             editor_gutter_folding_range(window_tab_data.clone(), doc),
             editor_content(editor, debug_breakline, is_active),
             empty().style(move |s| {
-                let config = config.get();
-                s.absolute()
+                let sticky_header = config.with(|config| {
+                    config.editor.sticky_header
+                });                s.absolute()
                     .width_pct(100.0)
                     .height(sticky_header_height.get() as f32)
                     // .box_shadow_blur(5.0)
@@ -1270,7 +1278,7 @@ pub fn editor_container_view(
                     //     config.get_color(LapceColor::LAPCE_BORDER),
                     // )
                     .apply_if(
-                        !config.editor.sticky_header
+                        !sticky_header
                             || sticky_header_height.get() == 0.0
                             || !editor_view.get().is_normal(),
                         |s| s.hide(),
@@ -1328,7 +1336,7 @@ pub fn editor_container_view(
 //     let hovered = create_rw_signal(false);
 //     let config = common.config;
 //     container(
-//         svg(move || config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(
+//         svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(
 //             move |s| {
 //                 let config = config.get();
 //                 let size = config.ui.icon_size() as f32 + 2.0;
@@ -1454,7 +1462,7 @@ pub fn editor_container_view(
 //                 let active = breakpoint.active;
 //                 container(
 //                     svg(move || {
-//                         config.get().ui_svg(LapceIcons::DEBUG_BREAKPOINT)
+//                         config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT)
 //                     })
 //                     .style(move |s| {
 //                         let config = config.get();
@@ -1493,7 +1501,7 @@ pub fn editor_container_view(
 //     )
 //     .style(move |s| {
 //         s.absolute().size_pct(100.0, 100.0)
-//         // .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+//         // .background(config.with_color(LapceColor::EDITOR_BACKGROUND))
 //     })
 //     .debug_name("Breakpoint Clip")
 // }
@@ -1508,7 +1516,7 @@ pub fn editor_container_view(
 // ) -> impl View {
 //     let config = window_tab_data.common.config;
 //     let view = container(svg(move ||
-// config.get().ui_svg(LapceIcons::START)).style(         move |s| {
+// config.with_ui_svg(LapceIcons::START)).style(         move |s| {
 //             let config = config.get();
 //             let size = config.ui.icon_size() as f32;
 //             s.size(size, size)
@@ -1567,11 +1575,15 @@ fn editor_gutter_folding_view(
                 FoldingDisplayType::Folded => LapceIcons::EDITOR_FOLDING_FOLDED,
                 FoldingDisplayType::UnfoldEnd => LapceIcons::EDITOR_FOLDING_END,
             };
-            config.get().ui_svg(icon_str)
+            config.with_ui_svg(icon_str)
         })
         .style(move |s| {
-            let config = config.get();
-            let size = config.ui.icon_size() as f32;
+            let (active, icon_size) = config.with(|config| {
+                (config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                 , config.ui.icon_size())
+            });
+
+            let size = icon_size as f32;
             s.size(size, size)
                 .set_style_value(
                     SvgColor,
@@ -1583,29 +1595,19 @@ fn editor_gutter_folding_view(
                             SvgColor,
                             (Some(Brush::Solid(Color::BLACK))).into(),
                         )
-                        .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                        .color(active)
                 })
         }),
     )
     .style(move |s| {
-        // let config = config.get();
         s.hover(|s| {
             s.cursor(CursorStyle::Pointer)
-            // .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
         })
-        // .active(|s| {
-        //     s.background(
-        //         config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-        //     )
-        // })
     });
     container(view).style(move |s| {
-        let config = config.get();
-        // let icon_size = config.ui.icon_size();
-        // let width = icon_size as f32 + 4.0;
+        let line_height = config.with_line_height();
         s.absolute()
-            // .width(width / 2.0)
-            .height(config.editor.line_height() as f32)
+            .height(line_height as f32)
             .justify_center()
             .items_center()
             .margin_top(folding_display_item.y as f32)
@@ -1677,179 +1679,19 @@ fn editor_gutter_folding_range(
         },
     )
     .style(move |s| {
-        let config = config.get();
-        let width = config.ui.icon_size() as f32;
+        let icon_size = config.with(|config| {
+             config.ui.icon_size()
+        });
+        let width = icon_size as f32;
         s.width(width).height_full().margin_left(width / -2.0)
     })
     .debug_name("Folding Range Stack")
 }
 
-// fn editor_gutter_code_actions(
-//     e_data: RwSignal<EditorData>,
-//     gutter_width: Memo<f64>,
-//     icon_padding: f32,
-// ) -> impl View {
-//     let (ed, doc, config) = e_data
-//         .with_untracked(|e| (e.editor.clone(), e.doc_signal(),
-// e.common.config));     let viewport = ed.doc().lines.with_untracked(|x|
-// x.signal_viewport());     let cursor = ed.cursor;
-//
-//     let code_action_vline = create_memo(move |_| {
-//         let doc = doc.get();
-//         let (offset, affinity) =
-//             cursor.with(|cursor| (cursor.offset(), cursor.affinity));
-//         let has_code_actions = doc
-//             .code_actions()
-//             .with(|c| c.get(&offset).map(|c|
-// !c.1.is_empty()).unwrap_or(false));         if has_code_actions {
-//             match ed.vline_of_offset(offset, affinity) {
-//                 Ok(vline) => Some(vline),
-//                 Err(err) => {
-//                     error!("{:?}", err);
-//                     None
-//                 }
-//             }
-//         } else {
-//             None
-//         }
-//     });
-//
-//     container(
-//         container(
-//             svg(move || config.get().ui_svg(LapceIcons::LIGHTBULB)).style(
-//                 move |s| {
-//                     let config = config.get();
-//                     let size = config.ui.icon_size() as f32;
-//                     s.size(size, size)
-//                         .color(config.color(LapceColor::LAPCE_WARN))
-//                 },
-//             ),
-//         )
-//         .on_click_stop(move |_| {
-//             e_data.get_untracked().show_code_actions(true);
-//         })
-//         .style(move |s| {
-//             let config = config.get();
-//             s.padding(4.0)
-//                 .border_radius(6.0)
-//                 .hover(|s| {
-//                     s.cursor(CursorStyle::Pointer).background(
-//                         config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-//                     )
-//                 })
-//                 .active(|s| {
-//                     s.background(
-//
-// config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
-// )                 })
-//         }),
-//     )
-//     .style(move |s| {
-//         let config = config.get();
-//         let viewport = viewport.get();
-//         let gutter_width = gutter_width.get();
-//         let code_action_vline = code_action_vline.get();
-//         let size = config.ui.icon_size() as f32;
-//         let line_height = config.editor.line_height();
-//         let margin_top = if let Some(vline) = code_action_vline {
-//             (vline.get() * line_height) as f32 - viewport.y0 as f32
-//         } else {
-//             0.0
-//         };
-//         let width = size + icon_padding * 2.0;
-//         s.absolute()
-//             .items_center()
-//             .justify_center()
-//             .margin_left(gutter_width as f32 - width + 1.0)
-//             .margin_top(margin_top)
-//             .width(width)
-//             .height(line_height as f32)
-//             .apply_if(code_action_vline.is_none(), |s| s.hide())
-//     })
-//     .debug_name("Code Action LightBulb")
-// }
-
-// fn editor_gutter(
-//     window_tab_data: WindowTabData,
-//     e_data: RwSignal<EditorData>,
-// ) -> impl View {
-//     let icon_padding = 6.0;
-//
-//     let (ed, doc, config) = e_data
-//         .with_untracked(|e| (e.editor.clone(), e.doc_signal(),
-// e.common.config));     let (viewport, screen_lines) = ed
-//         .doc()
-//         .lines
-//         .with_untracked(|x| (x.signal_viewport(), x.signal_screen_lines()));
-//     let scroll_delta = ed.scroll_delta;
-//
-//     let gutter_rect = create_rw_signal(Rect::ZERO);
-//     // let gutter_width = create_memo(move |_| gutter_rect.get().width());
-//
-//     let icon_total_width = move || {
-//         let icon_size = config.get().ui.icon_size() as f32;
-//         icon_size + icon_padding * 2.0
-//     };
-//
-//     let gutter_padding_right = create_memo(move |_| icon_total_width() +
-// 6.0);
-//
-//     stack((
-//         // 根据行最大值来确认左侧宽度
-//         stack((
-//             empty().style(move |s| s.width(icon_total_width() * 2.0 - 8.0)),
-//             label(move || {
-//                 "".to_string()
-//             })
-//             .style(move |x| {
-//                 let doc = doc.get();
-//                 let width = doc.lines
-//                     .with_untracked(|x| x.signal_last_line())
-//                     .get().1;
-//                 x.width(width)
-//             }),
-//             empty().style(move |s| s.width(gutter_padding_right.get())),
-//         ))
-//         .debug_name("Centered Last Line Count")
-//         .style(|s| s.height_pct(100.0)),
-//         editor_gutter_breakpoints(window_tab_data.clone(), e_data,
-// icon_padding),         clip(
-//             stack((
-//                 editor_gutter_code_lens(
-//                     window_tab_data.clone(),
-//                     doc,
-//                     screen_lines,
-//                     viewport,
-//                     icon_padding,
-//                 ),
-//                 editor_gutter_view(e_data.get_untracked(),
-// gutter_padding_right)                     .on_resize(move |rect| {
-//                         gutter_rect.set(rect);
-//                     })
-//                     .on_event_stop(EventListener::PointerWheel, move |event|
-// {                         if let Event::PointerWheel(pointer_event) = event {
-//                             scroll_delta.set(pointer_event.delta);
-//                         }
-//                     })
-//                     .style(|s| s.size_pct(100.0, 100.0))
-//                     .debug_name("line number"), //
-// editor_gutter_code_actions(e_data, gutter_width, icon_padding),
-// ))             .style(|s| s.size_pct(100.0, 100.0)),
-//         )
-//         .style(move |s| s.absolute().size_pct(100.0, 100.0)),
-//     ))
-//     .style(move |s| {
-//         let config = config.get();
-//         s.height_pct(100.0)
-//             .background(config.color(LapceColor::PANEL_BACKGROUND))
-//     })
-//     .debug_name("Editor Gutter")
-// }
-
 fn editor_breadcrumbs(
     workspace: LapceWorkspace,
     e_data: EditorData,
-    config: ReadSignal<LapceConfig>,
+    config: WithLapceConfig,
 ) -> impl View {
     let doc = e_data.doc_signal();
     let doc_path = create_memo(move |_| {
@@ -1895,19 +1737,19 @@ fn editor_breadcrumbs(
                         move |(i, section)| {
                             stack((
                                 svg(move || {
-                                    config
-                                        .get()
-                                        .ui_svg(LapceIcons::BREADCRUMB_SEPARATOR)
+                                    config.with_ui_svg(LapceIcons::BREADCRUMB_SEPARATOR)
                                 })
                                 .style(move |s| {
-                                    let config = config.get();
-                                    let size = config.ui.icon_size() as f32;
+                                    let (active, icon_size) = config.with(|config| {
+                                        (config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                         , config.ui.icon_size())
+                                    });
+
+                                    let size = icon_size as f32;
                                     s.apply_if(i == 0, |s| s.hide())
                                         .size(size, size)
                                         .color(
-                                            config.color(
-                                                LapceColor::LAPCE_ICON_ACTIVE,
-                                            ),
+                                            active
                                         )
                                 }),
                                 label(move || section.clone())
@@ -1946,18 +1788,20 @@ fn editor_breadcrumbs(
             s.absolute()
                 .size_pct(100.0, 100.0)
                 .border_bottom(1.0)
-                .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                 .items_center()
         }),
     )
     .style(move |s| {
-        let config = config.get_untracked();
-        let line_height = config.editor.line_height();
+        let (show_bread_crumbs, line_height) = config.with(|config| {
+            (config.editor.show_bread_crumbs
+             , config.editor.line_height())
+        });
         s.items_center()
             .width_pct(100.0)
             .height(line_height as f32)
             .apply_if(doc_path.get().is_none(), |s| s.hide())
-            .apply_if(!config.editor.show_bread_crumbs, |s| s.hide())
+            .apply_if(!show_bread_crumbs, |s| s.hide())
     })
     .debug_name("Editor BreadCrumbs")
 }
@@ -2182,13 +2026,16 @@ fn search_editor_view(
         .style(|s| s.padding_horiz(6.0)),
     ))
     .style(move |s| {
-        let config = config.get();
+        let (border_color, bg) = config.with(|config| {
+            (config.color(LapceColor::LAPCE_BORDER)
+             , config.color(LapceColor::EDITOR_BACKGROUND))
+        });
         s.width(200.0)
             .items_center()
             .border(1.0)
             .border_radius(6.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .background(config.color(LapceColor::EDITOR_BACKGROUND))
+            .border_color(border_color)
+            .background(bg)
     })
 }
 
@@ -2225,19 +2072,23 @@ fn replace_editor_view(
         //     })
         //     .style(|s| s.width_pct(100.0)),
         empty().style(move |s| {
-            let config = config.get();
-            let size = config.ui.icon_size() as f32 + 10.0;
+            let size = config.with_icon_size() as f32 + 10.0;
             s.size(0.0, size).padding_vert(4.0)
         }),
     ))
     .style(move |s| {
-        let config = config.get();
+        let (border_color, bg) = config.with(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER)
+                , config.color(LapceColor::EDITOR_BACKGROUND)
+            )
+        });
         s.width(200.0)
             .items_center()
             .border(1.0)
             .border_radius(6.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .background(config.color(LapceColor::EDITOR_BACKGROUND))
+            .border_color(border_color)
+            .background(bg)
     })
 }
 
@@ -2340,8 +2191,7 @@ fn find_view(
             .style(|s| s.items_center()),
             stack((
                 empty().style(move |s| {
-                    let config = config.get();
-                    let width = config.ui.icon_size() as f32 + 10.0 + 6.0 * 2.0;
+                    let width = config.with_icon_size() as f32 + 10.0 + 6.0 * 2.0;
                     s.width(width)
                 }),
                 replace_editor_view(
@@ -2385,12 +2235,17 @@ fn find_view(
             }),
         ))
         .style(move |s| {
-            let config = config.get();
+            let (border_color, bg) = config.with(|config| {
+                (
+                    config.color(LapceColor::LAPCE_BORDER)
+                    , config.color(LapceColor::PANEL_BACKGROUND)
+                )
+            });
             s.margin_right(50.0)
-                .background(config.color(LapceColor::PANEL_BACKGROUND))
+                .background(bg)
                 .border_radius(6.0)
                 .border(1.0)
-                .border_color(config.color(LapceColor::LAPCE_BORDER))
+                .border_color(border_color)
                 .padding_vert(4.0)
                 .cursor(CursorStyle::Default)
                 .flex_col()

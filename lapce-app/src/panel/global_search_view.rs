@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use floem::{
     View,
     event::EventListener,
-    reactive::{ReadSignal, SignalGet, SignalUpdate},
+    reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
         Decorators, VirtualDirection, VirtualItemSize, container, label, scroll,
@@ -20,7 +20,7 @@ use lapce_xi_rope::find::CaseMatching;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     editor::location::{EditorLocation, EditorPosition},
     focus_text::focus_text,
     global_search::{GlobalSearchData, SearchMatchData},
@@ -28,6 +28,8 @@ use crate::{
     svg,
     window_workspace::{Focus, WindowWorkspaceData}
 };
+use crate::config::WithLapceConfig;
+
 pub fn global_search_panel(
     window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition
@@ -98,7 +100,7 @@ pub fn global_search_panel(
                     .items_center()
                     .border(1.0)
                     .border_radius(6.0)
-                    .border_color(config.get().color(LapceColor::LAPCE_BORDER))
+                    .border_color(config.with_color(LapceColor::LAPCE_BORDER))
             })
         )
         .style(|s| s.width_pct(100.0).padding(10.0)),
@@ -112,7 +114,7 @@ fn search_result(
     workspace: LapceWorkspace,
     global_search_data: GlobalSearchData,
     internal_command: Listener<InternalCommand>,
-    config: ReadSignal<LapceConfig>
+    config: WithLapceConfig
 ) -> impl View {
     let ui_line_height = global_search_data.common.ui_line_height;
     container({
@@ -155,28 +157,37 @@ fn search_result(
                     stack((
                         stack((
                             svg(move || {
-                                config.get().ui_svg(if expanded.get() {
+                                config.with_ui_svg(if expanded.get() {
                                     LapceIcons::ITEM_OPENED
                                 } else {
                                     LapceIcons::ITEM_CLOSED
                                 })
                             })
                             .style(move |s| {
-                                let config = config.get();
-                                let size = config.ui.icon_size() as f32;
+                                let (border_color, size) = config.with(|config| {
+                                    (
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                        , config.ui.icon_size() as f32
+                                    )
+                                });
                                 s.margin_left(10.0)
                                     .margin_right(6.0)
                                     .size(size, size)
                                     .min_size(size, size)
                                     .color(
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                        border_color
                                     )
                             }),
-                            svg(move || config.get().file_svg(&path).0).style(
+                            svg(move || config.with_file_svg(&path).0).style(
                                 move |s| {
-                                    let config = config.get();
-                                    let size = config.ui.icon_size() as f32;
-                                    let color = config.file_svg(&style_path).1;
+                                    let (color, size) = config.with(|config| {
+                                        (
+                                            config.file_svg(&style_path).1
+                                            , config.ui.icon_size() as f32
+                                        )
+                                    });
+                                    // let size = config.ui.icon_size() as f32;
+                                    // let color = config.file_svg(&style_path).1;
                                     s.margin_right(6.0)
                                         .size(size, size)
                                         .min_size(size, size)
@@ -191,7 +202,7 @@ fn search_result(
                                 }),
                                 label(move || folder.clone()).style(move |s| {
                                     s.color(
-                                        config.get().color(LapceColor::EDITOR_DIM)
+                                        config.with_color(LapceColor::EDITOR_DIM)
                                     )
                                     .min_width(0.0)
                                     .text_ellipsis()
@@ -208,7 +219,7 @@ fn search_result(
                                 .items_center()
                                 .hover(|s| {
                                     s.cursor(CursorStyle::Pointer).background(
-                                        config.get().color(
+                                        config.with_color(
                                             LapceColor::PANEL_HOVERED_BACKGROUND
                                         )
                                     )
@@ -236,10 +247,8 @@ fn search_result(
 
                                 focus_text(
                                     move || {
-                                        let config = config.get();
-                                        let content = if config
-                                            .ui
-                                            .trim_search_results_whitespace
+                                        let content = if config.with(|config| config.ui
+                                            .trim_search_results_whitespace)
                                         {
                                             m.line_content.trim()
                                         } else {
@@ -248,10 +257,9 @@ fn search_result(
                                         format!("{}: {content}", m.line,)
                                     },
                                     move || {
-                                        let config = config.get();
-                                        let mut offset = if config
+                                        let mut offset = if config.with(|config| config
                                             .ui
-                                            .trim_search_results_whitespace
+                                            .trim_search_results_whitespace)
                                         {
                                             line_content.trim_start().len() as i32
                                                 - line_content.len() as i32
@@ -266,18 +274,21 @@ fn search_result(
                                             .collect()
                                     },
                                     move || {
-                                        config.get().color(LapceColor::EDITOR_FOCUS)
+                                        config.with_color(LapceColor::EDITOR_FOCUS)
                                     }
                                 )
                                 .style(move |s| {
-                                    let config = config.get();
-                                    let icon_size = config.ui.icon_size() as f32;
+                                    let (hbg, icon_size) = config.with(|config| {
+                                        (
+                                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                            , config.ui.icon_size()
+                                        )
+                                    });
+                                    let icon_size = icon_size as f32;
                                     s.margin_left(10.0 + icon_size + 6.0).hover(
                                         |s| {
                                             s.cursor(CursorStyle::Pointer)
-                                                .background(config.color(
-                                                LapceColor::PANEL_HOVERED_BACKGROUND
-                                            ))
+                                                .background(hbg)
                                         }
                                     )
                                 })

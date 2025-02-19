@@ -100,6 +100,7 @@ use crate::{
     },
     window::{CursorBlink, WindowCommonData}
 };
+use crate::config::WithLapceConfig;
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -217,7 +218,7 @@ pub struct CommonData {
     pub view_id:              RwSignal<ViewId>,
     pub ui_line_height:       Memo<f64>,
     pub dragging:             RwSignal<Option<DragContent>>,
-    pub config:               ReadSignal<LapceConfig>,
+    pub config:               WithLapceConfig,
     pub proxy_status:         RwSignal<Option<ProxyStatus>>,
     pub mouse_hover_timer:    RwSignal<TimerToken>,
     pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
