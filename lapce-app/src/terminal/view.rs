@@ -155,9 +155,10 @@ pub fn terminal_view(
 
 impl TerminalView {
     fn char_size(&self) -> Size {
-        let config = self.config.get_untracked();
-        let font_family = config.terminal_font_family();
-        let font_size = config.terminal_font_size();
+        let (font_family, font_size) = self.config.with_untracked(|config| {
+        (config.terminal_font_family().clone(),
+        config.terminal_font_size())
+        });
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(font_family).collect();
         let attrs = Attrs::new().family(&family).font_size(font_size as f32);
@@ -167,8 +168,9 @@ impl TerminalView {
     }
 
     fn terminal_size(&self) -> (usize, usize) {
-        let config = self.config.get_untracked();
-        let line_height = config.terminal_line_height() as f64;
+        let line_height = self.config.with_untracked(|config| {
+            config.terminal_line_height()as f64
+        });
         let char_width = self.char_size().width;
         let width = (self.size.width / char_width).floor() as usize;
         let height = (self.size.height / line_height).floor() as usize;
@@ -326,7 +328,7 @@ impl TerminalView {
         let raw = self.raw.read();
         let col = (pos.x / self.char_size().width) as usize;
         let line_no = pos.y as i32
-            / (self.config.get().terminal_line_height() as i32)
+            / (self.config.with(|config| config.terminal_line_height() as i32))
             - raw.term.grid().display_offset() as i32;
         alacritty_terminal::index::Point::new(
             alacritty_terminal::index::Line(line_no),
@@ -715,66 +717,6 @@ impl View for TerminalView {
         }
 
         self.paint_content(cx, content, line_height, char_size, &config);
-        // if data.find.visual {
-        //     if let Some(search_string) = data.find.search_string.as_ref() {
-        //         if let Ok(dfas) =
-        // RegexSearch::new(&regex::escape(search_string)) {
-        // let mut start = alacritty_terminal::index::Point::new(
-        //                 alacritty_terminal::index::Line(
-        //                     -(content.display_offset as i32),
-        //                 ),
-        //                 alacritty_terminal::index::Column(0),
-        //             );
-        //             let end_line = (start.line + term.screen_lines())
-        //                 .min(term.bottommost_line());
-        //             let mut max_lines = (end_line.0 - start.line.0) as usize;
-
-        //             while let Some(m) = term.search_next(
-        //                 &dfas,
-        //                 start,
-        //                 Direction::Right,
-        //                 Side::Left,
-        //                 Some(max_lines),
-        //             ) {
-        //                 let match_start = m.start();
-        //                 if match_start.line.0 < start.line.0
-        //                     || (match_start.line.0 == start.line.0
-        //                         && match_start.column.0 < start.column.0)
-        //                 {
-        //                     break;
-        //                 }
-        //                 let x = match_start.column.0 as f64 * char_width;
-        //                 let y = (match_start.line.0 as f64
-        //                     + content.display_offset as f64)
-        //                     * line_height;
-        //                 let rect = Rect::ZERO
-        //                     .with_origin(Point::new(x, y))
-        //                     .with_size(Size::new(
-        //                         (m.end().column.0 - m.start().column.0
-        //                             + term.grid()[*m.end()].c.width().
-        //                               unwrap_or(1))
-        //                             as f64
-        //                             * char_width,
-        //                         line_height,
-        //                     ));
-        //                 cx.stroke(
-        //                     &rect,
-        //
-        // config.get_color(LapceColor::TERMINAL_FOREGROUND),
-        //                     1.0,
-        //                 );
-        //                 start = *m.end();
-        //                 if start.column.0 < term.last_column() {
-        //                     start.column.0 += 1;
-        //                 } else if start.line.0 < term.bottommost_line() {
-        //                     start.column.0 = 0;
-        //                     start.line.0 += 1;
-        //                 }
-        //                 max_lines = (end_line.0 - start.line.0) as usize;
-        //             }
-        //         }
-        //     }
-        // }
     }
 }
 

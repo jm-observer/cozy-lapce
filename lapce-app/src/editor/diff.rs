@@ -231,8 +231,7 @@ pub fn diff_show_more_section_view(
         let editor_view = right_editor_view.get();
         if let EditorViewKind::Diff(diff_info) = editor_view {
             let viewport = viewport.get();
-            let config = config.get_untracked();
-            let line_height = config.editor.line_height() as f64;
+            let line_height = config.with_untracked(|config| config.editor.line_height() as f64);
 
             let min_line = (viewport.y0 / line_height).floor() as usize;
             let max_line = (viewport.y1 / line_height).ceil() as usize;
@@ -304,10 +303,13 @@ pub fn diff_show_more_section_view(
             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
-                    let config = config.get();
-                    let size = config.ui.icon_size() as f32;
+                    let (caret_color, size) = config.with(|config| {
+                        (
+                            config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                        )
+                    });
                     s.size(size, size)
-                        .color(config.color(LapceColor::EDITOR_FOREGROUND))
+                        .color(caret_color)
                 }),
                 label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
             ))
@@ -344,10 +346,13 @@ pub fn diff_show_more_section_view(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD_UP)).style(
                     move |s| {
-                        let config = config.get();
-                        let size = config.ui.icon_size() as f32;
+                        let (caret_color, size) = config.with(|config| {
+                            (
+                                config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                            )
+                        });
                         s.size(size, size)
-                            .color(config.color(LapceColor::EDITOR_FOREGROUND))
+                            .color(caret_color)
                     }
                 ),
                 label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
@@ -385,10 +390,13 @@ pub fn diff_show_more_section_view(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD_DOWN)).style(
                     move |s| {
-                        let config = config.get();
-                        let size = config.ui.icon_size() as f32;
+                        let (caret_color, size) = config.with(|config| {
+                            (
+                                config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                            )
+                        });
                         s.size(size, size)
-                            .color(config.color(LapceColor::EDITOR_FOREGROUND))
+                            .color(caret_color)
                     }
                 ),
                 label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
@@ -424,14 +432,14 @@ pub fn diff_show_more_section_view(
             })
         ))
         .style(move |s| {
-            let config = config.get();
+            let line_height = config.with_line_height() ;
             s.absolute()
                 .width_pct(100.0)
-                .height(config.editor.line_height() as f32)
+                .height(line_height as f32)
                 .justify_center()
                 .items_center()
                 .margin_top(
-                    (section.visual_line * config.editor.line_height()) as f32
+                    (section.visual_line * line_height) as f32
                         - viewport.get().y0 as f32
                 )
                 .hover(|s| s.cursor(CursorStyle::Default))

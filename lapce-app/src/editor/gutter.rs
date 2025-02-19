@@ -7,11 +7,12 @@ use floem::{
     reactive::{Memo, SignalGet, SignalWith},
     text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
+use floem::prelude::Color;
 use log::{debug, error};
 
 use super::{EditorData, view::changes_colors_screen};
 use crate::{
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     doc::Doc
 };
 pub struct EditorGutterView {
@@ -42,18 +43,16 @@ impl EditorGutterView {
         e_data: &EditorData,
         viewport: Rect,
         is_normal: bool,
-        config: &LapceConfig,
-        doc: &Doc
+        doc: &Doc, added: Color, modified_color: Color, removed: Color, line_height: f64
     ) -> Result<()> {
         if !is_normal {
             return Ok(());
         }
 
         let changes = doc.head_changes().get_untracked();
-        let line_height = config.editor.line_height() as f64;
         let gutter_padding_right = self.gutter_padding_right.get_untracked() as f64;
 
-        let changes = changes_colors_screen(config, &e_data.editor, changes)?;
+        let changes = changes_colors_screen(&e_data.editor, changes, added, modified_color, removed)?;
         for (y, height, removed, color) in changes {
             let height = if removed {
                 10.0
@@ -80,13 +79,13 @@ impl EditorGutterView {
         &self,
         cx: &mut PaintCx,
         is_normal: bool,
-        config: &LapceConfig
+        sticky_header: bool, shadow_color: Color, hbg: Color
     ) {
         if !is_normal {
             return;
         }
 
-        if !config.editor.sticky_header {
+        if !sticky_header {
             return;
         }
         let sticky_header_height = self.editor.sticky_header_height.get_untracked();
@@ -101,12 +100,12 @@ impl EditorGutterView {
                 .inflate(25.0, 0.0);
         cx.fill(
             &sticky_area_rect,
-            config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
+            shadow_color,
             3.0
         );
         cx.fill(
             &sticky_area_rect,
-            config.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND),
+            hbg,
             0.0
         );
     }
@@ -137,14 +136,30 @@ impl View for EditorGutterView {
         let viewport = self.editor.viewport();
         let cursor = self.editor.cursor();
         let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines());
-        let config = self.editor.common.config;
+        let (line_height, font_family, dim, font_size, fg, modal
+            , modal_mode_relative_line_numbers, shadow, header_bg, removed, modified, added, sticky_header) = self.editor.common.config.with(|config| {
+            (
+                config.editor.line_height() as f64,
+                config.editor.font_family.clone(),
+                config.color(LapceColor::EDITOR_DIM),
+                config.editor.font_size() as f32,
+                config.color(LapceColor::EDITOR_FOREGROUND),
+                config.core.modal,
+                config.editor.modal_mode_relative_line_numbers,
+                config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
+                config.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND),
+                config.color(LapceColor::SOURCE_CONTROL_REMOVED),
+                config.color(LapceColor::SOURCE_CONTROL_MODIFIED),
+                config.color(LapceColor::SOURCE_CONTROL_ADDED),
+                config.editor.sticky_header
+            )
+        });
 
         let kind_is_normal =
             self.editor.kind().with_untracked(|kind| kind.is_normal());
         let (offset, is_insert) =
             cursor.with_untracked(|c| (c.offset(), c.is_insert()));
-        let config = config.get_untracked();
-        let line_height = config.editor.line_height() as f64;
+
         // let _last_line = self.editor.editor.last_line();
         // let current_line = doc
         //     .buffer
@@ -163,16 +178,16 @@ impl View for EditorGutterView {
             };
 
         let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&config.editor.font_family).collect();
+            FamilyOwned::parse_list(&font_family).collect();
         let attrs = Attrs::new()
             .family(&family)
-            .color(config.color(LapceColor::EDITOR_DIM))
-            .font_size(config.editor.font_size() as f32);
+            .color(dim)
+            .font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
         let current_line_attrs_list =
-            AttrsList::new(attrs.color(config.color(LapceColor::EDITOR_FOREGROUND)));
-        let show_relative = config.core.modal
-            && config.editor.modal_mode_relative_line_numbers
+            AttrsList::new(attrs.color(fg));
+        let show_relative = modal
+            && modal_mode_relative_line_numbers
             && !is_insert
             && kind_is_normal;
 
@@ -215,12 +230,11 @@ impl View for EditorGutterView {
             &self.editor,
             viewport,
             kind_is_normal,
-            &config,
-            &doc
+            &doc, added, modified, removed, line_height
         ) {
             error!("{err:?}");
         }
-        self.paint_sticky_headers(cx, kind_is_normal, &config);
+        self.paint_sticky_headers(cx, kind_is_normal, sticky_header, shadow, header_bg, );
     }
 
     fn debug_name(&self) -> std::borrow::Cow<'static, str> {

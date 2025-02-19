@@ -768,7 +768,7 @@ impl MainSplitData {
         ignore_unconfirmed: bool,
         same_editor_tab: bool
     ) -> EditorTabChildId {
-        let config = self.common.config.get_untracked();
+        let show_tab = self.common.config.with_untracked(|config| config.editor.show_tab);
 
         let active_editor_tab_id = self.active_editor_tab.get_untracked();
         let editor_tabs = self.editor_tabs.get_untracked();
@@ -814,7 +814,7 @@ impl MainSplitData {
                     .unwrap_or(false)
             };
 
-        let selected = if !config.editor.show_tab {
+        let selected = if !show_tab {
             active_editor_tab.with_untracked(|editor_tab| {
                 for (i, child) in editor_tab.children.iter().enumerate() {
                     let can_be_selected = match child.id() {
@@ -1122,7 +1122,7 @@ impl MainSplitData {
                     match current_child {
                         EditorTabChildId::Editor(editor_id) => {
                             if let Some(editor) =
-                                editors.editor_untracked(*editor_id)
+                                editors.editor_untracked(editor_id.clone())
                             {
                                 editor.save_doc_position();
                             }
@@ -1219,7 +1219,7 @@ impl MainSplitData {
         }
 
         // check file exists in non active editor tabs
-        if config.editor.show_tab && !ignore_unconfirmed && !same_editor_tab {
+        if show_tab && !ignore_unconfirmed && !same_editor_tab {
             for (editor_tab_id, editor_tab) in &editor_tabs {
                 if Some(*editor_tab_id) != active_editor_tab_id {
                     if let Some(index) =
@@ -2983,7 +2983,7 @@ impl MainSplitData {
             if let Some(editor) = self.editors.editor_untracked(id) {
                 let doc = editor.doc();
                 doc.reload(
-                    Rope::from(self.common.config.get_untracked().export_theme()),
+                    Rope::from(self.common.config.with_untracked(|config| config.export_theme())),
                     true
                 );
             }

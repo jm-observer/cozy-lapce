@@ -19,7 +19,7 @@ use crate::{
         tooltip_label, window_menu
     },
     command::{LapceCommand, LapceWorkbenchCommand, WindowCommand},
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     listener::Listener,
     main_split::MainSplitData,
     svg,
@@ -40,9 +40,8 @@ fn left(
     stack((
         container(svg(move || config.with_ui_svg(LapceIcons::LOGO)).style(
             move |s| {
-                let config = config.get();
                 s.size(16.0, 16.0)
-                    .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                    .color(config.with_color(LapceColor::LAPCE_ICON_ACTIVE))
             }
         ))
         .style(move |s| s.margin_horiz(10.0).apply_if(is_macos, |s| s.hide())),
@@ -63,14 +62,17 @@ fn left(
             config,
             container(svg(move || config.with_ui_svg(LapceIcons::REMOTE)).style(
                 move |s| {
-                    let config = config.get();
-                    let size = (config.ui.icon_size() as f32 + 2.0).min(30.0);
+                    let (size, bg) = config.with(|config| {
+                        (
+                            (config.ui.icon_size() as f32 + 2.0).min(30.0), config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                        )
+                    });
                     s.size(size, size).color(if is_local {
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                        bg
                     } else {
                         match proxy_status.get() {
                             Some(_) => Color::WHITE,
-                            None => config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                            None => bg
                         }
                     })
                 }
@@ -108,19 +110,24 @@ fn left(
             menu
         })
         .style(move |s| {
-            let config = config.get();
+            let (connected, connecting, disconnected, bg, abg) = config.with(|config| {
+                (
+                    config.color(LapceColor::LAPCE_REMOTE_CONNECTED),
+                    config.color(LapceColor::LAPCE_REMOTE_CONNECTING),
+                    config.color(LapceColor::LAPCE_REMOTE_DISCONNECTED),
+                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                )
+            });
             let color = if is_local {
                 Color::TRANSPARENT
             } else {
                 match proxy_status.get() {
-                    Some(ProxyStatus::Connected) => {
-                        config.color(LapceColor::LAPCE_REMOTE_CONNECTED)
+                    Some(ProxyStatus::Connected) => {connected
                     },
-                    Some(ProxyStatus::Connecting) => {
-                        config.color(LapceColor::LAPCE_REMOTE_CONNECTING)
+                    Some(ProxyStatus::Connecting) => {connecting
                     },
-                    Some(ProxyStatus::Disconnected) => {
-                        config.color(LapceColor::LAPCE_REMOTE_DISCONNECTED)
+                    Some(ProxyStatus::Disconnected) => {disconnected
                     },
                     None => Color::TRANSPARENT
                 }
@@ -130,13 +137,11 @@ fn left(
                 .items_center()
                 .background(color)
                 .hover(|s| {
-                    s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                    s.cursor(CursorStyle::Pointer).background(bg
                     )
                 })
                 .active(|s| {
-                    s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
+                    s.cursor(CursorStyle::Pointer).background(abg
                     )
                 })
         }),
@@ -228,10 +233,13 @@ fn middle(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::SEARCH)).style(
                     move |s| {
-                        let config = config.get();
-                        let icon_size = config.ui.icon_size() as f32;
+                        let (caret_color, icon_size) = config.with(|config| {
+                            (
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                            )
+                        });
                         s.size(icon_size, icon_size)
-                            .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                            .color(caret_color)
                     }
                 ),
                 label(move || {
@@ -255,7 +263,11 @@ fn middle(
             }
         })
         .style(move |s| {
-            let config = config.get();
+            let (caret_color, bg) = config.with(|config| {
+                (
+                    config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_BACKGROUND)
+                )
+            });
             s.flex_basis(0)
                 .flex_grow(10.0)
                 .min_width(200.0)
@@ -264,9 +276,9 @@ fn middle(
                 .justify_content(Some(JustifyContent::Center))
                 .align_items(Some(AlignItems::Center))
                 .border(1.0)
-                .border_color(config.color(LapceColor::LAPCE_BORDER))
+                .border_color(caret_color)
                 .border_radius(6.0)
-                .background(config.color(LapceColor::EDITOR_BACKGROUND))
+                .background(bg)
         }),
         stack((
             tooltip_label(
@@ -381,13 +393,17 @@ fn right(
                     }))
             }),
             container(label(|| "1".to_string()).style(move |s| {
-                let config = config.get();
+                let (caret_color, bg) = config.with(|config| {
+                    (
+                        config.color(LapceColor::EDITOR_CARET), config.color(LapceColor::EDITOR_BACKGROUND)
+                    )
+                });
                 s.font_size(10.0)
-                    .color(config.color(LapceColor::EDITOR_BACKGROUND))
+                    .color(bg)
                     .border_radius(100.0)
                     .margin_left(5.0)
                     .margin_top(10.0)
-                    .background(config.color(LapceColor::EDITOR_CARET))
+                    .background(caret_color)
             }))
             .style(move |s| {
                 let has_update = has_update();
@@ -451,13 +467,17 @@ pub fn title(window_tab_data: WindowWorkspaceData) -> impl View {
         }
     })
     .style(move |s| {
-        let config = config.get();
+        let (caret_color, bg) = config.with(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+            )
+        });
         s.width_pct(100.0)
             .height(37.0)
             .items_center()
-            .background(config.color(LapceColor::PANEL_BACKGROUND))
+            .background(bg)
             .border_bottom(1.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
+            .border_color(caret_color)
     })
     .debug_name("Title / Top Bar")
 }
@@ -515,7 +535,7 @@ pub fn window_controls_view(
     .style(move |s| {
         s.apply_if(
             cfg!(target_os = "macos")
-                || !config.get_untracked().core.custom_titlebar,
+                || !config.with_untracked(|config| config.core.custom_titlebar),
             |s| s.hide()
         )
     })

@@ -25,7 +25,7 @@ use lapce_core::{
 use lapce_rpc::plugin::VoltID;
 
 use crate::{
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     doc::Doc,
     editor::{EditorData, diff::DiffEditorData, location::EditorLocation},
     main_split::Editors,

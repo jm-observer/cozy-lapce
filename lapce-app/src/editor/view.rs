@@ -2287,7 +2287,7 @@ fn find_view(
 /// Iterator over (len, color, modified) for each change in the diff
 fn changes_color_iter<'a>(
     changes: &'a im::Vector<DiffLines>,
-    config: &'a LapceConfig,
+    added: Color, modified_color: Color, removed: Color,
 ) -> impl Iterator<Item = (usize, Option<Color>, bool)> + 'a {
     let mut last_change = None;
     changes.iter().map(move |change| {
@@ -2299,16 +2299,16 @@ fn changes_color_iter<'a>(
         let mut modified = false;
         let color = match change {
             DiffLines::Left(_range) => {
-                Some(config.color(LapceColor::SOURCE_CONTROL_REMOVED))
+                Some(removed)
             },
             DiffLines::Right(_range) => {
                 if let Some(DiffLines::Left(_)) = last_change.as_ref() {
                     modified = true;
                 }
                 if modified {
-                    Some(config.color(LapceColor::SOURCE_CONTROL_MODIFIED))
+                    Some(modified_color)
                 } else {
-                    Some(config.color(LapceColor::SOURCE_CONTROL_ADDED))
+                    Some(added)
                 }
             },
             _ => None,
@@ -2325,9 +2325,8 @@ fn changes_color_iter<'a>(
 /// Get the position and coloring information for over the entire current
 /// [`ScreenLines`] Returns `(y, height_idx, removed, color)`
 pub fn changes_colors_screen(
-    config: &LapceConfig,
     editor: &Editor,
-    changes: im::Vector<DiffLines>,
+    changes: im::Vector<DiffLines>, added: Color, modified_color: Color, removed: Color,
 ) -> Result<Vec<(f64, usize, bool, Color)>> {
     let screen_lines = editor
         .doc()
@@ -2339,7 +2338,7 @@ pub fn changes_colors_screen(
     let mut line = 0;
     let mut colors = Vec::new();
 
-    for (len, color, modified) in changes_color_iter(&changes, config) {
+    for (len, color, modified) in changes_color_iter(&changes, added, modified_color, removed) {
         let _pre_line = line;
 
         line += len;

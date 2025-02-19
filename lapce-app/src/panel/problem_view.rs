@@ -5,7 +5,7 @@ use floem::{
     View,
     peniko::Color,
     reactive::{
-        ReadSignal, SignalGet, SignalUpdate, SignalWith, create_effect,
+        SignalGet, SignalUpdate, SignalWith, create_effect,
         create_rw_signal
     },
     style::{CursorStyle, Style},
@@ -21,7 +21,7 @@ use lsp_types::{DiagnosticRelatedInformation, DiagnosticSeverity};
 use super::view::PanelBuilder;
 use crate::{
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     doc::EditorDiagnostic,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -307,8 +307,7 @@ fn item_view(
                 }),
                 stack((
                     svg(move || config.with_ui_svg(icon)).style(move |s| {
-                        let config = config.get();
-                        let size = config.ui.icon_size() as f32;
+                        let size = config.with_icon_size() as f32;
                         s.size(size, size).color(icon_color())
                     }),
                     label(|| " ".to_string()).style(move |s| s.selectable(false))
@@ -381,15 +380,17 @@ fn related_view(
                     });
                 })
                 .style(move |s| {
-                    let config = config.get();
-                    s.padding_left(10.0 + (config.ui.icon_size() as f32 + 6.0) * 4.0)
+                    let (icon_size, color) = config.with(|config| {
+                        (
+                            config.ui.icon_size() as f32, config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                            )
+                    });
+                    s.padding_left(10.0 + (icon_size + 6.0) * 4.0)
                         .padding_right(10.0)
                         .width_pct(100.0)
                         .min_width(0.0)
                         .hover(|s| {
-                            s.cursor(CursorStyle::Pointer).background(
-                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                            )
+                            s.cursor(CursorStyle::Pointer).background(color)
                         })
                 })
             }
@@ -397,10 +398,13 @@ fn related_view(
         .style(|s| s.width_pct(100.0).min_width(0.0).flex_col()),
         stack((
             svg(move || config.with_ui_svg(LapceIcons::LINK)).style(move |s| {
-                let config = config.get();
-                let size = config.ui.icon_size() as f32;
+                let (size, color) = config.with(|config| {
+                    (
+                        config.ui.icon_size() as f32, config.color(LapceColor::EDITOR_DIM)
+                    )
+                });
                 s.size(size, size)
-                    .color(config.color(LapceColor::EDITOR_DIM))
+                    .color(color)
             }),
             label(|| " ".to_string()).style(move |s| s.selectable(false))
         ))

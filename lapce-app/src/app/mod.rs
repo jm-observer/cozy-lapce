@@ -729,14 +729,19 @@ fn editor_tab_header(
 
             let tab_icon = container({
                 svg(move || info.with(|info| info.icon.clone())).style(move |s| {
-                    let config = config.get();
-                    let size = config.ui.icon_size() as f32;
+                    let (size, tab_close_button, abg) = config.with(|config| {
+                        (
+                            config.ui.icon_size() as f32,
+                            config.ui.tab_close_button,
+                            config.color(LapceColor::LAPCE_WARN),
+                        )
+                    });
                     s.size(size, size)
                         .apply_opt(info.with(|info| info.color), |s, c| s.color(c))
                         .apply_if(
                             !info.with(|info| info.is_pristine)
-                                && config.ui.tab_close_button == TabCloseButton::Off,
-                            |s| s.color(config.color(LapceColor::LAPCE_WARN))
+                                && tab_close_button == TabCloseButton::Off,
+                            |s| s.color(abg)
                         )
                 })
             })
@@ -797,7 +802,7 @@ fn editor_tab_header(
 
             stack((
                 tab_icon.style(move |s| {
-                    let tab_close_button = config.with_tab_close_button;
+                    let tab_close_button = config.with_tab_close_button();
                     s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                         s.grid_column(Line {
                             start: style_helpers::line(3),
@@ -806,7 +811,7 @@ fn editor_tab_header(
                     })
                 }),
                 tab_content.style(move |s| {
-                    let tab_close_button = config.with_tab_close_button;
+                    let tab_close_button = config.with_tab_close_button();
                     s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                         s.grid_column(Line {
                             start: style_helpers::line(2),
@@ -818,7 +823,7 @@ fn editor_tab_header(
                     })
                 }),
                 tab_close_button.style(move |s| {
-                    let tab_close_button = config.with_tab_close_button;
+                    let tab_close_button = config.with_tab_close_button();
                     s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                         s.grid_column(Line {
                             start: style_helpers::line(1),
@@ -839,7 +844,7 @@ fn editor_tab_header(
                     .grid()
                     .grid_template_columns(vec![auto(), fr(1.), auto()])
                     .apply_if(
-                        config.get().ui.tab_separator_height
+                        config.with(|config| config.ui.tab_separator_height)
                             == TabSeparatorHeight::Full,
                         |s| s.height_full()
                     )
@@ -947,15 +952,18 @@ fn editor_tab_header(
                 })
                 .draggable()
                 .dragging_style(move |s| {
-                    let config = config.get();
+                    let (border, color) = config.with(|config| {
+                        (
+                            config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+                        )
+                    });
                     s.border(1.0)
                         .border_radius(6.0)
                         .background(
-                            config
-                                .color(LapceColor::PANEL_BACKGROUND)
+                            color
                                 .multiply_alpha(0.7)
                         )
-                        .border_color(config.color(LapceColor::LAPCE_BORDER))
+                        .border_color(border)
                 })
                 .style(|s| s.align_items(Some(AlignItems::Center))),
             empty()
@@ -999,8 +1007,7 @@ fn editor_tab_header(
                         })
                         .border_color(
                             config
-                                .get()
-                                .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                                .with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                                 .multiply_alpha(0.5)
                         )
                 })

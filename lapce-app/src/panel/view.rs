@@ -3,7 +3,7 @@ use floem::{
     event::{Event, EventListener, EventPropagation},
     kurbo::Point,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
+        RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
     },
     style::{CursorStyle, Style},
     taffy::AlignItems,
@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     app::{clickable_icon, clickable_icon_base},
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     file_explorer::view::file_explorer_panel,
     panel::{
         call_hierarchy_view::show_hierarchy_panel, data::PanelData,
@@ -490,8 +490,12 @@ fn drag_line(
     })
     .style(move |s| {
         let is_dragging = drag_start.get().is_some();
-        let config = config.get();
-        s.background(config.color(LapceColor::PANEL_BACKGROUND))
+        let (caret_color, bg) = config.with(|config| {
+            (
+                config.color(LapceColor::EDITOR_CARET), config.color(LapceColor::PANEL_BACKGROUND)
+            )
+        });
+        s.background(bg)
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0).height(4.0)
             })
@@ -501,7 +505,7 @@ fn drag_line(
                 |s| s.width(4.0).height_pct(100.0)
             )
             .apply_if(is_dragging, |s| {
-                s.background(config.color(LapceColor::EDITOR_CARET))
+                s.background(caret_color)
                     .apply_if(position == PanelContainerPosition::Bottom, |s| {
                         s.cursor(CursorStyle::RowResize)
                     })
@@ -511,7 +515,7 @@ fn drag_line(
                     .z_index(2)
             })
             .hover(|s| {
-                s.background(config.color(LapceColor::EDITOR_CARET))
+                s.background(caret_color)
                     .apply_if(position == PanelContainerPosition::Bottom, |s| {
                         s.cursor(CursorStyle::RowResize)
                     })
@@ -575,14 +579,17 @@ pub(crate) fn new_panel_picker(
                     dragging.set(None);
                 })
                 .dragging_style(move |s| {
-                    let config = config.get();
+                    let (caret_color, bg) = config.with(|config| {
+                        (
+                            config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+                        )
+                    });
                     s.border(1.0)
                         .border_radius(6.0)
-                        .border_color(config.color(LapceColor::LAPCE_BORDER))
+                        .border_color(caret_color)
                         .padding(6.0)
                         .background(
-                            config
-                                .color(LapceColor::PANEL_BACKGROUND)
+                            bg
                                 .multiply_alpha(0.7)
                         )
                 })
@@ -601,9 +608,7 @@ pub(crate) fn new_panel_picker(
                                 })
                         })
                         .border_color(
-                            config
-                                .get()
-                                .color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                            config.with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                         )
                 })
             )))

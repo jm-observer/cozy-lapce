@@ -127,7 +127,7 @@ impl WithLapceConfig {
         self.config.with(f)
     }
 
-    pub fn with_ui_svg(&self, svg: &str) -> String{
+    pub fn with_ui_svg(&self, svg: &'static str) -> String{
         self.with(|config| {
             config.ui_svg(svg)
         })

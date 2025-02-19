@@ -561,7 +561,7 @@ impl WindowWorkspaceData {
 
         let terminal = TerminalPanelData::new(
             workspace.clone(),
-            common.config.get_untracked().terminal.get_default_profile(),
+            common.config.with_untracked(|config| config.terminal.get_default_profile()),
             common.clone(),
             main_split.clone()
         );
@@ -742,7 +742,7 @@ impl WindowWorkspaceData {
         });
 
         let mut change_plugins = Vec::new();
-        for (key, configs) in self.common.config.get_untracked().plugins.iter() {
+        for (key, configs) in self.common.config.with_untracked(|x| x.plugins.clone()).iter() {
             if config
                 .plugins
                 .get(key)
@@ -1119,9 +1119,9 @@ impl WindowWorkspaceData {
                 self.terminal.new_tab(
                     self.common
                         .config
-                        .get_untracked()
+                        .with_untracked(|x| x
                         .terminal
-                        .get_default_profile(),
+                        .get_default_profile()),
                 );
                 if !self.panel.is_panel_visible(&PanelKind::Terminal) {
                     self.panel.show_panel(&PanelKind::Terminal);
@@ -2648,7 +2648,7 @@ impl WindowWorkspaceData {
         if completion.status == CompletionStatus::Inactive {
             return Ok(Point::ZERO);
         }
-        let config = self.common.config.get();
+        let line_height = self.common.config.with_line_height() as f64;
         let editor_data =
             if let Some(editor) = self.main_split.active_editor.get_untracked() {
                 editor
@@ -2677,7 +2677,7 @@ impl WindowWorkspaceData {
             + Vec2::new(
                 point_below.x
                     - viewport.x0
-                    - config.editor.line_height() as f64
+                    - line_height
                     - 5.0,
                 point_below.y - viewport.y0
             );
@@ -2697,7 +2697,7 @@ impl WindowWorkspaceData {
 
     pub fn code_action_origin(&self) -> Result<Point> {
         let code_action = self.code_action.get();
-        let config = self.common.config.get();
+        let line_height = self.common.config.with_line_height() as f64;
         if code_action.status.get_untracked() == CodeActionStatus::Inactive {
             return Ok(Point::ZERO);
         }
@@ -2735,7 +2735,7 @@ impl WindowWorkspaceData {
 
         if origin.y + code_action_size.height > tab_size.height {
             origin.y = origin.y
-                - config.editor.line_height() as f64
+                - line_height
                 - code_action_size.height;
         }
         if origin.x + code_action_size.width + 1.0 > tab_size.width {
@@ -2749,7 +2749,7 @@ impl WindowWorkspaceData {
     }
 
     pub fn rename_origin(&self) -> Result<Point> {
-        let config = self.common.config.get();
+        let line_height = self.common.config.with_line_height() as f64;
         if !self.rename.active.get() {
             return Ok(Point::ZERO);
         }
@@ -2785,7 +2785,7 @@ impl WindowWorkspaceData {
 
         if origin.y + rename_size.height > tab_size.height {
             origin.y =
-                origin.y - config.editor.line_height() as f64 - rename_size.height;
+                origin.y - line_height - rename_size.height;
         }
         if origin.x + rename_size.width + 1.0 > tab_size.width {
             origin.x = tab_size.width - rename_size.width - 1.0;
@@ -2799,7 +2799,7 @@ impl WindowWorkspaceData {
 
     /// Get the mode for the current editor or terminal
     pub fn mode(&self) -> Mode {
-        if self.common.config.get().core.modal {
+        if self.common.config.with(|x| x.core.modal) {
             let mode = if self.common.focus.get() == Focus::Workbench {
                 self.main_split
                     .active_editor
@@ -2887,9 +2887,9 @@ impl WindowWorkspaceData {
             self.terminal.new_tab(
                 self.common
                     .config
-                    .get_untracked()
+                    .with_untracked(|x| x
                     .terminal
-                    .get_default_profile()
+                    .get_default_profile())
             );
         }
         self.panel.show_panel(&kind);

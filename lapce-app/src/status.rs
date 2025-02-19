@@ -5,7 +5,7 @@ use floem::{
     View,
     event::EventPropagation,
     reactive::{
-        Memo, ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo
+        Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo
     },
     style::{AlignItems, CursorStyle, Display, FlexWrap},
     views::{Decorators, dyn_stack, label, stack}
@@ -22,7 +22,7 @@ use lsp_types::{DiagnosticSeverity, ProgressToken};
 use crate::{
     app::clickable_icon,
     command::LapceWorkbenchCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{color::LapceColor},
     editor::EditorData,
     listener::Listener,
     palette::kind::PaletteKind,
@@ -91,13 +91,6 @@ pub fn status(
                 Mode::Terminal => "Terminal".to_string()
             })
             .style(move |s| {
-                let config = config.get();
-                let display = if config.core.modal {
-                    Display::Flex
-                } else {
-                    Display::None
-                };
-
                 let (bg, fg) = match mode.get() {
                     Mode::Normal => (
                         LapceColor::STATUS_MODAL_NORMAL_BACKGROUND,
@@ -116,9 +109,16 @@ pub fn status(
                         LapceColor::STATUS_MODAL_TERMINAL_FOREGROUND
                     )
                 };
-
-                let bg = config.color(bg);
-                let fg = config.color(fg);
+                let (modal, bg, fg) = config.with(|config| {
+                    (
+                        config.core.modal, config.color(bg), config.color(fg)
+                    )
+                });
+                let display = if modal {
+                    Display::Flex
+                } else {
+                    Display::None
+                };
 
                 s.display(display)
                     .padding_horiz(10.0)
@@ -130,10 +130,13 @@ pub fn status(
             }),
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::SCM)).style(move |s| {
-                    let config = config.get();
-                    let icon_size = config.ui.icon_size() as f32;
+                    let (icon_size, bg) = config.with(|config| {
+                        (
+                            config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                        )
+                    });
                     s.size(icon_size, icon_size)
-                        .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                        .color(bg)
                 }),
                 label(branch).style(move |s| {
                     s.margin_left(10.0)
@@ -175,10 +178,13 @@ pub fn status(
                 stack((
                     svg(move || config.with_ui_svg(LapceIcons::ERROR)).style(
                         move |s| {
-                            let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                            let (size, bg) = config.with(|config| {
+                                (
+                                    config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                )
+                            });
                             s.size(size, size)
-                                .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                                .color(bg)
                         }
                     ),
                     label(move || diagnostic_count.get().0.to_string()).style(
@@ -192,11 +198,14 @@ pub fn status(
                     ),
                     svg(move || config.with_ui_svg(LapceIcons::WARNING)).style(
                         move |s| {
-                            let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                            let (size, bg) = config.with(|config| {
+                                (
+                                    config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                )
+                            });
                             s.size(size, size)
                                 .margin_left(5.0)
-                                .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                                .color(bg)
                         }
                     ),
                     label(move || diagnostic_count.get().1.to_string()).style(
@@ -401,11 +410,15 @@ pub fn status(
         }
     })
     .style(move |s| {
-        let config = config.get();
+        let (caret_color, bg, status_height) = config.with(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::STATUS_BACKGROUND), config.ui.status_height() as f32
+            )
+        });
         s.border_top(1.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .background(config.color(LapceColor::STATUS_BACKGROUND))
-            .flex_basis(config.ui.status_height() as f32)
+            .border_color(caret_color)
+            .background(bg)
+            .flex_basis(status_height)
             .flex_grow(0.0)
             .flex_shrink(0.0)
             .items_center()
@@ -448,7 +461,6 @@ fn status_text<S: std::fmt::Display + 'static>(
     text: impl Fn() -> S + 'static
 ) -> impl View {
     label(text).style(move |s| {
-        let config = config.get();
         let display = if editor
             .get()
             .map(|editor| {
@@ -462,15 +474,19 @@ fn status_text<S: std::fmt::Display + 'static>(
         } else {
             Display::None
         };
-
+        let (caret_color, bg) = config.with(|config| {
+            (
+                config.color(LapceColor::STATUS_FOREGROUND), config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+            )
+        });
         s.display(display)
             .height_full()
             .padding_horiz(10.0)
             .items_center()
-            .color(config.color(LapceColor::STATUS_FOREGROUND))
+            .color(caret_color)
             .hover(|s| {
                 s.cursor(CursorStyle::Pointer)
-                    .background(config.color(LapceColor::PANEL_HOVERED_BACKGROUND))
+                    .background(bg)
             })
             .selectable(false)
     })

@@ -314,21 +314,23 @@ pub fn symbol_panel(
                 stack((
                     container(
                         svg(move || {
-                            let config = config.get();
                             let svg_str = match open.get() {
                                 true => LapceIcons::ITEM_OPENED,
                                 false => LapceIcons::ITEM_CLOSED,
                             };
-                            config.ui_svg(svg_str)
+                            config.with_ui_svg(svg_str)
                         })
                             .style(move |s| {
-                                let config = config.get();
+                                let (color, size) = config.with(|config| {
+                                    (
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                                    )
+                                });
                                 let color = if has_child {
-                                    config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                    color
                                 } else {
                                     Color::TRANSPARENT
                                 };
-                                let size = config.ui.icon_size() as f32;
                                 s.size(size, size)
                                     .color(color)
                             })
@@ -343,19 +345,23 @@ pub fn symbol_panel(
                             }
                         }),
                     svg(move || {
-                        let config = config.get();
-                        config
-                            .symbol_svg(&kind)
-                            .unwrap_or_else(|| config.ui_svg(LapceIcons::FILE))
+                        let (symbol_svg, bg) = config.with(|config| {
+                            (
+                                config.symbol_svg(&kind), config.ui_svg(LapceIcons::FILE)
+                            )
+                        });
+                        symbol_svg
+                            .unwrap_or(bg)
                     }).style(move |s| {
-                        let config = config.get();
-                        let size = config.ui.icon_size() as f32;
+                        let (caret_color, size, symbol_color) = config.with(|config| {
+                            (
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32, config.symbol_color(&kind)
+                            )
+                        });
                         s.min_width(size)
                             .size(size, size)
                             .margin_right(5.0)
-                            .color(config.symbol_color(&kind).unwrap_or_else(|| {
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                            }))
+                            .color(symbol_color.unwrap_or(caret_color))
                     }),
                     label(move || {
                         data.name.replace('\n', "↵")

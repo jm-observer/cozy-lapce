@@ -131,7 +131,7 @@ impl KeyPressFocus for TerminalData {
             },
             CommandKind::Edit(cmd) => match cmd {
                 EditCommand::NormalMode => {
-                    if !config.core.modal {
+                    if !self.common.config.with_untracked(|config| config.core.modal) {
                         return CommandExecuted::Yes;
                     }
                     self.mode.set(Mode::Normal);
@@ -622,8 +622,7 @@ impl TerminalData {
     }
 
     pub fn wheel_scroll(&self, delta: f64) {
-        let config = self.common.config.get_untracked();
-        let step = config.terminal_line_height() as f64;
+        let step = self.common.config.with_untracked(|config| config.terminal_line_height() as f64);
         let raw = self.raw.get_untracked();
         let mut raw = raw.write();
         raw.scroll_delta -= delta;
@@ -636,8 +635,7 @@ impl TerminalData {
     }
 
     fn toggle_visual(&self, visual_mode: VisualMode) {
-        let config = self.common.config.get_untracked();
-        if !config.core.modal {
+        if !self.common.config.with_untracked(|config| config.core.modal) {
             return;
         }
 

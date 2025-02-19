@@ -413,20 +413,24 @@ pub fn settings_view(
             }
         })
         .style(move |s| {
-            let config = config.get();
+            let (cbg, hbg, abg) = config.with(|config| {
+                (
+                    config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
+                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                )
+            });
             s.padding_horiz(20.0)
                 .width_pct(100.0)
                 .apply_if(kind == current_kind.get(), |s| {
-                    s.background(config.color(LapceColor::PANEL_CURRENT_BACKGROUND))
+                    s.background(cbg)
                 })
                 .hover(|s| {
-                    s.cursor(CursorStyle::Pointer).background(
-                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                    s.cursor(CursorStyle::Pointer).background(hbg
                     )
                 })
                 .active(|s| {
-                    s.background(
-                        config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
+                    s.background(abg
                     )
                 })
         })
@@ -653,13 +657,18 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
             } else if item.header {
                 label(move || item.kind.clone())
                     .style(move |s| {
-                        let config = config.get();
+                        let (cbg, font_size) = config.with(|config| {
+                            (
+                                config.color(LapceColor::PANEL_BACKGROUND),
+                                config.ui.font_size() as f32
+                            )
+                        });
                         s.line_height(2.0)
                             .font_bold()
                             .width_pct(100.0)
                             .padding_horiz(10.0)
-                            .font_size(config.ui.font_size() as f32 + 2.0)
-                            .background(config.color(LapceColor::PANEL_BACKGROUND))
+                            .font_size(font_size + 2.0)
+                            .background(cbg)
                     })
                     .into_any()
             } else {
@@ -761,9 +770,12 @@ pub fn checkbox(
     let svg_str = move || if checked() { CHECKBOX_SVG } else { "" }.to_string();
 
     svg(svg_str).style(move |s| {
-        let config = config.get();
-        let size = config.ui.font_size() as f32;
-        let color = config.color(LapceColor::EDITOR_FOREGROUND);
+        let (color, size) = config.with(|config| {
+            (
+                config.color(LapceColor::EDITOR_FOREGROUND),
+                config.ui.font_size() as f32
+            )
+        });
 
         s.min_width(size)
             .size(size, size)
@@ -852,22 +864,23 @@ fn color_section_list(
                                         // if new_value != value {
                                         //     return;
                                         // }
-                                        let config_val = config.get_untracked();
-                                        let default = match kind.as_str() {
-                                            "base" => config_val
-                                                .color_theme
-                                                .base
-                                                .get(&field),
-                                            "ui" => config_val
-                                                .color_theme
-                                                .ui
-                                                .get(&field),
-                                            "syntax" => config_val
-                                                .color_theme
-                                                .syntax
-                                                .get(&field),
-                                            _ => None
-                                        };
+                                        let default = config.with_untracked(|config_val | {
+                                            match kind.as_str() {
+                                                "base" => config_val
+                                                    .color_theme
+                                                    .base
+                                                    .get(&field),
+                                                "ui" => config_val
+                                                    .color_theme
+                                                    .ui
+                                                    .get(&field),
+                                                "syntax" => config_val
+                                                    .color_theme
+                                                    .syntax
+                                                    .get(&field),
+                                                _ => None
+                                            }
+                                        });
                                         if default != Some(&value) {
                                             // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
                                             let value_ser = serde::Serialize::serialize(
@@ -936,17 +949,19 @@ fn color_section_list(
                     }),
                     empty().style(move |s| {
                         let size = text_height.get() + 12.0;
-                        let config = config.get_untracked();
+                        let (caret_color, bg) = config.with(|config| {
+                            (
+                                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_FOREGROUND)
+                            )
+                        });
                         let new_value = query_str.get();
                         let color = Color::from_str(&new_value).ok();
                         s.border(1)
                             .border_radius(6)
                             .size(size, size)
                             .margin_left(10)
-                            .border_color(config.color(LapceColor::LAPCE_BORDER))
-                            .background(color.unwrap_or_else(|| {
-                                config.color(LapceColor::EDITOR_FOREGROUND)
-                            }))
+                            .border_color(caret_color)
+                            .background(color.unwrap_or(bg))
                     }),
                     {
                         let kind = kind.clone();
@@ -964,37 +979,38 @@ fn color_section_list(
                             })
                             .style(move |s| {
                                 let content = query_str.get();
-                                let config = config.get();
-
-                                let same = match kind.as_str() {
-                                    "base" => {
-                                        config.default_color_theme().base.get(&key)
-                                            == Some(&content)
-                                    },
-                                    "ui" => {
-                                        config.default_color_theme().ui.get(&key)
-                                            == Some(&content)
-                                    },
-                                    "syntax" => {
-                                        config.default_color_theme().syntax.get(&key)
-                                            == Some(&content)
-                                    },
-                                    _ => false
-                                };
+                                let (caret_color, bg, same) = config.with(|config| {
+                                    (
+                                        config.color(LapceColor::LAPCE_BORDER),
+                                        config.color(LapceColor::PANEL_BACKGROUND),
+                                        match kind.as_str() {
+                                            "base" => {
+                                                config.default_color_theme().base.get(&key)
+                                                    == Some(&content)
+                                            },
+                                            "ui" => {
+                                                config.default_color_theme().ui.get(&key)
+                                                    == Some(&content)
+                                            },
+                                            "syntax" => {
+                                                config.default_color_theme().syntax.get(&key)
+                                                    == Some(&content)
+                                            },
+                                            _ => false
+                                        }
+                                    )
+                                });
 
                                 s.margin_left(10)
                                     .padding(6)
                                     .cursor(CursorStyle::Pointer)
                                     .border(1)
                                     .border_radius(6)
-                                    .border_color(
-                                        config.color(LapceColor::LAPCE_BORDER)
+                                    .border_color(caret_color
                                     )
                                     .apply_if(same, |s| s.hide())
                                     .active(|s| {
-                                        s.background(
-                                            config
-                                                .color(LapceColor::PANEL_BACKGROUND)
+                                        s.background(bg
                                         )
                                     })
                             })
@@ -1012,44 +1028,49 @@ pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
     let config = common.config;
 
     let text_height = create_memo(move |_| {
-        let config = config.get();
+        let (font_family, font_size) = config.with(|config| {
+            (
+                config.ui.font_family.clone(), config.ui.font_size() as f32
+            )
+        });
         let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&config.ui.font_family).collect();
+            FamilyOwned::parse_list(&font_family).collect();
         let attrs = Attrs::new()
             .family(&family)
-            .font_size(config.ui.font_size() as f32);
+            .font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
         let text_layout = TextLayout::new_with_text("W", attrs_list);
         text_layout.size().height
     });
 
     let max_width = create_memo(move |_| {
-        let config = config.get();
-        let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&config.ui.font_family).collect();
-        let attrs = Attrs::new()
-            .family(&family)
-            .font_size(config.ui.font_size() as f32);
-        let attrs_list = AttrsList::new(attrs);
+        config.with(|config| {
+            let family: Vec<FamilyOwned> =
+                FamilyOwned::parse_list(&config.ui.font_family).collect();
+            let attrs = Attrs::new()
+                .family(&family)
+                .font_size(config.ui.font_size() as f32);
+            let attrs_list = AttrsList::new(attrs);
 
-        let mut max_width = 0.0;
-        for key in config.color_theme.ui.keys() {
-            let width = TextLayout::new_with_text(key, attrs_list.clone())
-                .size()
-                .width;
-            if width > max_width {
-                max_width = width;
+            let mut max_width = 0.0;
+            for key in config.color_theme.ui.keys() {
+                let width = TextLayout::new_with_text(key, attrs_list.clone())
+                    .size()
+                    .width;
+                if width > max_width {
+                    max_width = width;
+                }
             }
-        }
-        for key in config.color_theme.syntax.keys() {
-            let width = TextLayout::new_with_text(key, attrs_list.clone())
-                .size()
-                .width;
-            if width > max_width {
-                max_width = width;
+            for key in config.color_theme.syntax.keys() {
+                let width = TextLayout::new_with_text(key, attrs_list.clone())
+                    .size()
+                    .width;
+                if width > max_width {
+                    max_width = width;
+                }
             }
-        }
-        max_width
+            max_width
+        })
     });
 
     let query_str = common.scope.create_rw_signal(String::new());
@@ -1209,10 +1230,13 @@ fn dropdown_view(
                 }
             })
             .style(move |s| {
-                let config = config.get();
-                let size = config.ui.icon_size() as f32;
+                let (caret_color, size) = config.with(|config| {
+                    (
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                    )
+                });
                 s.size(size, size)
-                    .color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                    .color(caret_color)
             })
         )
         .style(|s| s.padding_right(4.0))
@@ -1330,7 +1354,6 @@ fn dropdown_scroll(
         scroll_size.set(rect.size());
     })
     .style(move |s| {
-        let config = config.get();
         let window_origin = window_origin.get();
         let window_size = window_size.get();
         let input_size = input_size.get();
@@ -1350,20 +1373,31 @@ fn dropdown_scroll(
             window_origin.y + input_size.height - 1.0
         };
 
+        let (fg, bg, bar, border, shadow, font_size, font_family) = config.with(|config| {
+            (
+                config.color(LapceColor::EDITOR_FOREGROUND),
+                config.color(LapceColor::EDITOR_BACKGROUND),
+                config.color(LapceColor::LAPCE_SCROLL_BAR),
+                config.color(LapceColor::LAPCE_BORDER),
+                config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
+                config.ui.font_size() as f32,
+                config.ui.font_family.clone()
+            )
+        });
         s.width(250.0)
             .line_height(1.8)
-            .font_size(config.ui.font_size() as f32)
-            .font_family(config.ui.font_family.clone())
-            .color(config.color(LapceColor::EDITOR_FOREGROUND))
-            .background(config.color(LapceColor::EDITOR_BACKGROUND))
+            .font_size(font_size)
+            .font_family(font_family)
+            .color(fg)
+            .background(bg)
             .class(floem::views::scroll::Handle, |s| {
-                s.background(config.color(LapceColor::LAPCE_SCROLL_BAR))
+                s.background(bar)
             })
             .border(1)
             .border_radius(6.0)
-            .border_color(config.color(LapceColor::LAPCE_BORDER))
+            .border_color(border)
             .box_shadow_blur(3.0)
-            .box_shadow_color(config.color(LapceColor::LAPCE_DROPDOWN_SHADOW))
+            .box_shadow_color(shadow)
             .inset_left(x)
             .inset_top(y)
     })

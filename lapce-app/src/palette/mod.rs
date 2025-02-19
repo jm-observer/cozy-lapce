@@ -1068,39 +1068,45 @@ impl PaletteData {
     }
 
     fn get_color_themes(&self) {
-        let config = self.common.config.get_untracked();
-        let items = config
-            .color_theme_list()
-            .iter()
-            .map(|name| PaletteItem {
-                content:     PaletteItemContent::ColorTheme { name: name.clone() },
-                filter_text: name.clone(),
-                score:       0,
-                indices:     Vec::new()
-            })
-            .collect();
+        let (items, name) = self.common.config.with_untracked(|config| {
+            (config
+                .color_theme_list()
+                .iter()
+                .map(|name| PaletteItem {
+                    content:     PaletteItemContent::ColorTheme { name: name.clone() },
+                    filter_text: name.clone(),
+                    score:       0,
+                    indices:     Vec::new()
+                })
+                .collect(),
+            config.color_theme.name.clone())
+        });
+
         self.preselect_matching(
             &items,
-            &self.common.config.get_untracked().color_theme.name
+            &name
         );
         self.items.set(items);
     }
 
     fn get_icon_themes(&self) {
         let config = self.common.config.get_untracked();
-        let items = config
-            .icon_theme_list()
-            .iter()
-            .map(|name| PaletteItem {
-                content:     PaletteItemContent::IconTheme { name: name.clone() },
-                filter_text: name.clone(),
-                score:       0,
-                indices:     Vec::new()
-            })
-            .collect();
+        let (items, name) = self.common.config.with_untracked(|config| {
+            (config
+                 .icon_theme_list()
+                 .iter()
+                 .map(|name| PaletteItem {
+                     content:     PaletteItemContent::IconTheme { name: name.clone() },
+                     filter_text: name.clone(),
+                     score:       0,
+                     indices:     Vec::new()
+                 })
+                 .collect(),
+             config.icon_theme.name.clone())
+        });
         self.preselect_matching(
             &items,
-            &self.common.config.get_untracked().icon_theme.name
+            &name
         );
         self.items.set(items);
     }
