@@ -336,9 +336,10 @@ impl PaletteData {
             Some(kind) => {kind}
         };
         let kind_input = kind.get_input(&input);
-        if kind_input.is_empty() && !matches!(kind, PaletteKind::HelpAndFile) {
-            return;
-        }
+        // 太多kind不需要input了
+        // if kind_input.is_empty() && !matches!(kind, PaletteKind::HelpAndFile) {
+        //     return;
+        // }
         let run_id = self.run_result.try_update(|x| x.update_id()).unwrap();
         log::debug!("run_inner_by_input {} {:?} input={input}", run_id, kind);
         match kind {
@@ -1040,7 +1041,7 @@ impl PaletteData {
 
     fn get_run_configs(&self, run_id: u64, input_str: String) {
         if let Some(workspace) = self.common.workspace.path.as_deref() {
-            let run_toml = workspace.join("../../../.lapce").join("run.toml");
+            let run_toml = workspace.join(".lapce").join("run.toml");
             let (doc, new_doc) =
                 self.main_split.get_doc(run_toml.clone(), None, false);
             if !new_doc {
