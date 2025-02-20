@@ -30,10 +30,10 @@ use lapce_rpc::{
 
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
+    config::WithLapceConfig,
     keypress::{KeyPressFocus, condition::Condition},
     window_workspace::CommonData
 };
-use crate::config::WithLapceConfig;
 
 #[derive(Debug)]
 enum RenamedPath {
@@ -208,7 +208,9 @@ impl FileExplorerData {
                         // TODO: do not recreate glob every time we read a directory
                         // Retain only items that are not excluded from view by the
                         // configuration
-                        match Glob::new(&config.with(|x| x.editor.files_exclude.clone())) {
+                        match Glob::new(
+                            &config.with(|x| x.editor.files_exclude.clone())
+                        ) {
                             Ok(glob) => {
                                 let matcher = glob.compile_matcher();
                                 items.retain(|i| !matcher.is_match(&i.path));

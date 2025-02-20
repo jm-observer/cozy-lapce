@@ -103,9 +103,7 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
 
     exclusive_popup(window_tab_data, about_data.visible, move || {
         stack((
-            svg(move || config.with(|config| {
-                config.logo_svg()
-            })).style(move |s| {
+            svg(move || config.with(|config| config.logo_svg())).style(move |s| {
                 s.size(logo_size, logo_size)
                     .color(config.with_color(LapceColor::EDITOR_FOREGROUND))
             }),

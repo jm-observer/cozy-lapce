@@ -1,5 +1,11 @@
-use std::{collections::HashSet, rc::Rc, str::FromStr, sync::Arc, time::Duration};
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+    str::FromStr,
+    sync::Arc,
+    time::Duration
+};
+
 use anyhow::Result;
 use doc::{
     EditorViewKind,
@@ -29,13 +35,13 @@ use floem::{
     keyboard::Modifiers,
     kurbo::{Point, Rect, Vec2},
     menu::{Menu, MenuItem},
+    peniko::Color,
     pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
         SignalWith, batch, use_context
     }
 };
-use floem::peniko::Color;
 use lapce_core::{
     directory::Directory,
     doc::DocContent,
@@ -59,6 +65,7 @@ use self::location::{EditorLocation, EditorPosition};
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     completion::CompletionStatus,
+    config::color::LapceColor,
     db::LapceDb,
     doc::Doc,
     editor::{
@@ -80,7 +87,6 @@ use crate::{
     snippet::Snippet,
     window_workspace::{CommonData, Focus, WindowWorkspaceData}
 };
-use crate::config::color::LapceColor;
 
 pub mod diff;
 pub mod floem_editor;
@@ -461,7 +467,10 @@ impl EditorData {
                         };
                         let search_str = rope_text.slice_to_cow(start..end);
                         let case_sensitive = find.case_sensitive(false);
-                        let multicursor_case_sensitive = self.common.config.with_untracked(|config| config.editor.multicursor_case_sensitive);
+                        let multicursor_case_sensitive =
+                            self.common.config.with_untracked(|config| {
+                                config.editor.multicursor_case_sensitive
+                            });
                         let case_sensitive =
                             multicursor_case_sensitive || case_sensitive;
                         // let search_whole_word =
@@ -499,10 +508,12 @@ impl EditorData {
                             let search_str =
                                 rope_text.slice_to_cow(r.min()..r.max());
                             let case_sensitive = find.case_sensitive(false);
-                            let multicursor_case_sensitive = self.common.config.with_untracked(|config| config.editor.multicursor_case_sensitive);
+                            let multicursor_case_sensitive =
+                                self.common.config.with_untracked(|config| {
+                                    config.editor.multicursor_case_sensitive
+                                });
                             let case_sensitive =
-                                multicursor_case_sensitive
-                                    || case_sensitive;
+                                multicursor_case_sensitive || case_sensitive;
                             // let search_whole_word =
                             // config.editor.multicursor_whole_words;
                             find.set_case_sensitive(case_sensitive);
@@ -1685,9 +1696,16 @@ impl EditorData {
                 && completion.path == path
         });
         if has_relevant {
-            let enable_inline_completion = self.common.config.with_untracked(|config| config.editor.enable_inline_completion);
+            let enable_inline_completion = self
+                .common
+                .config
+                .with_untracked(|config| config.editor.enable_inline_completion);
             inline_completion.update(|completion| {
-                completion.update_inline_completion(&doc, offset, enable_inline_completion);
+                completion.update_inline_completion(
+                    &doc,
+                    offset,
+                    enable_inline_completion
+                );
             });
         }
 
@@ -2134,26 +2152,26 @@ impl EditorData {
     }
 
     fn check_auto_save(&self) {
-        let autosave_interval = self.common.config.with_untracked(|config| config.editor.autosave_interval);
+        let autosave_interval = self
+            .common
+            .config
+            .with_untracked(|config| config.editor.autosave_interval);
         if autosave_interval > 0 {
             if self.doc().content.with_untracked(|c| c.path().is_none()) {
                 return;
             };
             let editor = self.clone();
             let rev = self.doc().rev();
-            exec_after(
-                Duration::from_millis(autosave_interval),
-                move |_| {
-                    let is_pristine = editor
-                        .doc()
-                        .lines
-                        .with_untracked(|x| x.buffer().is_pristine());
-                    let is_current_rec = editor.doc().rev() == rev;
-                    if !is_pristine && is_current_rec {
-                        editor.save(true, || {});
-                    }
+            exec_after(Duration::from_millis(autosave_interval), move |_| {
+                let is_pristine = editor
+                    .doc()
+                    .lines
+                    .with_untracked(|x| x.buffer().is_pristine());
+                let is_current_rec = editor.doc().rev() == rev;
+                if !is_pristine && is_current_rec {
+                    editor.save(true, || {});
                 }
-            );
+            });
         }
     }
 
@@ -2345,7 +2363,10 @@ impl EditorData {
                 return;
             }
         };
-        let modal = self.common.config.with_untracked(|config| config.core.modal);
+        let modal = self
+            .common
+            .config
+            .with_untracked(|config| config.core.modal);
         self.cursor().set(if modal {
             Cursor::new(CursorMode::Normal(offset), None, None)
         } else {
@@ -2483,7 +2504,13 @@ impl EditorData {
             return;
         }
 
-        let (normalize_line_endings, format_on_save) = self.common.config.with_untracked(|config| (config.editor.normalize_line_endings, config.editor.format_on_save));
+        let (normalize_line_endings, format_on_save) =
+            self.common.config.with_untracked(|config| {
+                (
+                    config.editor.normalize_line_endings,
+                    config.editor.format_on_save
+                )
+            });
 
         let DocContent::File { path, .. } = content else {
             return;
@@ -2860,7 +2887,10 @@ impl EditorData {
                 let y = pointer_event.pos.y - self.editor.viewport().y0;
                 if self.sticky_header_height.get_untracked() > y {
                     let index = y as usize
-                        / self.common.config.with_untracked(|config| config.editor.line_height());
+                        / self
+                            .common
+                            .config
+                            .with_untracked(|config| config.editor.line_height());
                     if let (Some(path), Some(line)) = (
                         self.doc().content.get_untracked().path(),
                         self.sticky_header_info
@@ -3005,7 +3035,8 @@ impl EditorData {
                 }
             }
         }
-        let hover_delay = self.common.config.with_untracked(|x| x.editor.hover_delay);
+        let hover_delay =
+            self.common.config.with_untracked(|x| x.editor.hover_delay);
         if hover_delay > 0 {
             if is_inside {
                 let editor = self.clone();
@@ -3204,17 +3235,33 @@ impl EditorData {
         let directory = self.common.directory.clone();
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
-                let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) = config.with_untracked(|config| {
+                let (
+                    font_family,
+                    editor_fg,
+                    style_colors,
+                    font_size,
+                    markdown_blockquote,
+                    editor_link
+                ) = config.with_untracked(|config| {
                     (
                         config.editor.font_family.clone(),
                         config.color(LapceColor::EDITOR_FOREGROUND),
                         config.style_colors(),
                         config.ui.font_size() as f32,
-                        config.color(LapceColor::MARKDOWN_BLOCKQUOTE), config.color(LapceColor::EDITOR_LINK)
+                        config.color(LapceColor::MARKDOWN_BLOCKQUOTE),
+                        config.color(LapceColor::EDITOR_LINK)
                     )
                 });
-                let content =
-                    parse_hover_resp(hover, &directory, &font_family, editor_fg, &style_colors, font_size, markdown_blockquote, editor_link);
+                let content = parse_hover_resp(
+                    hover,
+                    &directory,
+                    &font_family,
+                    editor_fg,
+                    &style_colors,
+                    font_size,
+                    markdown_blockquote,
+                    editor_link
+                );
                 batch(|| {
                     hover_data.content.set(content);
                     hover_data.offset.set(offset);
@@ -3972,22 +4019,53 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 
 fn parse_hover_resp(
     hover: lsp_types::Hover,
-    directory: &Directory, font_family: &str, editor_fg: Color, style_colors: &HashMap<String, Color>, font_size: f32, markdown_blockquote: Color, editor_link: Color
+    directory: &Directory,
+    font_family: &str,
+    editor_fg: Color,
+    style_colors: &HashMap<String, Color>,
+    font_size: f32,
+    markdown_blockquote: Color,
+    editor_link: Color
 ) -> Vec<MarkdownContent> {
     match hover.contents {
         HoverContents::Scalar(text) => match text {
-            MarkedString::String(text) => {
-                parse_markdown(&text, 1.8, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link)
-            },
+            MarkedString::String(text) => parse_markdown(
+                &text,
+                1.8,
+                directory,
+                font_family,
+                editor_fg,
+                style_colors,
+                font_size,
+                markdown_blockquote,
+                editor_link
+            ),
             MarkedString::LanguageString(code) => parse_markdown(
                 &format!("```{}\n{}\n```", code.language, code.value),
                 1.8,
-                directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link
+                directory,
+                font_family,
+                editor_fg,
+                style_colors,
+                font_size,
+                markdown_blockquote,
+                editor_link
             )
         },
         HoverContents::Array(array) => array
             .into_iter()
-            .map(|t| from_marked_string(t, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link))
+            .map(|t| {
+                from_marked_string(
+                    t,
+                    directory,
+                    font_family,
+                    editor_fg,
+                    style_colors,
+                    font_size,
+                    markdown_blockquote,
+                    editor_link
+                )
+            })
             .rev()
             .reduce(|mut contents, more| {
                 contents.push(MarkdownContent::Separator);
@@ -3997,9 +4075,17 @@ fn parse_hover_resp(
             .unwrap_or_default(),
         HoverContents::Markup(content) => match content.kind {
             MarkupKind::PlainText => from_plaintext(&content.value, 1.8, font_size),
-            MarkupKind::Markdown => {
-                parse_markdown(&content.value, 1.8, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link)
-            },
+            MarkupKind::Markdown => parse_markdown(
+                &content.value,
+                1.8,
+                directory,
+                font_family,
+                editor_fg,
+                style_colors,
+                font_size,
+                markdown_blockquote,
+                editor_link
+            )
         }
     }
 }

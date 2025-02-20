@@ -768,7 +768,10 @@ impl MainSplitData {
         ignore_unconfirmed: bool,
         same_editor_tab: bool
     ) -> EditorTabChildId {
-        let show_tab = self.common.config.with_untracked(|config| config.editor.show_tab);
+        let show_tab = self
+            .common
+            .config
+            .with_untracked(|config| config.editor.show_tab);
 
         let active_editor_tab_id = self.active_editor_tab.get_untracked();
         let editor_tabs = self.editor_tabs.get_untracked();
@@ -2983,7 +2986,11 @@ impl MainSplitData {
             if let Some(editor) = self.editors.editor_untracked(id) {
                 let doc = editor.doc();
                 doc.reload(
-                    Rope::from(self.common.config.with_untracked(|config| config.export_theme())),
+                    Rope::from(
+                        self.common
+                            .config
+                            .with_untracked(|config| config.export_theme())
+                    ),
                     true
                 );
             }

@@ -12,7 +12,7 @@ use lapce_core::icon::LapceIcons;
 use log::{error, warn};
 
 use crate::{
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     editor::{
         DocSignal, EditorData,
         gutter_new::{GutterData, GutterMarker, gutter_data}
@@ -20,7 +20,6 @@ use crate::{
     svg,
     window_workspace::WindowWorkspaceData
 };
-use crate::config::WithLapceConfig;
 
 fn gutter_marker_none_svg_view(config: WithLapceConfig) -> Svg {
     svg(move || config.with_ui_svg(LapceIcons::EMPTY)).style(move |s| {
@@ -32,11 +31,13 @@ fn gutter_marker_none_svg_view(config: WithLapceConfig) -> Svg {
 fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
     svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(move |s| {
         let (icon_size, color) = config.with(|config| {
-            (config.ui.icon_size(), config.color(LapceColor::DEBUG_BREAKPOINT_HOVER))
+            (
+                config.ui.icon_size(),
+                config.color(LapceColor::DEBUG_BREAKPOINT_HOVER)
+            )
         });
         let size = icon_size as f64;
-        s.size(size, size)
-            .color(color)
+        s.size(size, size).color(color)
     })
 }
 
@@ -116,17 +117,13 @@ fn gutter_data_view(
                 doc.lines.with_untracked(|x| x.signal_last_line()).get().1 + 8.0;
             let (fg, dim, font_size, font_family) = config.with(|config| {
                 (
-                    config.color(LapceColor::EDITOR_FOREGROUND)
-                    , config.color(LapceColor::EDITOR_DIM)
-                    , config.editor.font_size()
-                    , config.editor.font_family.clone()
+                    config.color(LapceColor::EDITOR_FOREGROUND),
+                    config.color(LapceColor::EDITOR_DIM),
+                    config.editor.font_size(),
+                    config.editor.font_family.clone()
                 )
             });
-            let color = if data.is_current_line {
-                fg
-            } else {
-                dim
-            };
+            let color = if data.is_current_line { fg } else { dim };
             style
                 .height_full()
                 .width(width)

@@ -71,7 +71,8 @@ pub fn source_control_panel(
                         label(|| "Commit Message".to_string()).style(move |s| {
                             let (caret_color, line_height) = config.with(|config| {
                                 (
-                                    config.color(LapceColor::EDITOR_DIM), config.editor.line_height() as f32
+                                    config.color(LapceColor::EDITOR_DIM),
+                                    config.editor.line_height() as f32
                                 )
                             });
                             s.absolute()
@@ -130,11 +131,9 @@ pub fn source_control_panel(
                     e_data.doc_signal().track();
                     e_data.kind().track();
 
-                    if let Some((x, y, width, line_height)) = cursor_caret_v2(
-                        &e_data.editor,
-                        offset,
-                        cursor.affinity
-                    ) {
+                    if let Some((x, y, width, line_height)) =
+                        cursor_caret_v2(&e_data.editor, offset, cursor.affinity)
+                    {
                         let rect =
                             Rect::from_origin_size((x, y), (width, line_height));
                         rect.inflate(30.0, 10.0)
@@ -176,7 +175,8 @@ pub fn source_control_panel(
             .style(move |s| {
                 let (caret_color, bg) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_BACKGROUND)
+                        config.color(LapceColor::LAPCE_BORDER),
+                        config.color(LapceColor::EDITOR_BACKGROUND)
                     )
                 });
                 s.width_pct(100.0)
@@ -196,8 +196,11 @@ pub fn source_control_panel(
                     .style(move |s| {
                         let (caret_color, bg, abg) = config.with(|config| {
                             (
-                                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                                config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
+                                config.color(LapceColor::LAPCE_BORDER),
+                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                config.color(
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                )
                             )
                         });
                         s.margin_top(10.0)
@@ -207,14 +210,8 @@ pub fn source_control_panel(
                             .border(1.0)
                             .border_radius(6.0)
                             .border_color(caret_color)
-                            .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(
-                                    bg
-                                )
-                            })
-                            .active(|s| {
-                                s.background(abg)
-                            })
+                            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg))
+                            .active(|s| s.background(abg))
                             .selectable(false)
                     })
             }
@@ -282,10 +279,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                 }),
             svg(move || config.with_file_svg(&path).0).style(move |s| {
                 let (size, color) = config.with(|config| {
-                    (
-                        config.ui.icon_size() as f32,
-                        config.file_svg(&style_path).1
-                    )
+                    (config.ui.icon_size() as f32, config.file_svg(&style_path).1)
                 });
                 s.min_width(size)
                     .size(size, size)
@@ -327,7 +321,6 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                     config.with_ui_svg(svg)
                 })
                 .style(move |s| {
-
                     let color = match &diff_for_style {
                         FileDiff::Modified(_) => LapceColor::SOURCE_CONTROL_MODIFIED,
                         FileDiff::Added(_) => LapceColor::SOURCE_CONTROL_ADDED,
@@ -337,9 +330,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                         },
                     };
                     let (size, color) = config.with(|config| {
-                        (
-                            config.ui.icon_size() as f32, config.color(color)
-                        )
+                        (config.ui.icon_size() as f32, config.color(color))
                     });
                     s.min_width(size).size(size, size).color(color)
                 })
@@ -380,16 +371,15 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
         .style(move |s| {
             let (size, color) = config.with(|config| {
                 (
-                    config.ui.icon_size() as f32, config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                    config.ui.icon_size() as f32,
+                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                 )
             });
             s.padding_left(10.0)
                 .padding_right(10.0 + size + 6.0)
                 .width_pct(100.0)
                 .items_center()
-                .hover(|s| {
-                    s.background(color)
-                })
+                .hover(|s| s.background(color))
         })
     };
 

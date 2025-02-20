@@ -12,8 +12,8 @@ use floem::{
     },
     prelude::{text_input, v_stack},
     reactive::{
-        Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        create_effect, create_memo, create_rw_signal
+        Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, create_effect,
+        create_memo, create_rw_signal
     },
     style::CursorStyle,
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
@@ -34,15 +34,15 @@ use serde_json::Value;
 use crate::{
     command::InternalCommand,
     config::{
-        DropdownInfo, LapceConfig, color::LapceColor, core::CoreConfig,
-        editor::EditorConfig, terminal::TerminalConfig, ui::UIConfig
+        DropdownInfo, LapceConfig, WithLapceConfig, color::LapceColor,
+        core::CoreConfig, editor::EditorConfig, terminal::TerminalConfig,
+        ui::UIConfig
     },
     keypress::KeyPressFocus,
     plugin::InstalledVoltData,
     svg,
     window_workspace::CommonData
 };
-use crate::config::WithLapceConfig;
 
 #[derive(Debug, Clone)]
 pub enum SettingsValue {
@@ -416,22 +416,14 @@ pub fn settings_view(
                 (
                     config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                     config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND),
+                    config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND)
                 )
             });
             s.padding_horiz(20.0)
                 .width_pct(100.0)
-                .apply_if(kind == current_kind.get(), |s| {
-                    s.background(cbg)
-                })
-                .hover(|s| {
-                    s.cursor(CursorStyle::Pointer).background(hbg
-                    )
-                })
-                .active(|s| {
-                    s.background(abg
-                    )
-                })
+                .apply_if(kind == current_kind.get(), |s| s.background(cbg))
+                .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg))
+                .active(|s| s.background(abg))
         })
     };
 
@@ -1028,15 +1020,11 @@ pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
 
     let text_height = create_memo(move |_| {
         let (font_family, font_size) = config.with(|config| {
-            (
-                config.ui.font_family.clone(), config.ui.font_size() as f32
-            )
+            (config.ui.font_family.clone(), config.ui.font_size() as f32)
         });
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(&font_family).collect();
-        let attrs = Attrs::new()
-            .family(&family)
-            .font_size(font_size);
+        let attrs = Attrs::new().family(&family).font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
         let text_layout = TextLayout::new_with_text("W", attrs_list);
         text_layout.size().height
@@ -1231,11 +1219,11 @@ fn dropdown_view(
             .style(move |s| {
                 let (caret_color, size) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                        config.ui.icon_size() as f32
                     )
                 });
-                s.size(size, size)
-                    .color(caret_color)
+                s.size(size, size).color(caret_color)
             })
         )
         .style(|s| s.padding_right(4.0))
@@ -1372,26 +1360,25 @@ fn dropdown_scroll(
             window_origin.y + input_size.height - 1.0
         };
 
-        let (fg, bg, bar, border, shadow, font_size, font_family) = config.with(|config| {
-            (
-                config.color(LapceColor::EDITOR_FOREGROUND),
-                config.color(LapceColor::EDITOR_BACKGROUND),
-                config.color(LapceColor::LAPCE_SCROLL_BAR),
-                config.color(LapceColor::LAPCE_BORDER),
-                config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
-                config.ui.font_size() as f32,
-                config.ui.font_family.clone()
-            )
-        });
+        let (fg, bg, bar, border, shadow, font_size, font_family) =
+            config.with(|config| {
+                (
+                    config.color(LapceColor::EDITOR_FOREGROUND),
+                    config.color(LapceColor::EDITOR_BACKGROUND),
+                    config.color(LapceColor::LAPCE_SCROLL_BAR),
+                    config.color(LapceColor::LAPCE_BORDER),
+                    config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
+                    config.ui.font_size() as f32,
+                    config.ui.font_family.clone()
+                )
+            });
         s.width(250.0)
             .line_height(1.8)
             .font_size(font_size)
             .font_family(font_family)
             .color(fg)
             .background(bg)
-            .class(floem::views::scroll::Handle, |s| {
-                s.background(bar)
-            })
+            .class(floem::views::scroll::Handle, |s| s.background(bar))
             .border(1)
             .border_radius(6.0)
             .border_color(border)

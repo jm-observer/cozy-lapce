@@ -4,17 +4,14 @@ use floem::{
     Renderer, View, ViewId,
     context::PaintCx,
     peniko::kurbo::{Point, Rect, Size},
+    prelude::Color,
     reactive::{Memo, SignalGet, SignalWith},
     text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
-use floem::prelude::Color;
 use log::{debug, error};
 
 use super::{EditorData, view::changes_colors_screen};
-use crate::{
-    config::{color::LapceColor},
-    doc::Doc
-};
+use crate::{config::color::LapceColor, doc::Doc};
 pub struct EditorGutterView {
     id:                   ViewId,
     editor:               EditorData,
@@ -43,7 +40,11 @@ impl EditorGutterView {
         e_data: &EditorData,
         viewport: Rect,
         is_normal: bool,
-        doc: &Doc, added: Color, modified_color: Color, removed: Color, line_height: f64
+        doc: &Doc,
+        added: Color,
+        modified_color: Color,
+        removed: Color,
+        line_height: f64
     ) -> Result<()> {
         if !is_normal {
             return Ok(());
@@ -52,7 +53,13 @@ impl EditorGutterView {
         let changes = doc.head_changes().get_untracked();
         let gutter_padding_right = self.gutter_padding_right.get_untracked() as f64;
 
-        let changes = changes_colors_screen(&e_data.editor, changes, added, modified_color, removed)?;
+        let changes = changes_colors_screen(
+            &e_data.editor,
+            changes,
+            added,
+            modified_color,
+            removed
+        )?;
         for (y, height, removed, color) in changes {
             let height = if removed {
                 10.0
@@ -79,7 +86,9 @@ impl EditorGutterView {
         &self,
         cx: &mut PaintCx,
         is_normal: bool,
-        sticky_header: bool, shadow_color: Color, hbg: Color
+        sticky_header: bool,
+        shadow_color: Color,
+        hbg: Color
     ) {
         if !is_normal {
             return;
@@ -98,16 +107,8 @@ impl EditorGutterView {
                 .to_rect()
                 .with_origin(Point::new(-25.0, 0.0))
                 .inflate(25.0, 0.0);
-        cx.fill(
-            &sticky_area_rect,
-            shadow_color,
-            3.0
-        );
-        cx.fill(
-            &sticky_area_rect,
-            hbg,
-            0.0
-        );
+        cx.fill(&sticky_area_rect, shadow_color, 3.0);
+        cx.fill(&sticky_area_rect, hbg, 0.0);
     }
 }
 
@@ -136,8 +137,21 @@ impl View for EditorGutterView {
         let viewport = self.editor.viewport();
         let cursor = self.editor.cursor();
         let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines());
-        let (line_height, font_family, dim, font_size, fg, modal
-            , modal_mode_relative_line_numbers, shadow, header_bg, removed, modified, added, sticky_header) = self.editor.common.config.with(|config| {
+        let (
+            line_height,
+            font_family,
+            dim,
+            font_size,
+            fg,
+            modal,
+            modal_mode_relative_line_numbers,
+            shadow,
+            header_bg,
+            removed,
+            modified,
+            added,
+            sticky_header
+        ) = self.editor.common.config.with(|config| {
             (
                 config.editor.line_height() as f64,
                 config.editor.font_family.clone(),
@@ -179,13 +193,9 @@ impl View for EditorGutterView {
 
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(&font_family).collect();
-        let attrs = Attrs::new()
-            .family(&family)
-            .color(dim)
-            .font_size(font_size);
+        let attrs = Attrs::new().family(&family).color(dim).font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
-        let current_line_attrs_list =
-            AttrsList::new(attrs.color(fg));
+        let current_line_attrs_list = AttrsList::new(attrs.color(fg));
         let show_relative = modal
             && modal_mode_relative_line_numbers
             && !is_insert
@@ -230,11 +240,21 @@ impl View for EditorGutterView {
             &self.editor,
             viewport,
             kind_is_normal,
-            &doc, added, modified, removed, line_height
+            &doc,
+            added,
+            modified,
+            removed,
+            line_height
         ) {
             error!("{err:?}");
         }
-        self.paint_sticky_headers(cx, kind_is_normal, sticky_header, shadow, header_bg, );
+        self.paint_sticky_headers(
+            cx,
+            kind_is_normal,
+            sticky_header,
+            shadow,
+            header_bg
+        );
     }
 
     fn debug_name(&self) -> std::borrow::Cow<'static, str> {

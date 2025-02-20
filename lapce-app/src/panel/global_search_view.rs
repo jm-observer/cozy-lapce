@@ -20,7 +20,7 @@ use lapce_xi_rope::find::CaseMatching;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     editor::location::{EditorLocation, EditorPosition},
     focus_text::focus_text,
     global_search::{GlobalSearchData, SearchMatchData},
@@ -28,7 +28,6 @@ use crate::{
     svg,
     window_workspace::{Focus, WindowWorkspaceData}
 };
-use crate::config::WithLapceConfig;
 
 pub fn global_search_panel(
     window_tab_data: WindowWorkspaceData,
@@ -166,24 +165,22 @@ fn search_result(
                             .style(move |s| {
                                 let (border_color, size) = config.with(|config| {
                                     (
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                                        , config.ui.icon_size() as f32
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                                        config.ui.icon_size() as f32
                                     )
                                 });
                                 s.margin_left(10.0)
                                     .margin_right(6.0)
                                     .size(size, size)
                                     .min_size(size, size)
-                                    .color(
-                                        border_color
-                                    )
+                                    .color(border_color)
                             }),
                             svg(move || config.with_file_svg(&path).0).style(
                                 move |s| {
                                     let (color, size) = config.with(|config| {
                                         (
-                                            config.file_svg(&style_path).1
-                                            , config.ui.icon_size() as f32
+                                            config.file_svg(&style_path).1,
+                                            config.ui.icon_size() as f32
                                         )
                                     });
                                     // let size = config.ui.icon_size() as f32;
@@ -247,9 +244,9 @@ fn search_result(
 
                                 focus_text(
                                     move || {
-                                        let content = if config.with(|config| config.ui
-                                            .trim_search_results_whitespace)
-                                        {
+                                        let content = if config.with(|config| {
+                                            config.ui.trim_search_results_whitespace
+                                        }) {
                                             m.line_content.trim()
                                         } else {
                                             &m.line_content
@@ -257,10 +254,9 @@ fn search_result(
                                         format!("{}: {content}", m.line,)
                                     },
                                     move || {
-                                        let mut offset = if config.with(|config| config
-                                            .ui
-                                            .trim_search_results_whitespace)
-                                        {
+                                        let mut offset = if config.with(|config| {
+                                            config.ui.trim_search_results_whitespace
+                                        }) {
                                             line_content.trim_start().len() as i32
                                                 - line_content.len() as i32
                                         } else {
@@ -280,8 +276,10 @@ fn search_result(
                                 .style(move |s| {
                                     let (hbg, icon_size) = config.with(|config| {
                                         (
-                                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                                            , config.ui.icon_size()
+                                            config.color(
+                                                LapceColor::PANEL_HOVERED_BACKGROUND
+                                            ),
+                                            config.ui.icon_size()
                                         )
                                     });
                                     let icon_size = icon_size as f32;

@@ -140,10 +140,12 @@ impl CodeActionData {
     }
 
     pub fn next_page(&self) {
-        let line_height = self.common.config.with_untracked(|x| x.editor.line_height() as f64);
-        let count = ((self.layout_rect.size().height
-            / line_height)
-            .floor() as usize)
+        let line_height = self
+            .common
+            .config
+            .with_untracked(|x| x.editor.line_height() as f64);
+        let count = ((self.layout_rect.size().height / line_height).floor()
+            as usize)
             .saturating_sub(1);
         let active = self.active.get_untracked();
         let new = Movement::Down.update_index(
@@ -156,11 +158,13 @@ impl CodeActionData {
     }
 
     pub fn previous_page(&self) {
-        let line_height = self.common.config.with_untracked(|x| x.editor.line_height() as f64);
+        let line_height = self
+            .common
+            .config
+            .with_untracked(|x| x.editor.line_height() as f64);
 
-        let count = ((self.layout_rect.size().height
-            / line_height)
-            .floor() as usize)
+        let count = ((self.layout_rect.size().height / line_height).floor()
+            as usize)
             .saturating_sub(1);
         let active = self.active.get_untracked();
         let new = Movement::Up.update_index(

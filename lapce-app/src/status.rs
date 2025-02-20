@@ -4,9 +4,7 @@ use doc::lines::mode::{Mode, VisualMode};
 use floem::{
     View,
     event::EventPropagation,
-    reactive::{
-        Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo
-    },
+    reactive::{Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo},
     style::{AlignItems, CursorStyle, Display, FlexWrap},
     views::{Decorators, dyn_stack, label, stack}
 };
@@ -22,7 +20,7 @@ use lsp_types::{DiagnosticSeverity, ProgressToken};
 use crate::{
     app::clickable_icon,
     command::LapceWorkbenchCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     editor::EditorData,
     listener::Listener,
     palette::kind::PaletteKind,
@@ -30,7 +28,6 @@ use crate::{
     svg,
     window_workspace::{WindowWorkspaceData, WorkProgress}
 };
-use crate::config::WithLapceConfig;
 
 pub fn status(
     window_tab_data: WindowWorkspaceData,
@@ -110,15 +107,9 @@ pub fn status(
                     )
                 };
                 let (modal, bg, fg) = config.with(|config| {
-                    (
-                        config.core.modal, config.color(bg), config.color(fg)
-                    )
+                    (config.core.modal, config.color(bg), config.color(fg))
                 });
-                let display = if modal {
-                    Display::Flex
-                } else {
-                    Display::None
-                };
+                let display = if modal { Display::Flex } else { Display::None };
 
                 s.display(display)
                     .padding_horiz(10.0)
@@ -132,11 +123,11 @@ pub fn status(
                 svg(move || config.with_ui_svg(LapceIcons::SCM)).style(move |s| {
                     let (icon_size, bg) = config.with(|config| {
                         (
-                            config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                            config.ui.icon_size() as f32,
+                            config.color(LapceColor::LAPCE_ICON_ACTIVE)
                         )
                     });
-                    s.size(icon_size, icon_size)
-                        .color(bg)
+                    s.size(icon_size, icon_size).color(bg)
                 }),
                 label(branch).style(move |s| {
                     s.margin_left(10.0)
@@ -180,11 +171,11 @@ pub fn status(
                         move |s| {
                             let (size, bg) = config.with(|config| {
                                 (
-                                    config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                    config.ui.icon_size() as f32,
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                 )
                             });
-                            s.size(size, size)
-                                .color(bg)
+                            s.size(size, size).color(bg)
                         }
                     ),
                     label(move || diagnostic_count.get().0.to_string()).style(
@@ -200,12 +191,11 @@ pub fn status(
                         move |s| {
                             let (size, bg) = config.with(|config| {
                                 (
-                                    config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                    config.ui.icon_size() as f32,
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                 )
                             });
-                            s.size(size, size)
-                                .margin_left(5.0)
-                                .color(bg)
+                            s.size(size, size).margin_left(5.0).color(bg)
                         }
                     ),
                     label(move || diagnostic_count.get().1.to_string()).style(
@@ -227,7 +217,9 @@ pub fn status(
                         .items_center()
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer).background(
-                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.with_color(
+                                    LapceColor::PANEL_HOVERED_BACKGROUND
+                                )
                             )
                         })
                 })
@@ -412,7 +404,9 @@ pub fn status(
     .style(move |s| {
         let (caret_color, bg, status_height) = config.with(|config| {
             (
-                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::STATUS_BACKGROUND), config.ui.status_height() as f32
+                config.color(LapceColor::LAPCE_BORDER),
+                config.color(LapceColor::STATUS_BACKGROUND),
+                config.ui.status_height() as f32
             )
         });
         s.border_top(1.0)
@@ -476,7 +470,8 @@ fn status_text<S: std::fmt::Display + 'static>(
         };
         let (caret_color, bg) = config.with(|config| {
             (
-                config.color(LapceColor::STATUS_FOREGROUND), config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                config.color(LapceColor::STATUS_FOREGROUND),
+                config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
             )
         });
         s.display(display)
@@ -484,10 +479,7 @@ fn status_text<S: std::fmt::Display + 'static>(
             .padding_horiz(10.0)
             .items_center()
             .color(caret_color)
-            .hover(|s| {
-                s.cursor(CursorStyle::Pointer)
-                    .background(bg)
-            })
+            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg))
             .selectable(false)
     })
 }

@@ -18,7 +18,6 @@ use floem::{
     style::CursorStyle,
     views::{Decorators, clip, dyn_stack, empty, label, stack}
 };
-use floem::taffy::prelude::line;
 use lapce_core::{
     editor_tab::DiffEditorInfo,
     icon::LapceIcons,
@@ -233,7 +232,8 @@ pub fn diff_show_more_section_view(
         let editor_view = right_editor_view.get();
         if let EditorViewKind::Diff(diff_info) = editor_view {
             let viewport = viewport.get();
-            let line_height = config.with_untracked(|config| config.editor.line_height() as f64);
+            let line_height =
+                config.with_untracked(|config| config.editor.line_height() as f64);
 
             let min_line = (viewport.y0 / line_height).floor() as usize;
             let max_line = (viewport.y1 / line_height).ceil() as usize;
@@ -307,11 +307,11 @@ pub fn diff_show_more_section_view(
                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
                     let (caret_color, size) = config.with(|config| {
                         (
-                            config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                            config.color(LapceColor::EDITOR_FOREGROUND),
+                            config.ui.icon_size() as f32
                         )
                     });
-                    s.size(size, size)
-                        .color(caret_color)
+                    s.size(size, size).color(caret_color)
                 }),
                 label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
             ))
@@ -350,11 +350,11 @@ pub fn diff_show_more_section_view(
                     move |s| {
                         let (caret_color, size) = config.with(|config| {
                             (
-                                config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                                config.color(LapceColor::EDITOR_FOREGROUND),
+                                config.ui.icon_size() as f32
                             )
                         });
-                        s.size(size, size)
-                            .color(caret_color)
+                        s.size(size, size).color(caret_color)
                     }
                 ),
                 label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
@@ -394,11 +394,11 @@ pub fn diff_show_more_section_view(
                     move |s| {
                         let (caret_color, size) = config.with(|config| {
                             (
-                                config.color(LapceColor::EDITOR_FOREGROUND), config.ui.icon_size() as f32
+                                config.color(LapceColor::EDITOR_FOREGROUND),
+                                config.ui.icon_size() as f32
                             )
                         });
-                        s.size(size, size)
-                            .color(caret_color)
+                        s.size(size, size).color(caret_color)
                     }
                 ),
                 label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
@@ -434,7 +434,7 @@ pub fn diff_show_more_section_view(
             })
         ))
         .style(move |s| {
-            let line_height = line_height.get() ;
+            let line_height = line_height.get();
             s.absolute()
                 .width_pct(100.0)
                 .height(line_height)
@@ -449,9 +449,7 @@ pub fn diff_show_more_section_view(
     };
 
     stack((
-        empty().style(move |s| {
-            s.height(line_height.get() as f32 + 1.0)
-        }),
+        empty().style(move |s| s.height(line_height.get() as f32 + 1.0)),
         clip(
             dyn_stack(each_fn, key_fn, view_fn)
                 .style(|s| s.flex_col().size_pct(100.0, 100.0))

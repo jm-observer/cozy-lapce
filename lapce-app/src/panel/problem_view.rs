@@ -5,8 +5,7 @@ use floem::{
     View,
     peniko::Color,
     reactive::{
-        SignalGet, SignalUpdate, SignalWith, create_effect,
-        create_rw_signal
+        SignalGet, SignalUpdate, SignalWith, create_effect, create_rw_signal
     },
     style::{CursorStyle, Style},
     views::{Decorators, container, dyn_stack, label, scroll, stack}
@@ -21,7 +20,7 @@ use lsp_types::{DiagnosticRelatedInformation, DiagnosticSeverity};
 use super::view::PanelBuilder;
 use crate::{
     command::InternalCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     doc::EditorDiagnostic,
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -29,7 +28,6 @@ use crate::{
     svg,
     window_workspace::WindowWorkspaceData
 };
-use crate::config::WithLapceConfig;
 
 pub fn problem_panel(
     window_tab_data: WindowWorkspaceData,
@@ -147,11 +145,9 @@ fn file_view(
         DiagnosticSeverity::ERROR => LapceIcons::ERROR,
         _ => LapceIcons::WARNING
     };
-    let icon_color = move || {
-        match severity {
-            DiagnosticSeverity::ERROR => config.with_color(LapceColor::LAPCE_ERROR),
-            _ => config.with_color(LapceColor::LAPCE_WARN)
-        }
+    let icon_color = move || match severity {
+        DiagnosticSeverity::ERROR => config.with_color(LapceColor::LAPCE_ERROR),
+        _ => config.with_color(LapceColor::LAPCE_WARN)
     };
 
     let file_name = path
@@ -191,8 +187,8 @@ fn file_view(
             .style(move |s| {
                 let (border_color, icon_size) = config.with(|config| {
                     (
-                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                        , config.ui.icon_size()
+                        config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                        config.ui.icon_size()
                     )
                 });
                 s.width_pct(100.0)
@@ -200,9 +196,7 @@ fn file_view(
                     .padding_left(10.0 + (icon_size as f32 + 6.0) * 2.0)
                     .padding_right(10.0)
                     .hover(|s| {
-                        s.cursor(CursorStyle::Pointer).background(
-                            border_color
-                        )
+                        s.cursor(CursorStyle::Pointer).background(border_color)
                     })
             }),
             stack((
@@ -216,21 +210,16 @@ fn file_view(
                 .style(move |s| {
                     let (border_color, icon_size) = config.with(|config| {
                         (
-                            config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                            , config.ui.icon_size()
+                            config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                            config.ui.icon_size()
                         )
                     });
                     let size = icon_size as f32;
-                    s.margin_right(6.0)
-                        .size(size, size)
-                        .color(border_color)
+                    s.margin_right(6.0).size(size, size).color(border_color)
                 }),
                 svg(move || config.with_file_svg(&path).0).style(move |s| {
                     let (color, icon_size) = config.with(|config| {
-                        (
-                            config.file_svg(&style_path).1
-                            , config.ui.icon_size()
-                        )
+                        (config.file_svg(&style_path).1, config.ui.icon_size())
                     });
                     let size = icon_size as f32;
                     s.min_width(size)
@@ -382,16 +371,15 @@ fn related_view(
                 .style(move |s| {
                     let (icon_size, color) = config.with(|config| {
                         (
-                            config.ui.icon_size() as f32, config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                            )
+                            config.ui.icon_size() as f32,
+                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        )
                     });
                     s.padding_left(10.0 + (icon_size + 6.0) * 4.0)
                         .padding_right(10.0)
                         .width_pct(100.0)
                         .min_width(0.0)
-                        .hover(|s| {
-                            s.cursor(CursorStyle::Pointer).background(color)
-                        })
+                        .hover(|s| s.cursor(CursorStyle::Pointer).background(color))
                 })
             }
         )
@@ -400,11 +388,11 @@ fn related_view(
             svg(move || config.with_ui_svg(LapceIcons::LINK)).style(move |s| {
                 let (size, color) = config.with(|config| {
                     (
-                        config.ui.icon_size() as f32, config.color(LapceColor::EDITOR_DIM)
+                        config.ui.icon_size() as f32,
+                        config.color(LapceColor::EDITOR_DIM)
                     )
                 });
-                s.size(size, size)
-                    .color(color)
+                s.size(size, size).color(color)
             }),
             label(|| " ".to_string()).style(move |s| s.selectable(false))
         ))

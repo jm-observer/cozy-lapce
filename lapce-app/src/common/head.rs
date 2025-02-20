@@ -15,13 +15,13 @@ use lapce_core::icon::LapceIcons;
 use crate::{
     app::clickable_icon,
     config::{
+        WithLapceConfig,
         color::LapceColor,
         ui::{TabCloseButton, TabSeparatorHeight}
     },
     svg,
     window_workspace::WindowWorkspaceData
 };
-use crate::config::WithLapceConfig;
 
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
@@ -79,9 +79,9 @@ pub fn common_tab_header<T: Clone + 'static>(
     .style(move |s| {
         let (border_color, bg, header_height) = config.with(|config| {
             (
-                config.color(LapceColor::LAPCE_BORDER)
-             , config.color(LapceColor::PANEL_BACKGROUND)
-             , config.ui.header_height()
+                config.color(LapceColor::LAPCE_BORDER),
+                config.color(LapceColor::PANEL_BACKGROUND),
+                config.ui.header_height()
             )
         });
         s.items_center()
@@ -101,13 +101,17 @@ fn tooltip_tip<V: View + 'static>(
     child: V
 ) -> impl IntoView {
     container(child).style(move |s| {
-        let (border, shadow, fg, bg, font_size, font_family) = config.with(|config| {
-            (config.color(LapceColor::LAPCE_BORDER)
-             ,config.color(LapceColor::LAPCE_DROPDOWN_SHADOW)
-                           ,config.color(LapceColor::TOOLTIP_FOREGROUND)
-                                         ,config.color(LapceColor::TOOLTIP_BACKGROUND)
-            ,config.ui.font_size(), config.ui.font_family.clone())
-        });
+        let (border, shadow, fg, bg, font_size, font_family) =
+            config.with(|config| {
+                (
+                    config.color(LapceColor::LAPCE_BORDER),
+                    config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
+                    config.color(LapceColor::TOOLTIP_FOREGROUND),
+                    config.color(LapceColor::TOOLTIP_BACKGROUND),
+                    config.ui.font_size(),
+                    config.ui.font_family.clone()
+                )
+            });
         s.padding_horiz(10.0)
             .padding_vert(5.0)
             .font_size(font_size as f32)
@@ -496,7 +500,8 @@ impl<T: Clone + 'static> Tabs<T> {
             empty()
                 .style(move |s| {
                     s.absolute().height_full().border_color(
-                        config.with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                        config
+                            .with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                             .multiply_alpha(0.5)
                     )
                 })

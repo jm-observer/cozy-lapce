@@ -33,13 +33,12 @@ use regex::Regex;
 use super::{panel::TerminalPanelData, raw::RawTerminal};
 use crate::{
     command::InternalCommand,
-    config::{LapceConfig, color::LapceColor},
+    config::{LapceConfig, WithLapceConfig, color::LapceColor},
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     terminal::data::TerminalData,
     window_workspace::Focus
 };
-use crate::config::WithLapceConfig;
 
 /// Threshold used for double_click/triple_click.
 const CLICK_THRESHOLD: u128 = 400;
@@ -156,8 +155,10 @@ pub fn terminal_view(
 impl TerminalView {
     fn char_size(&self) -> Size {
         let (font_family, font_size) = self.config.with_untracked(|config| {
-        (config.terminal_font_family().to_string(),
-        config.terminal_font_size())
+            (
+                config.terminal_font_family().to_string(),
+                config.terminal_font_size()
+            )
         });
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(&font_family).collect();
@@ -168,9 +169,9 @@ impl TerminalView {
     }
 
     fn terminal_size(&self) -> (usize, usize) {
-        let line_height = self.config.with_untracked(|config| {
-            config.terminal_line_height()as f64
-        });
+        let line_height = self
+            .config
+            .with_untracked(|config| config.terminal_line_height() as f64);
         let char_width = self.char_size().width;
         let width = (self.size.width / char_width).floor() as usize;
         let height = (self.size.height / line_height).floor() as usize;
@@ -328,7 +329,9 @@ impl TerminalView {
         let raw = self.raw.read();
         let col = (pos.x / self.char_size().width) as usize;
         let line_no = pos.y as i32
-            / (self.config.with(|config| config.terminal_line_height() as i32))
+            / (self
+                .config
+                .with(|config| config.terminal_line_height() as i32))
             - raw.term.grid().display_offset() as i32;
         alacritty_terminal::index::Point::new(
             alacritty_terminal::index::Line(line_no),
@@ -342,11 +345,19 @@ impl TerminalView {
         content: RenderableContent,
         line_height: f64,
         char_size: Size,
-        config: &LapceConfig, cursor: Color, error: Color, caret: Color, terminal_font_family: &str, terminal_font_size: usize, terminal_bg: Color
+        config: &LapceConfig,
+        cursor: Color,
+        error: Color,
+        caret: Color,
+        terminal_font_family: &str,
+        terminal_font_size: usize,
+        terminal_bg: Color
     ) {
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(&terminal_font_family).collect();
-        let attrs = Attrs::new().family(&family).font_size(terminal_font_size as f32);
+        let attrs = Attrs::new()
+            .family(&family)
+            .font_size(terminal_font_size as f32);
 
         let char_width = char_size.width;
 
@@ -373,7 +384,10 @@ impl TerminalView {
                     cx,
                     &line_content,
                     line_height,
-                    char_width, cursor, error, caret
+                    char_width,
+                    cursor,
+                    error,
+                    caret
                 );
                 line_content.y = y;
                 line_content.bg.clear();
@@ -428,7 +442,15 @@ impl TerminalView {
                 line_content.chars.push((cell.c, attrs, x, char_y));
             }
         }
-        self.paint_line_content(cx, &line_content, line_height, char_width, cursor, error, caret);
+        self.paint_line_content(
+            cx,
+            &line_content,
+            line_height,
+            char_width,
+            cursor,
+            error,
+            caret
+        );
     }
 
     fn paint_line_content(
@@ -436,7 +458,10 @@ impl TerminalView {
         cx: &mut PaintCx,
         line_content: &TerminalLineContent,
         line_height: f64,
-        char_width: f64,cursor: Color, error: Color, caret: Color
+        char_width: f64,
+        cursor: Color,
+        error: Color,
+        caret: Color
     ) {
         for (start, end, bg) in &line_content.bg {
             let rect = Size::new(
@@ -710,11 +735,35 @@ impl View for TerminalView {
             );
         }
 
-        let (cursor, error, caret, terminal_font_family, terminal_font_size, terminal_bg) =
-        (config.color(LapceColor::EDITOR_CARET), config.color(LapceColor::TERMINAL_CURSOR), config.color(LapceColor::LAPCE_ERROR),config.terminal_font_family()
-        , config.terminal_font_size(), config.color(LapceColor::TERMINAL_BACKGROUND));
+        let (
+            cursor,
+            error,
+            caret,
+            terminal_font_family,
+            terminal_font_size,
+            terminal_bg
+        ) = (
+            config.color(LapceColor::EDITOR_CARET),
+            config.color(LapceColor::TERMINAL_CURSOR),
+            config.color(LapceColor::LAPCE_ERROR),
+            config.terminal_font_family(),
+            config.terminal_font_size(),
+            config.color(LapceColor::TERMINAL_BACKGROUND)
+        );
 
-        self.paint_content(cx, content, line_height, char_size, &config, cursor, error, caret, terminal_font_family, terminal_font_size, terminal_bg);
+        self.paint_content(
+            cx,
+            content,
+            line_height,
+            char_size,
+            &config,
+            cursor,
+            error,
+            caret,
+            terminal_font_family,
+            terminal_font_size,
+            terminal_bg
+        );
     }
 }
 

@@ -6,8 +6,8 @@ use floem::{
     event::{Event, EventListener},
     prelude::text_input,
     reactive::{
-        Memo, RwSignal, SignalGet, SignalUpdate, SignalWith,
-        create_effect, create_memo, create_rw_signal, create_signal
+        Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_effect,
+        create_memo, create_rw_signal, create_signal
     },
     style::CursorStyle,
     views::{
@@ -19,14 +19,13 @@ use itertools::Itertools;
 
 use crate::{
     command::LapceCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     keypress::{
         KeyPressData,
         keymap::{KeyMap, KeyMapPress}
     },
     window_workspace::CommonData
 };
-use crate::config::WithLapceConfig;
 
 #[derive(Clone)]
 pub struct KeymapPicker {
@@ -287,16 +286,14 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
             .style(move |s| {
                 let (bg, border_color) = config.with(|config| {
                     (
-                        config.color(LapceColor::EDITOR_CURRENT_LINE)
-                        , config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::EDITOR_CURRENT_LINE),
+                        config.color(LapceColor::LAPCE_BORDER)
                     )
                 });
                 s.items_center()
                     .height(ui_line_height() as f32)
                     .width_pct(100.0)
-                    .apply_if(i % 2 > 0, |s| {
-                        s.background(bg)
-                    })
+                    .apply_if(i % 2 > 0, |s| s.background(bg))
                     .border_bottom(1.0)
                     .border_color(border_color)
             })
@@ -365,8 +362,8 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
         .style(move |s| {
             let (bg, border_color) = config.with(|config| {
                 (
-                    config.color(LapceColor::EDITOR_CURRENT_LINE)
-                    , config.color(LapceColor::LAPCE_BORDER)
+                    config.color(LapceColor::EDITOR_CURRENT_LINE),
+                    config.color(LapceColor::LAPCE_BORDER)
                 )
             });
             s.font_bold()
@@ -457,8 +454,8 @@ fn keyboard_picker_view(
             .style(move |s| {
                 let (bg, border_color) = config.with(|config| {
                     (
-                        config.color(LapceColor::EDITOR_CURRENT_LINE)
-                        , config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::EDITOR_CURRENT_LINE),
+                        config.color(LapceColor::LAPCE_BORDER)
                     )
                 });
                 s.items_center()
@@ -475,7 +472,13 @@ fn keyboard_picker_view(
                 text("Save")
                     .style(move |s| {
                         let (lb, hbg, abg) = config.with(|config| {
-                            (config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_HOVERED_BACKGROUND), config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND))
+                            (
+                                config.color(LapceColor::LAPCE_BORDER),
+                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                config.color(
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                )
+                            )
                         });
                         s.width(100.0)
                             .justify_center()
@@ -484,13 +487,9 @@ fn keyboard_picker_view(
                             .border_radius(6.0)
                             .border_color(lb)
                             .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(
-                                    hbg
-                                )
+                                s.cursor(CursorStyle::Pointer).background(hbg)
                             })
-                            .active(|s| {
-                                s.background(abg)
-                            })
+                            .active(|s| s.background(abg))
                     })
                     .on_click_stop(move |_| {
                         let keymap = picker.keymap.get_untracked();
@@ -510,7 +509,13 @@ fn keyboard_picker_view(
                 text("Cancel")
                     .style(move |s| {
                         let (lb, hbg, abg) = config.with(|config| {
-                            (config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_HOVERED_BACKGROUND), config.color(LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND))
+                            (
+                                config.color(LapceColor::LAPCE_BORDER),
+                                config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                config.color(
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                )
+                            )
                         });
                         s.margin_left(20.0)
                             .width(100.0)
@@ -522,9 +527,7 @@ fn keyboard_picker_view(
                             .hover(|s| {
                                 s.cursor(CursorStyle::Pointer).background(hbg)
                             })
-                            .active(|s| {
-                                s.background(abg)
-                            })
+                            .active(|s| s.background(abg))
                     })
                     .on_click_stop(move |_| {
                         picker.keymap.set(None);
@@ -540,8 +543,11 @@ fn keyboard_picker_view(
         ))
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
-            let (lb, hbg,) = config.with(|config| {
-                (config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND))
+            let (lb, hbg) = config.with(|config| {
+                (
+                    config.color(LapceColor::LAPCE_BORDER),
+                    config.color(LapceColor::PANEL_BACKGROUND)
+                )
             });
             s.items_center()
                 .flex_col()

@@ -3,9 +3,7 @@ use floem::{
     event::EventListener,
     peniko::Color,
     prelude::palette,
-    reactive::{
-        RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
-    },
+    reactive::{RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal},
     style::CursorStyle,
     text::Style as FontStyle,
     views::{
@@ -27,7 +25,7 @@ use super::view::PanelBuilder;
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     debug::{DapVariable, StackTraceData, update_breakpoints},
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
@@ -36,7 +34,6 @@ use crate::{
     terminal::panel::TerminalPanelData,
     window_workspace::WindowWorkspaceData
 };
-use crate::config::WithLapceConfig;
 
 pub fn debug_panel(
     window_tab_data: WindowWorkspaceData,
@@ -315,23 +312,17 @@ fn debug_processes(
                 .style(move |s| {
                     let (cbg, hbg) = config.with(|config| {
                         (
-                            config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
-                            , config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                            config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
+                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                         )
                     });
                     s.padding_vert(6.0)
                         .width_pct(100.0)
                         .items_center()
-                        .apply_if(is_active(), |s| {
-                            s.background(
-                                cbg
-                            )
-                        })
+                        .apply_if(is_active(), |s| s.background(cbg))
                         .hover(|s| {
-                            s.cursor(CursorStyle::Pointer).background(
-                                hbg
-                                    .multiply_alpha(0.3)
-                            )
+                            s.cursor(CursorStyle::Pointer)
+                                .background(hbg.multiply_alpha(0.3))
                         })
                 })
             }
@@ -404,8 +395,8 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                                         config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                     } else {
                                         Color::TRANSPARENT
-                                    }
-                                    , config.ui.icon_size() as f32
+                                    },
+                                    config.ui.icon_size() as f32
                                 )
                             });
                             s.size(size, size).margin_left(10.0).color(color)
@@ -455,11 +446,9 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             .min_width_pct(100.0)
                             .hover(|s| {
                                 s.apply_if(reference > 0, |s| {
-                                    s.background(
-                                        config.with_color(
-                                            LapceColor::PANEL_HOVERED_BACKGROUND
-                                        )
-                                    )
+                                    s.background(config.with_color(
+                                        LapceColor::PANEL_HOVERED_BACKGROUND
+                                    ))
                                 })
                             })
                     })
@@ -526,7 +515,9 @@ fn debug_stack_frames(
                     label(move || frame.name.clone()).style(move |s| {
                         s.hover(|s| {
                             s.background(
-                                config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                                config.with_color(
+                                    LapceColor::PANEL_HOVERED_BACKGROUND
+                                )
                             )
                         })
                     }),
@@ -562,21 +553,18 @@ fn debug_stack_frames(
                 .style(move |s| {
                     let (ed, hbg) = config.with(|config| {
                         (
-                            config.color(LapceColor::EDITOR_DIM)
-                            , config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                            config.color(LapceColor::EDITOR_DIM),
+                            config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                         )
                     });
                     s.padding_left(20.0)
                         .padding_right(10.0)
                         .min_width_pct(100.0)
-                        .apply_if(!has_source, |s| {
-                            s.color(ed)
-                        })
+                        .apply_if(!has_source, |s| s.color(ed))
                         .hover(|s| {
-                            s.background(
-                                hbg
-                            )
-                            .apply_if(has_source, |s| s.cursor(CursorStyle::Pointer))
+                            s.background(hbg).apply_if(has_source, |s| {
+                                s.cursor(CursorStyle::Pointer)
+                            })
                         })
                 })
             }
@@ -777,9 +765,9 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     .style(move |s| {
                         s.items_center().padding_horiz(10.0).width_pct(100.0).hover(
                             |s| {
-                                s.background(
-                                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                                )
+                                s.background(config.with_color(
+                                    LapceColor::PANEL_HOVERED_BACKGROUND
+                                ))
                             }
                         )
                     })

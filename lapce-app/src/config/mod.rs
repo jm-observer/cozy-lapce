@@ -6,9 +6,11 @@ use std::{
 };
 
 use ::core::slice;
-use floem::{peniko::Color, prelude::palette};
-use floem::prelude::{SignalGet, SignalWith};
-use floem::reactive::ReadSignal;
+use floem::{
+    peniko::Color,
+    prelude::{SignalGet, SignalWith, palette},
+    reactive::ReadSignal
+};
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -34,8 +36,10 @@ use self::{
     terminal::TerminalConfig,
     ui::UIConfig
 };
-use crate::{command::InternalCommand, window_workspace::CommonData};
-use crate::config::ui::TabCloseButton;
+use crate::{
+    command::InternalCommand, config::ui::TabCloseButton,
+    window_workspace::CommonData
+};
 
 pub mod color;
 pub mod color_theme;
@@ -114,13 +118,13 @@ pub struct WithLapceConfig {
 
 impl WithLapceConfig {
     pub fn new(config: ReadSignal<LapceConfig>) -> Self {
-        Self {
-            config
-        }
+        Self { config }
     }
+
     pub fn get(&self) -> LapceConfig {
         self.config.get()
     }
+
     pub fn get_untracked(&self) -> LapceConfig {
         self.config.get_untracked()
     }
@@ -133,50 +137,37 @@ impl WithLapceConfig {
         self.config.with(f)
     }
 
-    pub fn with_ui_svg(&self, svg: &'static str) -> String{
-        self.with(|config| {
-            config.ui_svg(svg)
-        })
+    pub fn with_ui_svg(&self, svg: &'static str) -> String {
+        self.with(|config| config.ui_svg(svg))
     }
+
     pub fn with_file_svg(&self, path: &Path) -> (String, Option<Color>) {
-        self.with(|config| {
-            config.file_svg(path)
-        })
+        self.with(|config| config.file_svg(path))
     }
 
     pub fn with_tab_close_button(&self) -> TabCloseButton {
-        self.with(|config| {
-            config.ui.tab_close_button
-        })
-    }
-    pub fn with_color(&self, color: &str) -> Color{
-        self.with(|config| {
-            config.color(color)
-        })
+        self.with(|config| config.ui.tab_close_button)
     }
 
-    pub fn with_font_size(&self) -> usize{
-        self.with(|config| {
-            config.ui.font_size()
-        })
+    pub fn with_color(&self, color: &str) -> Color {
+        self.with(|config| config.color(color))
     }
 
-    pub fn with_icon_size(&self) -> usize{
-        self.with(|config| {
-            config.ui.icon_size()
-        })
+    pub fn with_font_size(&self) -> usize {
+        self.with(|config| config.ui.font_size())
     }
 
-    pub fn with_line_height(&self) -> usize{
-        self.with(|config| {
-            config.editor.line_height()
-        })
+    pub fn with_icon_size(&self) -> usize {
+        self.with(|config| config.ui.icon_size())
+    }
+
+    pub fn with_line_height(&self) -> usize {
+        self.with(|config| config.editor.line_height())
     }
 
     // pub fn get(&self) -> LapceConfig{
     //     self.config.get()
     // }
-
 }
 
 pub struct UiColor {

@@ -29,7 +29,7 @@ use super::{data::FileExplorerData, node::FileNodeVirtualList};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     editor_tab::{EditorTabChildId, EditorTabManageData},
     panel::view::PanelBuilder,
     plugin::PluginData,
@@ -37,7 +37,6 @@ use crate::{
     svg,
     window_workspace::{Focus, WindowWorkspaceData}
 };
-use crate::config::WithLapceConfig;
 
 /// Blends `foreground` with `background`.
 ///
@@ -85,7 +84,12 @@ pub fn file_explorer_panel(
             container(open_editors_view(window_tab_data.clone()))
                 .style(|s| s.size_full()),
             window_tab_data.panel.section_open(PanelSection::OpenEditor),
-            move |s| s.apply_if(!config.with_untracked(|x| x.ui.open_editors_visible), |s| s.hide())
+            move |s| {
+                s.apply_if(
+                    !config.with_untracked(|x| x.ui.open_editors_visible),
+                    |s| s.hide()
+                )
+            }
         )
         .add(
             "File Explorer",
@@ -197,8 +201,9 @@ fn file_node_text_view(
                         move |s| {
                             s.height(ui_line_height.get())
                                 .color(
-                                    config
-                                        .with_color(LapceColor::PANEL_FOREGROUND_DIM)
+                                    config.with_color(
+                                        LapceColor::PANEL_FOREGROUND_DIM
+                                    )
                                 )
                                 .selectable(false)
                         }
@@ -301,9 +306,16 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
             stack((
                 text_input_view,
                 label(move || err.clone()).style(move |s| {
-                    let (error_background_color, error_fg, editor_background_color) = config.with(|config| {
-                        (config.color(LapceColor::ERROR_LENS_ERROR_BACKGROUND), config.color(LapceColor::ERROR_LENS_ERROR_FOREGROUND), config.color(LapceColor::PANEL_CURRENT_BACKGROUND))
-                    });
+                    let (error_background_color, error_fg, editor_background_color) =
+                        config.with(|config| {
+                            (
+                                config
+                                    .color(LapceColor::ERROR_LENS_ERROR_BACKGROUND),
+                                config
+                                    .color(LapceColor::ERROR_LENS_ERROR_FOREGROUND),
+                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                            )
+                        });
 
                     let background_color = blend_colors(
                         editor_background_color,
@@ -366,14 +378,13 @@ fn file_explorer_view(
                     })
                     .style(move |s| {
                         let (size, color) = config.with(|config| {
-                            (config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                            (
+                                config.ui.icon_size() as f32,
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                            )
                         });
 
-                        let color = if is_dir {
-                            color
-                        } else {
-                            Color::TRANSPARENT
-                        };
+                        let color = if is_dir { color } else { Color::TRANSPARENT };
                         s.size(size, size)
                             .flex_shrink(0.0)
                             .margin_left(10.0)
@@ -399,24 +410,21 @@ fn file_explorer_view(
                         })
                         .style(move |s| {
                             let (size, color, file_svg) = config.with(|config| {
-                                (config.ui.icon_size() as f32, config.color(LapceColor::LAPCE_ICON_ACTIVE), kind_for_style
-                                    .path()
-                                    .and_then(|p| config.file_svg(p).1))
+                                (
+                                    config.ui.icon_size() as f32,
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                                    kind_for_style
+                                        .path()
+                                        .and_then(|p| config.file_svg(p).1)
+                                )
                             });
 
                             s.size(size, size)
                                 .flex_shrink(0.0)
                                 .margin_horiz(6.0)
-                                .apply_if(is_dir, |s| {
-                                    s.color(
-                                        color
-                                    )
-                                })
+                                .apply_if(is_dir, |s| s.color(color))
                                 .apply_if(!is_dir, |s| {
-                                    s.apply_opt(file_svg
-                                        ,
-                                        Style::color
-                                    )
+                                    s.apply_opt(file_svg, Style::color)
                                 })
                         })
                     },
@@ -430,19 +438,17 @@ fn file_explorer_view(
                             .padding_left((level * 10) as f32)
                             .align_items(AlignItems::Center)
                             .hover(|s| {
-                                s.background(
-                                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
-                                )
+                                s.background(config.with_color(
+                                    LapceColor::PANEL_HOVERED_BACKGROUND
+                                ))
                                 .cursor(CursorStyle::Pointer)
                             })
                             .apply_if(
                                 select.get().map(|x| x == kind).unwrap_or_default(),
                                 |x| {
-                                    x.background(
-                                        config.with_color(
-                                            LapceColor::PANEL_CURRENT_BACKGROUND
-                                        )
-                                    )
+                                    x.background(config.with_color(
+                                        LapceColor::PANEL_CURRENT_BACKGROUND
+                                    ))
                                 }
                             )
                     }
@@ -584,7 +590,10 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
         ))
         .style(move |s| {
             let (hbg, cbg) = config.with(|config| {
-                (config.color(LapceColor::PANEL_HOVERED_BACKGROUND), config.color(LapceColor::PANEL_CURRENT_BACKGROUND))
+                (
+                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                    config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                )
             });
             s.items_center()
                 .width_pct(100.0)
@@ -592,15 +601,9 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     active_editor_tab.get() == Some(editor_tab_id)
                         && editor_tab.with(|editor_tab| editor_tab.active)
                             == child_index.get(),
-                    |s| {
-                        s.background(
-                            cbg
-                        )
-                    }
+                    |s| s.background(cbg)
                 )
-                .hover(|s| {
-                    s.background(hbg)
-                })
+                .hover(|s| s.background(hbg))
         })
         .on_event_cont(EventListener::PointerDown, move |_| {
             editor_tab.update(|editor_tab| {

@@ -15,7 +15,7 @@ use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    config::LapceConfig,
+    config::{LapceConfig, color::LapceColor},
     db::{LapceDb, SaveEvent},
     local_task::{
         LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler,
@@ -24,7 +24,6 @@ use crate::{
     markdown::parse_markdown,
     plugin::{VoltIcon, VoltsInfo}
 };
-use crate::config::color::LapceColor;
 
 #[derive(Clone)]
 pub struct LocalTaskHandler {
@@ -51,10 +50,9 @@ impl LocalTaskHandler {
                             handle_notification_db_save_event(db, event).await;
                         });
                     }
-                }
-                // Shutdown => {
-                //     return;
-                // },
+                } /* Shutdown => {
+                   *     return;
+                   * }, */
             }
         }
     }
@@ -125,18 +123,34 @@ impl LocalTaskHandler {
             },
             LocalRequest::DownloadVoltReadme { info } => {
                 let pending = self.pending.clone();
-                let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) =
-                    (
-                        self.config.editor.font_family.clone(),
-                        self.config.color(LapceColor::EDITOR_FOREGROUND),
-                        self.config.style_colors(),
-                        self.config.ui.font_size() as f32,
-                        self.config.color(LapceColor::MARKDOWN_BLOCKQUOTE), self.config.color(LapceColor::EDITOR_LINK)
-                    )
-                ;
+                let (
+                    font_family,
+                    editor_fg,
+                    style_colors,
+                    font_size,
+                    markdown_blockquote,
+                    editor_link
+                ) = (
+                    self.config.editor.font_family.clone(),
+                    self.config.color(LapceColor::EDITOR_FOREGROUND),
+                    self.config.style_colors(),
+                    self.config.ui.font_size() as f32,
+                    self.config.color(LapceColor::MARKDOWN_BLOCKQUOTE),
+                    self.config.color(LapceColor::EDITOR_LINK)
+                );
                 let dir = self.directory.clone();
                 tokio::spawn(async move {
-                    let rs = handle_download_readme(&info, &dir, &font_family, editor_fg, &style_colors, font_size, markdown_blockquote, editor_link).await;
+                    let rs = handle_download_readme(
+                        &info,
+                        &dir,
+                        &font_family,
+                        editor_fg,
+                        &style_colors,
+                        font_size,
+                        markdown_blockquote,
+                        editor_link
+                    )
+                    .await;
                     handle_response(id, rs, pending);
                 });
             },
@@ -169,7 +183,13 @@ async fn handle_find_grammar(
 
 async fn handle_download_readme(
     volt: &VoltInfo,
-    directory: &Directory, font_family: &str, editor_fg: Color, style_colors: &HashMap<String, Color>, font_size: f32, markdown_blockquote: Color, editor_link: Color
+    directory: &Directory,
+    font_family: &str,
+    editor_fg: Color,
+    style_colors: &HashMap<String, Color>,
+    font_size: f32,
+    markdown_blockquote: Color,
+    editor_link: Color
 ) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
@@ -177,12 +197,31 @@ async fn handle_download_readme(
     );
     let resp = lapce_proxy::async_get_url(&url, None).await?;
     if resp.status() != 200 {
-        let text =
-            parse_markdown("Plugin doesn't have a README", 2.0,  directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link);
+        let text = parse_markdown(
+            "Plugin doesn't have a README",
+            2.0,
+            directory,
+            font_family,
+            editor_fg,
+            style_colors,
+            font_size,
+            markdown_blockquote,
+            editor_link
+        );
         return Ok(LocalResponse::DownloadVoltReadme { readme: text });
     }
     let text = resp.text().await?;
-    let text = parse_markdown(&text, 2.0, directory, font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link);
+    let text = parse_markdown(
+        &text,
+        2.0,
+        directory,
+        font_family,
+        editor_fg,
+        style_colors,
+        font_size,
+        markdown_blockquote,
+        editor_link
+    );
     Ok(LocalResponse::DownloadVoltReadme { readme: text })
 }
 

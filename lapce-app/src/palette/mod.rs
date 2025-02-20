@@ -148,7 +148,6 @@ impl PaletteData {
         });
         let kind = cx.create_rw_signal(None);
 
-        let input_str = cx.create_rw_signal(String::new());
         let preview_editor = main_split.editors.make_local(cx, common.clone());
         let has_preview = cx.create_rw_signal(false);
         let run_id = cx.create_rw_signal(0);
@@ -239,7 +238,7 @@ impl PaletteData {
             preselect_index,
             items,
             filtered_items,
-            input_str,
+            input_str: cx.create_rw_signal(String::new()),
             preview_editor,
             has_preview,
             input,
@@ -1069,44 +1068,46 @@ impl PaletteData {
 
     fn get_color_themes(&self) {
         let (items, name) = self.common.config.with_untracked(|config| {
-            (config
-                .color_theme_list()
-                .iter()
-                .map(|name| PaletteItem {
-                    content:     PaletteItemContent::ColorTheme { name: name.clone() },
-                    filter_text: name.clone(),
-                    score:       0,
-                    indices:     Vec::new()
-                })
-                .collect(),
-            config.color_theme.name.clone())
+            (
+                config
+                    .color_theme_list()
+                    .iter()
+                    .map(|name| PaletteItem {
+                        content:     PaletteItemContent::ColorTheme {
+                            name: name.clone()
+                        },
+                        filter_text: name.clone(),
+                        score:       0,
+                        indices:     Vec::new()
+                    })
+                    .collect(),
+                config.color_theme.name.clone()
+            )
         });
 
-        self.preselect_matching(
-            &items,
-            &name
-        );
+        self.preselect_matching(&items, &name);
         self.items.set(items);
     }
 
     fn get_icon_themes(&self) {
         let (items, name) = self.common.config.with_untracked(|config| {
-            (config
-                 .icon_theme_list()
-                 .iter()
-                 .map(|name| PaletteItem {
-                     content:     PaletteItemContent::IconTheme { name: name.clone() },
-                     filter_text: name.clone(),
-                     score:       0,
-                     indices:     Vec::new()
-                 })
-                 .collect(),
-             config.icon_theme.name.clone())
+            (
+                config
+                    .icon_theme_list()
+                    .iter()
+                    .map(|name| PaletteItem {
+                        content:     PaletteItemContent::IconTheme {
+                            name: name.clone()
+                        },
+                        filter_text: name.clone(),
+                        score:       0,
+                        indices:     Vec::new()
+                    })
+                    .collect(),
+                config.icon_theme.name.clone()
+            )
         });
-        self.preselect_matching(
-            &items,
-            &name
-        );
+        self.preselect_matching(&items, &name);
         self.items.set(items);
     }
 

@@ -28,19 +28,20 @@ pub trait LocalCallback: Send + FnOnce((u64, Result<LocalResponse>)) {}
 impl<F: Send + FnOnce((u64, Result<LocalResponse>))> LocalCallback for F {}
 
 enum LocalResponseHandler {
-    Callback(Box<dyn LocalCallback>)
-    // Chan(Sender<(u64, Result<LocalResponse>)>)
+    Callback(Box<dyn LocalCallback>) // Chan(Sender<(u64, Result<LocalResponse>)>)
 }
 
 impl LocalResponseHandler {
     fn invoke(self, id: u64, result: Result<LocalResponse>) {
         match self {
-            LocalResponseHandler::Callback(f) => f((id, result))
-            // LocalResponseHandler::Chan(tx) => {
-            //     if let Err(err) = tx.send((id, result)) {
-            //         log::error!("{:?}", err);
-            //     }
-            // },
+            LocalResponseHandler::Callback(f) => f((id, result)) /* LocalResponseHandler::Chan(tx) => {
+                                                                  *     if let
+                                                                  * Err(err) =
+                                                                  * tx.send((id,
+                                                                  * result)) {
+                                                                  *         log::error!("{:?}", err);
+                                                                  *     }
+                                                                  * }, */
         }
     }
 }
@@ -52,8 +53,7 @@ pub enum LocalRpc {
     },
     Notification {
         notification: LocalNotification
-    }
-    // Shutdown
+    } // Shutdown
 }
 
 #[derive(Debug)]

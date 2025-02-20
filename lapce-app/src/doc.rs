@@ -151,10 +151,14 @@ impl Doc {
         let queries_directory = common.directory.queries_directory.clone();
         let grammars_directory = common.directory.grammars_directory.clone();
         let syntax = Syntax::init(&path, &grammars_directory, &queries_directory);
-        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
-            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
-             config.editor.bracket_colorization_limit)
-        });
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
+            common.config.with_untracked(|config| {
+                (
+                    config.get_doc_editor_config(),
+                    config.editor.bracket_pair_colorization,
+                    config.editor.bracket_colorization_limit
+                )
+            });
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let buffer = Buffer::new("");
@@ -233,10 +237,14 @@ impl Doc {
     ) -> Self {
         let editor_id = EditorId::next();
         let cx = cx.create_child();
-        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
-            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
-             config.editor.bracket_colorization_limit)
-        });
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
+            common.config.with_untracked(|config| {
+                (
+                    config.get_doc_editor_config(),
+                    config.editor.bracket_pair_colorization,
+                    config.editor.bracket_colorization_limit
+                )
+            });
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
         let diagnostics = DiagnosticData {
@@ -306,10 +314,14 @@ impl Doc {
         common: Rc<CommonData>
     ) -> Self {
         let editor_id = EditorId::next();
-        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) = common.config.with_untracked(|config| {
-            (config.get_doc_editor_config(), config.editor.bracket_pair_colorization,
-             config.editor.bracket_colorization_limit)
-        });
+        let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
+            common.config.with_untracked(|config| {
+                (
+                    config.get_doc_editor_config(),
+                    config.editor.bracket_pair_colorization,
+                    config.editor.bracket_colorization_limit
+                )
+            });
         let syntax = if let DocContent::History(history) = &content {
             Syntax::init(
                 &history.path,

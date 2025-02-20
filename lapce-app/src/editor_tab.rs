@@ -25,14 +25,13 @@ use lapce_core::{
 use lapce_rpc::plugin::VoltID;
 
 use crate::{
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     doc::Doc,
     editor::{EditorData, diff::DiffEditorData, location::EditorLocation},
     main_split::Editors,
     plugin::PluginData,
     window_workspace::WindowWorkspaceData
 };
-use crate::config::WithLapceConfig;
 
 pub enum EditorTabChildSource {
     Editor { path: PathBuf, doc: Rc<Doc> },
@@ -141,9 +140,8 @@ impl EditorTabChildId {
 
                 let (icon, color, name, confirmed, is_pristine) = match path {
                     Some((ref path, confirmed, is_pritine)) => {
-                        let (svg, color) = config.with(|config| {
-                            config.file_svg(path)
-                        });
+                        let (svg, color) =
+                            config.with(|config| config.file_svg(path));
                         (
                             svg,
                             color,
@@ -157,7 +155,10 @@ impl EditorTabChildId {
                     },
                     None => {
                         let (svg, color) = config.with(|config| {
-                            (config.ui_svg(LapceIcons::FILE), config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                            (
+                                config.ui_svg(LapceIcons::FILE),
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                            )
                         });
                         (
                             svg,
@@ -214,19 +215,11 @@ impl EditorTabChildId {
                     | [None, Some((path, is_pristine))] => {
                         let file_name = format!(
                             "{} (Diff)",
-                            path.file_name()
-                                .unwrap_or_default()
-                                .to_string_lossy()
+                            path.file_name().unwrap_or_default().to_string_lossy()
                         );
-                        let (svg, color) = config.with(|config| {
-                            config.file_svg(&path)
-                        });
-                        (
-                            svg,
-                            color,
-                            file_name,
-                            is_pristine
-                        )
+                        let (svg, color) =
+                            config.with(|config| config.file_svg(&path));
+                        (svg, color, file_name, is_pristine)
                     },
                     [
                         Some((left_path, left_is_pristine)),
@@ -251,14 +244,12 @@ impl EditorTabChildId {
                     },
                     [None, None] => {
                         let (svg, color) = config.with(|config| {
-                            (config.ui_svg(LapceIcons::FILE), config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                            (
+                                config.ui_svg(LapceIcons::FILE),
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                            )
                         });
-                        (
-                            svg,
-                            Some(color),
-                            "local".to_string(),
-                            true
-                        )
+                        (svg, Some(color), "local".to_string(), true)
                     }
                 };
                 EditorTabChildViewInfo {
@@ -273,7 +264,8 @@ impl EditorTabChildId {
             EditorTabChildId::Settings(_) => create_memo(move |_| {
                 let (caret_color, ui_svg) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui_svg(LapceIcons::SETTINGS)
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                        config.ui_svg(LapceIcons::SETTINGS)
                     )
                 });
                 EditorTabChildViewInfo {
@@ -288,7 +280,8 @@ impl EditorTabChildId {
             EditorTabChildId::ThemeColorSettings(_) => create_memo(move |_| {
                 let (caret_color, ui_svg) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui_svg(LapceIcons::SYMBOL_COLOR)
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                        config.ui_svg(LapceIcons::SYMBOL_COLOR)
                     )
                 });
                 EditorTabChildViewInfo {
@@ -303,7 +296,8 @@ impl EditorTabChildId {
             EditorTabChildId::Keymap(_) => create_memo(move |_| {
                 let (caret_color, ui_svg) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui_svg(LapceIcons::KEYBOARD)
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                        config.ui_svg(LapceIcons::KEYBOARD)
                     )
                 });
                 EditorTabChildViewInfo {
@@ -331,7 +325,8 @@ impl EditorTabChildId {
                     .unwrap_or_else(|| id.name.clone());
                 let (caret_color, ui_svg) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui_svg(LapceIcons::EXTENSIONS)
+                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
+                        config.ui_svg(LapceIcons::EXTENSIONS)
                     )
                 });
                 EditorTabChildViewInfo {

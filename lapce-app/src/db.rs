@@ -38,8 +38,7 @@ pub enum SaveEvent {
 #[derive(Clone)]
 pub struct LapceDb {
     folder:           PathBuf,
-    workspace_folder: PathBuf
-    // save_tx:          Sender<SaveEvent>,
+    workspace_folder: PathBuf // save_tx:          Sender<SaveEvent>,
 }
 
 impl LapceDb {

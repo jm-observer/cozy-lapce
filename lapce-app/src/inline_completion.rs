@@ -220,7 +220,8 @@ impl InlineCompletionData {
     pub fn update_inline_completion(
         &self,
         doc: &Doc,
-        cursor_offset: usize, enable_inline_completion: bool
+        cursor_offset: usize,
+        enable_inline_completion: bool
     ) {
         if !enable_inline_completion {
             doc.clear_inline_completion();

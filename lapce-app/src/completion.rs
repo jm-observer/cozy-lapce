@@ -16,8 +16,7 @@ use lsp_types::{
 };
 use nucleo::Utf32Str;
 
-use crate::{editor::EditorData, snippet::Snippet};
-use crate::config::WithLapceConfig;
+use crate::{config::WithLapceConfig, editor::EditorData, snippet::Snippet};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CompletionStatus {
@@ -266,11 +265,10 @@ impl CompletionData {
 
     /// The amount of items that can be displayed in the current layout.
     fn display_count(&self) -> usize {
-        let line_height = self.config.with_untracked(|config | {
-            config.editor.line_height()
-        });
-        ((self.layout_rect.size().height / line_height as f64)
-            .floor() as usize)
+        let line_height = self
+            .config
+            .with_untracked(|config| config.editor.line_height());
+        ((self.layout_rect.size().height / line_height as f64).floor() as usize)
             .saturating_sub(1)
     }
 
@@ -318,9 +316,9 @@ impl CompletionData {
             return;
         }
 
-        let enable_completion_lens = self.config.with_untracked(|config| {
-            config.editor.enable_completion_lens
-        });
+        let enable_completion_lens = self
+            .config
+            .with_untracked(|config| config.editor.enable_completion_lens);
 
         if !enable_completion_lens {
             doc.clear_completion_lens();

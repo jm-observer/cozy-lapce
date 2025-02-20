@@ -728,33 +728,24 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                 .style(move |s| {
                     let (fg, bg, dim) = config.with(|config| {
                         (
-                            config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND), config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND), config.color(LapceColor::EDITOR_DIM)
+                            config
+                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
+                            config
+                                .color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
+                            config.color(LapceColor::EDITOR_DIM)
                         )
                     });
                     s.margin_left(10)
                         .padding_horiz(10)
                         .border_radius(6.0)
-                        .color(
-                            fg
-                        )
-                        .background(
-                            bg
-                        )
+                        .color(fg)
+                        .background(bg)
                         .hover(|s| {
-                            s.cursor(CursorStyle::Pointer).background(
-                                bg
-                                    .multiply_alpha(0.8)
-                            )
+                            s.cursor(CursorStyle::Pointer)
+                                .background(bg.multiply_alpha(0.8))
                         })
-                        .active(|s| {
-                            s.background(
-                                bg
-                                    .multiply_alpha(0.6)
-                            )
-                        })
-                        .disabled(|s| {
-                            s.background(dim)
-                        })
+                        .active(|s| s.background(bg.multiply_alpha(0.6)))
+                        .disabled(|s| s.background(dim))
                         .selectable(false)
                 })
                 .disabled(move || installing.map(|i| i.get()).unwrap_or(false))

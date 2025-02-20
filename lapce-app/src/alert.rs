@@ -10,11 +10,10 @@ use floem::{
 use lapce_core::icon::LapceIcons;
 
 use crate::{
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     svg,
     window_workspace::CommonData
 };
-use crate::config::WithLapceConfig;
 
 #[derive(Clone)]
 pub struct AlertButton {
@@ -87,15 +86,16 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                 (button.action)();
                             })
                             .style(move |s| {
-                                let (font_size, border_color, br_color, abr_color) = config.with(|config| {
-                                    (config.ui.font_size()
+                                let (font_size, border_color, br_color, abr_color) =
+                                    config.with(|config| {
+                                        (config.ui.font_size()
                                     , config.color(LapceColor::LAPCE_BORDER)
                                     ,config.color(
                                         LapceColor::PANEL_HOVERED_BACKGROUND
                                     ),config.color(
                                         LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
                                     ))
-                                });
+                                    });
                                 s.margin_top(10.0)
                                     .width_pct(100.0)
                                     .justify_center()
@@ -103,17 +103,12 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                     .line_height(1.6)
                                     .border(1.0)
                                     .border_radius(6.0)
-                                    .border_color(
-                                        border_color
-                                    )
+                                    .border_color(border_color)
                                     .hover(|s| {
-                                        s.cursor(CursorStyle::Pointer).background(
-                                            br_color
-                                        )
+                                        s.cursor(CursorStyle::Pointer)
+                                            .background(br_color)
                                     })
-                                    .active(|s| {
-                                        s.background(abr_color)
-                                    })
+                                    .active(|s| s.background(abr_color))
                             })
                     }
                 )
@@ -123,15 +118,18 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                         active.set(false);
                     })
                     .style(move |s| {
-                        let (font_size, border_color, br_color, abr_color) = config.with(|config| {
-                            (config.ui.font_size()
-                             , config.color(LapceColor::LAPCE_BORDER)
-                             ,config.color(
-                                LapceColor::PANEL_HOVERED_BACKGROUND
-                            ),config.color(
-                                LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
-                            ))
-                        });
+                        let (font_size, border_color, br_color, abr_color) = config
+                            .with(|config| {
+                                (
+                                    config.ui.font_size(),
+                                    config.color(LapceColor::LAPCE_BORDER),
+                                    config
+                                        .color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                    config.color(
+                                        LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
+                                    )
+                                )
+                            });
                         s.margin_top(20.0)
                             .width_pct(100.0)
                             .justify_center()
@@ -141,13 +139,9 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                             .border_radius(6.0)
                             .border_color(border_color)
                             .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(
-                                    br_color
-                                )
+                                s.cursor(CursorStyle::Pointer).background(br_color)
                             })
-                            .active(|s| {
-                                s.background(abr_color)
-                            })
+                            .active(|s| s.background(abr_color))
                     })
             ))
             .style(|s| s.flex_col().items_center().width_pct(100.0))
@@ -155,12 +149,11 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
             let (border_color, fr, br) = config.with(|config| {
-                (config.color(LapceColor::LAPCE_BORDER)
-                 ,config.color(
-                    LapceColor::EDITOR_FOREGROUND
-                ),config.color(
-                    LapceColor::PANEL_BACKGROUND,
-                ))
+                (
+                    config.color(LapceColor::LAPCE_BORDER),
+                    config.color(LapceColor::EDITOR_FOREGROUND),
+                    config.color(LapceColor::PANEL_BACKGROUND)
+                )
             });
             s.padding(20.0)
                 .width(250.0)
@@ -179,7 +172,8 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
             .justify_center()
             .apply_if(!active.get(), |s| s.hide())
             .background(
-                config.with_color(LapceColor::LAPCE_DROPDOWN_SHADOW)
+                config
+                    .with_color(LapceColor::LAPCE_DROPDOWN_SHADOW)
                     .multiply_alpha(0.5)
             )
     })

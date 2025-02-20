@@ -246,29 +246,21 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             .style(move |s| {
                 let (fg, bg, dim) = config.with(|config| {
                     (
-                        config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND), config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
+                        config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
+                        config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
                         config.color(LapceColor::EDITOR_DIM)
                     )
                 });
                 s.color(fg)
-                    .background(
-                        bg
-                    )
+                    .background(bg)
                     .margin_left(6.0)
                     .padding_horiz(6.0)
                     .border_radius(6.0)
                     .hover(|s| {
-                        s.cursor(CursorStyle::Pointer).background(
-                            bg
-                                .multiply_alpha(0.8)
-                        )
+                        s.cursor(CursorStyle::Pointer)
+                            .background(bg.multiply_alpha(0.8))
                     })
-                    .active(|s| {
-                        s.background(
-                            bg
-                                .multiply_alpha(0.6)
-                        )
-                    })
+                    .active(|s| s.background(bg.multiply_alpha(0.6)))
                     .disabled(|s| s.background(dim))
             })
         };
@@ -380,7 +372,8 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             .style(move |s| {
                 let (caret_color, bg) = config.with(|config| {
                     (
-                        config.color(LapceColor::EDITOR_BACKGROUND), config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::EDITOR_BACKGROUND),
+                        config.color(LapceColor::LAPCE_BORDER)
                     )
                 });
                 s.width_pct(100.0)

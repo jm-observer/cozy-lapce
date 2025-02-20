@@ -25,8 +25,8 @@ use floem::{
     kurbo::Size,
     peniko::kurbo::{Point, Rect, Vec2},
     reactive::{
-        Memo, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
-        SignalWith, WriteSignal, batch, use_context
+        Memo, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith,
+        WriteSignal, batch, use_context
     },
     text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout}
 };
@@ -70,7 +70,7 @@ use crate::{
         WindowCommand
     },
     completion::{CompletionData, CompletionStatus},
-    config::LapceConfig,
+    config::{LapceConfig, WithLapceConfig},
     db::LapceDb,
     debug::DapData,
     editor::location::{EditorLocation, EditorPosition},
@@ -100,7 +100,6 @@ use crate::{
     },
     window::{CursorBlink, WindowCommonData}
 };
-use crate::config::WithLapceConfig;
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -433,9 +432,7 @@ impl WindowWorkspaceData {
 
         let ui_line_height = cx.create_memo(move |_| {
             let (font_family, font_size) = config.with(|config| {
-                (
-                    config.ui.font_family.clone(), config.ui.font_size() as f32
-                )
+                (config.ui.font_family.clone(), config.ui.font_size() as f32)
             });
 
             let family: Vec<FamilyOwned> =
@@ -567,7 +564,9 @@ impl WindowWorkspaceData {
 
         let terminal = TerminalPanelData::new(
             workspace.clone(),
-            common.config.with_untracked(|config| config.terminal.get_default_profile()),
+            common
+                .config
+                .with_untracked(|config| config.terminal.get_default_profile()),
             common.clone(),
             main_split.clone()
         );
@@ -633,7 +632,8 @@ impl WindowWorkspaceData {
 
         let cursor_blink_clone = cursor_blink.clone();
         cx.create_effect(move |_| {
-            let blink_interval = config.with(|config| config.editor.blink_interval() );
+            let blink_interval =
+                config.with(|config| config.editor.blink_interval());
             // log::info!("update blink_interval {}", blink_interval);
             cursor_blink_clone.blink_interval.set(blink_interval);
             cursor_blink_clone.blink(None);
@@ -747,7 +747,12 @@ impl WindowWorkspaceData {
         });
 
         let mut change_plugins = Vec::new();
-        for (key, configs) in self.common.config.with_untracked(|x| x.plugins.clone()).iter() {
+        for (key, configs) in self
+            .common
+            .config
+            .with_untracked(|x| x.plugins.clone())
+            .iter()
+        {
             if config
                 .plugins
                 .get(key)
@@ -2561,11 +2566,7 @@ impl WindowWorkspaceData {
                 true
             } else {
                 keypress
-                    .handle_keymatch(
-                        self,
-                        handle.keymatch,
-                        handle.keypress
-                    )
+                    .handle_keymatch(self, handle.keymatch, handle.keypress)
                     .handled
             }
         } else {
@@ -2680,10 +2681,7 @@ impl WindowWorkspaceData {
 
         let mut origin = window_origin
             + Vec2::new(
-                point_below.x
-                    - viewport.x0
-                    - line_height
-                    - 5.0,
+                point_below.x - viewport.x0 - line_height - 5.0,
                 point_below.y - viewport.y0
             );
         if origin.y + completion_size.height > tab_size.height {
@@ -2739,9 +2737,7 @@ impl WindowWorkspaceData {
             );
 
         if origin.y + code_action_size.height > tab_size.height {
-            origin.y = origin.y
-                - line_height
-                - code_action_size.height;
+            origin.y = origin.y - line_height - code_action_size.height;
         }
         if origin.x + code_action_size.width + 1.0 > tab_size.width {
             origin.x = tab_size.width - code_action_size.width - 1.0;
@@ -2789,8 +2785,7 @@ impl WindowWorkspaceData {
             + Vec2::new(point_below.x - viewport.x0, point_below.y - viewport.y0);
 
         if origin.y + rename_size.height > tab_size.height {
-            origin.y =
-                origin.y - line_height - rename_size.height;
+            origin.y = origin.y - line_height - rename_size.height;
         }
         if origin.x + rename_size.width + 1.0 > tab_size.width {
             origin.x = tab_size.width - rename_size.width - 1.0;
@@ -2892,9 +2887,7 @@ impl WindowWorkspaceData {
             self.terminal.new_tab(
                 self.common
                     .config
-                    .with_untracked(|x| x
-                    .terminal
-                    .get_default_profile())
+                    .with_untracked(|x| x.terminal.get_default_profile())
             );
         }
         self.panel.show_panel(&kind);

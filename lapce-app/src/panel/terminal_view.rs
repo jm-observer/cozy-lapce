@@ -99,11 +99,12 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                     container({
                         stack((
                             container(
-                                svg(move || config.with_ui_svg(svg_string()))
-                                    .style(move |s| {
+                                svg(move || config.with_ui_svg(svg_string())).style(
+                                    move |s| {
                                         let size = config.with_icon_size() as f32;
                                         s.size(size, size).color(palette::css::GREEN)
-                                    })
+                                    }
+                                )
                             )
                             .style(|s| s.padding_horiz(10.0).padding_vert(12.0)),
                             label(title).style(|s| {
@@ -232,7 +233,8 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
     .style(move |s| {
         let (caret_color, bg) = config.with(|config| {
             (
-                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+                config.color(LapceColor::LAPCE_BORDER),
+                config.color(LapceColor::PANEL_BACKGROUND)
             )
         });
         s.width_pct(100.0)

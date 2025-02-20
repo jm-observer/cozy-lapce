@@ -2,9 +2,7 @@ use floem::{
     AnyView, IntoView, View,
     event::{Event, EventListener, EventPropagation},
     kurbo::Point,
-    reactive::{
-        RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
-    },
+    reactive::{RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal},
     style::{CursorStyle, Style},
     taffy::AlignItems,
     unit::PxPctAuto,
@@ -25,7 +23,7 @@ use super::{
 };
 use crate::{
     app::{clickable_icon, clickable_icon_base},
-    config::{color::LapceColor},
+    config::{WithLapceConfig, color::LapceColor},
     file_explorer::view::file_explorer_panel,
     panel::{
         call_hierarchy_view::show_hierarchy_panel, data::PanelData,
@@ -34,7 +32,6 @@ use crate::{
     },
     window_workspace::{DragContent, WindowWorkspaceData}
 };
-use crate::config::WithLapceConfig;
 
 pub(crate) const PANEL_PICKER_SIZE: f32 = 40.0;
 
@@ -82,10 +79,7 @@ pub struct PanelBuilder {
     position: PanelContainerPosition
 }
 impl PanelBuilder {
-    pub fn new(
-        config: WithLapceConfig,
-        position: PanelContainerPosition
-    ) -> Self {
+    pub fn new(config: WithLapceConfig, position: PanelContainerPosition) -> Self {
         Self {
             views: Vec::new(),
             config,
@@ -492,7 +486,8 @@ fn drag_line(
         let is_dragging = drag_start.get().is_some();
         let (caret_color, bg) = config.with(|config| {
             (
-                config.color(LapceColor::EDITOR_CARET), config.color(LapceColor::PANEL_BACKGROUND)
+                config.color(LapceColor::EDITOR_CARET),
+                config.color(LapceColor::PANEL_BACKGROUND)
             )
         });
         s.background(bg)
@@ -581,17 +576,15 @@ pub(crate) fn new_panel_picker(
                 .dragging_style(move |s| {
                     let (caret_color, bg) = config.with(|config| {
                         (
-                            config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::PANEL_BACKGROUND)
+                            config.color(LapceColor::LAPCE_BORDER),
+                            config.color(LapceColor::PANEL_BACKGROUND)
                         )
                     });
                     s.border(1.0)
                         .border_radius(6.0)
                         .border_color(caret_color)
                         .padding(6.0)
-                        .background(
-                            bg
-                                .multiply_alpha(0.7)
-                        )
+                        .background(bg.multiply_alpha(0.7))
                 })
                 .style(|s| s.padding(1.0)),
                 label(|| "".to_string()).style(move |s| {
@@ -608,7 +601,8 @@ pub(crate) fn new_panel_picker(
                                 })
                         })
                         .border_color(
-                            config.with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
+                            config
+                                .with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
                         )
                 })
             )))
