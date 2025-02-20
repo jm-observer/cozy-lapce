@@ -9,9 +9,7 @@ use std::{
     },
     time::{Instant, SystemTime}
 };
-
-use anyhow::Result;
-use crossbeam_channel::{Receiver, Sender, TryRecvError};
+use std::time::Duration;
 use doc::{
     language::LapceLanguage,
     lines::{
@@ -22,13 +20,15 @@ use doc::{
     syntax::Syntax
 };
 use floem::{
-    ext_event::{create_ext_action, create_signal_from_channel},
+    ext_event::{create_ext_action},
     keyboard::Modifiers,
     reactive::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
         use_context
     }
 };
+use floem::action::{exec_after, TimerToken};
+use floem::reactive::batch;
 use im::Vector;
 use itertools::Itertools;
 use lapce_core::{
@@ -37,7 +37,7 @@ use lapce_core::{
 };
 use lapce_rpc::proxy::ProxyResponse;
 use lapce_xi_rope::Rope;
-use log::error;
+use log::{debug, error, info};
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse};
 use nucleo::Utf32Str;
 use strum::{EnumMessage, IntoEnumIterator};
@@ -68,7 +68,7 @@ pub mod kind;
 
 pub const DEFAULT_RUN_TOML: &str = include_str!("../../../defaults/run.toml");
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PaletteStatus {
     Inactive,
     Started,
@@ -91,6 +91,32 @@ impl PaletteInput {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct RunResult {
+    pub id: u64,
+    pub rs: Vector<PaletteItem>
+}
+
+impl RunResult {
+    pub fn update_id(&mut self,) -> u64 {
+        self.id += 1;
+        self.rs.clear();
+        self.id
+    }
+
+    pub fn update_rs(&mut self, id: u64, rs: Vector<PaletteItem>) -> bool {
+        if id == self.id {
+            self.rs = rs;
+            true
+        } else {
+            false
+        }
+    }
+    pub fn rs(&self) -> &Vector<PaletteItem> {
+        &self.rs
+    }
+}
+
 #[derive(Clone)]
 pub struct PaletteData {
     run_id_counter:            Arc<AtomicU64>,
@@ -100,7 +126,7 @@ pub struct PaletteData {
     pub index:                 RwSignal<usize>,
     pub preselect_index:       RwSignal<Option<usize>>,
     pub items:                 RwSignal<Vector<PaletteItem>>,
-    pub filtered_items:        ReadSignal<Vector<PaletteItem>>,
+    pub filtered_items:        RwSignal<Vector<PaletteItem>>,
     pub input:                 RwSignal<PaletteInput>,
     pub kind:                  RwSignal<Option<PaletteKind>>,
     // pub input_editor:          EditorData,
@@ -119,7 +145,8 @@ pub struct PaletteData {
     left_diff_path:            RwSignal<Option<PathBuf>>,
     pub workspace_document_id: RwSignal<Option<u64>>,
     pub document_symbol:
-        RwSignal<Option<(PathBuf, im::Vector<PaletteItem>, SystemTime)>>
+        RwSignal<Option<(PathBuf, Option<(im::Vector<PaletteItem>, SystemTime)>)>>,
+    pub run_result: RwSignal<RunResult>
 }
 
 impl std::fmt::Debug for PaletteData {
@@ -144,7 +171,7 @@ impl PaletteData {
         let references = cx.create_rw_signal(Vec::new());
         let input = cx.create_rw_signal(PaletteInput {
             input: "".to_string(),
-            kind:  PaletteKind::File
+            kind:  PaletteKind::HelpAndFile
         });
         let kind = cx.create_rw_signal(None);
 
@@ -153,77 +180,8 @@ impl PaletteData {
         let run_id = cx.create_rw_signal(0);
         let run_id_counter = Arc::new(AtomicU64::new(0));
 
-        let (run_tx, run_rx) = crossbeam_channel::unbounded();
-        {
-            let run_id = run_id.read_only();
-            let input = input.read_only();
-            let items = items.read_only();
-            let tx = run_tx;
-            {
-                let tx = tx.clone();
-                // this effect only monitors items change
-                cx.create_effect(move |_| {
-                    let items = items.get();
-                    let input = input.get_untracked();
-                    let run_id = run_id.get_untracked();
-                    let preselect_index =
-                        preselect_index.try_update(|i| i.take()).unwrap();
-                    if let Err(err) =
-                        tx.send((run_id, input.input, items, preselect_index))
-                    {
-                        log::error!("{:?}", err);
-                    }
-                });
-            }
-            // this effect only monitors input change
-            cx.create_effect(move |last_kind| {
-                let input = input.get();
-                let kind = input.kind;
-                if last_kind != Some(kind) {
-                    return kind;
-                }
-                let items = items.get_untracked();
-                let run_id = run_id.get_untracked();
-                if let Err(err) = tx.send((run_id, input.input, items, None)) {
-                    log::error!("{:?}", err);
-                }
-                kind
-            });
-        }
-        let (resp_tx, resp_rx) = crossbeam_channel::unbounded();
-        {
-            let run_id = run_id_counter.clone();
-            std::thread::Builder::new()
-                .name("PaletteUpdateProcess".to_owned())
-                .spawn(move || {
-                    Self::update_process(run_id, run_rx, resp_tx);
-                })
-                .unwrap();
-        }
-        let (filtered_items, set_filtered_items) =
-            cx.create_signal(im::Vector::new());
-        {
-            let resp = create_signal_from_channel(resp_rx);
-            let run_id = run_id.read_only();
-            let input = input.read_only();
-            cx.create_effect(move |_| {
-                if let Some((
-                    filter_run_id,
-                    filter_input,
-                    new_items,
-                    preselect_index
-                )) = resp.get()
-                {
-                    if run_id.get_untracked() == filter_run_id
-                        && input.get_untracked().input == filter_input
-                    {
-                        set_filtered_items.set(new_items);
-                        let i = preselect_index.unwrap_or(0);
-                        index.set(i);
-                    }
-                }
-            });
-        }
+        let set_filtered_items =
+            cx.create_rw_signal(Vector::new());
 
         let clicked_index = cx.create_rw_signal(Option::<usize>::None);
         let left_diff_path = cx.create_rw_signal(None);
@@ -237,7 +195,7 @@ impl PaletteData {
             index,
             preselect_index,
             items,
-            filtered_items,
+            filtered_items: set_filtered_items,
             input_str: cx.create_rw_signal(String::new()),
             preview_editor,
             has_preview,
@@ -252,7 +210,8 @@ impl PaletteData {
             common,
             left_diff_path,
             workspace_document_id: cx.create_rw_signal(None),
-            document_symbol: cx.create_rw_signal(None)
+            document_symbol: cx.create_rw_signal(None),
+            run_result: cx.create_rw_signal(RunResult::default()),
         };
 
         {
@@ -270,55 +229,31 @@ impl PaletteData {
         {
             let palette = palette.clone();
             let input_str = palette.input_str;
-            let input = palette.input;
             let status = palette.status.read_only();
-            let preset_kind = palette.kind;
+            let blink_timer = cx.create_rw_signal(TimerToken::INVALID);
             // Monitors when the palette's input changes, so that it can update the
             // stored input and kind of palette.
-            cx.create_effect(move |last_input| {
+            cx.create_effect(move |_| {
                 // TODO(minor, perf): this could have perf issues if the user
                 // accidentally pasted a huge amount of text into the palette.
                 let new_input = input_str.get();
-
                 let status = status.get_untracked();
+                info!("input {new_input} status: {:?}", status);
                 if status == PaletteStatus::Inactive {
-                    // If the status is inactive, we set the input to None,
-                    // so that when we actually run the palette, the input
-                    // can be compared with this None.
                     return None;
                 }
 
-                let last_input = last_input.flatten();
-
-                // If the input is not equivalent to the current input, or not
-                // initialized, then we need to update the
-                // information about the palette.
-                let changed = last_input.as_deref() != Some(new_input.as_str());
-
-                if changed {
-                    let new_kind = input
-                        .try_update(|input| {
-                            let kind = input.kind;
-                            input.update_input(
-                                new_input.clone(),
-                                preset_kind.get_untracked()
-                            );
-                            if last_input.is_none() || kind != input.kind {
-                                Some(input.kind)
-                            } else {
-                                None
-                            }
-                        })
-                        .unwrap();
-                    if let Some(new_kind) = new_kind {
-                        preset_kind.set(Some(new_kind))
-                    } else if input
-                        .with_untracked(|i| i.kind == PaletteKind::WorkspaceSymbol)
-                    {
-                        palette.run_inner(PaletteKind::WorkspaceSymbol);
-                    }
-                }
-                Some(new_input)
+                let palette = palette.clone();
+                let timer_token =
+                    exec_after(Duration::from_millis(500), move |timer_token| {
+                        if timer_token == blink_timer.get_untracked() {
+                            palette.run_inner_by_input(new_input);
+                        }
+                    });
+                // warn!("set id={:?} {:?}", floem::prelude::SignalGet::id(&blink_timer),
+                // timer_token);
+                blink_timer.set(timer_token);
+                Some(())
             });
         }
 
@@ -395,37 +330,40 @@ impl PaletteData {
         }
     }
 
-    /// Execute the internal behavior of the palette for the given kind. This
-    /// ignores updating and focusing the palette input.
-    fn run_inner(&self, kind: PaletteKind) {
-        self.has_preview.set(false);
-
-        let run_id = self.run_id_counter.fetch_add(1, Ordering::Relaxed) + 1;
-        self.run_id.set(run_id);
-        log::debug!("run_inner {} {:?}", run_id, kind);
+    fn run_inner_by_input(&self, input: String) {
+        let kind =match self.kind.get_untracked() {
+            None => {PaletteKind::from_input(&input)}
+            Some(kind) => {kind}
+        };
+        let kind_input = kind.get_input(&input);
+        if kind_input.is_empty() && !matches!(kind, PaletteKind::HelpAndFile) {
+            return;
+        }
+        let run_id = self.run_result.try_update(|x| x.update_id()).unwrap();
+        log::debug!("run_inner_by_input {} {:?} input={input}", run_id, kind);
         match kind {
-            PaletteKind::PaletteHelp => self.get_palette_help(),
-            PaletteKind::File | PaletteKind::DiffFiles => {
-                self.get_files();
+            PaletteKind::PaletteHelp => self.get_palette_help(run_id),
+            PaletteKind::DiffFiles => {
+                self.get_files(run_id);
             },
-            PaletteKind::HelpAndFile => self.get_palette_help_and_file(),
+            PaletteKind::HelpAndFile => self.get_palette_help_and_file(run_id),
             PaletteKind::Line => {
-                self.get_lines();
+                self.get_lines(run_id, kind_input);
             },
             PaletteKind::Command => {
-                self.get_commands();
+                self.get_commands(run_id, kind_input);
             },
             PaletteKind::Workspace => {
-                self.get_workspaces();
+                self.get_workspaces(run_id, kind_input);
             },
             PaletteKind::Reference => {
-                self.get_references();
+                self.get_references(run_id, kind_input);
             },
             PaletteKind::DocumentSymbol => {
-                self.get_document_symbols();
+                self.get_document_symbols(run_id, kind_input);
             },
             PaletteKind::WorkspaceSymbol => {
-                self.get_workspace_symbols();
+                self.get_workspace_symbols(run_id, kind_input);
             },
             PaletteKind::SshHost => {
                 self.get_ssh_hosts();
@@ -435,7 +373,71 @@ impl PaletteData {
                 self.get_wsl_hosts();
             },
             PaletteKind::RunAndDebug => {
-                self.get_run_configs();
+                self.get_run_configs(run_id, kind_input.to_string());
+            },
+            PaletteKind::ColorTheme => {
+                self.get_color_themes();
+            },
+            PaletteKind::IconTheme => {
+                self.get_icon_themes();
+            },
+            PaletteKind::Language => {
+                self.get_languages();
+            },
+            PaletteKind::LineEnding => {
+                self.get_line_endings();
+            },
+            PaletteKind::SCMReferences => {
+                self.get_scm_references();
+            },
+            PaletteKind::TerminalProfile => self.get_terminal_profiles()
+        }
+    }
+
+    fn update_rs(&self, id: u64, rs: Vector<PaletteItem>) {
+        batch(|| {
+            let is_empty = rs.is_empty();
+            if self.run_result.try_update(|run_result| run_result.update_rs(id, rs)).unwrap_or_default() && !is_empty{
+                self.index.set(0);
+            }
+        });
+    }
+
+    /// Execute the internal behavior of the palette for the given kind. This
+    /// ignores updating and focusing the palette input.
+    fn run_inner(&self, kind: PaletteKind) {
+        self.has_preview.set(false);
+
+        let run_id = self.run_id_counter.fetch_add(1, Ordering::Relaxed) + 1;
+        self.run_id.set(run_id);
+        log::debug!("run_inner {} {:?}", run_id, kind);
+        match kind {
+            PaletteKind::PaletteHelp => (),
+            PaletteKind::DiffFiles => {
+            },
+            PaletteKind::HelpAndFile => (),
+            PaletteKind::Line => {
+            },
+            PaletteKind::Command => {
+            },
+            PaletteKind::Workspace => {
+            },
+            PaletteKind::Reference => {
+            },
+            PaletteKind::DocumentSymbol => {
+                // self.get_document_symbols();
+            },
+            PaletteKind::WorkspaceSymbol => {
+                // self.get_workspace_symbols(, );
+            },
+            PaletteKind::SshHost => {
+                self.get_ssh_hosts();
+            },
+            #[cfg(windows)]
+            PaletteKind::WslHost => {
+                self.get_wsl_hosts();
+            },
+            PaletteKind::RunAndDebug => {
             },
             PaletteKind::ColorTheme => {
                 self.get_color_themes();
@@ -457,9 +459,9 @@ impl PaletteData {
     }
 
     /// Initialize the palette with a list of the available palette kinds.
-    fn get_palette_help(&self) {
+    fn get_palette_help(&self, run_id: u64) {
         let items = self.get_palette_help_items();
-        self.items.set(items);
+        self.run_result.update(|rs| { rs.update_rs(run_id, items); });
     }
 
     fn get_palette_help_items(&self) -> Vector<PaletteItem> {
@@ -472,7 +474,7 @@ impl PaletteData {
 
                         // Only include palette kinds accessible by typing a prefix
                         // into the palette.
-                        (kind == PaletteKind::File || !symbol.is_empty())
+                        (!symbol.is_empty())
                             .then_some(kind)
                     })
                     .flatten()
@@ -493,17 +495,17 @@ impl PaletteData {
             .collect()
     }
 
-    fn get_palette_help_and_file(&self) {
+    fn get_palette_help_and_file(&self, run_id: u64) {
         let help_items: Vector<PaletteItem> = self.get_palette_help_items();
-        self.get_files_and_prepend(Some(help_items));
+        self.get_files_and_prepend(Some(help_items), run_id);
     }
 
     // get the files in the current workspace
     // and prepend items if prepend is some
     // e.g. help_and_file
-    fn get_files_and_prepend(&self, prepend: Option<im::Vector<PaletteItem>>) {
+    fn get_files_and_prepend(&self, prepend: Option<im::Vector<PaletteItem>>, run_id: u64) {
         let workspace = self.workspace.clone();
-        let set_items = self.items.write_only();
+        let data = self.clone();
         let send =
             create_ext_action(self.common.scope, move |items: Vec<PathBuf>| {
                 let items = items
@@ -528,12 +530,13 @@ impl PaletteData {
                         }
                     })
                     .collect::<im::Vector<_>>();
-                let mut new_items = im::Vector::new();
-                if let Some(prepend) = prepend {
-                    new_items.append(prepend);
+                let input_str = data.input_str.get_untracked();
+                if let Some(mut prepend) = prepend {
+                    prepend.append(items);
+                    data.filter_items(run_id, PaletteKind::HelpAndFile.get_input(&input_str), prepend);
+                } else {
+                    data.filter_items(run_id, PaletteKind::HelpAndFile.get_input(&input_str), items);
                 }
-                new_items.append(items);
-                set_items.set(new_items);
             });
         self.common.proxy.get_files(move |(_, result)| {
             if let Ok(ProxyResponse::GetFilesResponse { items }) = result {
@@ -543,16 +546,17 @@ impl PaletteData {
     }
 
     /// Initialize the palette with the files in the current workspace.
-    fn get_files(&self) {
-        self.get_files_and_prepend(None);
+    fn get_files(&self, run_id: u64) {
+        self.get_files_and_prepend(None, run_id);
     }
 
     /// Initialize the palette with the lines in the current document.
-    fn get_lines(&self) {
+    fn get_lines(&self, run_id: u64, input_str: &str) {
         let editor = self.main_split.active_editor.get_untracked();
         let doc = match editor {
             Some(editor) => editor.doc(),
             None => {
+                info!("get_lines none");
                 return;
             }
         };
@@ -587,10 +591,11 @@ impl PaletteData {
                 }
             })
             .collect();
-        self.items.set(items);
+
+        self.filter_items(run_id, input_str, items);
     }
 
-    fn get_commands(&self) {
+    fn get_commands(&self, run_id: u64, input_str: &str) {
         const EXCLUDED_ITEMS: &[&str] = &["palette.command"];
 
         let items = self.keypress.with_untracked(|keypress| {
@@ -638,12 +643,12 @@ impl PaletteData {
             items
         });
 
-        self.items.set(items);
+        self.filter_items(run_id, input_str, items);
     }
 
     /// Initialize the palette with all the available workspaces, local and
     /// remote.
-    fn get_workspaces(&self) {
+    fn get_workspaces(&self, run_id: u64, input_str: &str) {
         let db: Arc<LapceDb> = use_context().unwrap();
         let workspaces = db.recent_workspaces().unwrap_or_default();
 
@@ -669,13 +674,12 @@ impl PaletteData {
                 })
             })
             .collect();
-
-        self.items.set(items);
+        self.filter_items(run_id, input_str, items);
     }
 
     /// Initialize the list of references in the file, from the current editor
     /// location.
-    fn get_references(&self) {
+    fn get_references(&self, run_id: u64, input_str: &str) {
         let items = self
             .references
             .get_untracked()
@@ -698,11 +702,10 @@ impl PaletteData {
                 }
             })
             .collect();
-
-        self.items.set(items);
+        self.filter_items(run_id, input_str, items);
     }
 
-    fn get_document_symbols(&self) {
+    fn get_document_symbols(&self, run_id: u64, input_str: &str) {
         let editor = self.main_split.active_editor.get_untracked();
         let doc = match editor {
             Some(editor) => editor.doc(),
@@ -721,31 +724,38 @@ impl PaletteData {
                 return;
             }
         };
-        if let Some((old, items, time)) = self.document_symbol.get_untracked() {
-            if old == path
-                && time.elapsed().map(|x| x.as_secs() < 60).unwrap_or_default()
-            {
-                self.items.set(items.clone());
-                return;
+
+        if let Some((old, items)) = self.document_symbol.get_untracked() {
+            if old == path {
+                if let Some((items, time)) = &items {
+                    if time.elapsed().map(|x| x.as_secs() < 60).unwrap_or_default() {
+                        info!("old data");
+                        self.filter_items(run_id, input_str, items.clone());
+                    } else {
+                        self.document_symbol.set(Some((old, None)));
+                    }
+                } else {
+                    return;
+                }
             } else {
-                self.document_symbol.set(None);
+                self.document_symbol.set(Some((path.clone(), None)));
             }
         }
 
-        let set_items = self.items.write_only();
         let doc_path = path.clone();
+        let input = self.input_str;
         let document_symbol = self.document_symbol;
+        let data = self.clone();
         let send = create_ext_action(self.common.scope, move |result| {
             if let Ok(ProxyResponse::GetDocumentSymbols { resp }) = result {
                 let items = Self::format_document_symbol_resp(resp);
                 document_symbol.set(Some((
                     doc_path,
-                    items.clone(),
-                    SystemTime::now()
+                    Some((items.clone(),
+                    SystemTime::now()))
                 )));
-                set_items.set(items);
-            } else {
-                set_items.update(|items| items.clear());
+                let input_str = input.get_untracked();
+                data.filter_items(run_id, PaletteKind::DocumentSymbol.get_input(&input_str), items);
             }
         });
 
@@ -814,14 +824,7 @@ impl PaletteData {
         }
     }
 
-    fn get_workspace_symbols(&self) {
-        let input = self.input.get_untracked().input;
-
-        if input.len() < 2 {
-            return;
-        }
-
-        let set_items = self.items.write_only();
+    fn get_workspace_symbols(&self, run_id: u64, input: &str) {
         let data = self.clone();
         let send = create_ext_action(self.common.scope, move |(old_id, result)| {
             if data.reset_workspace_id(old_id) {
@@ -859,9 +862,9 @@ impl PaletteData {
                             }
                         })
                         .collect();
-                    set_items.set(items);
+                    data.update_rs(run_id, items);
                 } else {
-                    set_items.update(|items| items.clear());
+                    data.update_rs(run_id, Vector::new());
                 }
             }
         });
@@ -869,7 +872,7 @@ impl PaletteData {
         let id =
             self.common
                 .proxy
-                .get_workspace_symbols(input, move |(id, result)| {
+                .get_workspace_symbols(input.to_string(), move |(id, result)| {
                     send((id, result));
                 });
         self.update_workspace_id(id);
@@ -974,7 +977,7 @@ impl PaletteData {
         self.items.set(items);
     }
 
-    fn set_run_configs(&self, content: String) {
+    fn set_run_configs(&self, content: String, run_id: u64, input: &str) {
         let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
         if configs.is_none() {
             if let Some(path) = self.workspace.path.as_ref() {
@@ -1031,18 +1034,18 @@ impl PaletteData {
         }
 
         items.sort_by_key(|(executed, _item)| std::cmp::Reverse(executed.copied()));
-        self.items
-            .set(items.into_iter().map(|(_, item)| item).collect());
+
+        self.filter_items(run_id, input, items.into_iter().map(|(_, item)| item).collect());
     }
 
-    fn get_run_configs(&self) {
+    fn get_run_configs(&self, run_id: u64, input_str: String) {
         if let Some(workspace) = self.common.workspace.path.as_deref() {
             let run_toml = workspace.join("../../../.lapce").join("run.toml");
             let (doc, new_doc) =
                 self.main_split.get_doc(run_toml.clone(), None, false);
             if !new_doc {
                 let content = doc.lines.with_untracked(|x| x.buffer().to_string());
-                self.set_run_configs(content);
+                self.set_run_configs(content,run_id, &input_str);
             } else {
                 let loaded = doc.loaded;
                 let palette = self.clone();
@@ -1050,7 +1053,6 @@ impl PaletteData {
                     if prev_loaded == Some(true) {
                         return true;
                     }
-
                     let loaded = loaded.get();
                     if loaded {
                         let content =
@@ -1058,7 +1060,7 @@ impl PaletteData {
                         if content.is_empty() {
                             doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
                         }
-                        palette.set_run_configs(content);
+                        palette.set_run_configs(content, run_id, &input_str);
                     }
                     loaded
                 });
@@ -1225,8 +1227,9 @@ impl PaletteData {
     }
 
     fn select(&self) {
+        info!("select");
         let index = self.index.get_untracked();
-        let items = self.filtered_items.get_untracked();
+        let items = self.run_result.get_untracked().rs;
         self.close();
         if let Some(item) = items.get(index) {
             match &item.content {
@@ -1468,8 +1471,9 @@ impl PaletteData {
         }
 
         let index = self.index.get_untracked();
-        let items = self.filtered_items.get_untracked();
-        if let Some(item) = items.get(index) {
+        let item = self.run_result.with_untracked(|x| x.rs.get(index).cloned());
+        info!("preview index={index} {item:?}");
+        if let Some(item) = item {
             match &item.content {
                 PaletteItemContent::PaletteHelp { .. } => {},
                 PaletteItemContent::File { .. } => {},
@@ -1583,6 +1587,7 @@ impl PaletteData {
 
     /// Cancel the palette, doing cleanup specific to the palette kind.
     fn cancel(&self) {
+        info!("cancel");
         if let Some(PaletteKind::ColorTheme | PaletteKind::IconTheme) =
             self.kind.get_untracked()
         {
@@ -1605,6 +1610,7 @@ impl PaletteData {
         self.has_preview.set(false);
         self.items.update(|items| items.clear());
         self.input_str.set(String::new());
+        self.kind.set(None);
         // self.input_editor.doc().reload(Rope::from(""), true);
         // self.input_editor
         //     .cursor()
@@ -1614,7 +1620,7 @@ impl PaletteData {
     /// Move to the next entry in the palette list, wrapping around if needed.
     fn next(&self) {
         let index = self.index.get_untracked();
-        let len = self.filtered_items.with_untracked(|i| i.len());
+        let len = self.run_result.with_untracked(|i| i.rs.len());
         let new_index = Movement::Down.update_index(index, len, 1, true);
         self.index.set(new_index);
     }
@@ -1623,7 +1629,7 @@ impl PaletteData {
     /// needed.
     fn previous(&self) {
         let index = self.index.get_untracked();
-        let len = self.filtered_items.with_untracked(|i| i.len());
+        let len = self.run_result.with_untracked(|i| i.rs.len());
         let new_index = Movement::Up.update_index(index, len, 1, true);
         self.index.set(new_index);
     }
@@ -1661,16 +1667,22 @@ impl PaletteData {
         CommandExecuted::Yes
     }
 
-    fn filter_items(
-        run_id: Arc<AtomicU64>,
-        current_run_id: u64,
+    fn filter_items(&self, id: u64,
         input: &str,
         items: im::Vector<PaletteItem>,
-        matcher: &mut nucleo::Matcher
-    ) -> Option<im::Vector<PaletteItem>> {
-        if input.is_empty() {
-            return Some(items);
+    ) {
+        let equal_id = self.run_result.get_untracked().id == id;
+        info!("filter_items {id} input={input} items={} equal_id={equal_id}", items.len());
+        if !equal_id {
+            return;
         }
+
+        if input.is_empty() {
+            self.update_rs(id, items);
+            return ;
+        }
+        let mut matcher =
+            nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
 
         let pattern = nucleo::pattern::Pattern::parse(
             input,
@@ -1687,14 +1699,10 @@ impl PaletteData {
             // If the run id has ever changed, then we'll just bail out of this
             // filtering to avoid wasting effort. This would happen, for
             // example, on the user continuing to type.
-            if run_id.load(std::sync::atomic::Ordering::Acquire) != current_run_id {
-                return None;
-            }
-
             indices.clear();
             filter_text_buf.clear();
             let filter_text = Utf32Str::new(&i.filter_text, &mut filter_text_buf);
-            if let Some(score) = pattern.indices(filter_text, matcher, &mut indices)
+            if let Some(score) = pattern.indices(filter_text, &mut matcher, &mut indices)
             {
                 let mut item = i.clone();
                 item.score = score;
@@ -1710,70 +1718,9 @@ impl PaletteData {
                 _ => order
             }
         });
-
-        if run_id.load(std::sync::atomic::Ordering::Acquire) != current_run_id {
-            return None;
-        }
-        Some(filtered_items.into())
+        self.update_rs(id, filtered_items.into());
     }
 
-    fn update_process(
-        run_id: Arc<AtomicU64>,
-        receiver: Receiver<(u64, String, im::Vector<PaletteItem>, Option<usize>)>,
-        resp_tx: Sender<(u64, String, im::Vector<PaletteItem>, Option<usize>)>
-    ) {
-        fn receive_batch(
-            receiver: &Receiver<(
-                u64,
-                String,
-                im::Vector<PaletteItem>,
-                Option<usize>
-            )>
-        ) -> Result<(u64, String, im::Vector<PaletteItem>, Option<usize>)> {
-            let (mut run_id, mut input, mut items, mut preselect_index) =
-                receiver.recv()?;
-            loop {
-                match receiver.try_recv() {
-                    Ok(update) => {
-                        run_id = update.0;
-                        input = update.1;
-                        items = update.2;
-                        preselect_index = update.3;
-                    },
-                    Err(TryRecvError::Empty) => break,
-                    Err(TryRecvError::Disconnected) => break
-                }
-            }
-            Ok((run_id, input, items, preselect_index))
-        }
-
-        let mut matcher =
-            nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
-        loop {
-            if let Ok((current_run_id, input, items, preselect_index)) =
-                receive_batch(&receiver)
-            {
-                if let Some(filtered_items) = Self::filter_items(
-                    run_id.clone(),
-                    current_run_id,
-                    &input,
-                    items,
-                    &mut matcher
-                ) {
-                    if let Err(err) = resp_tx.send((
-                        current_run_id,
-                        input,
-                        filtered_items,
-                        preselect_index
-                    )) {
-                        log::error!("{:?}", err);
-                    }
-                }
-            } else {
-                return;
-            }
-        }
-    }
 }
 
 impl KeyPressFocus for PaletteData {

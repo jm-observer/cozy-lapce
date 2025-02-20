@@ -5,7 +5,6 @@ use crate::command::LapceWorkbenchCommand;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, EnumIter)]
 pub enum PaletteKind {
     PaletteHelp,
-    File,
     Line,
     Command,
     Workspace,
@@ -38,8 +37,7 @@ impl PaletteKind {
             PaletteKind::Workspace => ">",
             PaletteKind::Command => ":",
             PaletteKind::TerminalProfile => "<",
-            PaletteKind::File
-            | PaletteKind::Reference
+            PaletteKind::Reference
             | PaletteKind::SshHost
             | PaletteKind::RunAndDebug
             | PaletteKind::ColorTheme
@@ -65,7 +63,7 @@ impl PaletteKind {
             _ if input.starts_with('>') => PaletteKind::Workspace,
             _ if input.starts_with(':') => PaletteKind::Command,
             _ if input.starts_with('<') => PaletteKind::TerminalProfile,
-            _ => PaletteKind::File
+            _ => PaletteKind::HelpAndFile
         }
     }
 
@@ -83,7 +81,7 @@ impl PaletteKind {
             },
             PaletteKind::Workspace => Some(LapceWorkbenchCommand::PaletteWorkspace),
             PaletteKind::Command => Some(LapceWorkbenchCommand::PaletteCommand),
-            PaletteKind::File => Some(LapceWorkbenchCommand::Palette),
+            // PaletteKind::File => Some(LapceWorkbenchCommand::Palette),
             PaletteKind::HelpAndFile => {
                 Some(LapceWorkbenchCommand::PaletteHelpAndFile)
             },
@@ -123,8 +121,7 @@ impl PaletteKind {
         match self {
             #[cfg(windows)]
             PaletteKind::WslHost => input,
-            PaletteKind::File
-            | PaletteKind::Reference
+            PaletteKind::Reference
             | PaletteKind::SshHost
             | PaletteKind::RunAndDebug
             | PaletteKind::ColorTheme
@@ -152,8 +149,7 @@ impl PaletteKind {
             return *self;
         }
 
-        if self != &PaletteKind::File
-            && self != &PaletteKind::HelpAndFile
+        if self != &PaletteKind::HelpAndFile
             && self.symbol() == ""
         {
             return *self;

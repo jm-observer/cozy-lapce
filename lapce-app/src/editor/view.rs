@@ -1830,14 +1830,15 @@ fn editor_content(
             )
         });
 
-    {
-        create_effect(move |_| {
-            is_active(true);
-            let e_data = e_data.get_untracked();
-            e_data.cancel_completion();
-            e_data.cancel_inline_completion();
-        });
-    }
+    // todo ??
+    // {
+    //     create_effect(move |_| {
+    //         is_active(true);
+    //         let e_data = e_data.get_untracked();
+    //         e_data.cancel_completion();
+    //         e_data.cancel_inline_completion();
+    //     });
+    // }
     let current_scroll = create_rw_signal(Rect::ZERO);
     scroll({
         let editor_content_view = editor_view(

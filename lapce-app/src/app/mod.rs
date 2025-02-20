@@ -2150,7 +2150,7 @@ pub fn clickable_icon_base(
     )
 }
 
-/// A tooltip with a label inside.  
+/// A tooltip with a label inside.
 /// When styling an element that has the tooltip, it will style the child rather
 /// than the tooltip label.
 pub fn tooltip_label<S: std::fmt::Display + 'static, V: View + 'static>(
@@ -2690,24 +2690,15 @@ fn palette_item(
 fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
     let input_str = window_tab_data.palette.input_str;
     let status = window_tab_data.palette.status.read_only();
-
-    // let pallete_kind = window_tab_data.palette.kind.write_only();
     let config = window_tab_data.common.config;
-    // let focus = window_tab_data.common.focus;
-    // let is_focused = move || {
-    //     let focus = focus.get() == Focus::Palette;
-    //     if !focus {
-    //         pallete_kind.set(None);
-    //     }
-    //     focus
-    // };
 
     let input = text_input(input_str)
         .placeholder(window_tab_data.palette.placeholder_text().to_owned())
         .style(|s| s.width_full())
         .debug_name("Pallete Input")
-        .on_event(EventListener::KeyDown, |event| {
+        .on_event(EventListener::KeyDown, move |event| {
             if let Event::KeyDown(_key_event) = event {
+                window_tab_data.key_down(_key_event);
                 log::info!("KeyDown Stop");
                 EventPropagation::Stop
             } else {
@@ -2764,7 +2755,7 @@ fn palette_content(
     window_tab_data: WindowWorkspaceData,
     layout_rect: ReadSignal<Rect>
 ) -> impl View {
-    let items = window_tab_data.palette.filtered_items;
+    let items = window_tab_data.palette.run_result;
     let keymaps = window_tab_data
         .palette
         .keypress
@@ -2783,7 +2774,7 @@ fn palette_content(
             virtual_stack(
                 VirtualDirection::Vertical,
                 VirtualItemSize::Fixed(Box::new(move || palette_item_height)),
-                move || PaletteItems(items.get()),
+                move || PaletteItems(items.get().rs),
                 move |(i, _item)| {
                     (run_id.get_untracked(), *i, input.get_untracked().input)
                 },
@@ -2843,7 +2834,7 @@ fn palette_content(
                 .set(PropagatePointerWheel, false)
         }),
         text("No matching results").style(move |s| {
-            s.display(if items.with(|items| items.is_empty()) {
+            s.display(if items.with(|items| items.rs.is_empty()) {
                 Display::Flex
             } else {
                 Display::None
