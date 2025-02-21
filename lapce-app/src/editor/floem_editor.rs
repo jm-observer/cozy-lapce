@@ -22,7 +22,7 @@ use floem::{
     kurbo::{BezPath, Line, Point, Rect, Size, Stroke, Vec2},
     peniko,
     peniko::Color,
-    pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
+    pointer::{PointerInputEvent, PointerMoveEvent},
     reactive::{
         RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch
     },
@@ -31,9 +31,9 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-
+use crate::command::InternalCommand;
 use crate::doc::Doc;
-
+use crate::window_workspace::CommonData;
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
 /// The main structure for the editor view itself.  
@@ -344,44 +344,7 @@ impl Editor {
         self.doc().receive_char(self, c)
     }
 
-    // fn compute_screen_lines(&self, base: RwSignal<ScreenLinesBase>) ->
-    // ScreenLines {     // This function *cannot* access `ScreenLines` with how
-    // it is currently implemented.     // This is being called from within an
-    // update to screen lines.
-    //
-    //     self.doc().compute_screen_lines(self, base)
-    // }
-
-    /// Default handler for `PointerDown` event
-    pub fn pointer_down(&self, pointer_event: &PointerInputEvent) {
-        match pointer_event.button {
-            PointerButton::Mouse(MouseButton::Primary) => {
-                self.active.set(true);
-                self.left_click(pointer_event);
-            },
-            PointerButton::Mouse(MouseButton::Secondary) => {
-                self.right_click(pointer_event);
-            },
-            _ => {}
-        }
-    }
-
-    pub fn left_click(&self, pointer_event: &PointerInputEvent) {
-        match pointer_event.count {
-            1 => {
-                self.single_click(pointer_event);
-            },
-            2 => {
-                self.double_click(pointer_event);
-            },
-            3 => {
-                self.triple_click(pointer_event);
-            },
-            _ => {}
-        }
-    }
-
-    pub fn single_click(&self, pointer_event: &PointerInputEvent) {
+    pub fn single_click(&self, pointer_event: &PointerInputEvent, common_data: &CommonData) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (new_offset, _) = match self.offset_of_point(&mode, pointer_event.pos) {
             Ok(rs) => rs,
@@ -397,6 +360,8 @@ impl Editor {
                 pointer_event.modifiers.alt()
             )
         });
+        common_data.internal_command
+            .send(InternalCommand::ResetBlinkCursor);
     }
 
     pub fn double_click(&self, pointer_event: &PointerInputEvent) {
@@ -478,32 +443,6 @@ impl Editor {
 
     pub fn pointer_up(&self, _pointer_event: &PointerInputEvent) {
         self.active.set(false);
-    }
-
-    fn right_click(&self, pointer_event: &PointerInputEvent) {
-        let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (offset, _) = match self.offset_of_point(&mode, pointer_event.pos) {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            }
-        };
-        let doc = self.doc();
-        let pointer_inside_selection = self.cursor.with_untracked(|c| {
-            match c.edit_selection(&doc.rope_text()) {
-                Ok(rs) => rs,
-                Err(err) => {
-                    error!("{err:?}");
-                    return false;
-                }
-            }
-            .contains(offset)
-        });
-        if !pointer_inside_selection {
-            // move cursor to pointer position if outside current selection
-            self.single_click(pointer_event);
-        }
     }
 
     // TODO: should this have modifiers state in its api

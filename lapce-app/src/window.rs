@@ -436,8 +436,12 @@ impl CursorBlink {
         blink_timer.set(timer_token);
     }
 
-    pub fn reset_blink(&self) {
-        self.blink(Some(false));
+    pub fn blink_right_now(&self) {
+        self.hide_cursor.set(false);
+        self.common_data
+            .internal_command
+            .send(InternalCommand::BlinkCursor);
+        self.blink(None);
     }
 }
 

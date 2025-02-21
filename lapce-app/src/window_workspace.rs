@@ -2133,7 +2133,7 @@ impl WindowWorkspaceData {
             InternalCommand::ResetBlinkCursor => {
                 // All the editors share the blinking information and logic, so we
                 // can just reset one of them.
-                self.cursor_blink.reset_blink();
+                self.cursor_blink.blink_right_now();
                 // if let Some(e_data) = self.main_split.active_editor.get_untracked() {
                 //     // e_data.editor.cursor_info.reset();
                 // }

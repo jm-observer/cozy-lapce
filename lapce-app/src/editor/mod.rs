@@ -2993,7 +2993,7 @@ impl EditorData {
     }
 
     fn single_click(&self, pointer_event: &PointerInputEvent) {
-        self.editor.single_click(pointer_event);
+        self.editor.single_click(pointer_event, &self.common);
     }
 
     fn double_click(&self, pointer_event: &PointerInputEvent) {
