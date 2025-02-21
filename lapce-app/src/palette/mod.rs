@@ -332,8 +332,16 @@ impl PaletteData {
 
     fn run_inner_by_input(&self, input: String) {
         let kind =match self.kind.get_untracked() {
-            None => {PaletteKind::from_input(&input)}
-            Some(kind) => {kind}
+            None => {
+                PaletteKind::from_input(&input)
+            }
+            Some(kind) => {
+                if matches!(kind, PaletteKind::HelpAndFile) && !input.is_empty() {
+                    PaletteKind::from_input(&input)
+                } else {
+                    kind
+                }
+            }
         };
         let kind_input = kind.get_input(&input);
         // 太多kind不需要input了
