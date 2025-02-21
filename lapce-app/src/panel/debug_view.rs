@@ -7,7 +7,7 @@ use floem::{
     style::CursorStyle,
     text::Style as FontStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, container, dyn_stack, label,
+        Decorators, container, dyn_stack, label,
         scroll, stack, text, virtual_stack
     }
 };
@@ -340,8 +340,8 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
     container(
         scroll(
             virtual_stack(
-                VirtualDirection::Vertical,
-                VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
+                // VirtualDirection::Vertical,
+                // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
                 move || {
                     let dap = terminal.get_active_dap(true);
                     dap.map(|dap| {

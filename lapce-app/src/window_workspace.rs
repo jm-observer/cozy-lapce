@@ -6,11 +6,10 @@ use std::{
     sync::Arc,
     time::Instant
 };
-
+use std::sync::mpsc::Sender;
 use alacritty_terminal::vte::ansi::Handler;
 use anyhow::{Result, anyhow};
 use cozy_floem::views::{panel::DocStyle, tree_with_panel::data::TreePanelData};
-use crossbeam_channel::Sender;
 use doc::lines::{
     buffer::rope_text::RopeText, command::FocusCommand, cursor::CursorAffinity,
     editor_command::CommandExecuted, mode::Mode, register::Register
@@ -394,9 +393,9 @@ impl WindowWorkspaceData {
             cx.create_rw_signal(KeyPressData::new(cx, &config_val, directory));
         let proxy_status = cx.create_rw_signal(None);
 
-        let (term_tx, term_rx) = crossbeam_channel::unbounded();
+        let (term_tx, term_rx) = std::sync::mpsc::channel();
         let (term_notification_tx, term_notification_rx) =
-            crossbeam_channel::unbounded();
+            std::sync::mpsc::channel();
         {
             let term_notification_tx = term_notification_tx.clone();
             std::thread::Builder::new()

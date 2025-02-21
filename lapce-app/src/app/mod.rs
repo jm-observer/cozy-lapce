@@ -46,7 +46,7 @@ use floem::{
     text::{Style as FontStyle, Weight},
     unit::{PxPctAuto, PxPctAuto::Auto},
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, clip,
+        Decorators, VirtualVector, clip,
         container, drag_resize_window_area, dyn_stack, dyn_view, empty, label,
         rich_text,
         scroll::{PropagatePointerWheel, VerticalScrollAsHorizontal, scroll},
@@ -2772,8 +2772,8 @@ fn palette_content(
         scroll({
             let workspace = workspace.clone();
             virtual_stack(
-                VirtualDirection::Vertical,
-                VirtualItemSize::Fixed(Box::new(move || palette_item_height)),
+                // VirtualDirection::Vertical,
+                // VirtualItemSize::Fixed(Box::new(move || palette_item_height)),
                 move || PaletteItems(items.get().rs),
                 move |(i, _item)| {
                     (run_id.get_untracked(), *i, input.get_untracked().input)
@@ -3179,8 +3179,8 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
         move || completion_data.with_untracked(|c| (c.request_id, c.input_id));
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || line_height.get())),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || line_height.get())),
             move || completion_data.with(|c| VectorItems(c.filtered_items.clone())),
             move |(i, _item)| (request_id(), *i),
             move |(i, item)| {
@@ -3404,11 +3404,7 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
     let focus = window_tab_data.common.focus;
 
     container(
-        container(text_input(name_str).style(|s| s.width(150.0)).pointer_down(
-            move || {
-                focus.set(Focus::Rename);
-            }
-        ))
+        container(text_input(name_str).style(|s| s.width(150.0)))
         .style(move |s| {
             let (fg, bg, font_family, font_size) = config.with(|config| {
                 (

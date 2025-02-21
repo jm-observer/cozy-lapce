@@ -10,7 +10,7 @@ use floem::{
     },
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
+        Decorators, VirtualVector, container,
         dyn_container, img, label, scroll::scroll, stack, virtual_stack
     }
 };
@@ -196,10 +196,10 @@ fn installed_view(plugin: PluginData) -> impl View {
     container(
         scroll(
             virtual_stack(
-                VirtualDirection::Vertical,
-                VirtualItemSize::Fixed(Box::new(move || {
-                    ui_line_height.get() * 3.0 + 10.0
-                })),
+                // VirtualDirection::Vertical,
+                // VirtualItemSize::Fixed(Box::new(move || {
+                //     ui_line_height.get() * 3.0 + 10.0
+                // })),
                 move || IndexMapItems(volts.get()),
                 move |(_, id, _)| id.clone(),
                 move |(_, _, volt)| view_fn(volt, plugin.clone())
@@ -347,18 +347,6 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                         s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
                         // }).on_click_stop(move |event| {
                     })
-                    .pointer_down(move || {
-                        focus.set(Focus::Panel(PanelKind::Plugin));
-                    }) /* TextInputBuilder::new()
-                        *     .is_focused(is_focused)
-                        *     .build_editor(editor.clone())
-                        *     .placeholder(|| "Search extensions".to_string())
-                        *     .on_cursor_pos(move |point| {
-                        *         cursor_x.set(point.x);
-                        *     })
-                        *     .style(|s| {
-                        *         s.padding_vert(4.0).padding_horiz(10.0).
-                        * min_width_pct(100.0)     }) */
             )
             .ensure_visible(move || {
                 Size::new(20.0, 0.0)
@@ -389,10 +377,10 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
         container({
             scroll({
                 virtual_stack(
-                    VirtualDirection::Vertical,
-                    VirtualItemSize::Fixed(Box::new(move || {
-                        ui_line_height.get() * 3.0 + 10.0
-                    })),
+                    // VirtualDirection::Vertical,
+                    // VirtualItemSize::Fixed(Box::new(move || {
+                    //     ui_line_height.get() * 3.0 + 10.0
+                    // })),
                     move || IndexMapItems(volts.get()),
                     move |(_, id, _)| id.clone(),
                     view_fn

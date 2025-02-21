@@ -5,7 +5,7 @@ use floem::{
     reactive::{RwSignal, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
+        Decorators, VirtualVector, container,
         empty, label, scroll, stack, virtual_stack
     }
 };
@@ -154,8 +154,8 @@ pub fn _show_hierarchy_panel(
     let ui_line_height = window_tab_data.common.ui_line_height;
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
             each_fn,
             move |(_, _, item)| item.get_untracked().view_id,
             move |(_, level, rw_data)| {

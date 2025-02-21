@@ -1,13 +1,13 @@
 use floem::{
     View,
     prelude::{
-        Decorators, SignalGet, SignalUpdate, VirtualDirection, VirtualItemSize,
+        Decorators, SignalGet, SignalUpdate,
         container, scroll, stack, virtual_stack
     },
     style::AlignItems,
     views::static_label
 };
-
+use floem::style::FlexDirection;
 use crate::views::{
     drag_line::x_drag_line,
     panel::panel,
@@ -37,8 +37,8 @@ fn view_tree(data: TreePanelData) -> impl View {
     let node = data.node;
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || 20.0)),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || 20.0)),
             move || node.get(),
             move |(_index, _, _data)| _data.display_id.clone(),
             move |(_, retract, rw_data)| {
@@ -86,8 +86,8 @@ fn view_tree(data: TreePanelData) -> impl View {
                     })
                 )).style(move |x| x.margin_left(retract as f32 * 13.0))
             },
-        )
-            .style(|s| s.flex_col().min_width_full().padding(6.0)),
+        ).item_size_fixed(move || 20.0)
+            .style(|s| s.flex_col().min_width_full().padding(6.0).flex_direction(FlexDirection::ColumnReverse)),
     )
         .style(|s| s.flex_grow(1.0).size_full())
         .scroll_style(|s| s.shrink_to_fit())

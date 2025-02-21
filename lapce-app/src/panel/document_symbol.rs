@@ -7,7 +7,7 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
+        Decorators, VirtualVector, container,
         label, scroll, stack, virtual_stack
     }
 };
@@ -295,8 +295,8 @@ pub fn symbol_panel(
     let window_tab_data_clone = window_tab_data.clone();
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
             {
                 let window_tab_data = window_tab_data.clone();
                 move || {

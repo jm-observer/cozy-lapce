@@ -6,7 +6,7 @@ use floem::{
     reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, container, label, scroll,
+        Decorators, container, label, scroll,
         stack, text_input, virtual_stack
     }
 };
@@ -119,12 +119,12 @@ fn search_result(
     container({
         scroll({
             virtual_stack(
-                VirtualDirection::Vertical,
-                VirtualItemSize::Fn(Box::new(
-                    |(_, match_data): &(PathBuf, SearchMatchData)| {
-                        match_data.height()
-                    }
-                )),
+                // VirtualDirection::Vertical,
+                // VirtualItemSize::Fn(Box::new(
+                //     |(_, match_data): &(PathBuf, SearchMatchData)| {
+                //         match_data.height()
+                //     }
+                // )),
                 move || global_search_data.clone(),
                 move |(path, _)| path.to_owned(),
                 move |(path, match_data)| {
@@ -223,10 +223,10 @@ fn search_result(
                                 })
                         }),
                         virtual_stack(
-                            VirtualDirection::Vertical,
-                            VirtualItemSize::Fixed(Box::new(move || {
-                                ui_line_height.get()
-                            })),
+                            // VirtualDirection::Vertical,
+                            // VirtualItemSize::Fixed(Box::new(move || {
+                            //     ui_line_height.get()
+                            // })),
                             move || {
                                 if expanded.get() {
                                     match_data.matches.get()

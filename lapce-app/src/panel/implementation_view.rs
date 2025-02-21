@@ -5,7 +5,7 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, VirtualVector, container,
+        Decorators, VirtualVector, container,
         label, scroll, stack, virtual_stack
     }
 };
@@ -49,8 +49,8 @@ pub fn common_reference_panel(
     let ui_line_height = window_tab_data.common.ui_line_height;
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
             each_fn,
             move |(_, _, data)| data.view_id(),
             move |(_, level, rw_data)| {

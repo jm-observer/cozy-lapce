@@ -12,7 +12,7 @@ use floem::{
     style::{AlignItems, CursorStyle, Position, Style},
     text::Style as FontStyle,
     views::{
-        Container, Decorators, VirtualDirection, VirtualItemSize, container,
+        Container, Decorators, container,
         dyn_stack, label, scroll, stack, virtual_stack
     }
 };
@@ -265,7 +265,6 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
     //     focus.with_untracked(|focus| focus ==
     // &Focus::Panel(PanelKind::FileExplorer)) };
     let text_input_view = text_input(naming_str)
-        .pointer_down(move || focus.set(Focus::Panel(PanelKind::FileExplorer)))
         .on_event_stop(EventListener::FocusLost, move |_| {
             log::info!("FocusLost {}", naming_str.get_untracked());
             data.finish_naming();
@@ -353,8 +352,8 @@ fn file_explorer_view(
 
     scroll(
         virtual_stack(
-            VirtualDirection::Vertical,
-            VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
+            // VirtualDirection::Vertical,
+            // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
             move || FileNodeVirtualList::new(root.get(), data.naming.get()),
             move |node| (node.kind.clone(), node.is_dir, node.open, node.level),
             move |node| {

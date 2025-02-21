@@ -11,7 +11,7 @@ use floem::{
     },
     style::CursorStyle,
     views::{
-        Decorators, VirtualDirection, VirtualItemSize, container, dyn_stack, label,
+        Decorators, container, dyn_stack, label,
         scroll, stack, text, virtual_stack
     }
 };
@@ -377,8 +377,8 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
         container(
             scroll(
                 virtual_stack(
-                    VirtualDirection::Vertical,
-                    VirtualItemSize::Fixed(Box::new(ui_line_height)),
+                    // VirtualDirection::Vertical,
+                    // VirtualItemSize::Fixed(Box::new(ui_line_height)),
                     key_map_items,
                     |(i, (cmd, keymap)): &(
                         usize,

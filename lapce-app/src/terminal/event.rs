@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
-
-use crossbeam_channel::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 use lapce_rpc::terminal::TermId;
 use parking_lot::RwLock;
 
