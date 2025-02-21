@@ -166,12 +166,13 @@ impl CursorAffinity {
         }
     }
 
-    pub fn before_cursor(&self) -> bool {
+    pub fn forward(&self) -> bool {
         match self {
             CursorAffinity::Forward => true,
             CursorAffinity::Backward => false
         }
     }
+
 }
 
 impl Cursor {

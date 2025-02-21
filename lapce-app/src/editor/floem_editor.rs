@@ -22,7 +22,7 @@ use floem::{
     kurbo::{BezPath, Line, Point, Rect, Size, Stroke, Vec2},
     peniko,
     peniko::Color,
-    pointer::{PointerInputEvent, PointerMoveEvent},
+    pointer::{PointerInputEvent},
     reactive::{
         RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch
     },
@@ -346,19 +346,23 @@ impl Editor {
 
     pub fn single_click(&self, pointer_event: &PointerInputEvent, common_data: &CommonData) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (new_offset, _) = match self.offset_of_point(&mode, pointer_event.pos) {
+        let (new_offset, _, cursor_affinity) = match self.offset_of_point(&mode, pointer_event.pos) {
             Ok(rs) => rs,
             Err(err) => {
                 error!("{err:?}");
                 return;
             }
         };
+        info!("single_click new_offset={new_offset} {:?}", cursor_affinity);
         self.cursor.update(|cursor| {
             cursor.set_offset(
                 new_offset,
                 pointer_event.modifiers.shift(),
                 pointer_event.modifiers.alt()
-            )
+            );
+            if let Some(cursor_affinity) = cursor_affinity {
+                cursor.affinity = cursor_affinity;
+            }
         });
         common_data.internal_command
             .send(InternalCommand::ResetBlinkCursor);
@@ -367,7 +371,7 @@ impl Editor {
     pub fn double_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
 
-        let (mouse_offset, _) = match self.offset_of_point(&mode, pointer_event.pos)
+        let (mouse_offset, _, _) = match self.offset_of_point(&mode, pointer_event.pos)
         {
             Ok(rs) => rs,
             Err(err) => {
@@ -393,7 +397,7 @@ impl Editor {
 
     pub fn triple_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (mouse_offset, _) = match self.offset_of_point(&mode, pointer_event.pos)
+        let (mouse_offset, _, _) = match self.offset_of_point(&mode, pointer_event.pos)
         {
             Ok(rs) => rs,
             Err(err) => {
@@ -420,25 +424,6 @@ impl Editor {
                 pointer_event.modifiers.alt()
             )
         });
-    }
-
-    pub fn pointer_move(&self, pointer_event: &PointerMoveEvent) {
-        let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (offset, _is_inside) =
-            match self.offset_of_point(&mode, pointer_event.pos) {
-                Ok(rs) => rs,
-                Err(err) => {
-                    error!("{err:?}");
-                    return;
-                }
-            };
-        if self.active.get_untracked()
-            && self.cursor.with_untracked(|c| c.offset()) != offset
-        {
-            self.cursor.update(|cursor| {
-                cursor.set_offset(offset, true, pointer_event.modifiers.alt())
-            });
-        }
     }
 
     pub fn pointer_up(&self, _pointer_event: &PointerInputEvent) {
@@ -958,7 +943,7 @@ impl Editor {
         &self,
         mode: &CursorMode,
         point: Point
-    ) -> Result<(usize, bool)> {
+    ) -> Result<(usize, bool, Option<CursorAffinity>)> {
         self.doc
             .get_untracked()
             .lines
@@ -1170,9 +1155,9 @@ pub fn cursor_caret_v2(
     ) = match ed
         .doc()
         .lines
-        .with_untracked(|x| x.cursor_position_of_buffer_offset(offset, affinity))
+        .with_untracked(|x| x.visual_position_of_cursor_position(offset, affinity))
     {
-        Ok(rs) => rs,
+        Ok(rs) => rs?,
         Err(err) => {
             error!("{err:?}");
             return None;
@@ -1611,8 +1596,6 @@ fn paint_cursor_caret(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines
     let cursor = ed.cursor;
     let caret_color = ed.doc().lines.with_untracked(|es| es.ed_caret());
     cursor.with_untracked(|cursor| {
-        // let style = ed.doc();
-        // let cursor_offset = cursor.offset();
         for (_, end) in cursor.regions_iter() {
             if let Some((x, y, width, line_height)) =
                 cursor_caret_v2(ed, end, cursor.affinity)

@@ -3006,7 +3006,7 @@ impl EditorData {
 
     pub fn pointer_move(&self, pointer_event: &PointerMoveEvent) {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
-        let (offset, is_inside) =
+        let (offset, is_inside, _) =
             match self.editor.offset_of_point(&mode, pointer_event.pos) {
                 Ok(rs) => rs,
                 Err(err) => {
@@ -3070,7 +3070,7 @@ impl EditorData {
 
     fn right_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
-        let (offset, _) = match self.editor.offset_of_point(&mode, pointer_event.pos)
+        let (offset, _, _) = match self.editor.offset_of_point(&mode, pointer_event.pos)
         {
             Ok(rs) => rs,
             Err(err) => {
