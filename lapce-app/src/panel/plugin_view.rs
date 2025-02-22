@@ -10,8 +10,8 @@ use floem::{
     },
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container,
-        dyn_container, img, label, scroll::scroll, stack, virtual_stack
+        Decorators, VirtualVector, container, dyn_container, img, label,
+        scroll::scroll, stack, virtual_stack
     }
 };
 use indexmap::IndexMap;

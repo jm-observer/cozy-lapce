@@ -3,6 +3,7 @@ use std::path::Path;
 use floem::{
     View,
     event::{Event, EventListener},
+    keyboard::{Key, NamedKey},
     kurbo::Rect,
     peniko::{Color, color::Rgba8},
     prelude::text_input,
@@ -12,11 +13,10 @@ use floem::{
     style::{AlignItems, CursorStyle, Position, Style},
     text::Style as FontStyle,
     views::{
-        Container, Decorators, container,
-        dyn_stack, label, scroll, stack, virtual_stack
+        Container, Decorators, container, dyn_stack, label, scroll, stack,
+        virtual_stack
     }
 };
-use floem::keyboard::{Key, NamedKey};
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelSection}
@@ -36,7 +36,7 @@ use crate::{
     plugin::PluginData,
     source_control::SourceControlData,
     svg,
-    window_workspace::{WindowWorkspaceData}
+    window_workspace::WindowWorkspaceData
 };
 
 /// Blends `foreground` with `background`.
@@ -280,7 +280,8 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                 .height(ui_line_height.get())
                 .border(1.0)
                 .border_color(config.with_color(LapceColor::LAPCE_BORDER))
-        }).debug_name("");
+        })
+        .debug_name("");
 
     let text_input_id = text_input_view.id();
     text_input_id.request_focus();

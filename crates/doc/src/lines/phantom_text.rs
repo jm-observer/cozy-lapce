@@ -1,5 +1,4 @@
-use std::cmp::Ordering;
-use std::ops::Range;
+use std::{cmp::Ordering, ops::Range};
 
 use floem::{
     peniko::Color,
@@ -677,8 +676,8 @@ impl PhantomTextMultiLine {
                                     return None;
                                 }
                             }
-                            continue
-                        }
+                            continue;
+                        },
                         Ordering::Equal => {
                             if text.col < origin_col {
                                 // be merged
@@ -694,7 +693,7 @@ impl PhantomTextMultiLine {
                             } else {
                                 break;
                             }
-                        }
+                        },
                         Ordering::Greater => {
                             break;
                         }
@@ -702,10 +701,12 @@ impl PhantomTextMultiLine {
                 },
                 Text::OriginText { text } => {
                     if text.line == origin_line && text.col.contains(origin_col) {
-                        return Some(text.final_col.start + origin_col - text.col.start);
+                        return Some(
+                            text.final_col.start + origin_col - text.col.start
+                        );
                     }
                 },
-                Text::EmptyLine { .. } => return Some(0),
+                Text::EmptyLine { .. } => return Some(0)
             }
         }
         Some(self.final_text_len)
@@ -723,17 +724,27 @@ impl PhantomTextMultiLine {
         match self.text_of_final_col(visual_char_offset) {
             Text::Phantom { text } => {
                 // 在虚拟文本的后半部分，则光标置于虚拟文本之后
-                if visual_char_offset > text.final_col + text.text.len()/2 {
-                    (text.line, text.next_origin_col(), self.offset_of_line, Some(CursorAffinity::Forward))
+                if visual_char_offset > text.final_col + text.text.len() / 2 {
+                    (
+                        text.line,
+                        text.next_origin_col(),
+                        self.offset_of_line,
+                        Some(CursorAffinity::Forward)
+                    )
                 } else {
-                    (text.line, text.next_origin_col(), self.offset_of_line, Some(CursorAffinity::Backward))
+                    (
+                        text.line,
+                        text.next_origin_col(),
+                        self.offset_of_line,
+                        Some(CursorAffinity::Backward)
+                    )
                 }
-
             },
             Text::OriginText { text } => (
                 text.line,
                 text.origin_col_of_final_col(visual_char_offset),
-                self.offset_of_line, None
+                self.offset_of_line,
+                None
             ),
             Text::EmptyLine { text } => (text.line, 0, text.offset_of_line, None)
         }
@@ -969,11 +980,12 @@ mod test {
 
     use log::info;
     use smallvec::SmallVec;
-    use crate::lines::cursor::CursorAffinity;
+
     use super::{
         PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text,
         combine_with_text
     };
+    use crate::lines::cursor::CursorAffinity;
 
     // "0123456789012345678901234567890123456789
     // "    if true {nr    } else {nr    }nr"
@@ -1182,17 +1194,33 @@ mod test {
         }
         {
             assert_eq!(orgin_text[9], ':');
-            let (origin_line, origin_col, _, affinity) = let_line.cursor_position_of_final_col(11);
+            let (origin_line, origin_col, _, affinity) =
+                let_line.cursor_position_of_final_col(11);
             assert_eq!(origin_col, 9);
             assert_eq!(affinity, Some(CursorAffinity::Backward));
-            assert_eq!(let_line.visual_offset_of_cursor_offset(origin_line, origin_col, affinity.unwrap()), Some(9));
+            assert_eq!(
+                let_line.visual_offset_of_cursor_offset(
+                    origin_line,
+                    origin_col,
+                    affinity.unwrap()
+                ),
+                Some(9)
+            );
         }
         {
             assert_eq!(orgin_text[12], ' ');
-            let (origin_line, origin_col, _, affinity) = let_line.cursor_position_of_final_col(12);
+            let (origin_line, origin_col, _, affinity) =
+                let_line.cursor_position_of_final_col(12);
             assert_eq!(origin_col, 9);
             assert_eq!(affinity, Some(CursorAffinity::Forward));
-            assert_eq!(let_line.visual_offset_of_cursor_offset(origin_line, origin_col, affinity.unwrap()), Some(13));
+            assert_eq!(
+                let_line.visual_offset_of_cursor_offset(
+                    origin_line,
+                    origin_col,
+                    affinity.unwrap()
+                ),
+                Some(13)
+            );
         }
         {
             assert_eq!(orgin_text[17], ';');
@@ -1229,7 +1257,10 @@ mod test {
         {
             let index = 12;
             assert_eq!(orgin_text[index], '{');
-            assert_eq!(line.cursor_position_of_final_col(index), (1, 15, 0, Some(CursorAffinity::Backward)));
+            assert_eq!(
+                line.cursor_position_of_final_col(index),
+                (1, 15, 0, Some(CursorAffinity::Backward))
+            );
         }
         // "0         10        20        30
         // "0123456789012345678901234567890123456789
@@ -1279,7 +1310,10 @@ mod test {
         {
             let index = 12;
             assert_eq!(orgin_text[index], '{');
-            assert_eq!(line.cursor_position_of_final_col(index), (1, 15, 0, Some(CursorAffinity::Backward)));
+            assert_eq!(
+                line.cursor_position_of_final_col(index),
+                (1, 15, 0, Some(CursorAffinity::Backward))
+            );
         }
         // "0         10        20        30
         // "0123456789012345678901234567890123456789
@@ -1292,7 +1326,10 @@ mod test {
         {
             let index = 25;
             assert_eq!(orgin_text[index], '.');
-            assert_eq!(line.cursor_position_of_final_col(index), (3, 14, 0, Some(CursorAffinity::Backward)));
+            assert_eq!(
+                line.cursor_position_of_final_col(index),
+                (3, 14, 0, Some(CursorAffinity::Backward))
+            );
         }
         {
             let index = 29;

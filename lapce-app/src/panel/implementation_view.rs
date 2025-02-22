@@ -5,8 +5,7 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container,
-        label, scroll, stack, virtual_stack
+        Decorators, VirtualVector, container, label, scroll, stack, virtual_stack
     }
 };
 use im::HashMap;

@@ -3,10 +3,10 @@ use std::{
     fmt::Debug,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, mpsc::Sender},
     time::Instant
 };
-use std::sync::mpsc::Sender;
+
 use alacritty_terminal::vte::ansi::Handler;
 use anyhow::{Result, anyhow};
 use cozy_floem::views::{panel::DocStyle, tree_with_panel::data::TreePanelData};

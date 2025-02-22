@@ -1,7 +1,21 @@
-use std::{cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
+
 use anyhow::Result;
-use doc::lines::{buffer::rope_text::{RopeText, RopeTextVal}, command::{EditCommand, MoveCommand}, cursor::{Cursor, CursorAffinity, CursorMode}, editor_command::Command, layout::{LineExtraStyle, TextLayoutLine}, line::VisualLine, mode::{Mode, MotionMode, VisualMode}, movement::Movement, register::Register, screen_lines::ScreenLines, selection::Selection, text::{Preedit, PreeditData}, DocLinesManager};
+use doc::lines::{
+    DocLinesManager,
+    buffer::rope_text::{RopeText, RopeTextVal},
+    command::{EditCommand, MoveCommand},
+    cursor::{Cursor, CursorAffinity, CursorMode},
+    editor_command::Command,
+    layout::{LineExtraStyle, TextLayoutLine},
+    line::VisualLine,
+    mode::{Mode, MotionMode, VisualMode},
+    movement::Movement,
+    register::Register,
+    screen_lines::ScreenLines,
+    selection::Selection,
+    text::{Preedit, PreeditData}
+};
 use floem::{
     Renderer, ViewId,
     context::PaintCx,
@@ -9,19 +23,17 @@ use floem::{
     kurbo::{BezPath, Line, Point, Rect, Size, Stroke, Vec2},
     peniko,
     peniko::Color,
-    pointer::{PointerInputEvent},
+    pointer::PointerInputEvent,
     reactive::{
         RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch
     },
-    text::{Attrs, AttrsList, TextLayout}
+    text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
-use floem::text::FamilyOwned;
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-use crate::command::InternalCommand;
-use crate::doc::Doc;
-use crate::window_workspace::CommonData;
+
+use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
 /// The main structure for the editor view itself.  
@@ -322,15 +334,20 @@ impl Editor {
         self.doc().receive_char(self, c)
     }
 
-    pub fn single_click(&self, pointer_event: &PointerInputEvent, common_data: &CommonData) {
+    pub fn single_click(
+        &self,
+        pointer_event: &PointerInputEvent,
+        common_data: &CommonData
+    ) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (new_offset, _, cursor_affinity) = match self.offset_of_point(&mode, pointer_event.pos) {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            }
-        };
+        let (new_offset, _, cursor_affinity) =
+            match self.offset_of_point(&mode, pointer_event.pos) {
+                Ok(rs) => rs,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                }
+            };
         info!("single_click new_offset={new_offset} {:?}", cursor_affinity);
         self.cursor.update(|cursor| {
             cursor.set_offset(
@@ -342,21 +359,22 @@ impl Editor {
                 cursor.affinity = cursor_affinity;
             }
         });
-        common_data.internal_command
+        common_data
+            .internal_command
             .send(InternalCommand::ResetBlinkCursor);
     }
 
     pub fn double_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
 
-        let (mouse_offset, _, _) = match self.offset_of_point(&mode, pointer_event.pos)
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            }
-        };
+        let (mouse_offset, _, _) =
+            match self.offset_of_point(&mode, pointer_event.pos) {
+                Ok(rs) => rs,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                }
+            };
         let (start, end) = self.select_word(mouse_offset);
         info!(
             "double_click {:?} {:?} mouse_offset={mouse_offset},  start={start} \
@@ -375,14 +393,14 @@ impl Editor {
 
     pub fn triple_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (mouse_offset, _, _) = match self.offset_of_point(&mode, pointer_event.pos)
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            }
-        };
+        let (mouse_offset, _, _) =
+            match self.offset_of_point(&mode, pointer_event.pos) {
+                Ok(rs) => rs,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                }
+            };
         let lines = match self.doc().lines.lines_of_origin_offset(mouse_offset) {
             Ok(lines) => lines,
             Err(err) => {
@@ -1117,7 +1135,8 @@ impl std::fmt::Debug for Editor {
 /// (x, y, line_height, width)
 pub fn cursor_caret_v2(
     offset: usize,
-    affinity: CursorAffinity, lines: DocLinesManager
+    affinity: CursorAffinity,
+    lines: DocLinesManager
 ) -> Option<(f64, f64, f64, f64)> {
     let (
         _info,
@@ -1443,7 +1462,11 @@ pub fn paint_text(
     is_active: bool,
     hide_cursor: bool,
     screen_lines: &ScreenLines,
-    cursor: RwSignal<Cursor>, lines: DocLinesManager, font_family: Cow<[FamilyOwned]>, visible_whitespace: Color, font_size: f32,
+    cursor: RwSignal<Cursor>,
+    lines: DocLinesManager,
+    font_family: Cow<[FamilyOwned]>,
+    visible_whitespace: Color,
+    font_size: f32
 ) -> Result<()> {
     if is_active && !hide_cursor {
         paint_cursor_caret(cx, cursor, lines);
@@ -1452,7 +1475,8 @@ pub fn paint_text(
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
         let y = line_info.paint_point().y;
-        let text_layout = lines.with_untracked(|x| x.text_layout_of_visual_line(line).cloned())?;
+        let text_layout =
+            lines.with_untracked(|x| x.text_layout_of_visual_line(line).cloned())?;
         paint_extra_style(cx, &text_layout.extra_style, y, viewport);
         if let Some(whitespaces) = &text_layout.whitespaces {
             let attrs = Attrs::new()
@@ -1559,7 +1583,11 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
     cx.stroke(&path, color, &peniko::kurbo::Stroke::new(1.));
 }
 
-fn paint_cursor_caret(cx: &mut PaintCx, cursor: RwSignal<Cursor>, lines: DocLinesManager) {
+fn paint_cursor_caret(
+    cx: &mut PaintCx,
+    cursor: RwSignal<Cursor>,
+    lines: DocLinesManager
+) {
     let caret_color = lines.with_untracked(|es| es.ed_caret());
     cursor.with_untracked(|cursor| {
         for (_, end) in cursor.regions_iter() {

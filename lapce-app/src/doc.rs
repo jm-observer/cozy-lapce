@@ -110,7 +110,7 @@ pub struct Doc {
     pub loaded:       RwSignal<bool>,
     pub kind:         RwSignal<EditorViewKind>,
     pub code_actions: RwSignal<CodeActions>,
-    pub code_lens: RwSignal<AllCodeLens>,
+    pub code_lens:    RwSignal<AllCodeLens>,
 
     /// Stores information about different versions of the document from source
     /// control.

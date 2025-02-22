@@ -149,9 +149,7 @@ impl PaletteKind {
             return *self;
         }
 
-        if self != &PaletteKind::HelpAndFile
-            && self.symbol() == ""
-        {
+        if self != &PaletteKind::HelpAndFile && self.symbol() == "" {
             return *self;
         }
 

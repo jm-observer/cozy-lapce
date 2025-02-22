@@ -7,8 +7,7 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container,
-        label, scroll, stack, virtual_stack
+        Decorators, VirtualVector, container, label, scroll, stack, virtual_stack
     }
 };
 use lapce_core::{icon::LapceIcons, id::Id, panel::PanelContainerPosition};

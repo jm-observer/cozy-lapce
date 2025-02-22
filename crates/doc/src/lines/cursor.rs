@@ -172,7 +172,6 @@ impl CursorAffinity {
             CursorAffinity::Backward => false
         }
     }
-
 }
 
 impl Cursor {

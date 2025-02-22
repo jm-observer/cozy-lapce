@@ -1,5 +1,7 @@
-use std::{collections::HashMap, path::PathBuf, process::Command};
-use std::sync::mpsc::Sender;
+use std::{
+    collections::HashMap, path::PathBuf, process::Command, sync::mpsc::Sender
+};
+
 use floem::{ext_event::create_signal_from_channel, reactive::ReadSignal};
 use lapce_core::{
     directory::Directory,

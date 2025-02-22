@@ -11,8 +11,7 @@ use floem::{
     },
     style::CursorStyle,
     views::{
-        Decorators, container, dyn_stack, label,
-        scroll, stack, text, virtual_stack
+        Decorators, container, dyn_stack, label, scroll, stack, text, virtual_stack
     }
 };
 use itertools::Itertools;

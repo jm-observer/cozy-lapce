@@ -1,13 +1,12 @@
 use floem::{
     View,
     prelude::{
-        Decorators, SignalGet, SignalUpdate,
-        container, scroll, stack, virtual_stack
+        Decorators, SignalGet, SignalUpdate, container, scroll, stack, virtual_stack
     },
-    style::AlignItems,
+    style::{AlignItems, FlexDirection},
     views::static_label
 };
-use floem::style::FlexDirection;
+
 use crate::views::{
     drag_line::x_drag_line,
     panel::panel,

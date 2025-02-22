@@ -18,8 +18,7 @@ use floem::{
     style::CursorStyle,
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
     views::{
-        Decorators, VirtualVector, container,
-        dyn_stack, empty, label,
+        Decorators, VirtualVector, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
         stack, text, virtual_stack
     }

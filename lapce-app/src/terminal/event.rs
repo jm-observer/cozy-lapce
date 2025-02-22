@@ -1,5 +1,12 @@
-use std::{collections::HashMap, sync::Arc, time::Instant};
-use std::sync::mpsc::{Receiver, Sender};
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc,
+        mpsc::{Receiver, Sender}
+    },
+    time::Instant
+};
+
 use lapce_rpc::terminal::TermId;
 use parking_lot::RwLock;
 

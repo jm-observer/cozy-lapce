@@ -1,4 +1,5 @@
 use std::sync::mpsc::Sender;
+
 use alacritty_terminal::{
     Term,
     event::EventListener,

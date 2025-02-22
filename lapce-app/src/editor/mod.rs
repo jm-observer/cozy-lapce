@@ -3070,14 +3070,14 @@ impl EditorData {
 
     fn right_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
-        let (offset, _, _) = match self.editor.offset_of_point(&mode, pointer_event.pos)
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            }
-        };
+        let (offset, _, _) =
+            match self.editor.offset_of_point(&mode, pointer_event.pos) {
+                Ok(rs) => rs,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                }
+            };
         let doc = self.doc();
         let pointer_inside_selection = doc.lines.with_untracked(|buffer| {
             self.cursor().with_untracked(|c| {

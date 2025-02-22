@@ -11,10 +11,9 @@ use lapce_xi_rope::Interval;
 
 use super::layout::TextLayoutLine;
 use crate::lines::{
-    delta_compute::Offset, line_ending::LineEnding, phantom_text::PhantomTextLine,
-    style::NewLineStyle
+    cursor::CursorAffinity, delta_compute::Offset, line_ending::LineEnding,
+    phantom_text::PhantomTextLine, style::NewLineStyle
 };
-use crate::lines::cursor::CursorAffinity;
 // #[allow(dead_code)]
 // #[derive(Clone, Debug)]
 // pub struct OriginLine {
@@ -141,7 +140,8 @@ impl OriginFoldedLine {
     pub(crate) fn visual_line_of_line_and_offset(
         &self,
         origin_line: usize,
-        offset: usize, _affinity: CursorAffinity
+        offset: usize,
+        _affinity: CursorAffinity
     ) -> (usize, usize, usize) {
         let final_offset = self.text_layout.phantom_text.final_col_of_col(
             origin_line,
@@ -156,18 +156,17 @@ impl OriginFoldedLine {
     pub(crate) fn visual_offset_of_cursor_offset(
         &self,
         origin_line: usize,
-        offset: usize, _affinity: CursorAffinity
+        offset: usize,
+        _affinity: CursorAffinity
     ) -> Option<(usize, usize, usize)> {
-        let final_offset = self.text_layout.phantom_text.visual_offset_of_cursor_offset(
-            origin_line,
-            offset,
-            _affinity
-        )?;
+        let final_offset = self
+            .text_layout
+            .phantom_text
+            .visual_offset_of_cursor_offset(origin_line, offset, _affinity)?;
         let (sub_line, offset_of_visual) =
             self.visual_line_of_final_offset(final_offset);
         Some((sub_line, offset_of_visual, final_offset))
     }
-
 
     /// 求最终的行偏移出现在第几个视觉行，以及在视觉行的偏移位置
     fn visual_line_of_final_offset(&self, final_offset: usize) -> (usize, usize) {

@@ -1,12 +1,20 @@
-use std::{path::PathBuf, rc::Rc};
-use std::borrow::Cow;
+use std::{borrow::Cow, path::PathBuf, rc::Rc};
+
 use anyhow::Result;
-use doc::lines::{buffer::{Buffer, diff::DiffLines}, cursor::CursorMode, fold::{FoldingDisplayItem, FoldingDisplayType}, screen_lines::{DiffSectionKind, ScreenLines}, selection::SelRegion, style::{
-    CurrentLineColor, CursorSurroundingLines, EditorViewClass, IndentGuideColor,
-    IndentStyleProp, Modal, ModalRelativeLine, PhantomColor, PlaceholderColor,
-    PreeditUnderlineColor, RenderWhitespaceProp, ScrollBeyondLastLine,
-    SelectionColor, ShowIndentGuide, SmartTab, VisibleWhitespaceColor, WrapProp
-}, text::WrapMethod};
+use doc::lines::{
+    buffer::{Buffer, diff::DiffLines},
+    cursor::CursorMode,
+    fold::{FoldingDisplayItem, FoldingDisplayType},
+    screen_lines::{DiffSectionKind, ScreenLines},
+    selection::SelRegion,
+    style::{
+        CurrentLineColor, CursorSurroundingLines, EditorViewClass, IndentGuideColor,
+        IndentStyleProp, Modal, ModalRelativeLine, PhantomColor, PlaceholderColor,
+        PreeditUnderlineColor, RenderWhitespaceProp, ScrollBeyondLastLine,
+        SelectionColor, ShowIndentGuide, SmartTab, VisibleWhitespaceColor, WrapProp
+    },
+    text::WrapMethod
+};
 use floem::{
     Renderer, View, ViewId,
     action::{set_ime_allowed, set_ime_cursor_area},
@@ -25,16 +33,17 @@ use floem::{
     },
     style::{CursorColor, CursorStyle, Style, TextColor},
     taffy::prelude::NodeId,
+    text::FamilyOwned,
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
         stack, text_input
     }
 };
-use floem::text::FamilyOwned;
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
+
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
@@ -986,7 +995,9 @@ impl View for EditorView {
             sticky_header,
             lapce_dropdown_shadow_color,
             editor_sticky_header_background_color,
-            editor_fg, font_family_str, font_size
+            editor_fg,
+            font_family_str,
+            font_size
         ) = e_data.common.config.with_untracked(|config| {
             let editor_debug_break_line_color =
                 config.color(LapceColor::EDITOR_DEBUG_BREAK_LINE);
@@ -1026,10 +1037,13 @@ impl View for EditorView {
                 sticky_header,
                 lapce_dropdown_shadow_color,
                 editor_sticky_header_background_color,
-                editor_fg, font_family, font_size,
+                editor_fg,
+                font_family,
+                font_size
             )
         });
-        let font_family = Cow::Owned(FamilyOwned::parse_list(&font_family_str).collect());
+        let font_family =
+            Cow::Owned(FamilyOwned::parse_list(&font_family_str).collect());
 
         let is_local = doc.content.with_untracked(|content| content.is_local());
         let find_focus = self.editor.find_focus;
@@ -1044,10 +1058,14 @@ impl View for EditorView {
         // easiest/clearest. I expect that most/all of the paint functions
         // could restrict themselves to only what is within the active screen
         // lines without issue.
-        let (viewport, screen_lines, visible_whitespace) = ed
-            .doc()
-            .lines
-            .with_untracked(|x| (x.viewport(), x.signal_screen_lines(), x.visible_whitespace()));
+        let (viewport, screen_lines, visible_whitespace) =
+            ed.doc().lines.with_untracked(|x| {
+                (
+                    x.viewport(),
+                    x.signal_screen_lines(),
+                    x.visible_whitespace()
+                )
+            });
         let screen_lines = screen_lines.get();
         self.paint_current_line(
             cx,
@@ -1091,7 +1109,11 @@ impl View for EditorView {
             is_active,
             cursor_hidden,
             &screen_lines,
-            cursor, lines, font_family, visible_whitespace, font_size
+            cursor,
+            lines,
+            font_family,
+            visible_whitespace,
+            font_size
         ) {
             error!("{err:?}");
         }
