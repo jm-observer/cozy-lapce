@@ -54,6 +54,7 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
+use floem::keyboard::{Key, NamedKey};
 use lapce_core::{
     debug::RunDebugMode,
     directory::Directory,
@@ -73,7 +74,6 @@ use lapce_rpc::{
 use log::{error, trace};
 use lsp_types::{CompletionItemKind, MessageType, ShowMessageParams};
 use serde::{Deserialize, Serialize};
-
 use crate::{
     about, alert,
     code_action::CodeActionStatus,
@@ -3401,10 +3401,21 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
     let active = window_tab_data.rename.active;
     let layout_rect = window_tab_data.rename.layout_rect;
     let config = window_tab_data.common.config;
-    let focus = window_tab_data.common.focus;
-
+    let rename_data_key_down = window_tab_data.rename.clone();
+    let rename_data = window_tab_data.rename.clone();
+    // todo rename激活时，focus输入框
     container(
-        container(text_input(name_str).style(|s| s.width(150.0)))
+        container(text_input(name_str).style(|s| s.width(150.0)).debug_name("rename").on_event_stop(EventListener::KeyDown, move |event: &Event| {
+            if let Event::KeyDown(key_event) = event {
+                if let Key::Named(NamedKey::Enter) = key_event.key.logical_key {
+                    rename_data_key_down.confirm();
+                }
+            }
+        }).on_event_stop(EventListener::FocusLost, move |event: &Event| {
+            if let Event::FocusLost = event {
+                rename_data.cancel();
+            }
+        }))
         .style(move |s| {
             let (fg, bg, font_family, font_size) = config.with(|config| {
                 (

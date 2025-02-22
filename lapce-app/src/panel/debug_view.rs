@@ -335,7 +335,6 @@ fn debug_processes(
 fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
     let terminal = window_tab_data.terminal.clone();
     let local_terminal = window_tab_data.terminal.clone();
-    let ui_line_height = window_tab_data.common.ui_line_height;
     let config = window_tab_data.common.config;
     container(
         scroll(

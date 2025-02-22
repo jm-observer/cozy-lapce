@@ -91,7 +91,6 @@ pub fn plugin_panel(
 }
 
 fn installed_view(plugin: PluginData) -> impl View {
-    let ui_line_height = plugin.common.ui_line_height;
     let volts = plugin.installed;
     let config = plugin.common.config;
     let disabled = plugin.disabled;
@@ -217,7 +216,6 @@ fn installed_view(plugin: PluginData) -> impl View {
 }
 
 fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
-    let ui_line_height = plugin.common.ui_line_height;
     let volts = plugin.available.volts;
     let installed = plugin.installed;
     let config = plugin.common.config;

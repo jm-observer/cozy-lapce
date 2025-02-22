@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use floem::{
     View,
     event::EventListener,
@@ -23,7 +21,7 @@ use crate::{
     config::{WithLapceConfig, color::LapceColor},
     editor::location::{EditorLocation, EditorPosition},
     focus_text::focus_text,
-    global_search::{GlobalSearchData, SearchMatchData},
+    global_search::{GlobalSearchData},
     listener::Listener,
     svg,
     window_workspace::{Focus, WindowWorkspaceData}
@@ -115,16 +113,9 @@ fn search_result(
     internal_command: Listener<InternalCommand>,
     config: WithLapceConfig
 ) -> impl View {
-    let ui_line_height = global_search_data.common.ui_line_height;
     container({
         scroll({
             virtual_stack(
-                // VirtualDirection::Vertical,
-                // VirtualItemSize::Fn(Box::new(
-                //     |(_, match_data): &(PathBuf, SearchMatchData)| {
-                //         match_data.height()
-                //     }
-                // )),
                 move || global_search_data.clone(),
                 move |(path, _)| path.to_owned(),
                 move |(path, match_data)| {

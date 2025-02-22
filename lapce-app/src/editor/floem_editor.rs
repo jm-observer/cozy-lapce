@@ -1,20 +1,7 @@
 use std::{cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
-
+use std::borrow::Cow;
 use anyhow::Result;
-use doc::lines::{
-    buffer::rope_text::{RopeText, RopeTextVal},
-    command::{EditCommand, MoveCommand},
-    cursor::{Cursor, CursorAffinity, CursorMode},
-    editor_command::Command,
-    layout::{LineExtraStyle, TextLayoutLine},
-    line::VisualLine,
-    mode::{Mode, MotionMode, VisualMode},
-    movement::Movement,
-    register::Register,
-    screen_lines::ScreenLines,
-    selection::Selection,
-    text::{Preedit, PreeditData}
-};
+use doc::lines::{buffer::rope_text::{RopeText, RopeTextVal}, command::{EditCommand, MoveCommand}, cursor::{Cursor, CursorAffinity, CursorMode}, editor_command::Command, layout::{LineExtraStyle, TextLayoutLine}, line::VisualLine, mode::{Mode, MotionMode, VisualMode}, movement::Movement, register::Register, screen_lines::ScreenLines, selection::Selection, text::{Preedit, PreeditData}, DocLinesManager};
 use floem::{
     Renderer, ViewId,
     context::PaintCx,
@@ -28,6 +15,7 @@ use floem::{
     },
     text::{Attrs, AttrsList, TextLayout}
 };
+use floem::text::FamilyOwned;
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
@@ -124,17 +112,7 @@ impl Editor {
         };
         let cursor = Cursor::new(cursor_mode, None, None);
         let cursor = cx.create_rw_signal(cursor);
-        // let lines = doc.doc_lines;
         let doc = cx.create_rw_signal(doc);
-        // let font_sizes = Rc::new(EditorFontSizes {
-        //     id,
-        //     style: style.read_only(),
-        //     doc: doc.read_only(),
-        // });
-        // let lines = Rc::new(Lines::new(cx, font_sizes));
-
-        // let screen_lines =
-        //     cx.create_rw_signal(ScreenLines::new(cx, viewport.get_untracked()));
 
         Editor {
             cx: Cell::new(cx),
@@ -1138,9 +1116,8 @@ impl std::fmt::Debug for Editor {
 
 /// (x, y, line_height, width)
 pub fn cursor_caret_v2(
-    ed: &Editor,
     offset: usize,
-    affinity: CursorAffinity
+    affinity: CursorAffinity, lines: DocLinesManager
 ) -> Option<(f64, f64, f64, f64)> {
     let (
         _info,
@@ -1152,9 +1129,7 @@ pub fn cursor_caret_v2(
         line_height,
         _origin_point,
         _
-    ) = match ed
-        .doc()
-        .lines
+    ) = match lines
         .with_untracked(|x| x.visual_position_of_cursor_position(offset, affinity))
     {
         Ok(rs) => rs?,
@@ -1464,33 +1439,25 @@ fn paint_normal_selection(
 
 pub fn paint_text(
     cx: &mut PaintCx,
-    ed: &Editor,
     viewport: Rect,
     is_active: bool,
     hide_cursor: bool,
     screen_lines: &ScreenLines,
-    _show_indent_guide: (bool, Color)
+    cursor: RwSignal<Cursor>, lines: DocLinesManager, font_family: Cow<[FamilyOwned]>, visible_whitespace: Color, font_size: f32,
 ) -> Result<()> {
-    let style = ed.doc();
     if is_active && !hide_cursor {
-        paint_cursor_caret(cx, ed, screen_lines);
+        paint_cursor_caret(cx, cursor, lines);
     }
-
     // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
         let line = line_info.visual_line.origin_line;
         let y = line_info.paint_point().y;
-        let text_layout =
-            ed.text_layout_of_visual_line(line_info.visual_line.line_index)?;
-
+        let text_layout = lines.with_untracked(|x| x.text_layout_of_visual_line(line).cloned())?;
         paint_extra_style(cx, &text_layout.extra_style, y, viewport);
-
         if let Some(whitespaces) = &text_layout.whitespaces {
-            let family = style.font_family(line);
-            let font_size = style.font_size(line) as f32;
             let attrs = Attrs::new()
-                .color(ed.doc().lines.with_untracked(|es| es.visible_whitespace()))
-                .family(&family)
+                .color(visible_whitespace)
+                .family(&font_family)
                 .font_size(font_size);
             let attrs_list = AttrsList::new(attrs);
             let space_text = TextLayout::new_with_text("·", attrs_list.clone());
@@ -1592,19 +1559,13 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
     cx.stroke(&path, color, &peniko::kurbo::Stroke::new(1.));
 }
 
-fn paint_cursor_caret(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines) {
-    let cursor = ed.cursor;
-    let caret_color = ed.doc().lines.with_untracked(|es| es.ed_caret());
+fn paint_cursor_caret(cx: &mut PaintCx, cursor: RwSignal<Cursor>, lines: DocLinesManager) {
+    let caret_color = lines.with_untracked(|es| es.ed_caret());
     cursor.with_untracked(|cursor| {
         for (_, end) in cursor.regions_iter() {
             if let Some((x, y, width, line_height)) =
-                cursor_caret_v2(ed, end, cursor.affinity)
+                cursor_caret_v2(end, cursor.affinity, lines)
             {
-                // if !style.paint_caret(ed.id(), rvline.line) {
-                //     continue;
-                // }
-
-                // let line_height = ed.line_height(info.vline_info.origin_line);
                 let rect = Rect::from_origin_size((x, y), (width, line_height));
                 cx.fill(&rect, &caret_color, 0.0);
             }

@@ -110,22 +110,17 @@ pub struct Doc {
     pub loaded:       RwSignal<bool>,
     pub kind:         RwSignal<EditorViewKind>,
     pub code_actions: RwSignal<CodeActions>,
-
     pub code_lens: RwSignal<AllCodeLens>,
 
-    // pub folding_ranges: RwSignal<FoldingRanges>,
     /// Stores information about different versions of the document from source
     /// control.
     histories:        RwSignal<im::HashMap<String, DocumentHistory>>,
     pub head_changes: RwSignal<im::Vector<DiffLines>>,
 
-    // line_styles: Rc<RefCell<LineStyles>>,
-    // pub parser: Rc<RefCell<BracketParser>>,
     /// A cache for the sticky headers which maps a line to the lines it should
     /// show in the header.
     pub sticky_headers: Rc<RefCell<HashMap<usize, Option<Vec<usize>>>>>,
 
-    // pub preedit: PreeditData,
     pub find_result: FindResult,
 
     editors:    Editors,
@@ -133,9 +128,6 @@ pub struct Doc {
 
     pub document_symbol_data: DocumentSymbolViewData,
 
-    // pub lines: RwSignal<Lines>,
-    // pub editor_style: RwSignal<EditorStyle>,
-    // pub viewport: RwSignal<Rect>,
     pub lines: DocLinesManager // pub screen_lines: RwSignal<ScreenLines>,
 }
 

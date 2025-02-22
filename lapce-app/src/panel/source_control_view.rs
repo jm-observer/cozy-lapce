@@ -128,11 +128,11 @@ pub fn source_control_panel(
                     let cursor = cursor.get();
                     let offset = cursor.offset();
                     let e_data = editor.get_untracked();
-                    e_data.doc_signal().track();
                     e_data.kind().track();
+                    let lines = e_data.doc_signal().with(|x| x.lines);
 
                     if let Some((x, y, width, line_height)) =
-                        cursor_caret_v2(&e_data.editor, offset, cursor.affinity)
+                        cursor_caret_v2(offset, cursor.affinity, lines)
                     {
                         let rect =
                             Rect::from_origin_size((x, y), (width, line_height));

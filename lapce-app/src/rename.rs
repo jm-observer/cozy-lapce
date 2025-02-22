@@ -103,14 +103,14 @@ impl RenameData {
         CommandExecuted::Yes
     }
 
-    fn cancel(&self) {
+    pub fn cancel(&self) {
         self.active.set(false);
         if let Focus::Rename = self.common.focus.get_untracked() {
             self.common.focus.set(Focus::Workbench);
         }
     }
 
-    fn confirm(&self) {
+    pub fn confirm(&self) {
         let new_name = self.name_str.get_untracked();
         log::info!("confirm {new_name}");
         let new_name = new_name.trim();
