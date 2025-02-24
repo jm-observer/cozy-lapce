@@ -137,14 +137,12 @@ impl Editor {
             let lines = doc.with(|x| {
                 x.lines
             });
-            let signal_paint_content = lines.with(|x| {
-                x.signal_paint_content()
-            });
             let base = viewport.get();
-            signal_paint_content.get();
-            let (screen_lines_val, folding_display_item_val) = lines.with(|x| {
-                x._compute_screen_lines(base)
+            let (screen_lines_val, folding_display_item_val, signal_paint_content) = lines.with_untracked(|x| {
+                let (screen_lines_val, folding_display_item_val) = x._compute_screen_lines(base);
+                    (screen_lines_val, folding_display_item_val, x.signal_paint_content())
             });
+            signal_paint_content.get();
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);
         });

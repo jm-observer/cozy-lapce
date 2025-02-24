@@ -141,10 +141,11 @@ impl DocLinesManager {
         self.lines.with_untracked(f)
     }
 
-    pub fn with<O>(&self, f: impl FnOnce(&DocLines) -> O) -> O
-    {
-        self.lines.with(f)
-    }
+    // 不允许这样！也许会出现渲染死循环的问题！！！
+    // pub fn with<O>(&self, f: impl FnOnce(&DocLines) -> O) -> O
+    // {
+    //     self.lines.with(f)
+    // }
 
     pub fn get(&self) -> DocLines {
         self.lines.get()
@@ -3169,6 +3170,10 @@ impl PubUpdateLines {
         
         self.trigger_signals();
         Ok(true)
+    }
+
+    pub fn last_line_width(&self) -> f64 {
+        self.signals.last_line.val().1
     }
 }
 

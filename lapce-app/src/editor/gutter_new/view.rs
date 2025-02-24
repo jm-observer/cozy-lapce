@@ -108,29 +108,18 @@ fn gutter_data_view(
     doc: DocSignal,
     config: WithLapceConfig
 ) -> impl View {
-    let data = data.clone();
+    let data_clone = data.clone();
     let line_height = window_tab_data.common.ui_line_height;
+    let paint_point_y = data.paint_point_y;
     container((
-        static_label(data.display_line_num()).style(move |style| {
-            let doc = doc.get();
-            let width =
-                doc.lines.with_untracked(|x| x.signal_last_line()).get().1 + 8.0;
-            let (fg, dim, font_size, font_family) = config.with(|config| {
-                (
-                    config.color(LapceColor::EDITOR_FOREGROUND),
-                    config.color(LapceColor::EDITOR_DIM),
-                    config.editor.font_size(),
-                    config.editor.font_family.clone()
-                )
-            });
-            let color = if data.is_current_line { fg } else { dim };
+        static_label(data_clone.display_line_num()).style(move |style| {
             style
                 .height_full()
-                .width(width)
-                .font_size(font_size as f32)
-                .color(color)
+                .width(data_clone.style_width)
+                .font_size(data_clone.style_font_size as f32)
+                .color(data_clone.style_color)
                 .padding_horiz(4.0)
-                .font_family(StyleValue::Val(font_family))
+                .font_family(StyleValue::Val(data_clone.style_font_family.clone()))
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
         }),
@@ -139,7 +128,7 @@ fn gutter_data_view(
     .style(move |style| {
         style
             .absolute()
-            .inset_top(data.paint_point_y)
+            .inset_top(paint_point_y)
             .height(line_height.get())
     })
 }
