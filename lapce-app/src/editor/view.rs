@@ -858,14 +858,12 @@ impl View for EditorView {
         cx: &mut floem::context::ComputeLayoutCx
     ) -> Option<Rect> {
         let viewport = cx.current_viewport();
-        // if self.name == "editor" {
-        //     info!("compute_layout {} {:?}", self.name, viewport);
-        // }
-        self.editor.doc().lines.update(|x| {
-            if let Err(err) = x.update_viewport_size(viewport) {
-                error!("{err:?}");
-            }
-        });
+        self.editor.editor.viewport.set(viewport);
+        // self.editor.doc().lines.update(|x| {
+        //     if let Err(err) = x.update_viewport_size(viewport) {
+        //         error!("{err:?}");
+        //     }
+        // });
 
         None
     }
@@ -1117,17 +1115,6 @@ pub fn editor_container_view(
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: RwSignal<EditorData>
 ) -> impl View {
-    let (editor_id, sticky_header_height, editor_view, config, doc) = editor
-        .with_untracked(|editor| {
-            (
-                editor.id(),
-                editor.sticky_header_height,
-                editor.kind(),
-                editor.common.config,
-                editor.doc_signal() // editor.editor.clone(),
-            )
-        });
-
     let main_split = window_tab_data.main_split.clone();
     let editors = main_split.editors;
     let scratch_docs = main_split.scratch_docs;
@@ -1139,19 +1126,23 @@ pub fn editor_container_view(
     let replace_str = main_split.replace_str;
     let find_view_id = main_split.find_view_id;
     let common = main_split.common.clone();
+    let config = main_split.common.config;
 
     stack((
         editor_breadcrumbs(workspace, editor.get_untracked(), config),
         stack((
             editor_gutter_new(window_tab_data.clone(), editor),
-            editor_gutter_folding_range(window_tab_data.clone(), doc),
+            editor_gutter_folding_range(window_tab_data.clone(), editor),
             editor_content(editor, debug_breakline, is_active),
             empty().style(move |s| {
                 let sticky_header =
                     config.with(|config| config.editor.sticky_header);
+                let (sticky_header_height, editor_view) = editor.with(|x| (x.sticky_header_height, x.kind()));
+                let sticky_header_height = sticky_header_height.get() as f32;
+
                 s.absolute()
                     .width_pct(100.0)
-                    .height(sticky_header_height.get() as f32)
+                    .height(sticky_header_height)
                     // .box_shadow_blur(5.0)
                     // .border_bottom(1.0)
                     // .border_color(
@@ -1159,7 +1150,7 @@ pub fn editor_container_view(
                     // )
                     .apply_if(
                         !sticky_header
-                            || sticky_header_height.get() == 0.0
+                            || sticky_header_height == 0.0
                             || !editor_view.get().is_normal(),
                         |s| s.hide(),
                     )
@@ -1180,7 +1171,7 @@ pub fn editor_container_view(
         let editor = editor.get_untracked();
         editor.cancel_completion();
         editor.cancel_inline_completion();
-        if editors.contains_untracked(editor_id) {
+        if editors.contains_untracked(editor.id()) {
             // editor still exist, so it might be moved to a different editor tab
             return;
         }
@@ -1533,20 +1524,18 @@ fn editor_gutter_folding_view(
 
 fn editor_gutter_folding_range(
     window_tab_data: WindowWorkspaceData,
-    doc: DocSignal
+    e_data: RwSignal<EditorData>
 ) -> impl View {
     let config = window_tab_data.common.config;
     dyn_stack(
         move || {
-            let folding_items_signal =
-                doc.get().lines.with_untracked(|x| x.signal_folding_items());
-            folding_items_signal.get()
+            e_data.with(|x| x.editor.folding_display_item).get()
         },
         move |item| *item,
         move |item| {
             editor_gutter_folding_view(window_tab_data.clone(), item).on_click_stop(
                 {
-                    let lines = doc.get_untracked().lines;
+                    let lines = e_data.with_untracked(|x| x.doc_signal()).with_untracked(|x| x.lines);
                     move |_| {
                         lines.update(|x| {
                             if let Err(err) = x.update_folding_ranges(item.into()) {
@@ -1776,11 +1765,14 @@ fn editor_content(
             e_data.cancel_completion();
             e_data.cancel_inline_completion();
         }
+
         e_data
-            .editor
-            .doc()
-            .lines
-            .update(|x| x.update_viewport_by_scroll(rect));
+            .editor.viewport.set(rect);
+        // e_data
+        //     .editor
+        //     .doc()
+        //     .lines
+        //     .update(|x| x.update_viewport_by_scroll(rect));
         e_data.common.hover.active.set(false);
         current_scroll.set(rect);
     })

@@ -1738,7 +1738,7 @@ impl DocLines {
     //     line
     // }
 
-    pub fn _compute_screen_lines(&self, base: Rect) -> ScreenLines {
+    pub fn _compute_screen_lines(&self, base: Rect) -> (ScreenLines, Vec<FoldingDisplayItem>) {
         debug!("_compute_screen_lines");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
@@ -1753,7 +1753,10 @@ impl DocLines {
         let min_val = (y0 / line_height as f64).floor() as usize;
         let max_val = (y1 / line_height as f64).floor() as usize;
         let vline_infos = self.visual_lines(min_val, max_val);
-        util::compute_screen_lines(view_kind, base, vline_infos, line_height, y0)
+        let screen_lines = util::compute_screen_lines(view_kind, base, vline_infos, line_height, y0);
+        let display_items =
+            self.folding_ranges.to_display_items(&screen_lines);
+        (screen_lines, display_items)
     }
 
     // pub fn viewport(&self) -> Rect {
@@ -2046,15 +2049,6 @@ impl DocLines {
         if let Some(hints) = self.inlay_hints.as_mut() {
             hints.apply_shape(delta);
         }
-    }
-
-    fn update_folding_display_items(&mut self) {
-        todo!()
-        // let display_items =
-        //     self.folding_ranges.to_display_items(self.screen_lines());
-        // self.signals
-        //     .folding_items
-        //     .update_if_not_equal(display_items);
     }
 
     pub fn move_up(
@@ -2811,7 +2805,7 @@ impl PubUpdateLines {
         self.update_lines_new(line_delta)?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
 
         self.trigger_signals();
         Ok(true)
@@ -2928,7 +2922,7 @@ impl PubUpdateLines {
         }
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
     }
 
     pub fn init_diagnostics(&mut self) -> Result<()> {
@@ -2936,45 +2930,45 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         Ok(())
     }
 
-    pub fn update_viewport_size(&mut self, viewport: Rect) -> Result<()> {
-        let viewport_size = viewport.size();
-
-        let should_update =
-            matches!(self.editor_style.wrap_method(), WrapMethod::EditorWidth)
-                && self.viewport_size.width != viewport_size.width;
-        if should_update {
-            self.viewport_size = viewport_size;
-        }
-        if self.signals.viewport.update_if_not_equal(viewport) {
-            self.signals.update_paint_text();
-            self.update_folding_display_items();
-        }
-        self.trigger_signals();
-        Ok(())
-    }
-
-    pub fn update_viewport_by_scroll(&mut self, viewport: Rect) {
-        debug!(
-            "viewport={viewport:?} self.signals.viewport={:?} {:?}",
-            self.signals.viewport.val(),
-            self.editor_style.wrap_method()
-        );
-        if self.signals.viewport.val().y0 == viewport.y0
-            && self.signals.viewport.val().y1 == viewport.y1
-            && !matches!(self.editor_style.wrap_method(), WrapMethod::EditorWidth)
-        {
-            return;
-        }
-        if self.signals.viewport.update_if_not_equal(viewport) {
-            self.signals.update_paint_text();
-            self.update_folding_display_items();
-            self.trigger_signals();
-        }
-    }
+    // pub fn update_viewport_size(&mut self, viewport: Rect) -> Result<()> {
+    //     let viewport_size = viewport.size();
+    //
+    //     let should_update =
+    //         matches!(self.editor_style.wrap_method(), WrapMethod::EditorWidth)
+    //             && self.viewport_size.width != viewport_size.width;
+    //     if should_update {
+    //         self.viewport_size = viewport_size;
+    //     }
+    //     if self.signals.viewport.update_if_not_equal(viewport) {
+    //         self.signals.update_paint_text();
+    //         
+    //     }
+    //     self.trigger_signals();
+    //     Ok(())
+    // }
+    //
+    // pub fn update_viewport_by_scroll(&mut self, viewport: Rect) {
+    //     debug!(
+    //         "viewport={viewport:?} self.signals.viewport={:?} {:?}",
+    //         self.signals.viewport.val(),
+    //         self.editor_style.wrap_method()
+    //     );
+    //     if self.signals.viewport.val().y0 == viewport.y0
+    //         && self.signals.viewport.val().y1 == viewport.y1
+    //         && !matches!(self.editor_style.wrap_method(), WrapMethod::EditorWidth)
+    //     {
+    //         return;
+    //     }
+    //     if self.signals.viewport.update_if_not_equal(viewport) {
+    //         self.signals.update_paint_text();
+    //         
+    //         self.trigger_signals();
+    //     }
+    // }
 
     pub fn update_config(&mut self, config: EditorConfig) -> Result<()> {
         // todo
@@ -2983,7 +2977,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         // }
         Ok(())
@@ -3008,7 +3002,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.check_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3047,7 +3041,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3067,7 +3061,7 @@ impl PubUpdateLines {
         // self.update_lines();
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3081,7 +3075,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3096,7 +3090,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3106,7 +3100,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3128,7 +3122,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(true)
     }
@@ -3138,7 +3132,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3154,7 +3148,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(())
     }
@@ -3172,7 +3166,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-        self.update_folding_display_items();
+        
         self.trigger_signals();
         Ok(true)
     }
@@ -3248,10 +3242,6 @@ impl LinesSignals {
 
     pub fn signal_show_indent_guide(&self) -> ReadSignal<(bool, Color)> {
         self.signals.show_indent_guide.signal()
-    }
-
-    pub fn signal_folding_items(&self) -> ReadSignal<Vec<FoldingDisplayItem>> {
-        self.signals.folding_items.signal()
     }
 
     pub fn signal_buffer_rev(&self) -> ReadSignal<u64> {

@@ -5,7 +5,7 @@ use floem::{
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
 use crate::lines::{
-    buffer::Buffer, fold::FoldingDisplayItem,
+    buffer::Buffer,
     style::EditorStyle
 };
 
@@ -13,7 +13,6 @@ use crate::lines::{
 pub struct Signals {
     pub(crate) show_indent_guide: SignalManager<(bool, Color)>,
     pub(crate) viewport:          SignalManager<Rect>,
-    pub(crate) folding_items:     SignalManager<Vec<FoldingDisplayItem>>,
     pub(crate) buffer_rev:        SignalManager<u64>,
     pub(crate) buffer:            SignalManager<Buffer>,
     pub(crate) pristine:          SignalManager<bool>,
@@ -35,7 +34,6 @@ impl Signals {
             (style.show_indent_guide(), style.indent_guide())
         );
         let viewport = SignalManager::new(cx, viewport);
-        let folding_items_signal = SignalManager::new(cx, Vec::new());
         let rev = buffer.rev();
         let pristine = buffer.is_pristine();
         let buffer_rev = SignalManager::new(cx, rev);
@@ -46,7 +44,6 @@ impl Signals {
         Self {
             show_indent_guide,
             viewport,
-            folding_items: folding_items_signal,
             buffer_rev,
             buffer,
             last_line,
@@ -68,7 +65,6 @@ impl Signals {
         batch(|| {
             self.show_indent_guide.trigger();
             self.viewport.trigger();
-            self.folding_items.trigger();
             self.buffer_rev.trigger();
             self.buffer.trigger();
             self.last_line.trigger();
@@ -81,7 +77,6 @@ impl Signals {
         batch(|| {
             self.show_indent_guide.trigger_force();
             self.viewport.trigger_force();
-            self.folding_items.trigger_force();
             self.buffer_rev.trigger_force();
             self.buffer.trigger_force();
             self.last_line.trigger_force();

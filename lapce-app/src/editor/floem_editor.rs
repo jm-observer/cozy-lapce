@@ -31,6 +31,7 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
+use doc::lines::fold::FoldingDisplayItem;
 use doc::lines::line::OriginFoldedLine;
 use doc::lines::line_ending::LineEnding;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
@@ -58,6 +59,7 @@ pub struct Editor {
     pub window_origin: RwSignal<Point>,
     pub viewport: RwSignal<Rect>,
     pub screen_lines:   RwSignal<ScreenLines>,
+    pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
 
     pub editor_view_focused:    Trigger,
     pub editor_view_focus_lost: Trigger,
@@ -129,6 +131,8 @@ impl Editor {
 
         let viewport = cx.create_rw_signal(Rect::ZERO);
         let screen_lines = cx.create_rw_signal(ScreenLines::default());
+        let folding_display_item = cx.create_rw_signal(vec![]);
+
         cx.create_effect(move|_| {
             let lines = doc.with(|x| {
                 x.lines
@@ -138,10 +142,11 @@ impl Editor {
             });
             let base = viewport.get();
             signal_paint_content.get();
-            let screen_lines_val = lines.with(|x| {
+            let (screen_lines_val, folding_display_item_val) = lines.with(|x| {
                 x._compute_screen_lines(base)
             });
             screen_lines.set(screen_lines_val);
+            folding_display_item.set(folding_display_item_val);
         });
 
         Editor {
@@ -166,7 +171,8 @@ impl Editor {
             last_movement: cx.create_rw_signal(Movement::Left),
             ime_allowed: cx.create_rw_signal(false),
             floem_style_id: cx.create_rw_signal(0),
-            screen_lines
+            screen_lines,
+            folding_display_item
         }
     }
 
