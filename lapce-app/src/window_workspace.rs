@@ -11,7 +11,7 @@ use alacritty_terminal::vte::ansi::Handler;
 use anyhow::{Result, anyhow};
 use cozy_floem::views::{panel::DocStyle, tree_with_panel::data::TreePanelData};
 use doc::lines::{
-    buffer::rope_text::RopeText, command::FocusCommand, cursor::CursorAffinity,
+    buffer::rope_text::RopeText, command::FocusCommand,
     editor_command::CommandExecuted, mode::Mode, register::Register
 };
 use floem::{
@@ -2618,7 +2618,6 @@ impl WindowWorkspaceData {
         let (point_above, point_below) = editor
             .points_of_offset(
                 self.common.hover.offset.get_untracked(),
-                CursorAffinity::Forward
             )
             .ok()?;
 
@@ -2672,7 +2671,7 @@ impl WindowWorkspaceData {
         // TODO(minor): What affinity should we use for this? Probably just use the
         // cursor's original affinity..
         let (point_above, point_below) =
-            editor.points_of_offset(completion.offset, CursorAffinity::Forward)?;
+            editor.points_of_offset(completion.offset)?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2721,7 +2720,7 @@ impl WindowWorkspaceData {
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) =
-            editor.points_of_offset(code_action.offset, CursorAffinity::Forward)?;
+            editor.points_of_offset(code_action.offset)?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2775,7 +2774,6 @@ impl WindowWorkspaceData {
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) = editor.points_of_offset(
             self.rename.start.get_untracked(),
-            CursorAffinity::Forward
         )?;
 
         let window_origin =

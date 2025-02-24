@@ -86,7 +86,7 @@ pub struct OriginFoldedLine {
     pub text_layout:       TextLayoutLine,
     // 不易于更新迭代？
     pub semantic_styles:   Vec<NewLineStyle>,
-    pub diagnostic_styles: Vec<NewLineStyle>
+    pub diagnostic_styles: Vec<NewLineStyle>,
 }
 
 #[allow(dead_code)]
@@ -111,10 +111,6 @@ impl OriginFoldedLine {
             .iter_mut()
             .for_each(|x| x.adjust(offset, line_offset));
         obj
-    }
-
-    pub fn final_len(&self) -> usize {
-        self.text_layout.phantom_text.final_text_len
     }
 
     fn final_offset_of_visual_line(
@@ -202,6 +198,10 @@ impl OriginFoldedLine {
 
     pub(crate) fn len_without_rn(&self, ending: LineEnding) -> usize {
         self.len().max(ending.len()) - ending.len()
+    }
+
+    pub fn is_last_char(&self, offset: usize, ending: LineEnding) -> bool {
+        self.len_without_rn(ending) == offset
     }
 
     /// 单一视觉行的间隔point

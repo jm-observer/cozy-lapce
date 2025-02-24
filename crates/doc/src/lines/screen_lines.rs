@@ -2,13 +2,15 @@ use std::{
     cmp::Ordering,
     rc::Rc
 };
-
+use std::ops::AddAssign;
 use anyhow::{Result, bail};
 use floem::{
     kurbo::{Point, Rect},
     reactive::Scope
 };
+use crate::hit_position_aff;
 use crate::lines::line::{OriginFoldedLine};
+use crate::lines::line_ending::LineEnding;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -34,7 +36,7 @@ pub struct DiffSection {
 // floem-editor! Is there a better design for this? Possibly we should
 // just move that out to a separate field on Lapce's editor.
 // 不允许滚到到窗口没有文本！！！因此lines等不会为空
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ScreenLines {
     pub visual_lines:  Vec<VisualLineInfo>,
     /// Guaranteed to have an entry for each `VLine` in `lines`
@@ -141,14 +143,14 @@ impl ScreenLines {
     pub fn visual_line_info_for_origin_line(
         &self,
         origin_line: usize
-    ) -> Option<VisualLineInfo> {
+    ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
             match origin_line.cmp(&visual_line.visual_line.origin_line_start) {
                 Ordering::Less => {
                     return None;
                 },
                 Ordering::Equal => {
-                    return Some(visual_line.clone());
+                    return Some(visual_line);
                 },
                 _ => {}
             }
@@ -222,5 +224,129 @@ impl ScreenLines {
             return None;
         }
         Some((self.visual_line_info_for_origin_folded_line(start_line_index)?, self.visual_line_info_for_origin_folded_line(end_line_index)?))
+    }
+
+    pub fn visual_line_for_buffer_offset(
+        &self,
+        buffer_offset: usize
+    ) -> Option<&VisualLineInfo> {
+        for visual_line in &self.visual_lines {
+            if visual_line.visual_line.origin_interval.contains(buffer_offset) {
+                return Some(visual_line);
+            } else if visual_line.visual_line.origin_interval.start > buffer_offset {
+                return None;
+            }
+        }
+        None
+    }
+
+    pub fn visual_line_info_of_buffer_offset(
+        &self,
+        buffer_offset: usize,
+    ) -> Option<(&VisualLineInfo, usize)> {
+        let vl = self.visual_line_for_buffer_offset(buffer_offset)?;
+        let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
+        let final_offset = vl.visual_line.text_layout.phantom_text.final_col_of_merge_col(merge_col)?;
+        Some((vl, final_offset))
+    }
+
+    pub fn visual_position_of_buffer_offset(
+        &self,
+        buffer_offset: usize,
+    ) ->         Option<Point>
+    {
+        let (vl, final_offset) = self.visual_line_info_of_buffer_offset(buffer_offset)?;
+        let mut viewpport_point = hit_position_aff(
+            &vl.visual_line.text_layout.text,
+            final_offset,
+            true
+        )
+            .point;
+
+        viewpport_point.y = vl.folded_line_y;
+        viewpport_point.add_assign(self.base.origin().to_vec2());
+
+        Some(viewpport_point)
+    }
+
+    pub fn char_rect_in_viewport(&self, offset: usize) -> Option<Rect> {
+        let (vl_start, col_start) = self.visual_line_info_of_buffer_offset(offset)?;
+        let folded_line_start = &vl_start.visual_line;
+        let base = self.base.origin().to_vec2();
+
+        Some(folded_line_start.line_scope(
+            col_start,
+            col_start + 1,
+            self.line_height as f64,
+            vl_start.folded_line_y,
+            base
+        ))
+    }
+
+    pub fn normal_selection(
+        &self,
+        start_offset: usize,
+        end_offset: usize, line_ending: LineEnding
+    ) -> Result<Vec<Rect>> {
+        let Some((vl_start, col_start)) = self.visual_line_info_of_buffer_offset(start_offset) else {
+            return Ok(vec![]);
+        };
+        let folded_line_start = &vl_start.visual_line;
+        let Some((vl_end, col_end)) = self.visual_line_info_of_buffer_offset(end_offset) else {
+            return Ok(vec![]);
+        };
+        let folded_line_end = &vl_end.visual_line;
+
+        let Some((rs_start, rs_end)) = self.intersection_with_lines(folded_line_start.line_index, folded_line_end.line_index) else {
+            return Ok(vec![]);
+        };
+        let base = self.base.origin().to_vec2();
+        if folded_line_start.line_index == folded_line_end.line_index {
+            let rs = folded_line_start.line_scope(
+                col_start,
+                col_end,
+                self.line_height as f64,
+                rs_start.folded_line_y,
+                base
+            );
+            Ok(vec![rs])
+        } else {
+
+            let mut first =
+                Vec::with_capacity(folded_line_start.line_index - folded_line_end.line_index + 1);
+            first.push(folded_line_start.line_scope(
+                col_start,
+                folded_line_start.len_without_rn(line_ending),
+                self.line_height as f64,
+                rs_start.folded_line_y,
+                base
+            ));
+
+            for vl in &self.visual_lines {
+                if vl.visual_line.line_index >= folded_line_end.line_index {
+                    break;
+                } else if vl.visual_line.line_index <= folded_line_start.line_index {
+                    continue;
+                } else {
+                    let selection = vl.visual_line.line_scope(
+                        0,
+                        vl.visual_line.len_without_rn(line_ending),
+                        self.line_height as f64,
+                        vl.folded_line_y,
+                        base
+                    );
+                    first.push(selection)
+                }
+            }
+            let last = folded_line_end.line_scope(
+                0,
+                col_end,
+                self.line_height as f64,
+                rs_end.folded_line_y,
+                base
+            );
+            first.push(last);
+            Ok(first)
+        }
     }
 }

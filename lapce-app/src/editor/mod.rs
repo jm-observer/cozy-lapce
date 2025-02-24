@@ -264,7 +264,7 @@ impl EditorData {
         //     .editor
         //     .viewport
         //     .set(self.editor.viewport.get_untracked());
-        let viewport = self.editor.doc().lines.with_untracked(|x| x.viewport());
+        let viewport = self.editor.viewport.get_untracked();
         editor
             .editor
             .scroll_to
@@ -283,7 +283,7 @@ impl EditorData {
 
     pub fn editor_info(&self, _data: &WindowWorkspaceData) -> EditorInfo {
         let offset = self.cursor().get_untracked().offset();
-        let scroll_offset = self.viewport().origin();
+        let scroll_offset = self.viewport_untracked().origin();
         let doc = self.doc();
         let is_pristine = doc.is_pristine();
         let unsaved = if is_pristine {
@@ -303,8 +303,8 @@ impl EditorData {
         self.editor.cursor
     }
 
-    pub fn viewport(&self) -> Rect {
-        self.editor.doc().lines.with_untracked(|x| x.viewport())
+    pub fn viewport_untracked(&self) -> Rect {
+        self.editor.viewport_untracked()
     }
 
     pub fn signal_viewport(&self) -> ReadSignal<Rect> {
@@ -614,7 +614,7 @@ impl EditorData {
                 .with_untracked(|content| content.path().cloned());
             if let Some(path) = path {
                 let offset = self.cursor().with_untracked(|c| c.offset());
-                let scroll_offset = self.viewport().origin().to_vec2();
+                let scroll_offset = self.viewport_untracked().origin().to_vec2();
                 self.common.internal_command.send(
                     InternalCommand::SaveJumpLocation {
                         path,
@@ -1137,17 +1137,12 @@ impl EditorData {
     }
 
     fn on_screen_find(&self, pattern: &str) -> Vec<SelRegion> {
-        let screen_lines = self
-            .editor
-            .doc()
-            .lines
-            .with_untracked(|x| x.screen_lines().clone());
-        let lines: HashSet<usize> = screen_lines
-            .visual_lines
-            .iter()
-            .map(|l| l.visual_line.origin_line_start)
-            .collect();
-
+        let lines: HashSet<usize> = self
+            .editor.screen_lines
+            .with_untracked(|x| x.visual_lines
+                .iter()
+                .map(|l| l.visual_line.origin_line_start)
+                .collect());
         let mut matcher = nucleo::Matcher::new(nucleo::Config::DEFAULT);
         let pattern = nucleo::pattern::Pattern::parse(
             pattern,
@@ -2661,7 +2656,7 @@ impl EditorData {
         };
 
         let cursor_offset = self.cursor().with_untracked(|c| c.offset());
-        let scroll_offset = self.viewport().origin().to_vec2();
+        let scroll_offset = self.viewport_untracked().origin().to_vec2();
 
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_doc_position(
@@ -2882,7 +2877,7 @@ impl EditorData {
                 self.active().set(true);
                 self.left_click(pointer_event);
 
-                let y = pointer_event.pos.y - self.editor.viewport().y0;
+                let y = pointer_event.pos.y - self.editor.viewport_untracked().y0;
                 if self.sticky_header_height.get_untracked() > y {
                     let index = y as usize
                         / self
@@ -2919,7 +2914,7 @@ impl EditorData {
                         && pointer_event.modifiers.control());
                 if let Some(rs) = self.result_of_left_click(pointer_event.pos) {
                     match rs {
-                        ClickResult::NoHint => {
+                        ClickResult::NoHintOrNothing => {
                             if control {
                                 self.common.lapce_command.send(LapceCommand {
                                     kind: CommandKind::Focus(
@@ -2970,7 +2965,7 @@ impl EditorData {
                 Ok(rs) => rs,
                 Err(err) => {
                     error!("{err:?}");
-                    ClickResult::NoHint
+                    ClickResult::NoHintOrNothing
                 }
             })
     }

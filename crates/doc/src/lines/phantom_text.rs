@@ -535,6 +535,37 @@ impl PhantomTextMultiLine {
             .unwrap()
     }
 
+    #[allow(dead_code)]
+    fn text_of_origin_col(
+        &self,
+        origin_line: usize,
+        origin_col: usize
+    ) -> Option<&Text> {
+        self.text.iter().find(|x| {
+            match x {
+                Text::Phantom { text } => {
+                    if text.line == origin_line
+                        && text.col <= origin_col
+                        && origin_col < text.next_origin_col()
+                    {
+                        return true;
+                    } else if let Some(next_line) = text.next_line() {
+                        if origin_line < next_line {
+                            return true;
+                        }
+                    }
+                },
+                Text::OriginText { text } => {
+                    if text.line == origin_line && text.col.contains(origin_col) {
+                        return true;
+                    }
+                },
+                Text::EmptyLine { .. } => return true
+            }
+            false
+        })
+    }
+
     fn text_of_origin_line_col(
         &self,
         origin_line: usize,
@@ -602,12 +633,7 @@ impl PhantomTextMultiLine {
         None
     }
 
-    /// Translate a column position into the text into what it would
-    /// be after combining 求原始文本在最终文本的位置。场景：
-    /// 计算原始文本的样式在最终文本的位置。
-    ///
-    /// 最终文本的位置 = 原始文本位置 + 之前的幽灵文本长度
-    pub fn col_at(&self, merge_col: usize) -> Option<usize> {
+    pub fn final_col_of_merge_col(&self, merge_col: usize) -> Option<usize> {
         let text = self.text_of_merge_col(merge_col)?;
         match text {
             Text::Phantom { .. } => None,
@@ -1495,31 +1521,31 @@ mod test {
         {
             let index = 35;
             assert_eq!(orgin_text[index], '\n');
-            assert_eq!(line.col_at(index), Some(29));
+            assert_eq!(line.final_col_of_merge_col(index), Some(29));
         }
         {
             let index = 26;
             assert_eq!(orgin_text[index], '{');
-            assert_eq!(line.col_at(index), None);
+            assert_eq!(line.final_col_of_merge_col(index), None);
         }
         {
             let index = 22;
             assert_eq!(orgin_text[index], 'l');
-            assert_eq!(line.col_at(index), Some(19));
+            assert_eq!(line.final_col_of_merge_col(index), Some(19));
         }
         {
             assert_eq!(orgin_text[9], 'u');
-            assert_eq!(line.col_at(9), Some(9));
+            assert_eq!(line.final_col_of_merge_col(9), Some(9));
         }
         {
             let index = 12;
             assert_eq!(orgin_text[index], '{');
-            assert_eq!(line.col_at(index), None);
+            assert_eq!(line.final_col_of_merge_col(index), None);
         }
         {
             let index = 19;
             assert_eq!(orgin_text[index], '}');
-            assert_eq!(line.col_at(index), None);
+            assert_eq!(line.final_col_of_merge_col(index), None);
         }
     }
 

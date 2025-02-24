@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     fmt::{Debug, Formatter},
-    ops::{AddAssign, Range},
+    ops::{Range},
     sync::{Arc, atomic, atomic::AtomicUsize}
 };
 
@@ -141,6 +141,11 @@ impl DocLinesManager {
         self.lines.with_untracked(f)
     }
 
+    pub fn with<O>(&self, f: impl FnOnce(&DocLines) -> O) -> O
+    {
+        self.lines.with(f)
+    }
+
     pub fn get(&self) -> DocLines {
         self.lines.get()
     }
@@ -228,14 +233,12 @@ impl DocLines {
         buffer: Buffer,
         kind: RwSignal<EditorViewKind>
     ) -> Result<Self> {
-        let screen_lines = ScreenLines::new(cx, viewport, 0.0);
         let last_line = buffer.last_line() + 1;
         let signals = Signals::new(
             cx,
             &editor_style,
             viewport,
             buffer,
-            screen_lines,
             (last_line, 0.0)
         );
         let mut lines = Self {
@@ -914,14 +917,13 @@ impl DocLines {
         _mode: &CursorMode,
         point: Point
     ) -> Result<(usize, bool, Option<CursorAffinity>)> {
-        let info = self.signals.screen_lines.val().visual_line_of_y(point.y);
+        let info = self.origin_folded_line_of_point(point.y).unwrap_or(self.origin_folded_lines.last().ok_or(anyhow!("origin_folded_lines last line is empty"))?);
         // info.visual_line.origin_line
-        let text_layout =
-            self.text_layout_of_visual_line(info.visual_line.line_index)?;
-        let y = text_layout
-            .get_layout_y(0)
-            .unwrap_or(0.0);
-        let hit_point = text_layout.text.hit_point(Point::new(point.x, y as f64));
+        let text_layout = &info.text_layout;
+        // let y = text_layout
+        //     .get_layout_y(0)
+        //     .unwrap_or(0.0);
+        let hit_point = text_layout.text.hit_point(Point::new(point.x, 0.0));
         // let index = if hit_point.index {
         //     hit_point.index
         // } else {
@@ -936,11 +938,17 @@ impl DocLines {
         Ok((offset_of_buffer, hit_point.is_inside, cursor_affinity))
     }
 
-    pub fn result_of_left_click(&mut self, point: Point) -> Result<ClickResult> {
-        let info = self.screen_lines().visual_line_of_y(point.y);
+    pub(crate) fn origin_folded_line_of_point(&self, point_y: f64) -> Option<&OriginFoldedLine> {
+        let origin_folded_line_index = point_y as usize / self.line_height;
+        self.origin_folded_lines.get(origin_folded_line_index)
+    }
 
+    pub fn result_of_left_click(&mut self, point: Point) -> Result<ClickResult> {
+        let Some(info) = self.origin_folded_line_of_point(point.y) else {
+            return Ok(ClickResult::NoHintOrNothing)
+        };
         let text_layout =
-            self.text_layout_of_visual_line(info.visual_line.line_index)?;
+            &info.text_layout;
         let y = text_layout
             .get_layout_y(0)
             .unwrap_or(0.0);
@@ -988,7 +996,7 @@ impl DocLines {
                 }
                 ClickResult::MatchWithoutLocation
             } else {
-                ClickResult::NoHint
+                ClickResult::NoHintOrNothing
             }
         )
     }
@@ -1048,10 +1056,12 @@ impl DocLines {
             line.text_layout
             .phantom_text
             .cursor_position_of_final_col(line_offset);
+        let last_char = line.is_last_char(offset_line, self.buffer().line_ending());
+
         Some((
             line.clone(),
             offset_line,
-            offset_line == line.final_len()
+            last_char
         ))
     }
 
@@ -1064,7 +1074,7 @@ impl DocLines {
     ) -> (OriginFoldedLine, usize, bool) {
         let next_visual_line = visual_line_index.min(self.origin_folded_lines.len() - 2) + 1;
         let next_line = &self.origin_folded_lines[next_visual_line];
-        let last_char = next_line.final_len();
+
         // for (index, layout) in self.origin_folded_lines
         //     [next_visual_line]
         //     .text_layout
@@ -1084,19 +1094,21 @@ impl DocLines {
             .text_layout
             .phantom_text
             .cursor_position_of_final_col(line_offset);
+
+        let last_char = next_line.is_last_char(offset_line, self.buffer().line_ending());
         (
             next_line.clone(),
             offset_line,
-            offset_line == last_char
+            last_char
         )
     }
 
     /// 原始位移字符所在的合并行的偏移位置和是否是最后一个字符，point
-    pub fn visual_line_of_offset(
+    pub fn folded_line_of_offset(
         &self,
         offset: usize,
         affinity: CursorAffinity
-    ) -> Result<(&OriginFoldedLine, usize, bool)> {
+    ) -> Result<(&OriginFoldedLine, usize, bool, usize, usize)> {
         // 位于的原始行，以及在原始行的起始offset
         let (origin_line, offset_of_origin_line) = {
             let origin_line = self.buffer().line_of_offset(offset);
@@ -1121,7 +1133,7 @@ impl DocLines {
             // offset_of_visual,
                folded_line,
             offset_of_folded,
-            last_char,
+            last_char,origin_line, offset_of_origin_line,
         ))
     }
 
@@ -1726,7 +1738,7 @@ impl DocLines {
     //     line
     // }
 
-    fn _compute_screen_lines(&mut self, base: Rect) -> ScreenLines {
+    pub fn _compute_screen_lines(&self, base: Rect) -> ScreenLines {
         debug!("_compute_screen_lines");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
@@ -1744,20 +1756,19 @@ impl DocLines {
         util::compute_screen_lines(view_kind, base, vline_infos, line_height, y0)
     }
 
-    pub fn viewport(&self) -> Rect {
-        self.screen_lines().base
-    }
+    // pub fn viewport(&self) -> Rect {
+    //     self.screen_lines().base
+    // }
 
     pub fn log(&self) {
         info!(
             "DocLines viewport={:?} buffer.rev={} buffer.len()=[{}] \
-             style_from_lsp={} is_pristine={} base={:?}",
+             style_from_lsp={} is_pristine={}",
             self.viewport_size,
             self.buffer().rev(),
             self.buffer().text().len(),
             self.style_from_lsp,
             self.buffer().is_pristine(),
-            self.screen_lines().base
         );
         // info!("{:?}", self.config);
         for origin_lines in &self.origin_lines {
@@ -1816,8 +1827,8 @@ impl DocLines {
         {
             // for (start, end, color) in styles.into_iter() {
             let (Some(start), Some(end)) = (
-                phantom_text.col_at(*origin_line_offset_start),
-                phantom_text.col_at(*origin_line_offset_start + *len)
+                phantom_text.final_col_of_merge_col(*origin_line_offset_start),
+                phantom_text.final_col_of_merge_col(*origin_line_offset_start + *len)
             ) else {
                 continue;
             };
@@ -1844,8 +1855,8 @@ impl DocLines {
             // color={color:?}", phantom_text.line);
             // col_at(end)可以为空，因为end是不包含的
             let (Some(start), Some(end)) = (
-                phantom_text.col_at(*start),
-                phantom_text.col_at((*start + *len).max(1) - 1)
+                phantom_text.final_col_of_merge_col(*start),
+                phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)
             ) else {
                 warn!(
                     "line={} start={start}, len={len}, color={fg_color:?} col_at \
@@ -2038,11 +2049,12 @@ impl DocLines {
     }
 
     fn update_folding_display_items(&mut self) {
-        let display_items =
-            self.folding_ranges.to_display_items(self.screen_lines());
-        self.signals
-            .folding_items
-            .update_if_not_equal(display_items);
+        todo!()
+        // let display_items =
+        //     self.folding_ranges.to_display_items(self.screen_lines());
+        // self.signals
+        //     .folding_items
+        //     .update_if_not_equal(display_items);
     }
 
     pub fn move_up(
@@ -2054,7 +2066,7 @@ impl DocLines {
         _count: usize
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
         let (visual_line, line_offset, ..) =
-            self.visual_line_of_offset(offset, affinity)?;
+            self.folded_line_of_offset(offset, affinity)?;
         let Some((previous_visual_line, line_offset, ..)) = self.previous_visual_line(
             visual_line.line_index,
             line_offset,
@@ -2102,7 +2114,7 @@ impl DocLines {
         _mode: Mode
     ) -> Result<(usize, ColPosition)> {
         let (origin_folded_line, ..) =
-            self.visual_line_of_offset(offset, *affinity)?;
+            self.folded_line_of_offset(offset, *affinity)?;
         // let new_col = info.last_col(view.text_prov(), mode !=
         // Mode::Normal); let vline_end =
         // vl.visual_interval.end; let start_offset =
@@ -2144,7 +2156,7 @@ impl DocLines {
         _count: usize
     ) -> Result<(usize, ColPosition, CursorAffinity)> {
         let (visual_line, line_offset, ..) =
-            self.visual_line_of_offset(offset, affinity)?;
+            self.folded_line_of_offset(offset, affinity)?;
         let (next_visual_line, next_line_offset, ..) =
             self.next_visual_line(visual_line.line_index, line_offset, affinity);
         let horiz = horiz.unwrap_or_else(|| {
@@ -2219,10 +2231,10 @@ impl DocLines {
         })
     }
 
-    fn update_screen_lines(&mut self) {
-        let screen_lines = self._compute_screen_lines(*self.signals.viewport.val());
-        self.signals.screen_lines.update_force(screen_lines);
-    }
+    // fn update_screen_lines(&mut self) {
+    //     let screen_lines = self._compute_screen_lines(*self.signals.viewport.val());
+    //     self.signals.screen_lines.update_force(screen_lines);
+    // }
 
     fn _compute_change_lines(
         &self,
@@ -2266,7 +2278,7 @@ impl ComputeLines {
         offset: usize
     ) -> Result<(usize, ColPosition)> {
         let (info, ..) =
-            self.visual_line_of_offset(offset, *affinity)?;
+            self.folded_line_of_offset(offset, *affinity)?;
         let non_blank_offset =
             WordCursor::new(self.buffer().text(), info.origin_interval.start)
                 .next_non_blank_char();
@@ -2339,172 +2351,152 @@ impl ComputeLines {
         &self,
         offset: usize,
         affinity: CursorAffinity
-    ) -> Result<(
-        OriginFoldedLine,
-        usize,
-        bool,
-        Option<Point>,
-        f64,
-        Point,
-    )> {
-        let (vl, offset_folded, last_char) =
-            self.visual_line_of_offset(offset, affinity)?;
+    ) -> Result<InfoOfBufferOffset> {
+        let (vl, offset_folded, _last_char, origin_line, offset_of_origin_line) =
+            self.folded_line_of_offset(offset, affinity)?;
         let mut viewpport_point = hit_position_aff(
             &vl.text_layout.text,
             offset_folded,
             true
         )
         .point;
-        let line_height = self.screen_lines().line_height;
-        let screen_line = self.screen_lines().visual_line_info_for_origin_folded_line(vl.line_index);
+        let line_height = self.line_height;
+        viewpport_point.y = (vl.line_index  * line_height)as f64;
 
-        let point = if let Some(vlinfo) = screen_line {
-            // ?
-            // viewpport_point.y = self.screen_lines().base.y0 +
-            // screen_line.vline_y;
-            viewpport_point.y = vlinfo.folded_line_y;
-            viewpport_point.add_assign(self.screen_lines().base.origin().to_vec2());
-            Some(viewpport_point)
-        } else {
-            None
+        let info = crate::lines::InfoOfBufferOffset {
+            origin_line,
+            offset_of_origin_line,
+            origin_folded_line_index: vl.line_index,
+            offset_of_origin_folded_line: None,
+            point_of_document: Default::default(),
         };
-        let mut origin_point = viewpport_point;
-        origin_point.y = vl.line_index as f64 * line_height;
-
-        Ok((
-            vl.clone(),
-            offset_folded,
-            last_char,
-            point,
-            line_height,
-            origin_point,
-        ))
+        Ok(info)
     }
 
-    pub fn visual_position_of_cursor_position(
-        &self,
-        offset: usize,
-        affinity: CursorAffinity
-    ) -> Result<
-        Option<(
-            usize,
-            bool,
-            Point,
-            f64,
-            Point,
-            usize
-        )>
-    > {
-        let Some((offset_folded, last_char, vl)) =
-            self.visual_info_of_cursor_offset(offset, affinity)?
-        else {
-            return Ok(None);
-        };
-        let mut viewpport_point = hit_position_aff(
-            &vl.text_layout.text,
-            offset_folded,
-            true
-        )
-        .point;
-        let line_height = self.screen_lines().line_height;
-        let Some(screen_line) = self.screen_lines().visual_line_info_for_origin_folded_line(vl.line_index) else {
-            return Ok(None);
-        };
+    // pub fn visual_position_of_cursor_position(
+    //     &self,
+    //     offset: usize,
+    //     affinity: CursorAffinity
+    // ) -> Result<
+    //     Option<(
+    //         usize,
+    //         bool,
+    //         Point,
+    //         f64,
+    //         Point,
+    //         usize
+    //     )>
+    // > {
+    //     let Some((offset_folded, last_char, vl)) =
+    //         self.visual_info_of_cursor_offset(offset, affinity)?
+    //     else {
+    //         return Ok(None);
+    //     };
+    //     let mut viewpport_point = hit_position_aff(
+    //         &vl.text_layout.text,
+    //         offset_folded,
+    //         true
+    //     )
+    //     .point;
+    //     let line_height = self.screen_lines().line_height;
+    //     let Some(screen_line) = self.screen_lines().visual_line_info_for_origin_folded_line(vl.line_index) else {
+    //         return Ok(None);
+    //     };
+    //
+    //     viewpport_point.y = screen_line.folded_line_y;
+    //     viewpport_point.add_assign(self.screen_lines().base.origin().to_vec2());
+    //     let mut origin_point = viewpport_point;
+    //     origin_point.y = vl.line_index as f64 * line_height;
+    //
+    //     Ok(Some((
+    //         offset_folded,
+    //         last_char,
+    //         viewpport_point,
+    //         line_height,
+    //         origin_point,
+    //         self.line_height
+    //     )))
+    // }
 
-        viewpport_point.y = screen_line.folded_line_y;
-        viewpport_point.add_assign(self.screen_lines().base.origin().to_vec2());
-        let mut origin_point = viewpport_point;
-        origin_point.y = vl.line_index as f64 * line_height;
+    // pub fn char_rect_in_viewport(&self, offset: usize) -> Result<Vec<Rect>> {
+    //     // let Ok((vl, _col, col_2, _, folded_line)) =
+    //     // self.visual_line_of_offset(offset, CursorAffinity::Forward)
+    //     // else {     error!("visual_line_of_offset
+    //     // offset={offset} not exist");     return None
+    //     // };
+    //     // let rs = self.screen_lines().
+    //     // visual_line_info_of_visual_line(&vl)?; let mut hit0
+    //     // = folded_line.text_layout.text.hit_position(col_2);
+    //     // let mut hit1 =
+    //     // folded_line.text_layout.text.hit_position(col_2 + 1);
+    //     // hit0.point.y += rs.y;
+    //     // hit1.point.y += rs.y + self.line_height as f64;
+    //     // Some((hit0.point, hit1.point))
+    //     self.normal_selection(offset, offset + 1)
+    // }
 
-        Ok(Some((
-            offset_folded,
-            last_char,
-            viewpport_point,
-            line_height,
-            origin_point,
-            self.line_height
-        )))
-    }
-
-    pub fn char_rect_in_viewport(&self, offset: usize) -> Result<Vec<Rect>> {
-        // let Ok((vl, _col, col_2, _, folded_line)) =
-        // self.visual_line_of_offset(offset, CursorAffinity::Forward)
-        // else {     error!("visual_line_of_offset
-        // offset={offset} not exist");     return None
-        // };
-        // let rs = self.screen_lines().
-        // visual_line_info_of_visual_line(&vl)?; let mut hit0
-        // = folded_line.text_layout.text.hit_position(col_2);
-        // let mut hit1 =
-        // folded_line.text_layout.text.hit_position(col_2 + 1);
-        // hit0.point.y += rs.y;
-        // hit1.point.y += rs.y + self.line_height as f64;
-        // Some((hit0.point, hit1.point))
-        self.normal_selection(offset, offset + 1)
-    }
-
-    pub fn normal_selection(
-        &self,
-        start_offset: usize,
-        end_offset: usize
-    ) -> Result<Vec<Rect>> {
-        let (folded_line_start, col_start, ..) =
-            self.visual_line_of_offset(start_offset, CursorAffinity::Forward)?;
-        let (folded_line_end, col_end, ..) =
-            self.visual_line_of_offset(end_offset, CursorAffinity::Forward)?;
-
-        let Some((rs_start, rs_end)) = self.screen_lines().intersection_with_lines(folded_line_start.line_index, folded_line_end.line_index) else {
-            return Ok(vec![]);
-        };
-        let base = self.screen_lines().base.origin().to_vec2();
-        if folded_line_start.line_index == folded_line_end.line_index {
-            let rs = folded_line_start.line_scope(
-                col_start,
-                col_end,
-                self.line_height as f64,
-                rs_start.folded_line_y,
-                base
-            );
-            Ok(vec![rs])
-        } else {
-
-            let mut first =
-                Vec::with_capacity(folded_line_start.line_index - folded_line_end.line_index + 1);
-            first.push(folded_line_start.line_scope(
-                col_start,
-                folded_line_start.final_len(),
-                self.line_height as f64,
-                rs_start.folded_line_y,
-                base
-            ));
-
-            for vl in &self.screen_lines().visual_lines {
-                if vl.visual_line.line_index >= folded_line_end.line_index {
-                    break;
-                } else if vl.visual_line.line_index <= folded_line_start.line_index {
-                    continue;
-                } else {
-                    let selection = vl.visual_line.line_scope(
-                        0,
-                        vl.visual_line.final_len(),
-                        self.line_height as f64,
-                        vl.folded_line_y,
-                        base
-                    );
-                    first.push(selection)
-                }
-            }
-            let last = folded_line_end.line_scope(
-                0,
-                col_end,
-                self.line_height as f64,
-                rs_end.folded_line_y,
-                base
-            );
-            first.push(last);
-            Ok(first)
-        }
-    }
+    // pub fn normal_selection(
+    //     &self,
+    //     start_offset: usize,
+    //     end_offset: usize, screen_lines: &ScreenLines
+    // ) -> Result<Vec<Rect>> {
+    //     let (folded_line_start, col_start, ..) =
+    //         self.folded_line_of_offset(start_offset, CursorAffinity::Forward)?;
+    //     let (folded_line_end, col_end, ..) =
+    //         self.folded_line_of_offset(end_offset, CursorAffinity::Forward)?;
+    //
+    //     let Some((rs_start, rs_end)) = screen_lines.intersection_with_lines(folded_line_start.line_index, folded_line_end.line_index) else {
+    //         return Ok(vec![]);
+    //     };
+    //     let base = screen_lines.base.origin().to_vec2();
+    //     if folded_line_start.line_index == folded_line_end.line_index {
+    //         let rs = folded_line_start.line_scope(
+    //             col_start,
+    //             col_end,
+    //             self.line_height as f64,
+    //             rs_start.folded_line_y,
+    //             base
+    //         );
+    //         Ok(vec![rs])
+    //     } else {
+    //
+    //         let mut first =
+    //             Vec::with_capacity(folded_line_start.line_index - folded_line_end.line_index + 1);
+    //         first.push(folded_line_start.line_scope(
+    //             col_start,
+    //             folded_line_start.len_without_rn(self.buffer().line_ending()),
+    //             self.line_height as f64,
+    //             rs_start.folded_line_y,
+    //             base
+    //         ));
+    //
+    //         for vl in &screen_lines.visual_lines {
+    //             if vl.visual_line.line_index >= folded_line_end.line_index {
+    //                 break;
+    //             } else if vl.visual_line.line_index <= folded_line_start.line_index {
+    //                 continue;
+    //             } else {
+    //                 let selection = vl.visual_line.line_scope(
+    //                     0,
+    //                     vl.visual_line.final_len(),
+    //                     self.line_height as f64,
+    //                     vl.folded_line_y,
+    //                     base
+    //                 );
+    //                 first.push(selection)
+    //             }
+    //         }
+    //         let last = folded_line_end.line_scope(
+    //             0,
+    //             col_end,
+    //             self.line_height as f64,
+    //             rs_end.folded_line_y,
+    //             base
+    //         );
+    //         first.push(last);
+    //         Ok(first)
+    //     }
+    // }
 }
 
 type LinesOnUpdate = DocLines;
@@ -2818,7 +2810,7 @@ impl PubUpdateLines {
         self.on_update_buffer()?;
         self.update_lines_new(line_delta)?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
 
         self.trigger_signals();
@@ -2935,7 +2927,7 @@ impl PubUpdateLines {
             error!("{err:?}")
         }
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
     }
 
@@ -2943,7 +2935,7 @@ impl PubUpdateLines {
         self.init_diagnostics_with_buffer()?;
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         Ok(())
     }
@@ -2958,7 +2950,7 @@ impl PubUpdateLines {
             self.viewport_size = viewport_size;
         }
         if self.signals.viewport.update_if_not_equal(viewport) {
-            self.update_screen_lines();
+            self.signals.update_paint_text();
             self.update_folding_display_items();
         }
         self.trigger_signals();
@@ -2978,7 +2970,7 @@ impl PubUpdateLines {
             return;
         }
         if self.signals.viewport.update_if_not_equal(viewport) {
-            self.update_screen_lines();
+            self.signals.update_paint_text();
             self.update_folding_display_items();
             self.trigger_signals();
         }
@@ -2990,7 +2982,7 @@ impl PubUpdateLines {
         self.config = config;
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         // }
@@ -3015,7 +3007,7 @@ impl PubUpdateLines {
         }
         self.update_lines_new(OriginLinesDelta::default())?;
         self.check_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3054,7 +3046,7 @@ impl PubUpdateLines {
         }
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3074,7 +3066,7 @@ impl PubUpdateLines {
         self.update_completion_lens(delta)?;
         // self.update_lines();
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3088,7 +3080,7 @@ impl PubUpdateLines {
         self.syntax.cancel_flag = Arc::new(AtomicUsize::new(0));
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3103,7 +3095,7 @@ impl PubUpdateLines {
         self.inline_completion = Some((inline_completion, line, col));
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3113,7 +3105,7 @@ impl PubUpdateLines {
         self.inline_completion = None;
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3135,7 +3127,7 @@ impl PubUpdateLines {
 
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(true)
@@ -3145,7 +3137,7 @@ impl PubUpdateLines {
         self.inlay_hints = Some(inlay_hint);
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3161,7 +3153,7 @@ impl PubUpdateLines {
         self.completion_pos = (line, col);
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(())
@@ -3179,7 +3171,7 @@ impl PubUpdateLines {
         self.semantic_styles = Some(styles);
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
-        self.update_screen_lines();
+        self.signals.update_paint_text();
         self.update_folding_display_items();
         self.trigger_signals();
         Ok(true)
@@ -3258,10 +3250,6 @@ impl LinesSignals {
         self.signals.show_indent_guide.signal()
     }
 
-    pub fn signal_screen_lines(&self) -> ReadSignal<ScreenLines> {
-        self.signals.screen_lines.signal()
-    }
-
     pub fn signal_folding_items(&self) -> ReadSignal<Vec<FoldingDisplayItem>> {
         self.signals.folding_items.signal()
     }
@@ -3281,13 +3269,9 @@ impl LinesSignals {
     pub fn signal_pristine(&self) -> ReadSignal<bool> {
         self.signals.pristine.signal()
     }
-}
 
-type LinesProperty = DocLines;
-
-impl LinesProperty {
-    pub fn screen_lines(&self) -> &ScreenLines {
-        self.signals.screen_lines.val()
+    pub fn signal_paint_content(&self) -> ReadSignal<usize> {
+        self.signals.paint_content.signal()
     }
 }
 
@@ -3330,8 +3314,22 @@ impl<T: RopeText> RopeTextPosition for T {}
 
 #[derive(Debug)]
 pub enum ClickResult {
-    NoHint,
+    NoHintOrNothing,
     MatchWithoutLocation,
     MatchFolded,
     MatchHint(Location)
+}
+
+/// 文档偏移位置的相关信息
+pub struct InfoOfBufferOffset {
+    /// 所在的原始行
+    pub origin_line: usize,
+    /// 在原始行的位置
+    pub offset_of_origin_line: usize,
+    /// 所在的原始折叠行
+    pub origin_folded_line_index: usize,
+    /// 在原始折叠行的位置。被折叠则为none
+    pub offset_of_origin_folded_line: Option<usize>,
+    /// 在整个文档的空间位置
+    pub point_of_document: Point,
 }

@@ -22,7 +22,7 @@ use super::view::foldable_panel_section;
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     config::color::LapceColor,
-    editor::{floem_editor::cursor_caret_v2, view::editor_view},
+    editor::{view::editor_view},
     settings::checkbox,
     source_control::SourceControlData,
     svg,
@@ -129,10 +129,12 @@ pub fn source_control_panel(
                     let offset = cursor.offset();
                     let e_data = editor.get_untracked();
                     e_data.kind().track();
-                    let lines = e_data.doc_signal().with(|x| x.lines);
+                    let line_height = e_data.editor.line_height(0) as f64;
 
                     if let Some((x, y, width, line_height)) =
-                        cursor_caret_v2(offset, cursor.affinity, lines)
+                        e_data.editor.screen_lines.with(|x| {
+                            x.visual_position_of_buffer_offset(offset).map(|point| (point.x - 1.0, point.y, 2.0, line_height))
+                        })
                     {
                         let rect =
                             Rect::from_origin_size((x, y), (width, line_height));

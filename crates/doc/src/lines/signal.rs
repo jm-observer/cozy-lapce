@@ -1,11 +1,11 @@
+use std::ops::AddAssign;
 use floem::{
     kurbo::Rect,
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
-
 use crate::lines::{
-    buffer::Buffer, fold::FoldingDisplayItem, screen_lines::ScreenLines,
+    buffer::Buffer, fold::FoldingDisplayItem,
     style::EditorStyle
 };
 
@@ -14,12 +14,12 @@ pub struct Signals {
     pub(crate) show_indent_guide: SignalManager<(bool, Color)>,
     pub(crate) viewport:          SignalManager<Rect>,
     pub(crate) folding_items:     SignalManager<Vec<FoldingDisplayItem>>,
-    pub(crate) screen_lines:      SignalManager<ScreenLines>,
     pub(crate) buffer_rev:        SignalManager<u64>,
     pub(crate) buffer:            SignalManager<Buffer>,
     pub(crate) pristine:          SignalManager<bool>,
     // start from 1, (line num, paint width)
-    pub(crate) last_line:         SignalManager<(usize, f64)>
+    pub(crate) last_line:         SignalManager<(usize, f64)>,
+    pub paint_content: SignalManager<usize>,
 }
 
 impl Signals {
@@ -28,14 +28,12 @@ impl Signals {
         style: &EditorStyle,
         viewport: Rect,
         buffer: Buffer,
-        screen_lines: ScreenLines,
         last_line: (usize, f64)
     ) -> Self {
         let show_indent_guide = SignalManager::new(
             cx,
             (style.show_indent_guide(), style.indent_guide())
         );
-        let screen_lines_signal = SignalManager::new(cx, screen_lines.clone());
         let viewport = SignalManager::new(cx, viewport);
         let folding_items_signal = SignalManager::new(cx, Vec::new());
         let rev = buffer.rev();
@@ -44,15 +42,16 @@ impl Signals {
         let buffer = SignalManager::new(cx, buffer);
         let last_line = SignalManager::new(cx, last_line);
         let pristine = SignalManager::new(cx, pristine);
+        let paint_context = SignalManager::new(cx, 0usize);
         Self {
             show_indent_guide,
             viewport,
             folding_items: folding_items_signal,
-            screen_lines: screen_lines_signal,
             buffer_rev,
             buffer,
             last_line,
-            pristine
+            pristine,
+            paint_content: paint_context
         }
     }
 
@@ -70,11 +69,11 @@ impl Signals {
             self.show_indent_guide.trigger();
             self.viewport.trigger();
             self.folding_items.trigger();
-            self.screen_lines.trigger();
             self.buffer_rev.trigger();
             self.buffer.trigger();
             self.last_line.trigger();
             self.pristine.trigger();
+            self.paint_content.trigger();
         });
     }
 
@@ -83,11 +82,14 @@ impl Signals {
             self.show_indent_guide.trigger_force();
             self.viewport.trigger_force();
             self.folding_items.trigger_force();
-            self.screen_lines.trigger_force();
             self.buffer_rev.trigger_force();
             self.buffer.trigger_force();
             self.last_line.trigger_force();
+            self.paint_content.trigger();
         });
+    }
+    pub fn update_paint_text(&mut self) {
+        self.paint_content.val_mut().add_assign(1);
     }
 }
 

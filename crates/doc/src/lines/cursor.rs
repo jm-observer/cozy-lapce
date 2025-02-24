@@ -35,6 +35,7 @@ pub enum CursorMode {
         end:   usize,
         mode:  VisualMode
     },
+    /// 非vim模式下，默认
     Insert(Selection)
 }
 

@@ -32,6 +32,7 @@ use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
 use doc::lines::line::OriginFoldedLine;
+use doc::lines::line_ending::LineEnding;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -55,8 +56,8 @@ pub struct Editor {
     pub cursor: RwSignal<Cursor>,
 
     pub window_origin: RwSignal<Point>,
-    // pub viewport: RwSignal<Rect>,
-    // pub parent_size:   RwSignal<Rect>,
+    pub viewport: RwSignal<Rect>,
+    pub screen_lines:   RwSignal<ScreenLines>,
 
     pub editor_view_focused:    Trigger,
     pub editor_view_focus_lost: Trigger,
@@ -121,9 +122,27 @@ impl Editor {
         } else {
             CursorMode::Insert(Selection::caret(0))
         };
+
         let cursor = Cursor::new(cursor_mode, None, None);
         let cursor = cx.create_rw_signal(cursor);
         let doc = cx.create_rw_signal(doc);
+
+        let viewport = cx.create_rw_signal(Rect::ZERO);
+        let screen_lines = cx.create_rw_signal(ScreenLines::default());
+        cx.create_effect(move|_| {
+            let lines = doc.with(|x| {
+                x.lines
+            });
+            let signal_paint_content = lines.with(|x| {
+                x.signal_paint_content()
+            });
+            let base = viewport.get();
+            signal_paint_content.get();
+            let screen_lines_val = lines.with(|x| {
+                x._compute_screen_lines(base)
+            });
+            screen_lines.set(screen_lines_val);
+        });
 
         Editor {
             cx: Cell::new(cx),
@@ -135,7 +154,7 @@ impl Editor {
             doc,
             cursor,
             window_origin: cx.create_rw_signal(Point::ZERO),
-            // viewport,
+            viewport,
             scroll_delta: cx.create_rw_signal(Vec2::ZERO),
             scroll_to: cx.create_rw_signal(None),
             editor_view_focused: cx.create_trigger(),
@@ -146,7 +165,8 @@ impl Editor {
             // cursor_info: CursorInfo::new(cx),
             last_movement: cx.create_rw_signal(Movement::Left),
             ime_allowed: cx.create_rw_signal(false),
-            floem_style_id: cx.create_rw_signal(0)
+            floem_style_id: cx.create_rw_signal(0),
+            screen_lines
         }
     }
 
@@ -426,7 +446,7 @@ impl Editor {
 
     // TODO: should this have modifiers state in its api
     pub fn page_move(&self, down: bool, mods: Modifiers) {
-        let viewport = self.viewport();
+        let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
         let lines = (viewport.height() / line_height / 2.0).round() as usize;
@@ -443,7 +463,7 @@ impl Editor {
     }
 
     pub fn center_window(&self) {
-        let viewport = self.viewport();
+        let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
         let offset = self.cursor.with_untracked(|cursor| cursor.offset());
@@ -468,7 +488,7 @@ impl Editor {
     }
 
     pub fn top_of_window(&self, scroll_off: usize) {
-        let viewport = self.viewport();
+        let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
         let offset = self.cursor.with_untracked(|cursor| cursor.offset());
@@ -488,7 +508,7 @@ impl Editor {
     }
 
     pub fn bottom_of_window(&self, scroll_off: usize) {
-        let viewport = self.viewport();
+        let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
         let offset = self.cursor.with_untracked(|cursor| cursor.offset());
@@ -509,7 +529,7 @@ impl Editor {
     }
 
     pub fn scroll(&self, top_shift: f64, down: bool, count: usize, mods: Modifiers) {
-        let viewport = self.viewport();
+        let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
         let diff = line_height * count as f64;
@@ -773,7 +793,7 @@ impl Editor {
         affinity: CursorAffinity
     ) -> Result<(OriginFoldedLine, usize, bool)> {
         self.doc().lines.with_untracked(|x| {
-            x.visual_line_of_offset(offset, affinity)
+            x.folded_line_of_offset(offset, affinity)
                 .map(|x| (x.0.clone(), x.1, x.2))
         })
     }
@@ -892,40 +912,15 @@ impl Editor {
     pub fn points_of_offset(
         &self,
         offset: usize,
-        affinity: CursorAffinity
     ) -> Result<(Point, Point)> {
-        let (_, _, _,  point, line_height, _, ) =
-            self.doc.get_untracked().lines.with_untracked(|x| {
-                x.cursor_position_of_buffer_offset(offset, affinity)
-            })?;
-        // let (line_info, line_offset, _) =
-        //     self.visual_line_of_offset(offset, affinity)?;
-        // let line = line_info.vline.0;
-        // let line_height =
-        // f64::from(self.doc().line_height(line_info.origin_line));
-
-        // let info = self.doc().lines.with_untracked(|sl| {
-        //     sl.screen_lines().iter_line_info().find(|info| {
-        //         info.vline_info.interval.start <= offset
-        //             && offset <= info.vline_info.interval.end
-        //     })
-        // });
-        let Some(info) = point else {
-            // TODO: We could do a smarter method where we get the approximate y
-            // position because, for example, this spot could be folded
-            // away, and so it would be better to supply the *nearest*
-            // position on the screen.
+        let Some((point_above, line_height)) = self.screen_lines.with_untracked(|screen_lines| {
+            screen_lines.visual_position_of_buffer_offset(offset).map(|x| (x, screen_lines.line_height))
+        }) else {
             return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
         };
-
-        // let y = info.vline_y;
-        //
-        // let x = self
-        //     .line_point_of_visual_line_col(line, line_offset, affinity, false)
-        //     .x;
-        let mut low_point = info;
-        low_point.y += line_height as f64;
-        Ok((info, low_point))
+        let mut point_below = point_above;
+        point_below.y += line_height;
+        Ok((point_above, point_below))
     }
 
     /// Get the offset of a particular point within the editor.
@@ -1105,8 +1100,8 @@ impl Editor {
             .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
     }
 
-    pub fn viewport(&self) -> Rect {
-        self.doc().lines.with_untracked(|x| x.viewport())
+    pub fn viewport_untracked(&self) -> Rect {
+        self.viewport.get_untracked()
     }
 
     pub fn line_height(&self, _line: usize) -> usize {
@@ -1130,52 +1125,32 @@ impl std::fmt::Debug for Editor {
     }
 }
 
-/// (x, y, line_height, width)
-pub fn cursor_caret_v2(
-    offset: usize,
-    affinity: CursorAffinity,
-    lines: DocLinesManager
-) -> Option<(f64, f64, f64, f64)> {
-    let (
-        _offset_folded,
-        _after_last_char,
-        point,
-        // screen,
-        line_height,
-        _origin_point,
-        _
-    ) = match lines
-        .with_untracked(|x| x.visual_position_of_cursor_position(offset, affinity))
-    {
-        Ok(rs) => rs?,
-        Err(err) => {
-            error!("{err:?}");
-            return None;
-        }
-    };
-
-    Some((point.x - 1.0, point.y, 2.0, line_height))
-}
-
-pub fn cursor_origin_position(
-    ed: &Editor,
-    offset: usize,
-    affinity: CursorAffinity
-) -> Result<(Point, f64, usize)> {
-    let (
-        _info,
-        _offset_folded,
-        _after_last_char,
-        _point,
-        line_height,
-        mut origin_point,
-    ) = ed
-        .doc()
-        .lines
-        .with_untracked(|x| x.cursor_position_of_buffer_offset(offset, affinity))?;
-    origin_point.x -= 1.0;
-    Ok((origin_point, line_height, _info.line_index))
-}
+// /// (x, y, line_height, width)
+// pub fn cursor_caret_v2(
+//     offset: usize,
+//     affinity: CursorAffinity,
+//     lines: DocLinesManager, point: Option<Point>
+// ) -> Option<(f64, f64, f64, f64)> {
+//     let (
+//         _offset_folded,
+//         _after_last_char,
+//         point,
+//         // screen,
+//         line_height,
+//         _origin_point,
+//         _
+//     ) = match lines
+//         .with_untracked(|x| x.visual_position_of_cursor_position(offset, affinity))
+//     {
+//         Ok(rs) => rs?,
+//         Err(err) => {
+//             error!("{err:?}");
+//             return None;
+//         }
+//     };
+//
+//     Some((point.x - 1.0, point.y, 2.0, line_height))
+// }
 
 pub fn do_motion_mode(
     ed: &Editor,
@@ -1239,7 +1214,7 @@ pub trait CommonAction {
 pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines) {
     let cursor = ed.cursor;
 
-    let selection_color = ed.doc().lines.with_untracked(|es| es.selection_color());
+    let (selection_color, line_ending) = ed.doc().lines.with_untracked(|es| (es.selection_color(), es.buffer().line_ending()));
 
     cursor.with_untracked(|cursor| match cursor.mode() {
         CursorMode::Normal(_) => {},
@@ -1259,11 +1234,10 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
 
             if let Err(err) = paint_normal_selection(
                 cx,
-                ed,
                 selection_color,
                 *start_offset,
                 end_offset,
-                cursor.affinity
+                cursor.affinity, line_ending, _screen_lines
             ) {
                 error!("{err:?}");
             }
@@ -1311,11 +1285,10 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
             {
                 if let Err(err) = paint_normal_selection(
                     cx,
-                    ed,
                     selection_color,
                     start.min(end),
                     start.max(end),
-                    cursor.affinity
+                    cursor.affinity, line_ending, _screen_lines
                 ) {
                     error!("{err:?}");
                 }
@@ -1434,16 +1407,12 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
 #[allow(clippy::too_many_arguments)]
 fn paint_normal_selection(
     cx: &mut PaintCx,
-    ed: &Editor,
     color: Color,
     start_offset: usize,
     end_offset: usize,
-    _affinity: CursorAffinity
+    _affinity: CursorAffinity, line_ending: LineEnding, screen_lines: &ScreenLines
 ) -> Result<()> {
-    let rs = ed
-        .doc()
-        .lines
-        .with_untracked(|x| x.normal_selection(start_offset, end_offset))?;
+    let rs = screen_lines.normal_selection(start_offset, end_offset, line_ending)?;
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }
@@ -1456,14 +1425,13 @@ pub fn paint_text(
     is_active: bool,
     hide_cursor: bool,
     screen_lines: &ScreenLines,
-    cursor: RwSignal<Cursor>,
     lines: DocLinesManager,
     font_family: Cow<[FamilyOwned]>,
     visible_whitespace: Color,
-    font_size: f32
+    font_size: f32, cursor_points: Vec<Point>, line_height: f64
 ) -> Result<()> {
     if is_active && !hide_cursor {
-        paint_cursor_caret(cx, cursor, lines);
+        paint_cursor_caret(cx, lines, cursor_points, line_height);
     }
     // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
@@ -1576,20 +1544,23 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
 
 fn paint_cursor_caret(
     cx: &mut PaintCx,
-    cursor: RwSignal<Cursor>,
-    lines: DocLinesManager
+    lines: DocLinesManager, cursor_points: Vec<Point>, line_height: f64
 ) {
     let caret_color = lines.with_untracked(|es| es.ed_caret());
-    cursor.with_untracked(|cursor| {
-        for (_, end) in cursor.regions_iter() {
-            if let Some((x, y, width, line_height)) =
-                cursor_caret_v2(end, cursor.affinity, lines)
-            {
-                let rect = Rect::from_origin_size((x, y), (width, line_height));
-                cx.fill(&rect, &caret_color, 0.0);
-            }
-        }
+    cursor_points.into_iter().for_each(|point| {
+        let (x, y, width, line_height) = (point.x - 1.0, point.y, 2.0, line_height);
+        let rect = Rect::from_origin_size((x, y), (width, line_height));
+        cx.fill(&rect, &caret_color, 0.0);
     });
+    // cursor.with_untracked(|cursor| {
+    //     for (_, end) in cursor.regions_iter() {
+    //         if let Some() =
+    //             cursor_caret_v2(end, cursor.affinity, lines)
+    //         {
+    //
+    //         }
+    //     }
+    // });
 }
 //
 // #[allow(clippy::too_many_arguments)]

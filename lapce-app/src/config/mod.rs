@@ -1207,4 +1207,50 @@ impl LapceConfig {
             color: self.color.ui.clone()
         }
     }
+
+    pub fn paint_editor(&self) -> (Color, Color, Color, Color, Color, usize, bool, bool, Color, bool, Color, Color, Color, String, f32) {
+        let editor_debug_break_line_color =
+            self.color(LapceColor::EDITOR_DEBUG_BREAK_LINE);
+        let lapce_scroll_bar_color = self.color(LapceColor::LAPCE_SCROLL_BAR);
+
+        let source_control_removed_color =
+            self.color(LapceColor::SOURCE_CONTROL_REMOVED);
+        let source_control_added_color =
+            self.color(LapceColor::SOURCE_CONTROL_ADDED);
+        let editor_dim_color = self.color(LapceColor::EDITOR_DIM);
+        let line_height = self.editor.line_height();
+
+        let highlight_matching_brackets =
+            self.editor.highlight_matching_brackets;
+        let highlight_scope_lines = self.editor.highlight_scope_lines;
+        let editor_bracket_color = self.color(LapceColor::EDITOR_BRACKET);
+
+        let sticky_header = self.editor.sticky_header;
+        let lapce_dropdown_shadow_color =
+            self.color(LapceColor::LAPCE_DROPDOWN_SHADOW);
+        let editor_sticky_header_background_color =
+            self.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND);
+
+        let editor_fg = self.color(LapceColor::EDITOR_FOREGROUND);
+        let font_family = self.editor.font_family.clone();
+        let font_size = self.editor.font_size() as f32;
+        (
+            editor_debug_break_line_color,
+            lapce_scroll_bar_color,
+            source_control_removed_color,
+            source_control_added_color,
+            editor_dim_color,
+            line_height,
+            highlight_matching_brackets,
+            highlight_scope_lines,
+            editor_bracket_color,
+            sticky_header,
+            lapce_dropdown_shadow_color,
+            editor_sticky_header_background_color,
+            editor_fg,
+            font_family,
+            font_size
+        )
+    }
+
 }

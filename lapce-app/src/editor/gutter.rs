@@ -134,9 +134,10 @@ impl View for EditorGutterView {
                 debug!("{:?}", path);
             }
         }
-        let viewport = self.editor.viewport();
+        let viewport = self.editor.viewport_untracked();
         let cursor = self.editor.cursor();
-        let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines());
+        let screen_lines = self.editor.editor.screen_lines;
+        // let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines());
         let (
             line_height,
             font_family,
@@ -181,7 +182,7 @@ impl View for EditorGutterView {
 
         let (current_visual_line, _line_offset) =
             match doc.lines.with_untracked(|x| {
-                x.visual_line_of_offset(offset, CursorAffinity::Forward)
+                x.folded_line_of_offset(offset, CursorAffinity::Forward)
                     .map(|x| (x.0.clone(), x.1))
             }) {
                 Ok(rs) => rs,
@@ -202,7 +203,7 @@ impl View for EditorGutterView {
             && kind_is_normal;
 
         let current_number = current_visual_line.line_number(false, None);
-        screen_lines.with(|screen_lines| {
+        screen_lines.with_untracked(|screen_lines| {
             for visual_line_info in screen_lines.visual_lines.iter() {
                 let line_number = visual_line_info
                     .visual_line

@@ -23,9 +23,10 @@ pub fn gutter_data(
     };
     let code_lens = doc.code_lens.get();
     let offset = e_data.editor.cursor.get().offset();
-    let (current_line, screen_lines) = doc.lines.with_untracked(|x| {
-        (x.buffer().line_of_offset(offset), x.signal_screen_lines())
+    let current_line = doc.lines.with(|x| {
+        x.buffer().line_of_offset(offset)
     });
+    let screen_lines = e_data.editor.screen_lines.read_only();
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines
