@@ -223,7 +223,8 @@ pub struct CommonData {
     // the current focused view which will receive keyboard events
     pub keyboard_focus:       RwSignal<Option<ViewId>>,
     pub window_common:        Rc<WindowCommonData>,
-    pub directory:            Directory
+    pub directory:            Directory,
+    pub offset_line_from_top: RwSignal<Option<Option<usize>>>
 }
 
 impl std::fmt::Debug for CommonData {
@@ -472,7 +473,8 @@ impl WindowWorkspaceData {
             breakpoints: cx.create_rw_signal(BTreeMap::new()),
             keyboard_focus: cx.create_rw_signal(None),
             window_common: window_common.clone(),
-            directory: directory.clone()
+            directory: directory.clone(),
+            offset_line_from_top: cx.create_rw_signal(None)
         });
 
         let main_split = MainSplitData::new(cx, common.clone());

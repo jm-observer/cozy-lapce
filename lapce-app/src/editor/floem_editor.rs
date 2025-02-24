@@ -56,7 +56,7 @@ pub struct Editor {
 
     pub window_origin: RwSignal<Point>,
     // pub viewport: RwSignal<Rect>,
-    pub parent_size:   RwSignal<Rect>,
+    // pub parent_size:   RwSignal<Rect>,
 
     pub editor_view_focused:    Trigger,
     pub editor_view_focus_lost: Trigger,
@@ -136,7 +136,6 @@ impl Editor {
             cursor,
             window_origin: cx.create_rw_signal(Point::ZERO),
             // viewport,
-            parent_size: cx.create_rw_signal(Rect::ZERO),
             scroll_delta: cx.create_rw_signal(Vec2::ZERO),
             scroll_to: cx.create_rw_signal(None),
             editor_view_focused: cx.create_trigger(),

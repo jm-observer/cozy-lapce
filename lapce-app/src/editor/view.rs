@@ -1931,7 +1931,7 @@ fn editor_content(
         let cursor = cursor.get();
         let offset = cursor.offset();
         let offset_line_from_top = e_data
-            .offset_line_from_top
+            .common.offset_line_from_top
             .try_update(|x| x.take())
             .flatten();
         e_data.doc_signal().track();

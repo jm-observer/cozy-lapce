@@ -142,7 +142,6 @@ pub struct EditorData {
     pub sticky_header_height: RwSignal<f64>,
     pub common:               Rc<CommonData>,
     pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
-    pub offset_line_from_top: RwSignal<Option<Option<usize>>>
 }
 
 impl PartialEq for EditorData {
@@ -182,7 +181,6 @@ impl EditorData {
             sticky_header_height: cx.create_rw_signal(0.0),
             common,
             sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
-            offset_line_from_top: cx.create_rw_signal(None)
         }
     }
 

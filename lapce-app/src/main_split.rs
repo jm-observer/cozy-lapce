@@ -684,7 +684,7 @@ impl MainSplitData {
         if let EditorTabChildId::Editor(editor_id) = child {
             if let Some(editor) = self.editors.editor_untracked(editor_id) {
                 batch(|| {
-                    editor.offset_line_from_top.set(Some(off_top_line));
+                    editor.common.offset_line_from_top.set(Some(off_top_line));
                     editor.go_to_location(location, new_doc, edits);
                 });
             }

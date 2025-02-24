@@ -8,7 +8,6 @@ use floem::{
     taffy::{AlignItems, JustifyContent},
     views::dyn_stack
 };
-use floem::views::empty;
 use lapce_core::icon::LapceIcons;
 use log::{error, warn};
 

@@ -1,8 +1,7 @@
 pub mod view;
 
 use std::hash::{Hash, Hasher};
-use floem::kurbo::Point;
-use doc::lines::{buffer::rope_text::RopeText, screen_lines::VisualLineInfo};
+use doc::lines::{buffer::rope_text::RopeText, };
 use floem::prelude::{RwSignal, SignalGet, SignalWith};
 
 use crate::{editor::EditorData, window_workspace::WindowWorkspaceData};
@@ -27,7 +26,6 @@ pub fn gutter_data(
     let (current_line, screen_lines) = doc.lines.with_untracked(|x| {
         (x.buffer().line_of_offset(offset), x.signal_screen_lines())
     });
-    let path = content.path().cloned();
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines
