@@ -179,10 +179,10 @@ impl View for EditorGutterView {
         //     .buffer
         //     .with_untracked(|buffer| buffer.line_of_offset(offset));
 
-        let (current_visual_line, _line_offset, _, _) =
+        let (current_visual_line, _line_offset) =
             match doc.lines.with_untracked(|x| {
                 x.visual_line_of_offset(offset, CursorAffinity::Forward)
-                    .map(|x| (x.0, x.1, x.2, x.3))
+                    .map(|x| (x.0.clone(), x.1))
             }) {
                 Ok(rs) => rs,
                 Err(err) => {
@@ -218,7 +218,7 @@ impl View for EditorGutterView {
                         attrs_list.clone()
                     )
                 };
-                let y = visual_line_info.visual_line_y;
+                let y = visual_line_info.folded_line_y;
                 let size = text_layout.size();
                 let height = size.height;
 

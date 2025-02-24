@@ -8,7 +8,6 @@ use doc::lines::{
     cursor::{Cursor, CursorAffinity, CursorMode},
     editor_command::Command,
     layout::{LineExtraStyle, TextLayoutLine},
-    line::VisualLine,
     mode::{Mode, MotionMode, VisualMode},
     movement::Movement,
     register::Register,
@@ -32,7 +31,7 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-
+use doc::lines::line::OriginFoldedLine;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -773,10 +772,10 @@ impl Editor {
         &self,
         offset: usize,
         affinity: CursorAffinity
-    ) -> Result<(VisualLine, usize, usize, bool)> {
+    ) -> Result<(OriginFoldedLine, usize, bool)> {
         self.doc().lines.with_untracked(|x| {
             x.visual_line_of_offset(offset, affinity)
-                .map(|x| (x.0, x.1, x.2, x.3))
+                .map(|x| (x.0.clone(), x.1, x.2))
         })
     }
 
@@ -786,7 +785,7 @@ impl Editor {
         visual_line_index: usize,
         line_offset: usize,
         _affinity: CursorAffinity
-    ) -> Result<(VisualLine, usize, bool)> {
+    ) -> Option<(OriginFoldedLine, usize, bool)> {
         self.doc().lines.with_untracked(|x| {
             x.previous_visual_line(visual_line_index, line_offset, _affinity)
         })
@@ -798,7 +797,7 @@ impl Editor {
         visual_line_index: usize,
         line_offset: usize,
         _affinity: CursorAffinity
-    ) -> (VisualLine, usize, bool) {
+    ) -> (OriginFoldedLine, usize, bool) {
         self.doc().lines.with_untracked(|x| {
             x.next_visual_line(visual_line_index, line_offset, _affinity)
         })
@@ -896,7 +895,7 @@ impl Editor {
         offset: usize,
         affinity: CursorAffinity
     ) -> Result<(Point, Point)> {
-        let (_, _, _, _, point, _, _, line_height) =
+        let (_, _, _,  point, line_height, _, ) =
             self.doc.get_untracked().lines.with_untracked(|x| {
                 x.cursor_position_of_buffer_offset(offset, affinity)
             })?;
@@ -1139,8 +1138,6 @@ pub fn cursor_caret_v2(
     lines: DocLinesManager
 ) -> Option<(f64, f64, f64, f64)> {
     let (
-        _info,
-        _col_visual,
         _offset_folded,
         _after_last_char,
         point,
@@ -1158,7 +1155,7 @@ pub fn cursor_caret_v2(
         }
     };
 
-    point.map(|point| (point.x - 1.0, point.y, 2.0, line_height))
+    Some((point.x - 1.0, point.y, 2.0, line_height))
 }
 
 pub fn cursor_origin_position(
@@ -1168,13 +1165,11 @@ pub fn cursor_origin_position(
 ) -> Result<(Point, f64, usize)> {
     let (
         _info,
-        _col_visual,
         _offset_folded,
         _after_last_char,
         _point,
         line_height,
         mut origin_point,
-        _
     ) = ed
         .doc()
         .lines
@@ -1473,12 +1468,9 @@ pub fn paint_text(
     }
     // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
-        let line = line_info.visual_line.origin_line;
         let y = line_info.paint_point().y;
-        let text_layout =
-            lines.with_untracked(|x| x.text_layout_of_visual_line(line).cloned())?;
-        paint_extra_style(cx, &text_layout.extra_style, y, viewport);
-        if let Some(whitespaces) = &text_layout.whitespaces {
+        paint_extra_style(cx, &line_info.visual_line.text_layout.extra_style, y, viewport);
+        if let Some(whitespaces) = &line_info.visual_line.text_layout.whitespaces {
             let attrs = Attrs::new()
                 .color(visible_whitespace)
                 .family(&font_family)
@@ -1506,7 +1498,7 @@ pub fn paint_text(
             }
         }
 
-        cx.draw_text_with_layout(text_layout.text.layout_runs(), Point::new(0.0, y));
+        cx.draw_text_with_layout(line_info.visual_line.text_layout.text.layout_runs(), Point::new(0.0, y));
     }
     Ok(())
 }

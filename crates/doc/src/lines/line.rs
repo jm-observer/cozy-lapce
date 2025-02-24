@@ -113,6 +113,10 @@ impl OriginFoldedLine {
         obj
     }
 
+    pub fn final_len(&self) -> usize {
+        self.text_layout.phantom_text.final_text_len
+    }
+
     fn final_offset_of_visual_line(
         &self,
         sub_line_index: usize,
@@ -137,20 +141,17 @@ impl OriginFoldedLine {
 
     /// 求原始的行的偏移，最终出现在第几个视觉行，
     /// 以及在视觉行的偏移位置，以及合并行的偏移位置
-    pub(crate) fn visual_line_of_line_and_offset(
+    pub(crate) fn final_offset_of_line_and_offset(
         &self,
         origin_line: usize,
         offset: usize,
         _affinity: CursorAffinity
-    ) -> (usize, usize, usize) {
-        let final_offset = self.text_layout.phantom_text.final_col_of_col(
+    ) -> usize {
+        self.text_layout.phantom_text.final_col_of_col(
             origin_line,
             offset,
             true
-        );
-        let (sub_line, offset_of_visual) =
-            self.visual_line_of_final_offset(final_offset);
-        (sub_line, offset_of_visual, final_offset)
+        )
     }
 
     pub(crate) fn visual_offset_of_cursor_offset(
@@ -158,42 +159,42 @@ impl OriginFoldedLine {
         origin_line: usize,
         offset: usize,
         _affinity: CursorAffinity
-    ) -> Option<(usize, usize, usize)> {
+    ) -> Option<usize> {
         let final_offset = self
             .text_layout
             .phantom_text
             .visual_offset_of_cursor_offset(origin_line, offset, _affinity)?;
-        let (sub_line, offset_of_visual) =
-            self.visual_line_of_final_offset(final_offset);
-        Some((sub_line, offset_of_visual, final_offset))
+        // let (sub_line, offset_of_visual) =
+        //     self.visual_line_of_final_offset(final_offset);
+        Some(final_offset)
     }
 
-    /// 求最终的行偏移出现在第几个视觉行，以及在视觉行的偏移位置
-    fn visual_line_of_final_offset(&self, final_offset: usize) -> (usize, usize) {
-        // 空行时，会出现==的情况
-        if final_offset > self.len() {
-            panic!("final_offset={final_offset} >= {}", self.len())
-        }
-        let folded_line_layout = self.text_layout.text.line_layout();
-        if folded_line_layout.len() == 1 {
-            return (0, final_offset);
-        }
-        let mut sub_line_index = folded_line_layout.len() - 1;
-        let mut final_offset_line = final_offset;
-        // let mut last_char = false;
-
-        for (index, sub_line) in folded_line_layout.iter().enumerate() {
-            if final_offset_line <= sub_line.glyphs.len() {
-                sub_line_index = index;
-                // last_char = final_offset == sub_line.glyphs.len() -
-                // self.text_layout.text.;
-                break;
-            } else {
-                final_offset_line -= sub_line.glyphs.len();
-            }
-        }
-        (sub_line_index, final_offset_line)
-    }
+    // /// 求最终的行偏移出现在第几个视觉行，以及在视觉行的偏移位置
+    // fn visual_line_of_final_offset(&self, final_offset: usize) -> usize {
+    //     // 空行时，会出现==的情况
+    //     if final_offset > self.len() {
+    //         panic!("final_offset={final_offset} >= {}", self.len())
+    //     }
+    //     let folded_line_layout = self.text_layout.text.line_layout();
+    //     if folded_line_layout.len() == 1 {
+    //         return (0, final_offset);
+    //     }
+    //     let mut sub_line_index = folded_line_layout.len() - 1;
+    //     let mut final_offset_line = final_offset;
+    //     // let mut last_char = false;
+    //
+    //     for (index, sub_line) in folded_line_layout.iter().enumerate() {
+    //         if final_offset_line <= sub_line.glyphs.len() {
+    //             sub_line_index = index;
+    //             // last_char = final_offset == sub_line.glyphs.len() -
+    //             // self.text_layout.text.;
+    //             break;
+    //         } else {
+    //             final_offset_line -= sub_line.glyphs.len();
+    //         }
+    //     }
+    //     (sub_line_index, final_offset_line)
+    // }
 
     fn len(&self) -> usize {
         self.text_layout.text.line().text().len()
@@ -221,6 +222,28 @@ impl OriginFoldedLine {
             Size::new(hit1.point.x - hit0.point.x, line_height)
         )
     }
+
+    // 行号
+    pub fn line_number(
+        &self,
+        show_relative: bool,
+        current_number: Option<usize>
+    ) -> Option<usize> {
+        let line_number = self.origin_line_start + 1;
+        Some(if show_relative {
+            if let Some(current_number) = current_number {
+                if line_number == current_number {
+                    line_number
+                } else {
+                    line_number.abs_diff(current_number)
+                }
+            } else {
+                line_number
+            }
+        } else {
+            line_number
+        })
+    }
 }
 
 impl Debug for OriginFoldedLine {
@@ -239,7 +262,7 @@ impl Debug for OriginFoldedLine {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone)]
 pub struct VisualLine {
     pub line_index:                   usize,
     pub origin_interval:              Interval,
@@ -247,8 +270,8 @@ pub struct VisualLine {
     pub visual_interval:              Interval,
     pub origin_line:                  usize,
     pub origin_folded_line:           usize,
-    pub origin_folded_line_sub_index: usize /* pub text_layout:
-                                             * TextLayoutLine, */
+    pub origin_folded_line_sub_index: usize,
+    pub text_layout:    TextLayoutLine,
 }
 
 impl Debug for VisualLine {

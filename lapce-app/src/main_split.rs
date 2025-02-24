@@ -637,8 +637,8 @@ impl MainSplitData {
                 tab.editor.doc().lines.with_untracked(|x| {
                     let x = &x.screen_lines();
                     (
-                        x.visual_lines[0].clone(),
-                        x.visual_lines[x.visual_lines.len() - 1].clone()
+                        x.visual_lines[0].visual_line.line_index,
+                        x.visual_lines[x.visual_lines.len() - 1].visual_line.line_index
                     )
                 });
             let lines = tab
@@ -646,13 +646,13 @@ impl MainSplitData {
                 .doc()
                 .lines
                 .lines_of_origin_offset(cursor.offset())?;
-            if min_visual_line.visual_line.line_index <= lines.visual_line.line_index
-                && lines.visual_line.line_index
-                    <= max_visual_line.visual_line.line_index
+            if min_visual_line <= lines.origin_folded_line.line_index
+                && lines.origin_folded_line.line_index
+                    <= max_visual_line
             {
                 off_top_line = Some(
-                    lines.visual_line.line_index
-                        - min_visual_line.visual_line.line_index
+                    lines.origin_folded_line.line_index
+                        - min_visual_line
                 );
             }
             //

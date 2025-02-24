@@ -1147,7 +1147,7 @@ impl EditorData {
         let lines: HashSet<usize> = screen_lines
             .visual_lines
             .iter()
-            .map(|l| l.visual_line.origin_line)
+            .map(|l| l.visual_line.origin_line_start)
             .collect();
 
         let mut matcher = nucleo::Matcher::new(nucleo::Config::DEFAULT);
@@ -2592,7 +2592,7 @@ impl EditorData {
         }
     }
 
-    fn search_forward(&self, mods: Modifiers) {
+    pub(crate) fn search_forward(&self, mods: Modifiers) {
         let offset = self.cursor().with_untracked(|c| c.offset());
         let text = self
             .doc()
@@ -2605,7 +2605,7 @@ impl EditorData {
         }
     }
 
-    fn search_backward(&self, mods: Modifiers) {
+    pub(crate) fn search_backward(&self, mods: Modifiers) {
         let offset = self.cursor().with_untracked(|c| c.offset());
         let text = self
             .doc()
@@ -2618,7 +2618,7 @@ impl EditorData {
         }
     }
 
-    fn replace_next(&self, text: &str) {
+    pub(crate) fn replace_next(&self, text: &str) {
         let offset = self.cursor().with_untracked(|c| c.offset());
         let buffer = self
             .doc()
@@ -2632,7 +2632,7 @@ impl EditorData {
         }
     }
 
-    fn replace_all(&self, text: &str) {
+    pub(crate) fn replace_all(&self, text: &str) {
         let offset = self.cursor().with_untracked(|c| c.offset());
 
         self.doc().update_find();

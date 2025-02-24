@@ -221,7 +221,7 @@ pub fn editor_view(
         let screen_lines = screen_lines.get();
         let (screen_lines_len, screen_lines_first) = (
             screen_lines.visual_lines.len(),
-            screen_lines.visual_lines.first().cloned()
+            screen_lines.visual_lines.first().map(|x| x.visual_line.origin_line_start)
         );
         let buffer_rev = doc.lines.with_untracked(|x| x.signal_buffer_rev());
         let rev = (
@@ -469,7 +469,7 @@ impl EditorView {
         );
         if let Some(breakline) = breakline {
             if let Some(info) =
-                screen_lines.visual_line_info_of_origin_line(breakline)
+                screen_lines.visual_line_info_for_origin_line(breakline)
             {
                 let rect = Rect::from_origin_size(
                     info.paint_point(),
@@ -498,13 +498,12 @@ impl EditorView {
                                 continue;
                             }
                         };
-                    if Some(origin_folded_line.origin_line) == breakline
-                        && origin_folded_line.origin_folded_line_sub_index == 0
+                    if Some(origin_folded_line.origin_line_start) == breakline
                     {
                         continue;
                     }
                     if let Some(info) = screen_lines
-                        .visual_line_info_of_visual_line(&origin_folded_line)
+                        .visual_line_info_for_origin_line(origin_folded_line.origin_line_start)
                     {
                         let rect = Rect::from_origin_size(
                             info.paint_point(),
@@ -667,7 +666,7 @@ impl EditorView {
             return Ok(());
         };
         // let start_info = screen_lines.vline_info(*start_vline).unwrap();
-        let start_line = start_vline.visual_line.origin_line;
+        let start_line = start_vline.visual_line.origin_line_start;
 
         let sticky_header_info = self.editor.sticky_header_info.get_untracked();
         let total_sticky_lines = sticky_header_info.sticky_lines.len();
@@ -929,7 +928,7 @@ impl View for EditorView {
 
             let (visual_line_len, scroll_beyond_last_line) =
                 e_data.doc().lines.with_untracked(|x| {
-                    (x.visual_lines.len(), x.scroll_beyond_last_line())
+                    (x.origin_folded_lines.len(), x.scroll_beyond_last_line())
                 });
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
@@ -1151,7 +1150,7 @@ fn get_sticky_header_info(
         };
     };
     // let start_info = screen_lines.info(*start).unwrap();
-    let start_line = start.visual_line.origin_line;
+    let start_line = start.visual_line.origin_line_start;
 
     // let y_diff = viewport.y0 - start_info.vline_y;
     let y_diff = 0.0;

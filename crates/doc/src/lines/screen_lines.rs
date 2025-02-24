@@ -1,6 +1,5 @@
 use std::{
     cmp::Ordering,
-    hash::{Hash, Hasher},
     rc::Rc
 };
 
@@ -9,9 +8,7 @@ use floem::{
     kurbo::{Point, Rect},
     reactive::Scope
 };
-use log::{error, info};
-
-use crate::lines::line::VisualLine;
+use crate::lines::line::{OriginFoldedLine};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -54,29 +51,28 @@ pub struct ScreenLines {
     pub line_height:   f64
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct VisualLineInfo {
     /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
     pub folded_line_y: f64,
-    /// 视觉行在窗口的y偏移（不是整个文档的y偏移）。行顶的y值！！！
-    pub visual_line_y: f64,
+    // 在不支持编辑器折叠下，该行已无意义。视觉行在窗口的y偏移（不是整个文档的y偏移）。行顶的y值！！！
+    // pub visual_line_y: f64,
     pub base:          Rect,
-    pub visual_line:   VisualLine
+    pub visual_line: OriginFoldedLine
 }
 
-impl Hash for VisualLineInfo {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.folded_line_y.to_bits().hash(state);
-        self.visual_line_y.to_bits().hash(state);
-        self.visual_line.hash(state);
-    }
-}
-impl Eq for VisualLineInfo {}
+// impl Hash for VisualLineInfo {
+//     fn hash<H: Hasher>(&self, state: &mut H) {
+//         self.folded_line_y.to_bits().hash(state);
+//         self.visual_line_y.to_bits().hash(state);
+//         self.visual_line.hash(state);
+//     }
+// }
 
 impl VisualLineInfo {
     pub fn paint_point(&self) -> Point {
-        Point::new(self.base.x0, self.visual_line_y + self.base.y0)
+        Point::new(self.base.x0, self.folded_line_y + self.base.y0)
     }
 }
 
@@ -116,16 +112,16 @@ impl ScreenLines {
         self.visual_lines.last().unwrap()
     }
 
-    pub fn log(&self) {
-        info!("{:?}", self.visual_lines);
-    }
+    // pub fn log(&self) {
+    //     info!("{:?}", self.visual_lines);
+    // }
 }
 
 impl ScreenLines {
     pub fn line_interval(&self) -> Result<(usize, usize)> {
         match (self.visual_lines.first(), self.visual_lines.last()) {
             (Some(first), Some(last)) => {
-                Ok((first.visual_line.origin_line, last.visual_line.origin_line))
+                Ok((first.visual_line.origin_line_start, last.visual_line.origin_line_start))
             },
             _ => bail!("ScreenLines is empty?")
         }
@@ -147,7 +143,7 @@ impl ScreenLines {
         origin_line: usize
     ) -> Option<VisualLineInfo> {
         for visual_line in &self.visual_lines {
-            match origin_line.cmp(&visual_line.visual_line.origin_line) {
+            match origin_line.cmp(&visual_line.visual_line.origin_line_start) {
                 Ordering::Less => {
                     return None;
                 },
@@ -160,96 +156,71 @@ impl ScreenLines {
         None
     }
 
-    /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
-    pub fn visual_line_info_of_origin_line(
+    /// 获取折叠原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
+    pub fn visual_line_info_for_origin_folded_line(
         &self,
-        origin_line: usize
+        line_index: usize
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
-            if visual_line.visual_line.origin_line == origin_line
-                && visual_line.visual_line.origin_folded_line_sub_index == 0
-            {
+            if line_index == visual_line.visual_line.line_index {
                 return Some(visual_line);
-            } else if (visual_line.visual_line.origin_line == origin_line
-                && visual_line.visual_line.origin_folded_line_sub_index > 0)
-                || visual_line.visual_line.origin_line > origin_line
-            {
-                break;
             }
         }
         None
     }
 
-    /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
-    pub fn visual_line_info_of_visual_line(
-        &self,
-        visual_line: &VisualLine
-    ) -> Option<&VisualLineInfo> {
-        for visual_line_info in &self.visual_lines {
-            if visual_line_info.visual_line == *visual_line {
-                return Some(visual_line_info);
-            } else if (visual_line_info.visual_line.origin_folded_line
-                == visual_line.origin_folded_line
-                && visual_line_info.visual_line.origin_folded_line_sub_index
-                    > visual_line.origin_folded_line_sub_index)
-                || visual_line_info.visual_line.origin_folded_line
-                    > visual_line.origin_folded_line
-            {
-                break;
-            }
-        }
-        None
-    }
+    // equal to visual_line_info_for_origin_line?
+    // /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
+    // pub fn visual_line_info_of_origin_line(
+    //     &self,
+    //     origin_line: usize
+    // ) -> Option<&VisualLineInfo> {
+    //     for visual_line in &self.visual_lines {
+    //         if visual_line.visual_line.origin_line == origin_line
+    //             && visual_line.visual_line.origin_folded_line_sub_index == 0
+    //         {
+    //             return Some(visual_line);
+    //         } else if (visual_line.visual_line.origin_line == origin_line
+    //             && visual_line.visual_line.origin_folded_line_sub_index > 0)
+    //             || visual_line.visual_line.origin_line > origin_line
+    //         {
+    //             break;
+    //         }
+    //     }
+    //     None
+    // }
 
-    /// 视窗的最上一行
-    pub fn most_up_visual_line_info_of_visual_line(
-        &self,
-        visual_line: &VisualLine
-    ) -> Option<&VisualLineInfo> {
-        if let Some(last) = self.visual_lines.last() {
-            if let Ordering::Less = last.visual_line.cmp_y(visual_line) {
-                return None;
-            }
-        }
-        if let Some(first) = self.visual_lines.first() {
-            match first.visual_line.cmp_y(visual_line) {
-                Ordering::Less | Ordering::Equal => {
-                    let rs = self.visual_line_info_of_visual_line(visual_line);
-                    if rs.is_none() {
-                        error!("should not be reached");
-                    }
-                    return rs;
-                },
-                Ordering::Greater => return Some(first)
-            }
-        }
-        error!("should not be reached");
-        None
-    }
+    // /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
+    // pub fn visual_line_info_of_visual_line(
+    //     &self,
+    //     visual_line: &VisualLine
+    // ) -> Option<&VisualLineInfo> {
+    //     for visual_line_info in &self.visual_lines {
+    //         if visual_line_info.visual_line == *visual_line {
+    //             return Some(visual_line_info);
+    //         } else if (visual_line_info.visual_line.origin_folded_line
+    //             == visual_line.origin_folded_line
+    //             && visual_line_info.visual_line.origin_folded_line_sub_index
+    //                 > visual_line.origin_folded_line_sub_index)
+    //             || visual_line_info.visual_line.origin_folded_line
+    //                 > visual_line.origin_folded_line
+    //         {
+    //             break;
+    //         }
+    //     }
+    //     None
+    // }
 
-    /// 视窗的最上一行
-    pub fn most_down_visual_line_info_of_visual_line(
-        &self,
-        visual_line: &VisualLine
-    ) -> Option<&VisualLineInfo> {
-        if let Some(first) = self.visual_lines.first() {
-            if let Ordering::Greater = first.visual_line.cmp_y(visual_line) {
-                return None;
-            }
+    /// 求视窗与参数行的交集
+    /// 用于选择鼠标选择区域
+    pub fn intersection_with_lines(&self, start_line_index: usize, end_line_index: usize) -> Option<(&VisualLineInfo, &VisualLineInfo)> {
+        let first_visual_line= self.visual_lines.first()?;
+        let last_visual_line= self.visual_lines.last()?;
+        let start_line_index = first_visual_line.visual_line.line_index.max(start_line_index);
+        let end_line_index = last_visual_line.visual_line.line_index.min(end_line_index);
+        if start_line_index > end_line_index {
+            return None;
         }
-        if let Some(last) = self.visual_lines.last() {
-            match last.visual_line.cmp_y(visual_line) {
-                Ordering::Greater | Ordering::Equal => {
-                    let rs = self.visual_line_info_of_visual_line(visual_line);
-                    if rs.is_none() {
-                        error!("should not be reached");
-                    }
-                    return rs;
-                },
-                Ordering::Less => return Some(last)
-            }
-        }
-        error!("should not be reached");
-        None
+        Some((self.visual_line_info_for_origin_folded_line(start_line_index)?, self.visual_line_info_for_origin_folded_line(end_line_index)?))
     }
 }

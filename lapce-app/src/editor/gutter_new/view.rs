@@ -8,6 +8,7 @@ use floem::{
     taffy::{AlignItems, JustifyContent},
     views::dyn_stack
 };
+use floem::views::empty;
 use lapce_core::icon::LapceIcons;
 use log::{error, warn};
 
@@ -139,7 +140,7 @@ fn gutter_data_view(
     .style(move |style| {
         style
             .absolute()
-            .inset_top(data.vl_info.visual_line_y)
+            .inset_top(data.paint_point_y)
             .height(line_height.get())
     })
 }
@@ -154,7 +155,7 @@ fn marker_view(
         GutterMarker::None => gutter_marker_none_svg_view(config),
         GutterMarker::CodeLen => gutter_marker_code_len_svg_view(
             window_tab_data,
-            data.vl_info.visual_line.origin_line,
+            data.origin_line_start,
             doc_signal
         ),
         GutterMarker::Breakpoint => gutter_marker_breakpoint_svg_view(config)

@@ -1,7 +1,7 @@
 pub mod view;
 
-use std::hash::Hash;
-
+use std::hash::{Hash, Hasher};
+use floem::kurbo::Point;
 use doc::lines::{buffer::rope_text::RopeText, screen_lines::VisualLineInfo};
 use floem::prelude::{RwSignal, SignalGet, SignalWith};
 
@@ -27,80 +27,73 @@ pub fn gutter_data(
     let (current_line, screen_lines) = doc.lines.with_untracked(|x| {
         (x.buffer().line_of_offset(offset), x.signal_screen_lines())
     });
-    let screen_lines = screen_lines.get();
-
-    screen_lines
-        .visual_lines
-        .into_iter()
-        .map(|vl_info| {
-            if vl_info.visual_line.origin_folded_line_sub_index == 0 {
+    let path = content.path().cloned();
+    screen_lines.with(|screen_lines| {
+        screen_lines
+            .visual_lines
+            .iter()
+            .map(|vl_info| {
                 let is_current_line =
-                    vl_info.visual_line.origin_line == current_line;
-                if code_lens.contains_key(&vl_info.visual_line.origin_line) {
+                    vl_info.visual_line.origin_line_start == current_line;
+                if code_lens.contains_key(&vl_info.visual_line.origin_line_start) {
                     GutterData {
-                        vl_info,
+                        origin_line_start: vl_info.visual_line.origin_line_end,
+                        paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::CodeLen,
                         is_current_line
                     }
-                } else if breakpoints.contains_key(&vl_info.visual_line.origin_line)
+                } else if breakpoints.contains_key(&vl_info.visual_line.origin_line_start)
                 {
                     GutterData {
-                        vl_info,
+                        origin_line_start: vl_info.visual_line.origin_line_end,
+                        paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::Breakpoint,
                         is_current_line
                     }
                 } else {
                     GutterData {
-                        vl_info,
+                        origin_line_start: vl_info.visual_line.origin_line_end,
+                        paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::None,
-                        is_current_line
+                        is_current_line,
                     }
                 }
-            } else {
-                GutterData {
-                    vl_info,
-                    marker: GutterMarker::None,
-                    is_current_line: false
-                }
-            }
-        })
-        .collect()
+            })
+            .collect()
+    })
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct GutterData {
-    vl_info:         VisualLineInfo,
+    origin_line_start: usize,
+    paint_point_y: f64,
     marker:          GutterMarker,
     is_current_line: bool
 }
 
 impl GutterData {
     pub fn display_line_num(&self) -> String {
-        if self.vl_info.visual_line.origin_folded_line_sub_index == 0 {
-            (self.vl_info.visual_line.origin_line + 1).to_string()
-        } else {
-            "".to_string()
-        }
+            (self.origin_line_start + 1).to_string()
     }
 }
 
-// impl PartialEq for GutterData {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.position_y.to_bits() == other.position_y.to_bits()
-//             && self.display_line_num == other.display_line_num
-//             && self.marker == other.marker
-//     }
-// }
-//
-// impl Eq for GutterData {}
+impl PartialEq for GutterData {
+    fn eq(&self, other: &Self) -> bool {
+        self.paint_point_y.to_bits() == other.paint_point_y.to_bits()
+            && self.origin_line_start == other.origin_line_start
+            && self.marker == other.marker
+    }
+}
 
-// impl Hash for GutterData {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         self.display_line_num.hash(state);
-//         self.marker.hash(state);
-//         self.position_y.to_bits().hash(state);
-//     }
-// }
+impl Eq for GutterData {}
+
+impl Hash for GutterData {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.origin_line_start.hash(state);
+        self.marker.hash(state);
+        self.paint_point_y.to_bits().hash(state);
+    }
+}
 #[derive(Debug, Clone, Hash, Copy, Eq, PartialEq)]
 pub enum GutterMarker {
     None,

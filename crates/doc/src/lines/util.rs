@@ -12,18 +12,18 @@ use crate::{
     lines::{
         buffer::{Buffer, rope_text::RopeText},
         char_buffer::CharBuffer,
-        line::VisualLine,
         screen_lines::{ScreenLines, VisualLineInfo},
         text::PreeditData,
         word::WordCursor
     },
     syntax::Syntax
 };
+use crate::lines::line::OriginFoldedLine;
 
 pub fn compute_screen_lines(
     view_kind: EditorViewKind,
     base: Rect,
-    vline_infos: Vec<VisualLine>,
+    vline_infos: Vec<OriginFoldedLine>,
     line_height: usize,
     y0: f64
 ) -> ScreenLines {
@@ -34,15 +34,15 @@ pub fn compute_screen_lines(
             // let vline_infos = self.visual_lines(min_val, max_val);
 
             for visual_line in vline_infos {
-                let visual_line_y = visual_line.line_index * line_height;
-                let folded_line_y = visual_line_y
-                    - visual_line.origin_folded_line_sub_index * line_height;
+                let folded_line_y = visual_line.line_index * line_height;
+                // let folded_line_y = visual_line_y
+                //     - visual_line.origin_folded_line_sub_index * line_height;
 
                 let visual_line_info = VisualLineInfo {
                     folded_line_y: folded_line_y as f64 - y0,
-                    visual_line_y: visual_line_y as f64 - y0,
+                    // visual_line_y: visual_line_y as f64 - y0,
                     base,
-                    visual_line
+                    visual_line: visual_line,
                 };
                 visual_lines.push(visual_line_info);
             }

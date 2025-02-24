@@ -111,8 +111,10 @@ pub fn move_offset(
             (new_offset, None)
         },
         Movement::Up => {
-            let (new_offset, horiz) =
-                move_up(view, offset, affinity, horiz.cloned(), mode, count)?;
+            let Some((new_offset, horiz)) =
+                move_up(view, offset, affinity, horiz.cloned(), mode, count)? else {
+                return Ok((offset, horiz.cloned()));
+            };
 
             (new_offset, Some(horiz))
         },
@@ -230,7 +232,7 @@ fn atomic_soft_tab_width_for_offset(ed: &Editor, offset: usize) -> Option<usize>
         .visual_line_of_offset_v2(offset, CursorAffinity::Forward)
         .ok()?
         .0
-        .origin_line;
+        .origin_line_start;
     let style = ed.doc();
     if style.atomic_soft_tabs(ed.id(), line) {
         Some(style.tab_width(ed.id(), line))
@@ -356,7 +358,7 @@ fn move_right(
         }
     }
 
-    let (_, _, _, last_char) =
+    let (_, _, last_char) =
         view.visual_line_of_offset_v2(new_offset, *affinity)?;
     *affinity = if last_char {
         CursorAffinity::Forward
@@ -377,13 +379,15 @@ fn move_up(
     horiz: Option<ColPosition>,
     _mode: Mode,
     _count: usize
-) -> Result<(usize, ColPosition)> {
-    let (offset_of_buffer, horiz, new_affinity) = view
+) -> Result<Option<(usize, ColPosition)>> {
+    let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines
-        .with_untracked(|x| x.move_up(offset, *affinity, horiz, _mode, _count))?;
+        .with_untracked(|x| x.move_up(offset, *affinity, horiz, _mode, _count))? else {
+        return Ok(None);
+    };
     *affinity = new_affinity;
-    Ok((offset_of_buffer, horiz))
+    Ok(Some((offset_of_buffer, horiz)))
 }
 
 #[allow(dead_code)]
