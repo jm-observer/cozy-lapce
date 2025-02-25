@@ -113,27 +113,27 @@ impl OriginFoldedLine {
         obj
     }
 
-    fn final_offset_of_visual_line(
-        &self,
-        sub_line_index: usize,
-        line_offset: usize
-    ) -> usize {
-        let final_offset =
-            self.text_layout.text.line_layout().iter().enumerate().fold(
-                line_offset,
-                |mut offset, (index, layout)| {
-                    if sub_line_index < index {
-                        offset += layout.glyphs.len();
-                    }
-                    offset
-                }
-            );
-        let (_orgin_line, _offset_of_line, offset_of_buffer, _) = self
-            .text_layout
-            .phantom_text
-            .cursor_position_of_final_col(final_offset);
-        offset_of_buffer
-    }
+    // fn final_offset_of_visual_line(
+    //     &self,
+    //     sub_line_index: usize,
+    //     line_offset: usize
+    // ) -> usize {
+    //     let final_offset =
+    //         self.text_layout.text.line_layout().iter().enumerate().fold(
+    //             line_offset,
+    //             |mut offset, (index, layout)| {
+    //                 if sub_line_index < index {
+    //                     offset += layout.glyphs.len();
+    //                 }
+    //                 offset
+    //             }
+    //         );
+    //     let (_orgin_line, _offset_of_line, offset_of_buffer, _) = self
+    //         .text_layout
+    //         .phantom_text
+    //         .cursor_position_of_final_col(final_offset);
+    //     offset_of_buffer
+    // }
 
     /// 求原始的行的偏移，最终出现在第几个视觉行，
     /// 以及在视觉行的偏移位置，以及合并行的偏移位置

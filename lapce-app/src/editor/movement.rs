@@ -119,8 +119,10 @@ pub fn move_offset(
             (new_offset, Some(horiz))
         },
         Movement::Down => {
-            let (new_offset, horiz) =
-                move_down(view, offset, affinity, horiz.cloned(), mode, count)?;
+            let Some((new_offset, horiz)) =
+                move_down(view, offset, affinity, horiz.cloned(), mode, count)? else {
+                return Ok((offset, horiz.cloned()));
+            };
 
             (new_offset, Some(horiz))
         },
@@ -206,26 +208,27 @@ pub fn move_offset(
         }
     };
 
-    let new_offset = correct_crlf(&view.rope_text(), new_offset);
+    // todo ?
+    // let new_offset = correct_crlf(&view.rope_text(), new_offset);
 
     Ok((new_offset, horiz))
 }
 
-/// If the offset is at `\r|\n` then move it back.
-fn correct_crlf(text: &RopeTextVal, offset: usize) -> usize {
-    if offset == 0 || offset == text.len() {
-        return offset;
-    }
-
-    let mut cursor = lapce_xi_rope::Cursor::new(text.text(), offset);
-    if cursor.peek_next_codepoint() == Some('\n')
-        && cursor.prev_codepoint() == Some('\r')
-    {
-        return offset - 1;
-    }
-
-    offset
-}
+// /// If the offset is at `\r|\n` then move it back.
+// fn correct_crlf(text: &RopeTextVal, offset: usize) -> usize {
+//     if offset == 0 || offset == text.len() {
+//         return offset;
+//     }
+//
+//     let mut cursor = lapce_xi_rope::Cursor::new(text.text(), offset);
+//     if cursor.peek_next_codepoint() == Some('\n')
+//         && cursor.prev_codepoint() == Some('\r')
+//     {
+//         return offset - 1;
+//     }
+//
+//     offset
+// }
 
 fn atomic_soft_tab_width_for_offset(ed: &Editor, offset: usize) -> Option<usize> {
     let line = ed
@@ -380,6 +383,7 @@ fn move_up(
     _mode: Mode,
     _count: usize
 ) -> Result<Option<(usize, ColPosition)>> {
+    log::info!("move_up {offset}");
     let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines
@@ -390,77 +394,39 @@ fn move_up(
     Ok(Some((offset_of_buffer, horiz)))
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, unused_variables)]
 /// Move down for when the cursor is on the last visual line.
 fn move_down_last_rvline(
     view: &Editor,
-    offset: usize,
+    _offset: usize,
     affinity: &mut CursorAffinity,
-    horiz: Option<ColPosition>,
+    _horiz: Option<ColPosition>,
     mode: Mode
 ) -> Result<(usize, ColPosition)> {
-    let rope_text = view.rope_text();
-
-    let last_line = rope_text.last_line();
-    let new_offset = rope_text.line_end_offset(last_line, mode != Mode::Normal)?;
-
-    // We should appear after any phantom text at the very end of the line.
-    *affinity = CursorAffinity::Forward;
+    // let rope_text = view.rope_text();
+    //
+    // let last_line = rope_text.last_line();
+    // let new_offset = rope_text.line_end_offset(last_line, mode != Mode::Normal)?;
+    //
+    // // We should appear after any phantom text at the very end of the line.
+    // *affinity = CursorAffinity::Forward;
 
     // let horiz = horiz.unwrap_or_else(|| {
     //     ColPosition::Col(view.line_point_of_offset(offset, *affinity).x)
     // });
-    let horiz = horiz.unwrap_or_else(|| {
-        ColPosition::Col(
-            view.line_point_of_offset(offset, CursorAffinity::Backward)
-                .map(|x| x.x)
-                .unwrap_or_default()
-        )
-    });
+    // let horiz = horiz.unwrap_or_else(|| {
+    //     ColPosition::Col(
+    //         view.line_point_of_offset(offset, CursorAffinity::Backward)
+    //             .map(|x| x.x)
+    //             .unwrap_or_default()
+    //     )
+    // });
+    //
+    // Ok((new_offset, horiz))
 
-    Ok((new_offset, horiz))
+    todo!()
 }
 
-// fn find_next_rvline_info(
-//     view: &Editor,
-//     offset: usize,
-//     start: RVLine,
-//     count: usize,
-// ) -> Option<VLineInfo<()>> {
-//     // We can't just directly add count because of multi-line phantom text.
-//     // These lines are 'not there' and also don't have any position that can
-// be moved into     // (unlike phantom text that is mixed with real text)
-//     // So we have to search forward for the next line that has real content.
-//     // The typical iteration count for this is 1, and even after that it is
-// usually only a handful.     let mut found_count = 0;
-//     for next_info in view.iter_rvlines(false, start) {
-//         if count == 0 {
-//             return Some(next_info);
-//         }
-//
-//         if next_info.is_empty_phantom() {
-//             // We skip any phantom text lines in our consideration
-//             // TODO: Would this skip over an empty line?
-//             continue;
-//         }
-//
-//         if next_info.interval.start <= offset {
-//             // If we're on or before our current visual line then we skip it
-//             continue;
-//         }
-//
-//         // Otherwise we found a real line.
-//         found_count += 1;
-//
-//         if found_count == count {
-//             // If we've completed all the count instances then we're done
-//             return Some(next_info);
-//         }
-//         // Otherwise we continue on to find the next line with content after
-// that.     }
-//
-//     None
-// }
 
 /// Move the offset down by `count` amount.
 /// `count` may be zero, because moving down in a selection just jumps to the
@@ -472,13 +438,16 @@ fn move_down(
     horiz: Option<ColPosition>,
     _mode: Mode,
     _count: usize
-) -> Result<(usize, ColPosition)> {
-    let (offset_of_buffer, horiz, new_affinity) = view
+) -> Result<Option<(usize, ColPosition)>> {
+    log::info!("move_down {offset}");
+    let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines
-        .with_untracked(|x| x.move_down(offset, *affinity, horiz, _mode, _count))?;
+        .with_untracked(|x| x.move_down(offset, *affinity, horiz, _mode, _count))? else {
+        return Ok(None);
+    };
     *affinity = new_affinity;
-    Ok((offset_of_buffer, horiz))
+    Ok(Some((offset_of_buffer, horiz)))
 }
 
 fn document_end(
@@ -526,7 +495,7 @@ fn end_of_line(
         .lines
         .with_untracked(|x| x.end_of_line(affinity, offset, mode))
 }
-#[allow(unused_variables)]
+#[allow(dead_code, unused_variables)]
 fn to_line(
     view: &Editor,
     offset: usize,
@@ -534,22 +503,22 @@ fn to_line(
     mode: Mode,
     position: &LinePosition
 ) -> (usize, ColPosition) {
-    let rope_text = view.rope_text();
-
-    // TODO(minor): Should this use rvline?
-    let line = match position {
-        LinePosition::Line(line) => (line - 1).min(rope_text.last_line()),
-        LinePosition::First => 0,
-        LinePosition::Last => rope_text.last_line()
-    };
-    // TODO(minor): is this the best affinity?
-    let horiz = horiz.unwrap_or_else(|| {
-        ColPosition::Col(
-            view.line_point_of_offset(offset, CursorAffinity::Backward)
-                .map(|x| x.x)
-                .unwrap_or_default()
-        )
-    });
+    // let rope_text = view.rope_text();
+    //
+    // // TODO(minor): Should this use rvline?
+    // let line = match position {
+    //     LinePosition::Line(line) => (line - 1).min(rope_text.last_line()),
+    //     LinePosition::First => 0,
+    //     LinePosition::Last => rope_text.last_line()
+    // };
+    // // TODO(minor): is this the best affinity?
+    // let horiz = horiz.unwrap_or_else(|| {
+    //     ColPosition::Col(
+    //         view.line_point_of_offset(offset, CursorAffinity::Backward)
+    //             .map(|x| x.x)
+    //             .unwrap_or_default()
+    //     )
+    // });
     todo!()
     // let (line, col) = view.line_horiz_col(line, &horiz, mode !=
     // Mode::Normal); let new_offset = rope_text.offset_of_line_col(line,

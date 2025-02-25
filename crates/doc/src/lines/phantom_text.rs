@@ -115,11 +115,11 @@ pub struct OriginText {
     /// 在原始行文本的位置
     pub col:       Interval,
     ///
-    /// 合并后原始行文本的位置
+    /// 合并后原始行文本的位置，不包含虚拟文本
     pub merge_col: Interval,
     /// Provided by calculate.Column index in final line.
     ///
-    /// 在最终行文本的位置
+    /// 在最终行文本的位置，包含虚拟文本
     pub final_col: Interval
 }
 
@@ -272,16 +272,16 @@ impl PhantomTextLine {
         let mut merge_last_end = 0;
         let mut texts = SmallVec::new();
 
-        let mut offset = 0i32;
+        let mut final_offset = 0i32;
         for mut phantom in phantom_texts {
             match phantom.kind {
                 PhantomTextKind::LineFoldedRang { len, .. } => {
-                    phantom.final_col = usize_offset(phantom.merge_col, offset);
-                    offset = offset + phantom.text.len() as i32 - len as i32;
+                    phantom.final_col = usize_offset(phantom.merge_col, final_offset);
+                    final_offset = final_offset + phantom.text.len() as i32 - len as i32;
                 },
                 _ => {
-                    phantom.final_col = usize_offset(phantom.merge_col, offset);
-                    offset += phantom.text.len() as i32;
+                    phantom.final_col = usize_offset(phantom.merge_col, final_offset);
+                    final_offset += phantom.text.len() as i32;
                 }
             }
             if final_last_end < phantom.final_col {
@@ -333,7 +333,7 @@ impl PhantomTextLine {
             );
         }
 
-        let final_text_len = usize_offset(origin_text_len, offset);
+        let final_text_len = usize_offset(origin_text_len, final_offset);
         Self {
             final_text_len,
             line,
@@ -738,13 +738,16 @@ impl PhantomTextMultiLine {
         Some(self.final_text_len)
     }
 
-    /// return (origin line, origin line offset, offset_of_line)
+    /// the position of the cursor should not be in phantom text
+    ///
+    /// return (origin line, col of origin line, col of final, start buffer offset of line, cursor affinity
     pub fn cursor_position_of_final_col(
         &self,
         mut visual_char_offset: usize
-    ) -> (usize, usize, usize, Option<CursorAffinity>) {
+    ) -> (usize, usize, usize, usize, CursorAffinity) {
         // 因为通过hit_point获取的index会大于等于final_text_len
         if visual_char_offset >= self.final_text_len {
+            // the final_text_len of an empty line equals 0
             visual_char_offset = self.final_text_len.max(1) - 1;
         }
         match self.text_of_final_col(visual_char_offset) {
@@ -753,26 +756,27 @@ impl PhantomTextMultiLine {
                 if visual_char_offset > text.final_col + text.text.len() / 2 {
                     (
                         text.line,
-                        text.next_origin_col(),
+                        text.next_origin_col(), text.final_col,
                         self.offset_of_line,
-                        Some(CursorAffinity::Forward)
+                        CursorAffinity::Forward
                     )
                 } else {
                     (
                         text.line,
-                        text.next_origin_col(),
+                        text.next_origin_col(), text.final_col,
                         self.offset_of_line,
-                        Some(CursorAffinity::Backward)
+                        CursorAffinity::Backward
                     )
                 }
             },
             Text::OriginText { text } => (
                 text.line,
                 text.origin_col_of_final_col(visual_char_offset),
+                visual_char_offset,
                 self.offset_of_line,
-                None
+                CursorAffinity::Backward
             ),
-            Text::EmptyLine { text } => (text.line, 0, text.offset_of_line, None)
+            Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Forward)
         }
     }
 

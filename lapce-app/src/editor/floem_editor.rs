@@ -381,9 +381,7 @@ impl Editor {
                 pointer_event.modifiers.shift(),
                 pointer_event.modifiers.alt()
             );
-            if let Some(cursor_affinity) = cursor_affinity {
-                cursor.affinity = cursor_affinity;
-            }
+            cursor.affinity = cursor_affinity;
         });
         common_data
             .internal_command
@@ -806,29 +804,29 @@ impl Editor {
         })
     }
 
-    /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
-    pub fn previous_visual_line(
-        &self,
-        visual_line_index: usize,
-        line_offset: usize,
-        _affinity: CursorAffinity
-    ) -> Option<(OriginFoldedLine, usize, bool)> {
-        self.doc().lines.with_untracked(|x| {
-            x.previous_visual_line(visual_line_index, line_offset, _affinity)
-        })
-    }
+    // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    // pub fn previous_visual_line(
+    //     &self,
+    //     visual_line_index: usize,
+    //     line_offset: usize,
+    //     _affinity: CursorAffinity
+    // ) -> Option<(OriginFoldedLine, usize, bool)> {
+    //     self.doc().lines.with_untracked(|x| {
+    //         x.previous_visual_line(visual_line_index, line_offset, _affinity)
+    //     })
+    // }
 
-    /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
-    pub fn next_visual_line(
-        &self,
-        visual_line_index: usize,
-        line_offset: usize,
-        _affinity: CursorAffinity
-    ) -> (OriginFoldedLine, usize, bool) {
-        self.doc().lines.with_untracked(|x| {
-            x.next_visual_line(visual_line_index, line_offset, _affinity)
-        })
-    }
+    // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    // pub fn next_visual_line(
+    //     &self,
+    //     visual_line_index: usize,
+    //     line_offset: usize,
+    //     _affinity: CursorAffinity
+    // ) -> (OriginFoldedLine, usize, bool) {
+    //     self.doc().lines.with_untracked(|x| {
+    //         x.next_visual_line(visual_line_index, line_offset, _affinity)
+    //     })
+    // }
 
     // pub fn folded_line_of_offset(
     //     &self,
@@ -940,7 +938,7 @@ impl Editor {
         &self,
         mode: &CursorMode,
         point: Point
-    ) -> Result<(usize, bool, Option<CursorAffinity>)> {
+    ) -> Result<(usize, bool, CursorAffinity)> {
         self.doc
             .get_untracked()
             .lines

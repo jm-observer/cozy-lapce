@@ -15,7 +15,7 @@ pub enum ColPosition {
     FirstNonBlank,
     Start,
     End,
-    Col(f64)
+    Col(usize)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

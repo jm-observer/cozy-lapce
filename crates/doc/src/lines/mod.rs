@@ -912,28 +912,21 @@ impl DocLines {
     //     &self.visual_lines[self.visual_lines.len() - 1]
     // }
 
+    /// the buffer offset at the click position
     pub fn buffer_offset_of_click(
         &self,
         _mode: &CursorMode,
         point: Point
-    ) -> Result<(usize, bool, Option<CursorAffinity>)> {
+    ) -> Result<(usize, bool, CursorAffinity)> {
         let info = self.origin_folded_line_of_point(point.y).unwrap_or(self.origin_folded_lines.last().ok_or(anyhow!("origin_folded_lines last line is empty"))?);
-        // info.visual_line.origin_line
         let text_layout = &info.text_layout;
-        // let y = text_layout
-        //     .get_layout_y(0)
-        //     .unwrap_or(0.0);
         let hit_point = text_layout.text.hit_point(Point::new(point.x, 0.0));
-        // let index = if hit_point.index {
-        //     hit_point.index
-        // } else {
-        //     hit_point.index.max(1) - 1
-        // };
-        let (origin_line, origin_col, _offset_of_line, cursor_affinity) =
+        let (origin_line, origin_col, _final_col, _offset_of_line, cursor_affinity) =
             text_layout
                 .phantom_text
                 .cursor_position_of_final_col(hit_point.index);
         let offset_of_buffer =
+
             self.buffer().offset_of_line_col(origin_line, origin_col)?;
         Ok((offset_of_buffer, hit_point.is_inside, cursor_affinity))
     }
@@ -1043,97 +1036,80 @@ impl DocLines {
     }
 
     /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    ///
+    /// return (OriginFoldedLine, final col)
     pub fn previous_visual_line(
         &self,
         visual_line_index: usize,
         line_offset: usize,
         _affinity: CursorAffinity
-    ) -> Option<(OriginFoldedLine, usize, bool)> {
+    ) -> Option<(&OriginFoldedLine, usize, usize)> {
         let line = self
             .origin_folded_lines
             .get(visual_line_index)?;
-        let (_origin_line, offset_line, _offset_buffer, _) =
+        let (_origin_line, _origin_col, final_col, _offset_buffer, _) =
             line.text_layout
             .phantom_text
             .cursor_position_of_final_col(line_offset);
-        let last_char = line.is_last_char(offset_line, self.buffer().line_ending());
+        // let last_char = line.is_last_char(offset_line, self.buffer().line_ending());
 
         Some((
-            line.clone(),
-            offset_line,
-            last_char
+            line,
+            final_col, _offset_buffer
         ))
     }
 
     /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    ///
+    /// return (&OriginFoldedLine, final col, offset of buffer)
     pub fn next_visual_line(
         &self,
         visual_line_index: usize,
-        line_offset: usize,
+        final_cal: usize,
         _affinity: CursorAffinity
-    ) -> (OriginFoldedLine, usize, bool) {
-        let next_visual_line = visual_line_index.min(self.origin_folded_lines.len() - 2) + 1;
-        let next_line = &self.origin_folded_lines[next_visual_line];
-
-        // for (index, layout) in self.origin_folded_lines
-        //     [next_visual_line]
-        //     .text_layout
-        //     .text
-        //     .line_layout()
-        //     .iter()
-        //     .enumerate()
-        // {
-        //     if index < next_visual_line.origin_folded_line_sub_index {
-        //         line_offset += layout.glyphs.len();
-        //     } else if index >= next_visual_line.origin_folded_line_sub_index {
-        //         last_char = layout.glyphs.len().max(1) - 1;
-        //         break;
-        //     }
-        // }
-        let (_origin_line, offset_line, _offset_buffer, _) = next_line
+    ) -> Option<(&OriginFoldedLine, usize, usize)> {
+        let next_line = self.origin_folded_lines.get(visual_line_index + 1)?;
+        let (_origin_line, _offset_line, final_col, _offset_buffer, _) = next_line
             .text_layout
             .phantom_text
-            .cursor_position_of_final_col(line_offset);
-
-        let last_char = next_line.is_last_char(offset_line, self.buffer().line_ending());
-        (
-            next_line.clone(),
-            offset_line,
-            last_char
-        )
+            .cursor_position_of_final_col(final_cal);
+        // let last_char = next_line.is_last_char(offset_line, self.buffer().line_ending());
+        Some((
+            next_line,
+            final_col,
+            _offset_buffer
+        ))
     }
 
     /// 原始位移字符所在的合并行的偏移位置和是否是最后一个字符，point
+    ///
+    /// return (OriginFoldedLine, final col, last char, origin_line, start_offset_of_origin_line
     pub fn folded_line_of_offset(
         &self,
         offset: usize,
         affinity: CursorAffinity
     ) -> Result<(&OriginFoldedLine, usize, bool, usize, usize)> {
         // 位于的原始行，以及在原始行的起始offset
-        let (origin_line, offset_of_origin_line) = {
+        let (origin_line, start_offset_of_origin_line) = {
             let origin_line = self.buffer().line_of_offset(offset);
             let origin_line_start_offset =
                 self.buffer().offset_of_line(origin_line)?;
             (origin_line, origin_line_start_offset)
         };
-        let offset = offset - offset_of_origin_line;
+        let offset_of_col = offset - start_offset_of_origin_line;
         let folded_line = self.folded_line_of_origin_line(origin_line)?;
 
-        let offset_of_folded = folded_line
-            .final_offset_of_line_and_offset(origin_line, offset, affinity);
-        // let visual_line = self.visual_line_of_folded_line_and_sub_index(
-        //     folded_line.line_index,
-        //     sub_line_index
-        // )?;
-        let last_char = offset_of_folded
+        let final_col = folded_line
+            .final_offset_of_line_and_offset(origin_line, offset_of_col, affinity);
+        let last_char = final_col
             >= folded_line.len_without_rn(self.buffer().line_ending());
 
         Ok((
             // visual_line.clone(),
             // offset_of_visual,
-               folded_line,
-            offset_of_folded,
-            last_char,origin_line, offset_of_origin_line,
+            folded_line,
+            final_col,
+            last_char, origin_line, start_offset_of_origin_line,
         ))
     }
 
@@ -2059,45 +2035,36 @@ impl DocLines {
         _mode: Mode,
         _count: usize
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
-        let (visual_line, line_offset, ..) =
+        let (visual_line, final_col, ..) =
             self.folded_line_of_offset(offset, affinity)?;
-        let Some((previous_visual_line, line_offset, ..)) = self.previous_visual_line(
-            visual_line.line_index,
-            line_offset,
-            affinity
-        ) else {
+
+        let horiz = horiz.unwrap_or_else(|| {
+            ColPosition::Col(final_col)
+        });
+        let Some(previous_visual_line) = self.origin_folded_lines.get(visual_line.line_index.max(1) - 1) else {
             return Ok(None);
         };
-        let horiz = horiz.unwrap_or_else(|| {
-            ColPosition::Col(
-                match self.line_point_of_visual_line_col(
-                    visual_line.line_index,
-                    line_offset,
-                    affinity,
-                    false
-                ) {
-                    Ok(point) => point.x,
-                    Err(err) => {
-                        error!("{:?}", err);
-                        0.0
-                    }
-                }
-            )
-        });
-
-        let offset_of_buffer = self.rvline_horiz_col(
+        let (offset_of_buffer, affinity) = self.rvline_horiz_col(
             &horiz,
             _mode != Mode::Normal,
-            &previous_visual_line
+            previous_visual_line
         )?;
 
-        // TODO: this should maybe be doing `new_offset ==
-        // info.interval.start`?
-        let affinity = if line_offset == 0 {
-            CursorAffinity::Forward
-        } else {
-            CursorAffinity::Backward
-        };
+        // let Some((_previous_visual_line, final_col, offset_of_buffer)) = self.previous_visual_line(
+        //     visual_line.line_index,
+        //     final_col,
+        //     affinity
+        // ) else {
+        //     return Ok(None);
+        // };
+
+        // // TODO: this should maybe be doing `new_offset ==
+        // // info.interval.start`?
+        // let affinity = if line_offset == 0 {
+        //     CursorAffinity::Forward
+        // } else {
+        //     CursorAffinity::Backward
+        // };
         Ok(Some((offset_of_buffer, horiz, affinity)))
     }
 
@@ -2148,79 +2115,78 @@ impl DocLines {
         horiz: Option<ColPosition>,
         _mode: Mode,
         _count: usize
-    ) -> Result<(usize, ColPosition, CursorAffinity)> {
-        let (visual_line, line_offset, ..) =
+    ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
+        let (visual_line, final_col, ..) =
             self.folded_line_of_offset(offset, affinity)?;
-        let (next_visual_line, next_line_offset, ..) =
-            self.next_visual_line(visual_line.line_index, line_offset, affinity);
+        // let Some((next_visual_line, final_col, offset_of_buffer, ..)) =
+        //     self.next_visual_line(visual_line.line_index, final_col, affinity) else {
+        //     return Ok(None);
+        // };
         let horiz = horiz.unwrap_or_else(|| {
-            ColPosition::Col(
-                match self.line_point_of_visual_line_col(
-                    visual_line.line_index,
-                    line_offset,
-                    affinity,
-                    false
-                ) {
-                    Ok(point) => point.x,
-                    Err(err) => {
-                        error!("{:?}", err);
-                        0.0
-                    }
-                }
-            )
+            ColPosition::Col(final_col)
         });
-        let offset_of_buffer =
-            self.rvline_horiz_col(&horiz, _mode != Mode::Normal, &next_visual_line)?;
-        let affinity = if next_line_offset == 0 {
-            CursorAffinity::Forward
-        } else {
-            CursorAffinity::Backward
+        let Some(next_visual_line) = self.origin_folded_lines.get(visual_line.line_index + 1) else {
+            return Ok(None);
         };
+        let (offset_of_buffer, affinity) = self.rvline_horiz_col(
+            &horiz,
+            _mode != Mode::Normal,
+            next_visual_line
+        )?;
+        // let affinity = if next_line_offset == 0 {
+        //     CursorAffinity::Forward
+        // } else {
+        //     CursorAffinity::Backward
+        // };
         warn!("offset_of_buffer={offset_of_buffer} horiz={horiz:?}");
 
-        Ok((offset_of_buffer, horiz, affinity))
+        Ok(Some((offset_of_buffer, horiz, affinity)))
     }
 
+    /// return offset of buffer
     fn rvline_horiz_col(
         &self,
         horiz: &ColPosition,
         _caret: bool,
         visual_line: &OriginFoldedLine
-    ) -> Result<usize> {
+    ) -> Result<(usize, CursorAffinity)> {
         Ok(match *horiz {
-            ColPosition::Col(x) => {
+            ColPosition::Col(final_col) => {
                 let text_layout =
                     &visual_line.text_layout;
-                let y_pos = text_layout
-                    .text
-                    .layout_runs()
-                    .nth(0)
-                    .map(|run| run.line_y)
-                    .or_else(|| {
-                        text_layout.text.layout_runs().last().map(|run| run.line_y)
-                    })
-                    .unwrap_or(0.0);
-                let hit_point =
-                    text_layout.text.hit_point(Point::new(x, y_pos as f64));
-                let n = hit_point.index;
-                let rs = text_layout.phantom_text.cursor_position_of_final_col(n);
-                rs.2 + rs.1
-            },
-            ColPosition::End => visual_line.origin_interval.end,
-            ColPosition::Start => visual_line.origin_interval.start,
+                // let y_pos = text_layout
+                //     .text
+                //     .layout_runs()
+                //     .nth(0)
+                //     .map(|run| run.line_y)
+                //     .or_else(|| {
+                //         text_layout.text.layout_runs().last().map(|run| run.line_y)
+                //     })
+                //     .unwrap_or(0.0);
+                // let hit_point =
+                //     text_layout.text.hit_point(Point::new(final_col, y_pos as f64));
+                // let n = hit_point.index;
+                let rs = text_layout.phantom_text.cursor_position_of_final_col(final_col);
+                (rs.3 + rs.1, rs.4)
+            }
+            ColPosition::End => (visual_line.len_without_rn(self.buffer().line_ending()), CursorAffinity::Forward),
+            ColPosition::Start => (0, CursorAffinity::Forward),
             ColPosition::FirstNonBlank => {
                 let text_layout =
                     &visual_line.text_layout;
-                let final_offset =
+                // ?
+                let Some(final_offset) =
                     text_layout.text.line().text()
                         .char_indices()
                         .find(|(_, c)| !c.is_whitespace())
-                        .map(|(idx, _)| visual_line.origin_interval.start + idx)
-                        .unwrap_or(visual_line.origin_interval.end);
-                let rs = text_layout
-                    .phantom_text
-                    .cursor_position_of_final_col(final_offset);
-                rs.2 + rs.1
+                        .map(|(idx, _)| idx) else {
+                    return Ok((visual_line.len_without_rn(self.buffer().line_ending()), CursorAffinity::Forward));
+                };
+                (final_offset, CursorAffinity::Backward)
+                // let rs = text_layout
+                //     .phantom_text
+                //     .cursor_position_of_final_col(final_offset);
+                // rs.2 + rs.1
             }
         })
     }
