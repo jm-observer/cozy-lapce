@@ -2712,7 +2712,7 @@ fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
         }
     });
 
-    container(container(input).style(move |s| {
+    container(input).style(move |s| {
         let (caret_color, bg) = config.with(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
@@ -2720,13 +2720,12 @@ fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
             )
         });
         s.width_full()
-            .height(25.0)
+            .height(26.0)
             .items_center()
-            .border_bottom(1.0)
             .border_color(caret_color)
             .background(bg)
-    }))
-    .style(|s| s.padding_bottom(5.0))
+    })
+    // .style(|s| s.padding_bottom(5.0))
 }
 
 struct PaletteItems(im::Vector<PaletteItem>);
@@ -2850,8 +2849,8 @@ fn palette_content(
             .width_full()
             .min_height(0.0)
             .max_height((layout_rect.get().height() * 0.45 - 36.0).round() as f32)
-            .padding_bottom(5.0)
-            .padding_bottom(5.0)
+            // .padding_bottom(5.0)
+            // .padding_bottom(5.0)
     })
 }
 
