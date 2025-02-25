@@ -244,35 +244,6 @@ fn atomic_soft_tab_width_for_offset(ed: &Editor, offset: usize) -> Option<usize>
     }
 }
 
-/// Move the offset to the left by `count` amount.
-/// If `soft_tab_width` is `Some` (and greater than 1) then the offset will snap
-/// to the soft tab.
-fn move_left(
-    ed: &Editor,
-    offset: usize,
-    affinity: &mut CursorAffinity,
-    mode: Mode,
-    count: usize
-) -> Result<usize> {
-    let rope_text = ed.rope_text();
-    let mut new_offset = rope_text.move_left(offset, mode, count)?;
-
-    if let Some(soft_tab_width) = atomic_soft_tab_width_for_offset(ed, offset) {
-        if soft_tab_width > 1 {
-            new_offset = snap_to_soft_tab(
-                rope_text.text(),
-                new_offset,
-                SnapDirection::Left,
-                soft_tab_width
-            )?;
-        }
-    }
-
-    *affinity = CursorAffinity::Forward;
-
-    Ok(new_offset)
-}
-
 pub fn snap_to_soft_tab(
     text: &Rope,
     offset: usize,
@@ -335,6 +306,34 @@ fn count_spaces_from(text: &Rope, from_offset: usize) -> usize {
     space_count
 }
 
+/// Move the offset to the left by `count` amount.
+/// If `soft_tab_width` is `Some` (and greater than 1) then the offset will snap
+/// to the soft tab.
+fn move_left(
+    ed: &Editor,
+    offset: usize,
+    affinity: &mut CursorAffinity,
+    mode: Mode,
+    count: usize
+) -> Result<usize> {
+    let rope_text = ed.rope_text();
+    let mut new_offset = rope_text.move_left(offset, mode, count)?;
+
+    if let Some(soft_tab_width) = atomic_soft_tab_width_for_offset(ed, offset) {
+        if soft_tab_width > 1 {
+            new_offset = snap_to_soft_tab(
+                rope_text.text(),
+                new_offset,
+                SnapDirection::Left,
+                soft_tab_width
+            )?;
+        }
+    }
+
+    *affinity = CursorAffinity::Forward;
+
+    Ok(new_offset)
+}
 /// Move the offset to the right by `count` amount.
 /// If `soft_tab_width` is `Some` (and greater than 1) then the offset will snap
 /// to the soft tab.
@@ -342,33 +341,16 @@ fn move_right(
     view: &Editor,
     offset: usize,
     affinity: &mut CursorAffinity,
-    mode: Mode,
-    count: usize
+    _mode: Mode,
+    _count: usize
 ) -> Result<usize> {
-    // error!("_offset={offset} _affinity={affinity:?} _mode={mode:?}
-    // _count={count}");
-    let rope_text = view.rope_text();
-    let mut new_offset = rope_text.move_right(offset, mode, count)?;
-
-    if let Some(soft_tab_width) = atomic_soft_tab_width_for_offset(view, offset) {
-        if soft_tab_width > 1 {
-            new_offset = snap_to_soft_tab(
-                rope_text.text(),
-                new_offset,
-                SnapDirection::Right,
-                soft_tab_width
-            )?;
-        }
-    }
-
-    let (_, _, last_char) =
-        view.visual_line_of_offset_v2(new_offset, *affinity)?;
-    *affinity = if last_char {
-        CursorAffinity::Forward
-    } else {
-        CursorAffinity::Backward
+    log::info!("move_right {offset} {affinity:?}");
+    let Some((new_offset, new_affinity)) = view.doc().lines.with_untracked(|x| {
+        x.move_right(offset, *affinity)
+    })? else {
+        return Ok(offset)
     };
-
+    *affinity = new_affinity;
     Ok(new_offset)
 }
 

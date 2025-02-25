@@ -876,6 +876,18 @@ impl DocLines {
         bail!("folded_line_of_origin_line origin_line={origin_line}")
     }
 
+    pub fn folded_line_of_buffer_offset(
+        &self,
+        buffer_offset: usize
+    ) -> Result<&OriginFoldedLine> {
+        for folded_line in &self.origin_folded_lines {
+            if folded_line.origin_interval.contains(buffer_offset) {
+               return Ok(folded_line);
+            }
+        }
+        bail!("folded_line_of_buffer_offset buffer_offset={buffer_offset}")
+    }
+
     pub fn folded_line_of_visual_line(
         &self,
         vl: &VisualLine
@@ -2025,6 +2037,46 @@ impl DocLines {
         if let Some(hints) = self.inlay_hints.as_mut() {
             hints.apply_shape(delta);
         }
+    }
+
+    pub fn move_right(
+        &self,
+        buffer_offset: usize,
+        affinity: CursorAffinity,
+    ) -> Result<Option<(usize, CursorAffinity)>> {
+        if matches!(affinity, CursorAffinity::Backward) {
+            return Ok(Some((buffer_offset, CursorAffinity::Forward)));
+        }
+        // let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
+
+        let (folded_line, final_col,  _, _, start_offset_of_line) =
+            self.folded_line_of_offset(buffer_offset, affinity)?;
+
+        // folded_line.text_layout.phantom_text.text_of_final_col(final_col)
+        //
+
+        let line_ending_len = self.buffer().line_ending().len();
+        let mut new_offset = buffer_offset + 1;
+        if new_offset + line_ending_len >= self.buffer().len() {
+            // last char of buffer
+            return Ok(None);
+        } else if new_offset + line_ending_len >= folded_line.origin_interval.end {
+            new_offset += line_ending_len;
+            return Ok(Some((new_offset, CursorAffinity::Backward)));
+        }
+        new_offset = match folded_line.text_layout.phantom_text.text_of_final_col(final_col) {
+            Text::Phantom { text } => {
+                text.next_merge_col() + self.buffer().offset_of_line(folded_line.origin_line_start)?
+            }
+            Text::OriginText { text } => {
+                let merge_col = final_col - text.final_col.start + text.merge_col.start + 1;
+                merge_col + self.buffer().offset_of_line(folded_line.origin_line_start)?
+            }
+            Text::EmptyLine { .. } => {
+                error!("unreached: greater than self.buffer().len()");
+                0}
+        };
+        Ok(Some((new_offset, affinity)))
     }
 
     pub fn move_up(
