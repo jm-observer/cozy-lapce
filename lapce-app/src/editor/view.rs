@@ -503,7 +503,7 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         screen_lines: &ScreenLines,
-        color: Color, line_ending: LineEnding
+        color: Color, line_ending: LineEnding, cursor_affinity: CursorAffinity
     ) -> Result<()> {
         let find_visual = self.editor.common.find.visual.get_untracked();
         if !find_visual && self.editor.on_screen_find.with_untracked(|f| !f.active) {
@@ -530,7 +530,7 @@ impl EditorView {
             for region in occurrences.with_untracked(|selection| {
                 selection.regions_in_range(start, end).to_vec()
             }) {
-                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines, line_ending) {
+                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines, line_ending, cursor_affinity) {
                     error!("{err:?}");
                 }
             }
@@ -539,7 +539,7 @@ impl EditorView {
         self.editor.on_screen_find.with_untracked(|find| {
             if find.active {
                 for region in &find.regions {
-                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines, line_ending) {
+                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines, line_ending, cursor_affinity) {
                         error!("{err:?}");
                     }
                 }
@@ -552,11 +552,11 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         region: &SelRegion,
-        color: Color, screen_lines: &ScreenLines, line_ending: LineEnding
+        color: Color, screen_lines: &ScreenLines, line_ending: LineEnding, cursor_affinity: CursorAffinity
     ) -> Result<()> {
         let start = region.min();
         let end = region.max();
-        let rs = screen_lines.normal_selection(start, end, line_ending)?;
+        let rs = screen_lines.normal_selection(start, end, line_ending, cursor_affinity)?;
         for rect in rs {
             cx.stroke(&rect, color, &Stroke::new(1.0));
         }
@@ -903,7 +903,7 @@ impl View for EditorView {
         let is_active =
             self.is_active.get_untracked() && !find_focus.get_untracked();
 
-        let (cursor_offsets, cursor_highlight_current_line, cursor_offset, affinity) =    self.editor.cursor().with_untracked(|cursor| {
+        let (cursor_offsets, cursor_highlight_current_line, cursor_offset, cursor_affinity) =    self.editor.cursor().with_untracked(|cursor| {
             let highlight_current_line = match cursor.mode() {
                 CursorMode::Normal(_) | CursorMode::Insert(_) => true,
                 CursorMode::Visual { .. } => false
@@ -914,7 +914,7 @@ impl View for EditorView {
         let screen_lines = self.editor.editor.screen_lines.get_untracked();
 
         let cursor_points = cursor_offsets.into_iter().filter_map(|offset| {
-            screen_lines.cursor_position_of_buffer_offset(offset, affinity)
+            screen_lines.cursor_position_of_buffer_offset(offset, cursor_affinity)
         }).collect();
 
         let viewport = ed.viewport.get_untracked();
@@ -935,7 +935,7 @@ impl View for EditorView {
             &screen_lines,
             &editor_debug_break_line_color, current_line_color, line_height as f64, cursor_highlight_current_line, cursor_offset
         );
-        paint_selection(cx, ed, &screen_lines);
+        paint_selection(cx, ed, &screen_lines, cursor_affinity);
         // let screen_lines = ed.screen_lines.get_untracked();
 
         self.paint_diff_sections(
@@ -948,7 +948,7 @@ impl View for EditorView {
             &editor_dim_color
         );
         // let screen_lines = ed.screen_lines.get_untracked();
-        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg, line_ending) {
+        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg, line_ending, cursor_affinity) {
             error!("{err:?}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();

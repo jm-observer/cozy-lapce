@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use doc::lines::{
-    buffer::rope_text::{RopeText, RopeTextVal},
+    buffer::rope_text::{RopeText},
     command::MultiSelectionCommand,
     cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
     mode::{Mode, MotionMode, VisualMode},
