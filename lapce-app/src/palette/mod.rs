@@ -725,10 +725,10 @@ impl PaletteData {
     }
 
     fn get_document_symbols(&self, run_id: u64, input_str: &str) {
-        if input_str.is_empty() {
-            info!("get_document_symbols is_empty");
-            return;
-        }
+        // if input_str.is_empty() {
+        //     info!("get_document_symbols is_empty");
+        //     return;
+        // }
         let editor = self.main_split.active_editor.get_untracked();
         let doc = match editor {
             Some(editor) => editor.doc(),

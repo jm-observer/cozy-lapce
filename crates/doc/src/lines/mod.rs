@@ -2349,21 +2349,21 @@ impl ComputeLines {
     ) -> Result<InfoOfBufferOffset> {
         let (vl, offset_folded, _last_char, origin_line, offset_of_origin_line) =
             self.folded_line_of_offset(offset, affinity)?;
-        let mut viewpport_point = hit_position_aff(
+        let mut point_of_document = hit_position_aff(
             &vl.text_layout.text,
             offset_folded,
             true
         )
         .point;
         let line_height = self.line_height;
-        viewpport_point.y = (vl.line_index  * line_height)as f64;
+        point_of_document.y = (vl.line_index  * line_height)as f64;
 
         let info = crate::lines::InfoOfBufferOffset {
             origin_line,
             offset_of_origin_line,
             origin_folded_line_index: vl.line_index,
             offset_of_origin_folded_line: None,
-            point_of_document: Default::default(),
+            point_of_document,
         };
         Ok(info)
     }
@@ -3315,6 +3315,7 @@ pub enum ClickResult {
     MatchHint(Location)
 }
 
+#[derive(Debug)]
 /// 文档偏移位置的相关信息
 pub struct InfoOfBufferOffset {
     /// 所在的原始行

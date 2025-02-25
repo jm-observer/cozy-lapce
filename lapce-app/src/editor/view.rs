@@ -43,6 +43,7 @@ use floem::{
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
+use doc::lines::cursor::CursorAffinity;
 use doc::lines::line_ending::LineEnding;
 use super::{DocSignal, EditorData};
 use crate::{
@@ -1790,11 +1791,15 @@ fn editor_content(
         e_data.doc_signal().track();
         e_data.kind().track();
 
-        let Some(mut origin_point) =
-            e_data.editor.screen_lines.with_untracked(|screen_lines| screen_lines.visual_position_of_buffer_offset(offset))
+        let Ok(info) =
+            e_data.doc_signal().with(|x| x.lines).with_untracked(|x| x.cursor_position_of_buffer_offset(offset, CursorAffinity::Forward))
         else {
             return Rect::ZERO;
         };
+        let mut origin_point = info.point_of_document;
+        log::info!(
+                "offset={offset} offset_line_from_top={offset_line_from_top:?} info={info:?}",
+            );
         if let Some(offset_line_from_top) = offset_line_from_top {
             // from jump
             let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;
@@ -1817,7 +1822,7 @@ fn editor_content(
             rect
         } else {
             // from click maybe
-            Rect::from_origin_size(origin_point, (1.0, 1.0))
+            Rect::from_center_size(origin_point, (1.0, line_height * 5.0))
             // let rect = Rect::from_origin_size(origin_point, (line_height,
             // 0.0)); log::info!(
             //     "{:?} visual_line_index={visual_line_index} {rect:?} \
