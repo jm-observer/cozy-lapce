@@ -2764,8 +2764,8 @@ fn palette_content(
     let index = window_tab_data.palette.index.read_only();
     let clicked_index = window_tab_data.palette.clicked_index.write_only();
     let config = window_tab_data.common.config;
-    let run_id = window_tab_data.palette.run_id;
-    let input = window_tab_data.palette.input.read_only();
+    // let run_id = window_tab_data.palette.run_id;
+    // let input = window_tab_data.palette.input.read_only();
     let palette_item_height = 25.0;
     let workspace = window_tab_data.workspace.clone();
     stack((
@@ -2776,7 +2776,8 @@ fn palette_content(
                 // VirtualItemSize::Fixed(Box::new(move || palette_item_height)),
                 move || PaletteItems(items.get().rs),
                 move |(i, _item)| {
-                    (run_id.get_untracked(), *i, input.get_untracked().input)
+                    // (run_id.get_untracked(), *i, input.get_untracked().input)
+                    (_item.run_id, *i)
                 },
                 move |(i, item)| {
                     let workspace = workspace.clone();
@@ -2834,7 +2835,7 @@ fn palette_content(
                 .set(PropagatePointerWheel, false)
         }),
         text("No matching results").style(move |s| {
-            s.display(if items.with(|items| items.rs.is_empty()) {
+            s.display(if items.with(|items| items.is_empty()) {
                 Display::Flex
             } else {
                 Display::None
@@ -2858,7 +2859,7 @@ fn palette_preview(window_tab_data: WindowWorkspaceData) -> impl View {
     let palette_data = window_tab_data.palette.clone();
     let workspace = palette_data.workspace.clone();
     let preview_editor = palette_data.preview_editor;
-    let has_preview = palette_data.has_preview;
+    let has_preview = palette_data.has_preview_memo;
     let config = palette_data.common.config;
     let preview_editor = create_rw_signal(preview_editor);
     container(
