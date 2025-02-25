@@ -20,11 +20,12 @@ impl DocLines {
         debug!("update_lines_new");
         self.clear();
         self.line_height = self.config.line_height;
+        let line_ending: &'static str = self.buffer().line_ending().get_chars();
 
         let all_origin_lines = self.init_all_origin_line_new(&mut lines_delta)?;
         check_origin_lines(&all_origin_lines, self.buffer().len());
         let all_origin_folded_lines =
-            self.init_all_origin_folded_line_new(&lines_delta, &all_origin_lines)?;
+            self.init_all_origin_folded_line_new(&lines_delta, &all_origin_lines, line_ending)?;
         // 不再支持编辑器折叠（长度超过，则编辑器未换行下折叠）
         // {
             // while let Some(line) = origin_line_iter.next() {
@@ -213,7 +214,7 @@ impl DocLines {
     pub fn init_all_origin_folded_line_new(
         &mut self,
         lines_delta: &OriginLinesDelta,
-        all_origin_lines: &[OriginLine]
+        all_origin_lines: &[OriginLine], line_ending: &'static str
     ) -> Result<Vec<OriginFoldedLine>> {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
@@ -245,7 +246,7 @@ impl DocLines {
                         x,
                         all_origin_lines,
                         attrs,
-                        origin_folded_lines.len()
+                        origin_folded_lines.len(), line_ending
                     )?
                 };
                 x = line.origin_line_end + 1;
@@ -274,7 +275,7 @@ impl DocLines {
                     x,
                     all_origin_lines,
                     attrs,
-                    origin_folded_lines.len()
+                    origin_folded_lines.len(), line_ending
                 )?
             };
             x = line.origin_line_end + 1;
@@ -288,10 +289,10 @@ impl DocLines {
         current_origin_line: usize,
         all_origin_lines: &[OriginLine],
         attrs: Attrs,
-        origin_folded_line_index: usize
+        origin_folded_line_index: usize, line_ending: &'static str
     ) -> Result<OriginFoldedLine> {
         let (text_layout, semantic_styles, diagnostic_styles) =
-            self.new_text_layout_2(current_origin_line, all_origin_lines, attrs)?;
+            self.new_text_layout_2(current_origin_line, all_origin_lines, attrs, line_ending)?;
         // duration += time.elapsed().unwrap();
         let origin_line_start = text_layout.phantom_text.line;
         let origin_line_end = text_layout.phantom_text.last_line;

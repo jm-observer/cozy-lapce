@@ -11,7 +11,7 @@ use lapce_xi_rope::Interval;
 
 use super::layout::TextLayoutLine;
 use crate::lines::{
-    cursor::CursorAffinity, delta_compute::Offset, line_ending::LineEnding,
+    cursor::CursorAffinity, delta_compute::Offset,
     phantom_text::PhantomTextLine, style::NewLineStyle
 };
 // #[allow(dead_code)]
@@ -193,15 +193,15 @@ impl OriginFoldedLine {
     // }
 
     fn len(&self) -> usize {
-        self.text_layout.text.line().text().len()
+        self.text_layout.text.text_len
     }
 
-    pub(crate) fn len_without_rn(&self, ending: LineEnding) -> usize {
-        self.len().max(ending.len()) - ending.len()
+    pub(crate) fn len_without_rn(&self, ) -> usize {
+        self.text_layout.text.text_len_without_rn
     }
 
-    pub fn is_last_char(&self, offset: usize, ending: LineEnding) -> bool {
-        self.len_without_rn(ending) == offset
+    pub fn is_last_char(&self, offset: usize, ) -> bool {
+        offset >= self.text_layout.text.text_len_without_rn
     }
 
     /// 单一视觉行的间隔point
@@ -251,12 +251,14 @@ impl Debug for OriginFoldedLine {
         write!(
             f,
             "OriginFoldedLine line_index={} origin_line_start={} \
-             origin_line_end={} origin_interval={} {} phantom_text={:?} ",
+             origin_line_end={} origin_interval={} {:?} text_len={} text_len_without_rn={} phantom_text={:?} ",
             self.line_index,
             self.origin_line_start,
             self.origin_line_end,
             self.origin_interval,
             self.text_layout.text.line().text(),
+            self.text_layout.text.text_len,
+            self.text_layout.text.text_len_without_rn,
             self.text_layout.phantom_text
         )
     }

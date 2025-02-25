@@ -1113,8 +1113,7 @@ impl DocLines {
 
         let final_col = folded_line
             .final_offset_of_line_and_offset(origin_line, offset_of_col, affinity);
-        let last_char = final_col
-            >= folded_line.len_without_rn(self.buffer().line_ending());
+        let last_char = folded_line.is_last_char(final_col);
 
         Ok((
             // visual_line.clone(),
@@ -1151,8 +1150,7 @@ impl DocLines {
         //     folded_line.line_index,
         //     sub_line_index
         // )?;
-        let last_char = offset_of_folded
-            >= folded_line.len_without_rn(self.buffer().line_ending());
+        let last_char = folded_line.is_last_char(offset_of_folded);
 
         Ok(Some((
             offset_of_folded,
@@ -1467,7 +1465,7 @@ impl DocLines {
         &self,
         line: usize,
         origins: &[OriginLine],
-        attrs: Attrs
+        attrs: Attrs, line_ending: &'static str
     ) -> Result<(TextLayoutLine, Vec<NewLineStyle>, Vec<NewLineStyle>)> {
         let origin_line =
             origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
@@ -1523,7 +1521,7 @@ impl DocLines {
             line,
             &final_line_content,
             attrs_list,
-            &mut font_system
+            &mut font_system, line_ending
         );
         drop(font_system);
         match self.editor_style.wrap_method() {
@@ -1765,7 +1763,7 @@ impl DocLines {
         for origin_lines in &self.origin_lines {
             info!("{:?}", origin_lines);
         }
-        // self._log_folded_lines();
+        self._log_folded_lines();
         // self._log_visual_lines();
         // self._log_screen_lines();
         // info!("folding_items");
@@ -2049,7 +2047,7 @@ impl DocLines {
         }
         // let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
 
-        let (folded_line, final_col,  _, _, start_offset_of_line) =
+        let (folded_line, final_col,  _, _, _start_offset_of_line) =
             self.folded_line_of_offset(buffer_offset, affinity)?;
 
         // folded_line.text_layout.phantom_text.text_of_final_col(final_col)
@@ -2221,7 +2219,7 @@ impl DocLines {
                 let rs = text_layout.phantom_text.cursor_position_of_final_col(final_col);
                 (rs.3 + rs.1, rs.4)
             }
-            ColPosition::End => (visual_line.len_without_rn(self.buffer().line_ending()), CursorAffinity::Forward),
+            ColPosition::End => (visual_line.len_without_rn(), CursorAffinity::Forward),
             ColPosition::Start => (0, CursorAffinity::Forward),
             ColPosition::FirstNonBlank => {
                 let text_layout =
@@ -2232,7 +2230,7 @@ impl DocLines {
                         .char_indices()
                         .find(|(_, c)| !c.is_whitespace())
                         .map(|(idx, _)| idx) else {
-                    return Ok((visual_line.len_without_rn(self.buffer().line_ending()), CursorAffinity::Forward));
+                    return Ok((visual_line.len_without_rn(), CursorAffinity::Forward));
                 };
                 (final_offset, CursorAffinity::Backward)
                 // let rs = text_layout
@@ -2534,11 +2532,11 @@ impl LinesOnUpdate {
         });
 
         self.signals.last_line.update_if_not_equal(
-            self.compute_last_width(self.buffer().last_line() + 1)
+            self.compute_last_width(self.buffer().last_line() + 1, self.buffer().line_ending().get_chars())
         );
     }
 
-    fn compute_last_width(&self, last_line: usize) -> (usize, f64) {
+    fn compute_last_width(&self, last_line: usize, line_ending: &'static str) -> (usize, f64) {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
         // 设置字体属性
@@ -2550,7 +2548,7 @@ impl LinesOnUpdate {
             0,
             last_line.to_string(),
             attrs_list,
-            &mut font_system
+            &mut font_system, line_ending
         );
         (last_line, text_buffer.size().width)
     }

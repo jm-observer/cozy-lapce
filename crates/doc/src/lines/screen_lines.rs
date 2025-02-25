@@ -11,7 +11,6 @@ use floem::{
 use crate::hit_position_aff;
 use crate::lines::cursor::CursorAffinity;
 use crate::lines::line::{OriginFoldedLine};
-use crate::lines::line_ending::LineEnding;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -317,7 +316,7 @@ impl ScreenLines {
     pub fn normal_selection(
         &self,
         start_offset: usize,
-        end_offset: usize, line_ending: LineEnding, cursor_affinity: CursorAffinity
+        end_offset: usize, cursor_affinity: CursorAffinity
     ) -> Result<Vec<Rect>> {
         let (start_offset, end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
@@ -352,7 +351,7 @@ impl ScreenLines {
                 Vec::with_capacity(folded_line_end.line_index  + 1 - folded_line_start.line_index);
             first.push(folded_line_start.line_scope(
                 col_start,
-                folded_line_start.len_without_rn(line_ending),
+                folded_line_start.len_without_rn(),
                 self.line_height as f64,
                 rs_start.folded_line_y,
                 base
@@ -366,7 +365,7 @@ impl ScreenLines {
                 } else {
                     let selection = vl.visual_line.line_scope(
                         0,
-                        vl.visual_line.len_without_rn(line_ending),
+                        vl.visual_line.len_without_rn(),
                         self.line_height as f64,
                         vl.folded_line_y,
                         base

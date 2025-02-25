@@ -33,7 +33,6 @@ use lapce_xi_rope::Rope;
 use log::{error, info};
 use doc::lines::fold::FoldingDisplayItem;
 use doc::lines::line::OriginFoldedLine;
-use doc::lines::line_ending::LineEnding;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -1221,7 +1220,7 @@ pub trait CommonAction {
 pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines, cursor_affinity: CursorAffinity) {
     let cursor = ed.cursor;
 
-    let (selection_color, line_ending) = ed.doc().lines.with_untracked(|es| (es.selection_color(), es.buffer().line_ending()));
+    let selection_color = ed.doc().lines.with_untracked(|es| es.selection_color());
 
     cursor.with_untracked(|cursor| match cursor.mode() {
         CursorMode::Normal(_) => {},
@@ -1244,7 +1243,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                 selection_color,
                 *start_offset,
                 end_offset,
-                cursor.affinity, line_ending, _screen_lines, cursor_affinity
+                cursor.affinity, _screen_lines, cursor_affinity
             ) {
                 error!("{err:?}");
             }
@@ -1295,7 +1294,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                     selection_color,
                     start.min(end),
                     start.max(end),
-                    cursor.affinity, line_ending, _screen_lines, cursor_affinity
+                    cursor.affinity, _screen_lines, cursor_affinity
                 ) {
                     error!("{err:?}");
                 }
@@ -1417,9 +1416,9 @@ fn paint_normal_selection(
     color: Color,
     start_offset: usize,
     end_offset: usize,
-    _affinity: CursorAffinity, line_ending: LineEnding, screen_lines: &ScreenLines, cursor_affinity: CursorAffinity,
+    _affinity: CursorAffinity, screen_lines: &ScreenLines, cursor_affinity: CursorAffinity,
 ) -> Result<()> {
-    let rs = screen_lines.normal_selection(start_offset, end_offset, line_ending, cursor_affinity)?;
+    let rs = screen_lines.normal_selection(start_offset, end_offset, cursor_affinity)?;
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }

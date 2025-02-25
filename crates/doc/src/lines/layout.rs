@@ -179,7 +179,9 @@ pub struct TextLayout {
     monospace_width: Option<f32>,
     tab_width:       u16,
     /// Scratch buffer for shaping and laying out.
-    scratch:         ShapeBuffer
+    scratch:         ShapeBuffer,
+    pub(crate) text_len: usize,
+    pub(crate) text_len_without_rn: usize,
 }
 
 impl Clone for TextLayout {
@@ -195,22 +197,24 @@ impl Clone for TextLayout {
             wrap:            self.wrap,
             monospace_width: self.monospace_width,
             tab_width:       self.tab_width,
-            scratch:         ShapeBuffer::default()
+            scratch:         ShapeBuffer::default(),
+            text_len: self.text_len,
+            text_len_without_rn: self.text_len_without_rn
         }
     }
 }
 
 impl TextLayout {
-    pub fn new<T: Into<String>>(text: T, attrs_list: AttrsList) -> Self {
+    pub fn new<T: Into<String>>(text: T, attrs_list: AttrsList, line_ending: &'static str) -> Self {
         let mut font_system = FONT_SYSTEM.lock();
-        Self::new_with_font_system(0, text, attrs_list, &mut font_system)
+        Self::new_with_font_system(0, text, attrs_list, &mut font_system, line_ending)
     }
 
     pub fn new_with_font_system<T: Into<String>>(
         line: usize,
         text: T,
         attrs_list: AttrsList,
-        font_system: &mut FontSystem
+        font_system: &mut FontSystem, line_ending: &'static str
     ) -> Self {
         Self::new_with_config(
             line,
@@ -218,7 +222,7 @@ impl TextLayout {
             attrs_list,
             font_system,
             None,
-            Wrap::WordOrGlyph
+            Wrap::WordOrGlyph, line_ending
         )
     }
 
@@ -228,12 +232,19 @@ impl TextLayout {
         attrs_list: AttrsList,
         font_system: &mut FontSystem,
         width_opt: Option<f32>,
-        wrap: Wrap
+        wrap: Wrap, line_ending: &'static str
     ) -> Self {
+        let text = text.into();
+        let text_len = text.len();
+        log::info!("{text:?} {line_ending:?}");
+        let new_text = text.strip_suffix(line_ending).map(|x| x.to_string()).unwrap_or(text);
+        let text_len_without_rn = new_text.len();
+        log::info!("{new_text:?}");
         let ending = LineEnding::None;
         let mut text_layout = Self {
+            text_len, text_len_without_rn,
             line,
-            buffer: BufferLine::new(text, ending, attrs_list.0, Shaping::Advanced),
+            buffer: BufferLine::new(new_text, ending, attrs_list.0, Shaping::Advanced),
             width_opt,
             height_opt: None,
             metrics: Metrics::new(16.0, 16.0),
@@ -417,7 +428,7 @@ impl TextLayout {
         }
     }
 
-    pub fn line(&self) -> &BufferLine {
+    pub(crate) fn line(&self) -> &BufferLine {
         &self.buffer
     }
 

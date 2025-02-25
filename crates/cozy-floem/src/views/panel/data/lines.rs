@@ -342,6 +342,8 @@ impl Lines {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&doc_style.font_family).collect());
         let display_ids = style_lines.text_src.display_ids();
+
+        let line_ending_str = line_ending.get_chars();
         for (content_origin_without_lf, style, mut hyperlink) in
             style_lines.lines.into_iter()
         {
@@ -354,7 +356,7 @@ impl Lines {
                 0,
                 &content_origin_without_lf,
                 attrs_list,
-                &mut font_system
+                &mut font_system, line_ending_str
             );
 
             let text_index = self.texts.len();

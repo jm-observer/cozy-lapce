@@ -44,7 +44,6 @@ use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
 use doc::lines::cursor::CursorAffinity;
-use doc::lines::line_ending::LineEnding;
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
@@ -503,7 +502,7 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         screen_lines: &ScreenLines,
-        color: Color, line_ending: LineEnding, cursor_affinity: CursorAffinity
+        color: Color, cursor_affinity: CursorAffinity
     ) -> Result<()> {
         let find_visual = self.editor.common.find.visual.get_untracked();
         if !find_visual && self.editor.on_screen_find.with_untracked(|f| !f.active) {
@@ -530,7 +529,7 @@ impl EditorView {
             for region in occurrences.with_untracked(|selection| {
                 selection.regions_in_range(start, end).to_vec()
             }) {
-                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines, line_ending, cursor_affinity) {
+                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines, cursor_affinity) {
                     error!("{err:?}");
                 }
             }
@@ -539,7 +538,7 @@ impl EditorView {
         self.editor.on_screen_find.with_untracked(|find| {
             if find.active {
                 for region in &find.regions {
-                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines, line_ending, cursor_affinity) {
+                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines, cursor_affinity) {
                         error!("{err:?}");
                     }
                 }
@@ -552,11 +551,11 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         region: &SelRegion,
-        color: Color, screen_lines: &ScreenLines, line_ending: LineEnding, cursor_affinity: CursorAffinity
+        color: Color, screen_lines: &ScreenLines, cursor_affinity: CursorAffinity
     ) -> Result<()> {
         let start = region.min();
         let end = region.max();
-        let rs = screen_lines.normal_selection(start, end, line_ending, cursor_affinity)?;
+        let rs = screen_lines.normal_selection(start, end, cursor_affinity)?;
         for rect in rs {
             cx.stroke(&rect, color, &Stroke::new(1.0));
         }
@@ -923,9 +922,9 @@ impl View for EditorView {
         let ed = &e_data.editor;
         let bracket_offsets = doc.find_enclosing_brackets(cursor_offset);
 
-        let (visible_whitespace, line_ending, current_line_color) =
+        let (visible_whitespace, current_line_color) =
             ed.doc().lines.with_untracked(|x| {
-                (x.visible_whitespace(), x.buffer().line_ending(), x.current_line_color())
+                (x.visible_whitespace(), x.current_line_color())
             });
 
         // let screen_lines = screen_lines.get();
@@ -948,7 +947,7 @@ impl View for EditorView {
             &editor_dim_color
         );
         // let screen_lines = ed.screen_lines.get_untracked();
-        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg, line_ending, cursor_affinity) {
+        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg, cursor_affinity) {
             error!("{err:?}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();

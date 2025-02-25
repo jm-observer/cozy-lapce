@@ -802,7 +802,7 @@ impl PhantomTextMultiLine {
                 text.origin_col_of_final_col(visual_char_offset),
                 visual_char_offset,
                 self.offset_of_line,
-                CursorAffinity::Backward
+                CursorAffinity::Forward
             ),
             Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Forward)
         }
