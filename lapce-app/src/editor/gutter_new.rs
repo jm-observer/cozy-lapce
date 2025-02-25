@@ -25,9 +25,10 @@ pub fn gutter_data(
     };
     let code_lens = doc.code_lens.get();
     let offset = e_data.editor.cursor.get().offset();
-    let (current_line, width) = doc.lines.with_untracked(|x| {
-        (x.buffer().line_of_offset(offset), x.last_line_width())
+    let (current_line, signal_last_line) = doc.lines.with_untracked(|x| {
+        (x.buffer().line_of_offset(offset), x.signal_last_line())
     });
+    let width = signal_last_line.get().1 + 8.0;
     let screen_lines = e_data.editor.screen_lines.read_only();
 
     let (fg, dim, style_font_size, font_family) = window_tab_data.common.config.with(|config| {

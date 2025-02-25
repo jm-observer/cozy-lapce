@@ -133,11 +133,15 @@ impl Editor {
         let screen_lines = cx.create_rw_signal(ScreenLines::default());
         let folding_display_item = cx.create_rw_signal(vec![]);
 
+        let viewport_memo = cx.create_memo(move |_| {
+            viewport.get()
+        });
+
         cx.create_effect(move|_| {
             let lines = doc.with(|x| {
                 x.lines
             });
-            let base = viewport.get();
+            let base = viewport_memo.get();
             let (screen_lines_val, folding_display_item_val, signal_paint_content) = lines.with_untracked(|x| {
                 let (screen_lines_val, folding_display_item_val) = x._compute_screen_lines(base);
                     (screen_lines_val, folding_display_item_val, x.signal_paint_content())
