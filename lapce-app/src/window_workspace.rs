@@ -2607,19 +2607,20 @@ impl WindowWorkspaceData {
         let editor_id = self.common.hover.editor_id.get_untracked();
         let editor_data = self.main_split.editors.editor(editor_id)?;
 
-        let (window_origin, viewport, editor) = (
+        let (window_origin, editor) = (
             editor_data.window_origin(),
-            editor_data.signal_viewport(),
             &editor_data.editor
         );
+        let viewport = editor.viewport;
 
+        let hover_offset = self.common.hover.offset.get_untracked();
         // TODO(minor): affinity should be gotten from where the hover was started
         // at.
         let (point_above, point_below) = editor
-            .points_of_offset(
-                self.common.hover.offset.get_untracked(),
-            )
+            .points_of_offset(hover_offset)
             .ok()?;
+
+
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2628,6 +2629,7 @@ impl WindowWorkspaceData {
         let layout_rect = self.layout_rect.get().size();
         let offset = 4.0;
 
+        log::info!("hover_origin hover_offset={hover_offset} point_above={point_above:?} point_below={point_below:?} viewport={viewport:?} window_origin={window_origin:?}");
         // top right corner of word
         let mut origin = window_origin
             + Vec2::new(
@@ -2664,7 +2666,7 @@ impl WindowWorkspaceData {
 
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
-            editor_data.signal_viewport(),
+            editor_data.editor.viewport,
             &editor_data.editor
         );
 
@@ -2714,7 +2716,7 @@ impl WindowWorkspaceData {
 
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
-            editor_data.signal_viewport(),
+            editor_data.editor.viewport,
             &editor_data.editor
         );
 
@@ -2767,7 +2769,7 @@ impl WindowWorkspaceData {
 
         let (window_origin, viewport, editor) = (
             editor_data.window_origin(),
-            editor_data.signal_viewport(),
+            editor_data.editor.viewport,
             &editor_data.editor
         );
 

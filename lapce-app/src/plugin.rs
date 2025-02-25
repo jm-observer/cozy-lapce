@@ -288,7 +288,7 @@ impl PluginData {
                         }
                     },
                     Err(err) => {
-                        error!("{err:?}")
+                        error!("{}", err.to_string())
                     }
                 }
             );

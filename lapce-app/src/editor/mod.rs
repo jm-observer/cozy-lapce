@@ -307,13 +307,6 @@ impl EditorData {
         self.editor.viewport_untracked()
     }
 
-    pub fn signal_viewport(&self) -> ReadSignal<Rect> {
-        self.editor
-            .doc()
-            .lines
-            .with_untracked(|x| x.signal_viewport())
-    }
-
     pub fn window_origin(&self) -> RwSignal<Point> {
         self.editor.window_origin
     }
@@ -3028,6 +3021,7 @@ impl EditorData {
                 }
             }
         }
+        let pos = pointer_event.pos;
         let hover_delay =
             self.common.config.with_untracked(|x| x.editor.hover_delay);
         if hover_delay > 0 {
@@ -3043,7 +3037,9 @@ impl EditorData {
                                 editor.doc().lines.with_untracked(|buffer| {
                                     buffer.buffer().next_code_boundary(offset)
                                 });
-                            editor.update_hover(end_offset);
+                            log::info!("update_hover pointer_event={:?}", pos);
+
+                            editor.update_hover(end_offset - 1);
                         }
                     });
                 mouse_hover_timer.set(timer_token);
@@ -3205,9 +3201,12 @@ impl EditorData {
 
     fn update_hover(&self, offset: usize) {
         let doc = self.doc();
-        let path = doc
+        let path = match doc
             .content
-            .with_untracked(|content| content.path().cloned());
+            .with_untracked(|content| content.path().cloned()){
+            Some(path) => path,
+            None => return
+        };
         let position = match doc
             .lines
             .with_untracked(|buffer| buffer.buffer().offset_to_position(offset))
@@ -3218,14 +3217,11 @@ impl EditorData {
                 return;
             }
         };
-        let path = match path {
-            Some(path) => path,
-            None => return
-        };
         let config = self.common.config;
         let hover_data = self.common.hover.clone();
         let editor_id = self.id();
         let directory = self.common.directory.clone();
+        log::info!("update_hover offset={offset} position={position:?} {path:?}");
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
                 let (

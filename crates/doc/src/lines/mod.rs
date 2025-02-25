@@ -238,7 +238,6 @@ impl DocLines {
         let signals = Signals::new(
             cx,
             &editor_style,
-            viewport,
             buffer,
             (last_line, 0.0)
         );
@@ -3241,9 +3240,6 @@ type LinesSignals = DocLines;
 #[allow(dead_code)]
 /// 以界面为单位，进行触发。
 impl LinesSignals {
-    pub fn signal_viewport(&self) -> ReadSignal<Rect> {
-        self.signals.viewport.signal()
-    }
 
     pub fn signal_show_indent_guide(&self) -> ReadSignal<(bool, Color)> {
         self.signals.show_indent_guide.signal()

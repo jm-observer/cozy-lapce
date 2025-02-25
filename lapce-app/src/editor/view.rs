@@ -259,7 +259,7 @@ pub fn editor_view(
     let cursor = e_data.cursor();
     let find_focus = e_data.find_focus;
     let ime_allowed = e_data.common.window_common.ime_allowed;
-    let editor_viewport = e_data.signal_viewport();
+    let editor_viewport = e_data.editor.viewport;
     let editor_cursor = e_data.cursor();
     create_effect(move |_| {
         let active = is_active.get();

@@ -1,6 +1,5 @@
 use std::ops::AddAssign;
 use floem::{
-    kurbo::Rect,
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
@@ -12,7 +11,6 @@ use crate::lines::{
 #[derive(Clone)]
 pub struct Signals {
     pub(crate) show_indent_guide: SignalManager<(bool, Color)>,
-    pub(crate) viewport:          SignalManager<Rect>,
     pub(crate) buffer_rev:        SignalManager<u64>,
     pub(crate) buffer:            SignalManager<Buffer>,
     pub(crate) pristine:          SignalManager<bool>,
@@ -25,7 +23,6 @@ impl Signals {
     pub fn new(
         cx: Scope,
         style: &EditorStyle,
-        viewport: Rect,
         buffer: Buffer,
         last_line: (usize, f64)
     ) -> Self {
@@ -33,7 +30,6 @@ impl Signals {
             cx,
             (style.show_indent_guide(), style.indent_guide())
         );
-        let viewport = SignalManager::new(cx, viewport);
         let rev = buffer.rev();
         let pristine = buffer.is_pristine();
         let buffer_rev = SignalManager::new(cx, rev);
@@ -43,7 +39,6 @@ impl Signals {
         let paint_context = SignalManager::new(cx, 0usize);
         Self {
             show_indent_guide,
-            viewport,
             buffer_rev,
             buffer,
             last_line,
@@ -64,7 +59,6 @@ impl Signals {
     pub fn trigger(&mut self) {
         batch(|| {
             self.show_indent_guide.trigger();
-            self.viewport.trigger();
             self.buffer_rev.trigger();
             self.buffer.trigger();
             self.last_line.trigger();
@@ -76,7 +70,6 @@ impl Signals {
     pub fn trigger_force(&mut self) {
         batch(|| {
             self.show_indent_guide.trigger_force();
-            self.viewport.trigger_force();
             self.buffer_rev.trigger_force();
             self.buffer.trigger_force();
             self.last_line.trigger_force();

@@ -1311,9 +1311,9 @@ fn editor_tab_content(
                             false
                         }
                     };
-                    let left_viewport = diff_editor_data.left.signal_viewport();
+                    let left_viewport = diff_editor_data.left.editor.viewport;
                     let left_scroll_to = diff_editor_data.left.scroll_to();
-                    let right_viewport = diff_editor_data.right.signal_viewport();
+                    let right_viewport = diff_editor_data.right.editor.viewport;
                     let right_scroll_to = diff_editor_data.right.scroll_to();
                     create_effect(move |_| {
                         let left_viewport = left_viewport.get();
