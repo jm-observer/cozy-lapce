@@ -9,6 +9,7 @@ use floem::{
     reactive::Scope
 };
 use crate::hit_position_aff;
+use crate::lines::cursor::CursorAffinity;
 use crate::lines::line::{OriginFoldedLine};
 use crate::lines::line_ending::LineEnding;
 
@@ -250,9 +251,11 @@ impl ScreenLines {
         Some((vl, final_offset))
     }
 
+
+
     pub fn visual_position_of_buffer_offset(
         &self,
-        buffer_offset: usize,
+        buffer_offset: usize
     ) ->         Option<Point>
     {
         let (vl, final_offset) = self.visual_line_info_of_buffer_offset(buffer_offset)?;
@@ -267,6 +270,34 @@ impl ScreenLines {
         viewpport_point.add_assign(self.base.origin().to_vec2());
 
         Some(viewpport_point)
+    }
+
+    /// considering phantom text
+    pub fn cursor_position_of_buffer_offset(
+        &self,
+        buffer_offset: usize, affinity: CursorAffinity
+    ) ->         Option<Point>
+    {
+        let (vl, final_offset) = self.cursor_info_of_buffer_offset(buffer_offset, affinity)?;
+        let mut viewpport_point = hit_position_aff(
+            &vl.visual_line.text_layout.text,
+            final_offset,
+            true
+        )
+            .point;
+        viewpport_point.y = vl.folded_line_y;
+        viewpport_point.add_assign(self.base.origin().to_vec2());
+
+        Some(viewpport_point)
+    }
+    pub fn cursor_info_of_buffer_offset(
+        &self,
+        buffer_offset: usize, cursor_affinity: CursorAffinity
+    ) -> Option<(&VisualLineInfo, usize)> {
+        let vl = self.visual_line_for_buffer_offset(buffer_offset)?;
+        let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
+        let final_offset = vl.visual_line.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
+        Some((vl, final_offset))
     }
 
     pub fn char_rect_in_viewport(&self, offset: usize) -> Option<Rect> {

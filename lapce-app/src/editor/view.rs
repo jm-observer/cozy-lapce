@@ -903,18 +903,18 @@ impl View for EditorView {
         let is_active =
             self.is_active.get_untracked() && !find_focus.get_untracked();
 
-        let (cursor_offsets, cursor_highlight_current_line, cursor_offset) =    self.editor.cursor().with_untracked(|cursor| {
+        let (cursor_offsets, cursor_highlight_current_line, cursor_offset, affinity) =    self.editor.cursor().with_untracked(|cursor| {
             let highlight_current_line = match cursor.mode() {
                 CursorMode::Normal(_) | CursorMode::Insert(_) => true,
                 CursorMode::Visual { .. } => false
             };
             let cursor_offset = cursor.mode().offset();
-            (cursor.regions_iter().map(|x| x.1).collect::<Vec<usize>>(), highlight_current_line, cursor_offset)
+            (cursor.regions_iter().map(|x| x.1).collect::<Vec<usize>>(), highlight_current_line, cursor_offset, cursor.affinity)
         });
         let screen_lines = self.editor.editor.screen_lines.get_untracked();
 
         let cursor_points = cursor_offsets.into_iter().filter_map(|offset| {
-            screen_lines.visual_position_of_buffer_offset(offset)
+            screen_lines.cursor_position_of_buffer_offset(offset, affinity)
         }).collect();
 
         let viewport = ed.viewport.get_untracked();

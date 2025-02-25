@@ -922,6 +922,7 @@ impl Editor {
         let Some((point_above, line_height)) = self.screen_lines.with_untracked(|screen_lines| {
             screen_lines.visual_position_of_buffer_offset(offset).map(|x| (x, screen_lines.line_height))
         }) else {
+            log::info!("points_of_offset point is none {offset}");
             return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
         };
         let mut point_below = point_above;

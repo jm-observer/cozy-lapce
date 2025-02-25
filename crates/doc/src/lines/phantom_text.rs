@@ -644,6 +644,34 @@ impl PhantomTextMultiLine {
         }
     }
 
+    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> Option<usize> {
+        let text = self.text_of_merge_col(merge_col)?;
+        match text {
+            Text::Phantom { text, .. } => {
+                match cursor_affinity {
+                    CursorAffinity::Forward => {
+                        Some(text.next_final_col())
+                    }
+                    CursorAffinity::Backward => {
+                        Some(text.final_col)
+                    }
+                }
+
+            },
+            Text::OriginText { text } => {
+                match cursor_affinity {
+                    CursorAffinity::Forward => {
+                        Some(text.final_col.start + merge_col - text.merge_col.start + 1)
+                    }
+                    CursorAffinity::Backward => {
+                        Some(text.final_col.start + merge_col - text.merge_col.start)
+                    }
+                }
+            },
+            Text::EmptyLine { .. } => Some(0)
+        }
+    }
+
     /// 原始行的偏移字符！！！，的对应的合并后的位置。
     /// 用于求鼠标的实际位置
     ///
