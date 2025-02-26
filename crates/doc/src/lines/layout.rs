@@ -180,7 +180,9 @@ pub struct TextLayout {
     tab_width:       u16,
     /// Scratch buffer for shaping and laying out.
     scratch:         ShapeBuffer,
+    /// 最终文本长度，包括虚拟文本
     pub(crate) text_len: usize,
+    /// 最终文本长度，包括虚拟文本，但不包括末尾的\r\n
     pub(crate) text_len_without_rn: usize,
 }
 

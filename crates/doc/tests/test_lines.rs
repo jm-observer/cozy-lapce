@@ -16,6 +16,7 @@ use floem::{
     kurbo::{Point, Rect},
     reactive::SignalUpdate
 };
+use floem::kurbo::Size;
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
@@ -110,8 +111,10 @@ fn test_buffer_offset_of_click() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
     // let file: PathBuf = "resources/test_code/main.rs".into();
     let mut lines = init_main()?;
-    lines.line_height = 20;
+    assert_eq!(lines.line_height, 20);
     lines.log();
+
+    let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(300.,300.))).0;
 
     //below end of buffer
     {
@@ -119,9 +122,11 @@ fn test_buffer_offset_of_click() -> Result<()> {
             &CursorMode::Normal(0),
             Point::new(131.1, 432.1)
         )?;
-        assert_eq!(offset_of_buffer, 145);
-        assert_eq!(is_inside, false);
-        assert_eq!(affinity, CursorAffinity::Backward);
+        assert_eq!((offset_of_buffer, is_inside, affinity), (145, false, CursorAffinity::Backward));
+
+        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        assert_eq!(vl.visual_line.line_index, 10);
+        assert_eq!(final_offset, 0);
     }
     // (line_index=1 offset with \r\n [2..19))
     // new_offset=4 Backward (32.708343505859375, 30.089889526367188)
@@ -173,6 +178,21 @@ fn test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(offset_of_buffer, 124);
         assert_eq!(is_inside, true);
         assert_eq!(affinity, CursorAffinity::Forward);
+    }
+
+    // (line_index=7 offset with \r\n [115, 131))
+    //  |    let a: A  = A;      []
+    //  |    let a = A;|      []
+    {
+        let point = Point::new(172.7, 150.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!((offset_of_buffer, is_inside, affinity), (128, false, CursorAffinity::Forward));
+
+        // screen_lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity)
+        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        assert_eq!(vl.visual_line.line_index, 7);
+        assert_eq!(final_offset, 18);
     }
     Ok(())
 }

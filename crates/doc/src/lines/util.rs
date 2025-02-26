@@ -25,7 +25,7 @@ pub fn compute_screen_lines(
     base: Rect,
     vline_infos: Vec<OriginFoldedLine>,
     line_height: usize,
-    y0: f64
+    y0: f64, buffer_len: usize,
 ) -> ScreenLines {
     match view_kind {
         EditorViewKind::Normal => {
@@ -50,7 +50,8 @@ pub fn compute_screen_lines(
                 visual_lines,
                 diff_sections: None,
                 base,
-                line_height: line_height as f64
+                line_height: line_height as f64,
+                buffer_len,
             }
         },
         EditorViewKind::Diff(_diff_info) => {

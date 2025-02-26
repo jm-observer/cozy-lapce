@@ -966,12 +966,18 @@ impl DocLines {
                     (text.merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
                 }
                 Text::OriginText { .. } => {
-                    // 该行只有 "\r\n"，因此换回'\r' CursorAffinity::Backward
+                    // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
                     if text_layout.text.text_len_without_rn == 0 {
                         (text_layout.phantom_text.offset_of_line, false, CursorAffinity::Backward)
                     } else {
                         // 该返回\r的前一个字符，CursorAffinity::Forward
-                        (text_layout.phantom_text.offset_of_line + text_layout.text.text_len_without_rn - 1, false, CursorAffinity::Forward)
+                        let line_ending_len = text_layout.text.text_len - text_layout.text.text_len_without_rn;
+                        if line_ending_len == 0 {
+                            (text_layout.phantom_text.offset_of_line + info.text_layout.phantom_text.origin_text_len - 1, false, CursorAffinity::Forward)
+                        } else {
+                            (text_layout.phantom_text.offset_of_line + info.text_layout.phantom_text.origin_text_len - 1 - line_ending_len, false, CursorAffinity::Forward)
+                        }
+
                     }
                     // (text.merge_col.end + text_layout.phantom_text.offset_of_line - 1, false, CursorAffinity::Forward)
                 }
@@ -1778,7 +1784,7 @@ impl DocLines {
         let min_val = (y0 / line_height as f64).floor() as usize;
         let max_val = (y1 / line_height as f64).floor() as usize;
         let vline_infos = self.visual_lines(min_val, max_val);
-        let screen_lines = util::compute_screen_lines(view_kind, base, vline_infos, line_height, y0);
+        let screen_lines = util::compute_screen_lines(view_kind, base, vline_infos, line_height, y0, self.buffer().len());
         let display_items =
             self.folding_ranges.to_display_items(&screen_lines);
         (screen_lines, display_items)

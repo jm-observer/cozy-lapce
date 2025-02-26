@@ -6,7 +6,6 @@ use std::ops::AddAssign;
 use anyhow::{Result, bail};
 use floem::{
     kurbo::{Point, Rect},
-    reactive::Scope
 };
 use crate::hit_position_aff;
 use crate::lines::cursor::CursorAffinity;
@@ -50,7 +49,8 @@ pub struct ScreenLines {
     // update them) we simply have to update the `base_y`.
     /// 滚动窗口
     pub base:          Rect,
-    pub line_height:   f64
+    pub line_height:   f64,
+    pub buffer_len: usize,
 }
 
 #[derive(Clone)]
@@ -79,14 +79,14 @@ impl VisualLineInfo {
 }
 
 impl ScreenLines {
-    pub fn new(_cx: Scope, viewport: Rect, line_height: f64) -> ScreenLines {
-        ScreenLines {
-            visual_lines: Default::default(),
-            diff_sections: Default::default(),
-            base: viewport,
-            line_height
-        }
-    }
+    // pub fn new(_cx: Scope, viewport: Rect, line_height: f64) -> ScreenLines {
+    //     ScreenLines {
+    //         visual_lines: Default::default(),
+    //         diff_sections: Default::default(),
+    //         base: viewport,
+    //         line_height
+    //     }
+    // }
 
     pub fn is_empty(&self) -> bool {
         self.visual_lines.is_empty()
@@ -232,6 +232,10 @@ impl ScreenLines {
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
             if visual_line.visual_line.origin_interval.contains(buffer_offset) {
+                return Some(visual_line);
+            } else if visual_line.visual_line.origin_interval.start == buffer_offset {
+                // last line and line is empty
+                // origin_interval == [buffer_offset, buffer_offset)
                 return Some(visual_line);
             } else if visual_line.visual_line.origin_interval.start > buffer_offset {
                 return None;
