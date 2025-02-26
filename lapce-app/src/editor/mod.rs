@@ -3039,7 +3039,7 @@ impl EditorData {
                                 });
                             log::info!("update_hover pointer_event={:?}", pos);
 
-                            editor.update_hover(end_offset - 1);
+                            editor.update_hover(end_offset.max(1) - 1);
                         }
                     });
                 mouse_hover_timer.set(timer_token);

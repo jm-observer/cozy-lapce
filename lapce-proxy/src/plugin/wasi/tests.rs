@@ -25,8 +25,8 @@ fn test_unflatten_map() {
     );
 }
 
-#[test]
-fn test_load_volt() {
+#[tokio::test]
+async fn test_load_volt() {
     let lapce_proxy_dir = std::env::current_dir()
         .expect("Can't get \"lapce-proxy\" directory")
         .join("src")
@@ -41,7 +41,7 @@ fn test_load_volt() {
         Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::NotFound)
     };
     // This should return Err since the file does not exist
-    if let Ok(volt_metadata) = load_volt(&lapce_proxy_dir) {
+    if let Ok(volt_metadata) = load_volt(&lapce_proxy_dir).await {
         panic!(
             "Unexpected result from `lapce_proxy::plugin::wasi::load_volt` \
              function: {volt_metadata:?}"
@@ -63,7 +63,7 @@ fn test_load_volt() {
         Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::InvalidData)
     }
     // This should return Err since the `*.png` file cannot be read as a String
-    if let Ok(volt_metadata) = load_volt(&path) {
+    if let Ok(volt_metadata) = load_volt(&path).await {
         panic!(
             "Unexpected result from `lapce_proxy::plugin::wasi::load_volt` \
              function: {volt_metadata:?}",
@@ -87,7 +87,7 @@ fn test_load_volt() {
     }
     // This should return Err since the data in the file cannot be interpreted as
     // VoltMetadata
-    if let Ok(volt_metadata) = load_volt(&path) {
+    if let Ok(volt_metadata) = load_volt(&path).await {
         panic!(
             "Unexpected result from `lapce_proxy::plugin::wasi::load_volt` \
              function: {volt_metadata:?}",
@@ -96,7 +96,7 @@ fn test_load_volt() {
 
     let parent_path = lapce_proxy_dir.join("some_author.test-plugin-one");
 
-    let volt_metadata = match load_volt(&parent_path) {
+    let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
         Err(error) => panic!("{}", error)
     };
@@ -156,7 +156,7 @@ fn test_load_volt() {
 
     let parent_path = lapce_proxy_dir.join("some_author.test-plugin-two");
 
-    let volt_metadata = match load_volt(&parent_path) {
+    let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
         Err(error) => panic!("{}", error)
     };
@@ -216,7 +216,7 @@ fn test_load_volt() {
 
     let parent_path = lapce_proxy_dir.join("some_author.test-plugin-three");
 
-    let volt_metadata = match load_volt(&parent_path) {
+    let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
         Err(error) => panic!("{}", error)
     };

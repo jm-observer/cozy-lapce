@@ -804,7 +804,7 @@ impl PhantomTextMultiLine {
                 self.offset_of_line,
                 CursorAffinity::Forward
             ),
-            Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Forward)
+            Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
         }
     }
 
@@ -1162,17 +1162,16 @@ mod test {
     #[test]
     fn test_all() {
         custom_utils::logger::logger_stdout_debug();
-        test_merge();
-        check_origin_position_of_final_col();
-        check_col_at();
-        check_final_col_of_col();
+        _test_merge();
+        _check_origin_position_of_final_col();
+        _check_col_at();
+        _check_final_col_of_col();
     }
 
     /**
      *2 |    if a.0 {...} else {...}
      */
-    #[test]
-    fn test_merge() {
+    fn _test_merge() {
         let line2 = init_folded_line(2, false);
         let line4 = init_folded_line(4, false);
         let line_folded_4 = init_folded_line(4, true);
@@ -1231,6 +1230,10 @@ mod test {
 
     #[test]
     fn check_origin_position_of_final_col() {
+        custom_utils::logger::logger_stdout_debug();
+        _check_origin_position_of_final_col();
+    }
+    fn _check_origin_position_of_final_col() {
         _check_empty_origin_position_of_final_col();
         _check_folded_origin_position_of_final_col();
         _check_let_origin_position_of_final_col();
@@ -1252,30 +1255,30 @@ mod test {
         }
         {
             assert_eq!(orgin_text[9], ':');
-            let (origin_line, origin_col, _, affinity) =
+            let (origin_line, origin_col, _, _, affinity) =
                 let_line.cursor_position_of_final_col(11);
             assert_eq!(origin_col, 9);
-            assert_eq!(affinity, Some(CursorAffinity::Backward));
+            assert_eq!(affinity, CursorAffinity::Backward);
             assert_eq!(
                 let_line.visual_offset_of_cursor_offset(
                     origin_line,
                     origin_col,
-                    affinity.unwrap()
+                    affinity
                 ),
                 Some(9)
             );
         }
         {
             assert_eq!(orgin_text[12], ' ');
-            let (origin_line, origin_col, _, affinity) =
+            let (origin_line, origin_col, _,_, affinity) =
                 let_line.cursor_position_of_final_col(12);
             assert_eq!(origin_col, 9);
-            assert_eq!(affinity, Some(CursorAffinity::Forward));
+            assert_eq!(affinity, CursorAffinity::Forward);
             assert_eq!(
                 let_line.visual_offset_of_cursor_offset(
                     origin_line,
                     origin_col,
-                    affinity.unwrap()
+                    affinity
                 ),
                 Some(13)
             );
@@ -1310,15 +1313,14 @@ mod test {
             "    if true {...} else {\r\n".chars().into_iter().collect();
         {
             assert_eq!(orgin_text[9], 'u');
-            assert_eq!(line.cursor_position_of_final_col(9), (1, 9, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(9), (1, 9, 0, 10000, CursorAffinity::Backward));
         }
         {
             let index = 12;
             assert_eq!(orgin_text[index], '{');
             assert_eq!(
                 line.cursor_position_of_final_col(index),
-                (1, 15, 0, Some(CursorAffinity::Backward))
-            );
+                (1, 15, 0, 10000, CursorAffinity::Backward));
         }
         // "0         10        20        30
         // "0123456789012345678901234567890123456789
@@ -1326,11 +1328,17 @@ mod test {
         {
             let index = 19;
             assert_eq!(orgin_text[index], 'l');
-            assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 0, 10000, CursorAffinity::Backward));
         }
         {
-            assert_eq!(line.cursor_position_of_final_col(26), (3, 13, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(26), (3, 13, 0, 10000, CursorAffinity::Backward));
         }
+    }
+
+    #[test]
+    fn check_empty_origin_position_of_final_col() {
+        custom_utils::logger::logger_stdout_debug();
+        _check_empty_origin_position_of_final_col();
     }
 
     fn _check_empty_origin_position_of_final_col() {
@@ -1338,8 +1346,14 @@ mod test {
         info!("{:?}", line);
         let orgin_text: Vec<char> = "".chars().into_iter().collect();
         {
-            assert_eq!(line.cursor_position_of_final_col(9), (6, 0, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(9), (6, 0, 0, 0, CursorAffinity::Backward));
         }
+    }
+
+    #[test]
+    fn check_folded_origin_position_of_final_col() {
+        custom_utils::logger::logger_stdout_debug();
+        _check_folded_origin_position_of_final_col();
     }
     fn _check_folded_origin_position_of_final_col() {
         //  "0         10        20        30
@@ -1359,19 +1373,18 @@ mod test {
             .collect();
         {
             assert_eq!(orgin_text[9], 'u');
-            assert_eq!(line.cursor_position_of_final_col(9), (1, 9, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(9), (1, 9, 0, 0, CursorAffinity::Backward));
         }
         {
             assert_eq!(orgin_text[0], ' ');
-            assert_eq!(line.cursor_position_of_final_col(0), (1, 0, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(0), (1, 0, 0, 0, CursorAffinity::Backward));
         }
         {
             let index = 12;
             assert_eq!(orgin_text[index], '{');
             assert_eq!(
                 line.cursor_position_of_final_col(index),
-                (1, 15, 0, Some(CursorAffinity::Backward))
-            );
+                (1, 15, 0, 0, CursorAffinity::Backward));
         }
         // "0         10        20        30
         // "0123456789012345678901234567890123456789
@@ -1379,30 +1392,28 @@ mod test {
         {
             let index = 19;
             assert_eq!(orgin_text[index], 'l');
-            assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 0, 0, CursorAffinity::Backward));
         }
         {
             let index = 25;
             assert_eq!(orgin_text[index], '.');
             assert_eq!(
                 line.cursor_position_of_final_col(index),
-                (3, 14, 0, Some(CursorAffinity::Backward))
-            );
+                (3, 14, 0, 0, CursorAffinity::Backward));
         }
         {
             let index = 29;
             assert_eq!(orgin_text[index], '\n');
-            assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 0, 0, CursorAffinity::Backward));
         }
 
         {
             let index = 40;
-            assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 0, None));
+            assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 0, 0, CursorAffinity::Backward));
         }
     }
 
-    #[test]
-    fn check_final_col_of_col() {
+    fn _check_final_col_of_col() {
         _check_let_final_col_of_col();
         _check_folded_final_col_of_col();
     }
@@ -1529,8 +1540,7 @@ mod test {
         }
     }
 
-    #[test]
-    fn check_col_at() {
+    fn _check_col_at() {
         {
             // "0         10        20        30
             // "0123456789012345678901234567890123456789

@@ -236,10 +236,10 @@ impl TextLayout {
     ) -> Self {
         let text = text.into();
         let text_len = text.len();
-        log::info!("{text:?} {line_ending:?}");
+        // log::info!("{text:?} {line_ending:?}");
         let new_text = text.strip_suffix(line_ending).map(|x| x.to_string()).unwrap_or(text);
         let text_len_without_rn = new_text.len();
-        log::info!("{new_text:?}");
+        // log::info!("{new_text:?}");
         let ending = LineEnding::None;
         let mut text_layout = Self {
             text_len, text_len_without_rn,

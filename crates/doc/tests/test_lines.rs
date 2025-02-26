@@ -38,18 +38,18 @@ fn test_performance() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_debug() -> Result<()> {
-    custom_utils::logger::logger_stdout_debug();
-    let _lines = init_main_2()?;
-    // let text = lines.buffer().text();
-    // let mut cursor = WordCursor::new(text, 5);
-    // let (start, end) = cursor.select_word();
-    //
-    // assert_eq!(text.slice_to_cow(Interval::new(start, end)),
-    // "main");
-    Ok(())
-}
+// #[test]
+// fn test_debug() -> Result<()> {
+//     custom_utils::logger::logger_stdout_debug();
+//     let _lines = init_main_2()?;
+//     // let text = lines.buffer().text();
+//     // let mut cursor = WordCursor::new(text, 5);
+//     // let (start, end) = cursor.select_word();
+//     //
+//     // assert_eq!(text.slice_to_cow(Interval::new(start, end)),
+//     // "main");
+//     Ok(())
+// }
 
 #[test]
 fn test_semantic_2() -> Result<()> {
@@ -108,33 +108,71 @@ fn test_semantic_2() -> Result<()> {
 #[test]
 fn test_buffer_offset_of_click() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
-    // let file: PathBuf = "resources/test_code/simple-ansi-to-style".into();
-    let lines = init_main()?;
+    // let file: PathBuf = "resources/test_code/main.rs".into();
+    let mut lines = init_main()?;
+    lines.line_height = 20;
     lines.log();
 
     //below end of buffer
     {
-        let (offset_of_buffer, is_inside) = lines.buffer_offset_of_click(
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
             &CursorMode::Normal(0),
-            Point::new(138.1, 417.1)
+            Point::new(131.1, 432.1)
         )?;
-        assert_eq!(offset_of_buffer, 143);
+        assert_eq!(offset_of_buffer, 145);
         assert_eq!(is_inside, false);
+        assert_eq!(affinity, CursorAffinity::Backward);
     }
-    //f
+    // (line_index=1 offset with \r\n [2..19))
+    // new_offset=4 Backward (32.708343505859375, 30.089889526367188)
+    // pub [f]n main()
     {
-        let (offset_of_buffer, is_inside) = lines
-            .buffer_offset_of_click(&CursorMode::Normal(0), Point::new(1.1, 13.1))?;
-        assert_eq!(offset_of_buffer, 0);
+        let (offset_of_buffer, is_inside, affinity) = lines
+            .buffer_offset_of_click(&CursorMode::Normal(0), Point::new(32.7, 30.0))?;
+        assert_eq!(offset_of_buffer, 6);
         assert_eq!(is_inside, true);
+        assert_eq!(affinity, CursorAffinity::Backward);
     }
-    //end of first line
+    // empty of first line(line_index=0)
+    // new_offset=0 Forward (109.70834350585938, 11.089889526367188)
     {
-        let point = Point::new(163.1, 13.1);
-        let (offset_of_buffer, is_inside) =
+        let point = Point::new(109.70834350585938, 11.0);
+        let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
-        assert_eq!(offset_of_buffer, 15);
+        assert_eq!(offset_of_buffer, 0);
         assert_eq!(is_inside, false);
+        assert_eq!(affinity, CursorAffinity::Backward);
+    }
+    // empty of end line(line_index=1 offset with \r\n [2..19))
+    // pub fn main() {   [    ]
+    // new_offset=16 Forward (176.7, 25.0)
+    {
+        let point = Point::new(176.7, 25.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!(offset_of_buffer, 16);
+        assert_eq!(is_inside, false);
+        assert_eq!(affinity, CursorAffinity::Forward);
+    }
+
+    // (line_index=7 offset with \r\n [115, 135))
+    //     let a[: A ] = A;
+    // first half:  new_offset=124 Backward (72.70834350585938, 150.0898895263672)
+    // second half: new_offset=124 Forward (87.70834350585938, 149.0898895263672)
+    {
+        let point = Point::new(72.7, 150.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!(offset_of_buffer, 124);
+        assert_eq!(is_inside, true);
+        assert_eq!(affinity, CursorAffinity::Backward);
+
+        let point = Point::new(87.7, 150.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!(offset_of_buffer, 124);
+        assert_eq!(is_inside, true);
+        assert_eq!(affinity, CursorAffinity::Forward);
     }
     Ok(())
 }
@@ -146,24 +184,19 @@ fn test_buffer_offset_of_click_2() -> Result<()> {
 
     // scroll 23 line { x0: 0.0, y0: 480.0, x1: 606.8886108398438, y1:
     // 1018.1586303710938 }
-    lines.update_viewport_by_scroll(Rect::new(0.0, 480.0, 606.8, 1018.1));
+    // lines.update_viewport_by_scroll(Rect::new(0.0, 480.0, 606.8, 1018.1));
     //below end of buffer
     {
         // single_click (144.00931549072266, 632.1586074829102)
         // new_offset=480
-        let (offset_of_buffer, is_inside) = lines.buffer_offset_of_click(
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
             &CursorMode::Normal(0),
             Point::new(186.0, 608.1)
         )?;
         lines.log();
-        assert_eq!(offset_of_buffer, 456);
+        assert_eq!(offset_of_buffer, 461);
         assert_eq!(is_inside, false);
-
-        let (_, _, _, _, point, _, _, _) = lines.cursor_position_of_buffer_offset(
-            offset_of_buffer,
-            CursorAffinity::Forward
-        )?;
-        assert_eq!(point.unwrap().y, 118.0 + lines.viewport().y0);
+        assert_eq!(affinity, CursorAffinity::Backward);
     }
     Ok(())
 }

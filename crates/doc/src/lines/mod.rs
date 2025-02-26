@@ -241,6 +241,9 @@ impl DocLines {
             buffer,
             (last_line, 0.0)
         );
+
+        log::info!("{}", serde_json::to_string(&config).unwrap());
+
         let mut lines = Self {
             signals,
             // layout_event: Listener::new_empty(cx), //
@@ -933,18 +936,54 @@ impl DocLines {
         let info = self.origin_folded_line_of_point(point.y).unwrap_or(self.origin_folded_lines.last().ok_or(anyhow!("origin_folded_lines last line is empty"))?);
         let text_layout = &info.text_layout;
         let hit_point = text_layout.text.hit_point(Point::new(point.x, 0.0));
-        let (origin_line, origin_col, _final_col, _offset_of_line, cursor_affinity) =
-            text_layout
-                .phantom_text
-                .cursor_position_of_final_col(hit_point.index);
-        let offset_of_buffer =
 
-            self.buffer().offset_of_line_col(origin_line, origin_col)?;
-        Ok((offset_of_buffer, hit_point.is_inside, cursor_affinity))
+        if hit_point.is_inside {
+            Ok(match text_layout.phantom_text.text_of_final_col(hit_point.index) {
+                Text::Phantom { text } => {
+                    // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+                    if hit_point.index > text.final_col + text.text.len() / 2 {
+                        (
+                            info.origin_interval.start + text.merge_col, true,
+                            CursorAffinity::Forward
+                        )
+                    } else {
+                        (
+                            info.origin_interval.start + text.merge_col, true,
+                            CursorAffinity::Backward
+                        )
+                    }
+                },
+                Text::OriginText { text } =>
+                    (hit_point.index - text.final_col.start + text.merge_col.start + text_layout.phantom_text.offset_of_line, true, CursorAffinity::Backward)
+                ,
+                Text::EmptyLine { .. } => {unreachable!()}
+            })
+        } else {
+            // last of line
+            Ok(match text_layout
+                .phantom_text.text_of_final_col(hit_point.index) {
+                Text::Phantom { text } => {
+                    (text.merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
+                }
+                Text::OriginText { .. } => {
+                    // 该行只有 "\r\n"，因此换回'\r' CursorAffinity::Backward
+                    if text_layout.text.text_len_without_rn == 0 {
+                        (text_layout.phantom_text.offset_of_line, false, CursorAffinity::Backward)
+                    } else {
+                        // 该返回\r的前一个字符，CursorAffinity::Forward
+                        (text_layout.phantom_text.offset_of_line + text_layout.text.text_len_without_rn - 1, false, CursorAffinity::Forward)
+                    }
+                    // (text.merge_col.end + text_layout.phantom_text.offset_of_line - 1, false, CursorAffinity::Forward)
+                }
+                Text::EmptyLine { text } => {
+                    (text.offset_of_line, false, CursorAffinity::Backward)
+                }
+            })
+        }
     }
 
     pub(crate) fn origin_folded_line_of_point(&self, point_y: f64) -> Option<&OriginFoldedLine> {
-        let origin_folded_line_index = point_y as usize / self.line_height;
+        let origin_folded_line_index = (point_y / self.line_height as f64).floor() as usize;
         self.origin_folded_lines.get(origin_folded_line_index)
     }
 
@@ -1752,12 +1791,12 @@ impl DocLines {
     pub fn log(&self) {
         info!(
             "DocLines viewport={:?} buffer.rev={} buffer.len()=[{}] \
-             style_from_lsp={} is_pristine={}",
+             style_from_lsp={} is_pristine={} line_height={}",
             self.viewport_size,
             self.buffer().rev(),
             self.buffer().text().len(),
             self.style_from_lsp,
-            self.buffer().is_pristine(),
+            self.buffer().is_pristine(), self.line_height
         );
         // info!("{:?}", self.config);
         for origin_lines in &self.origin_lines {

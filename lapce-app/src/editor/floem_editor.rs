@@ -373,7 +373,7 @@ impl Editor {
                     return;
                 }
             };
-        info!("single_click new_offset={new_offset} {:?}", cursor_affinity);
+        info!("single_click new_offset={new_offset} {:?} {:?}", cursor_affinity, pointer_event.pos);
         self.cursor.update(|cursor| {
             cursor.set_offset(
                 new_offset,
