@@ -712,14 +712,20 @@ impl EditorView {
         highlight_matching_brackets: bool,
         highlight_scope_lines: bool,
         editor_bracket_color: &Color, screen_lines: &ScreenLines, bracket_offsets: Option<(usize, usize)>,
-    ) -> Option<()> {
+    ) -> Result<Option<()>> {
         if highlight_matching_brackets || highlight_scope_lines {
-            let (bracket_offsets_start, bracket_offsets_end) = bracket_offsets?;
+            let Some((bracket_offsets_start, bracket_offsets_end)) = bracket_offsets else {
+                return Ok(None);
+            };
 
-            let bracket_offsets_start =
-                screen_lines.char_rect_in_viewport(bracket_offsets_start)?;
-            let bracket_offsets_end =
-                screen_lines.char_rect_in_viewport(bracket_offsets_end)?;
+            let Some(bracket_offsets_start) =
+                screen_lines.char_rect_in_viewport(bracket_offsets_start)? else {
+                return Ok(None);
+            };
+            let Some(bracket_offsets_end) =
+                screen_lines.char_rect_in_viewport(bracket_offsets_end)? else {
+                return Ok(None);
+            };
             cx.fill(&bracket_offsets_start, editor_bracket_color, 0.0);
             cx.fill(&bracket_offsets_end, editor_bracket_color, 0.0);
             // todo
@@ -733,7 +739,7 @@ impl EditorView {
             //     );
             // }
         }
-        None
+        Ok(None)
     }
 }
 
@@ -951,12 +957,14 @@ impl View for EditorView {
             error!("{err:?}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();
-        self.paint_bracket_highlights_scope_lines(
+        if let Err(err) = self.paint_bracket_highlights_scope_lines(
             cx,
             highlight_matching_brackets,
             highlight_scope_lines,
             &editor_bracket_color, &screen_lines, bracket_offsets
-        );
+        ){
+            error!("{err:?}");
+        }
         // let screen_lines = ed.screen_lines.get_untracked();
         // , cursor: RwSignal<Cursor>, lines: DocLinesManager
         let lines = doc.lines;

@@ -25,19 +25,39 @@ use crate::lines_util::{
 mod lines_util;
 
 #[test]
-fn test_debug() -> Result<()> {
+fn test_move_right() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
-    let mut _lines = init_main_2()?;
-    _lines.update_folding_ranges(init()?.into())?;
-    _lines._log_folded_lines();
-    _lines._log_folding_ranges();
+    let mut lines = init_main_2()?;
+    let items = init_item()?;
+    for item in items {
+        lines.update_folding_ranges(item.into())?;
+    }
+    lines._log_folded_lines();
+    {
+        // |
+        // fn test() {...}
+        let rs = lines.move_right(139, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!((lines.buffer().char_at_offset(139).unwrap(), lines.buffer().char_at_offset(141).unwrap()), ('\r', 'f'));
+        assert_eq!((141, CursorAffinity::Backward), rs);
+    }
+    {
+        //     if true {...}| else {...}
+        let rs = lines.move_right(25, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!((lines.buffer().char_at_offset(25).unwrap(), lines.buffer().char_at_offset(64).unwrap()), ('{', 'e'));
+        assert_eq!(rs, (64, CursorAffinity::Backward));
+    }
+    // _lines._log_folding_ranges();
     // _lines._log_visual_lines();
     // _lines._log_screen_lines();
     Ok(())
 }
 
-fn init() -> Result<FoldingDisplayItem> {
-    Ok(serde_json::from_str(
-        r#"{"position":{"line":1,"character":12},"y":23,"ty":"UnfoldStart"}"#
-    )?)
+fn init_item() -> Result<Vec<FoldingDisplayItem>> {
+    Ok(vec![serde_json::from_str(
+        r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#
+    )?, serde_json::from_str(
+        r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#
+    )?, serde_json::from_str(
+        r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#
+    )?])
 }

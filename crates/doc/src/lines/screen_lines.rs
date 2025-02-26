@@ -247,11 +247,15 @@ impl ScreenLines {
     pub fn visual_line_info_of_buffer_offset(
         &self,
         buffer_offset: usize,
-    ) -> Option<(&VisualLineInfo, usize)> {
-        let vl = self.visual_line_for_buffer_offset(buffer_offset)?;
+    ) -> Result<Option<(&VisualLineInfo, usize)>> {
+        let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
+            return Ok(None);
+        };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let final_offset = vl.visual_line.text_layout.phantom_text.final_col_of_merge_col(merge_col)?;
-        Some((vl, final_offset))
+        let Some(final_offset) = vl.visual_line.text_layout.phantom_text.final_col_of_merge_col(merge_col)? else {
+            return Ok(None);
+        };
+        Ok(Some((vl, final_offset)))
     }
 
 
@@ -259,9 +263,11 @@ impl ScreenLines {
     pub fn visual_position_of_buffer_offset(
         &self,
         buffer_offset: usize
-    ) ->         Option<Point>
+    ) ->         Result<Option<Point>>
     {
-        let (vl, final_offset) = self.visual_line_info_of_buffer_offset(buffer_offset)?;
+        let Some((vl, final_offset)) = self.visual_line_info_of_buffer_offset(buffer_offset)? else {
+            return Ok(None);
+        };
         let mut viewpport_point = hit_position_aff(
             &vl.visual_line.text_layout.text,
             final_offset,
@@ -272,7 +278,7 @@ impl ScreenLines {
         viewpport_point.y = vl.folded_line_y;
         viewpport_point.add_assign(self.base.origin().to_vec2());
 
-        Some(viewpport_point)
+        Ok(Some(viewpport_point))
     }
 
     /// considering phantom text
@@ -303,18 +309,20 @@ impl ScreenLines {
         Some((vl, final_offset))
     }
 
-    pub fn char_rect_in_viewport(&self, offset: usize) -> Option<Rect> {
-        let (vl_start, col_start) = self.visual_line_info_of_buffer_offset(offset)?;
+    pub fn char_rect_in_viewport(&self, offset: usize) -> Result<Option<Rect>> {
+        let Some((vl_start, col_start)) = self.visual_line_info_of_buffer_offset(offset)? else {
+            return Ok(None);
+        };
         let folded_line_start = &vl_start.visual_line;
         let base = self.base.origin().to_vec2();
 
-        Some(folded_line_start.line_scope(
+        Ok(Some(folded_line_start.line_scope(
             col_start,
             col_start + 1,
             self.line_height as f64,
             vl_start.folded_line_y,
             base
-        ))
+        )))
     }
 
     pub fn normal_selection(

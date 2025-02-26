@@ -350,6 +350,7 @@ fn move_right(
     })? else {
         return Ok(offset)
     };
+    log::info!("move_right result {new_offset} {new_affinity:?}");
     *affinity = new_affinity;
     Ok(new_offset)
 }

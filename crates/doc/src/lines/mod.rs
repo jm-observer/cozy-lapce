@@ -1859,14 +1859,33 @@ impl DocLines {
             ..
         } in semantic_styles.iter()
         {
-            // for (start, end, color) in styles.into_iter() {
-            let (Some(start), Some(end)) = (
+            let origin_line_offset_end =*origin_line_offset_start + *len;
+            match (
                 phantom_text.final_col_of_merge_col(*origin_line_offset_start),
-                phantom_text.final_col_of_merge_col(*origin_line_offset_start + *len)
-            ) else {
-                continue;
-            };
-            attrs_list.add_span(start..end, attrs.color(*fg_color));
+                phantom_text.final_col_of_merge_col(origin_line_offset_end)) {
+                (Ok(Some(start)), Ok(Some(end))) => {
+                    attrs_list.add_span(start..end, attrs.color(*fg_color));
+                },
+                (Err(err), _) => {
+                    error!("{}: {}", err.to_string(), *origin_line_offset_start);
+                    continue
+                }
+                (_, Err(err)) => {
+                    error!("{}: {}", err.to_string(), origin_line_offset_end);
+                    continue
+                }
+                _ => {
+                    continue
+                }
+            }
+            // // for (start, end, color) in styles.into_iter() {
+            // let (Some(start), Some(end)) = (
+            //     phantom_text.final_col_of_merge_col(*origin_line_offset_start),
+            //     phantom_text.final_col_of_merge_col(*origin_line_offset_start + *len)
+            // ) else {
+            //     continue;
+            // };
+            // attrs_list.add_span(start..end, attrs.color(*fg_color));
         }
     }
 
@@ -1888,26 +1907,45 @@ impl DocLines {
             // warn!("line={} start={start}, end={end},
             // color={color:?}", phantom_text.line);
             // col_at(end)可以为空，因为end是不包含的
-            let (Some(start), Some(end)) = (
+            match (
                 phantom_text.final_col_of_merge_col(*start),
-                phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)
-            ) else {
-                warn!(
-                    "line={} start={start}, len={len}, color={fg_color:?} col_at \
-                     empty",
-                    phantom_text.line
-                );
-                continue;
-            };
-            let styles = util::extra_styles_for_range(
-                layout,
-                start,
-                end + 1,
-                None,
-                None,
-                Some(*fg_color)
-            );
-            layout_line.extra_style.extend(styles);
+                phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)) {
+                (Ok(Some(start)), Ok(Some(end))) => {
+                    let styles = util::extra_styles_for_range(
+                        layout,
+                        start,
+                        end + 1,
+                        None,
+                        None,
+                        Some(*fg_color)
+                    );
+                    layout_line.extra_style.extend(styles);
+                },
+                (Err(err), _) => {
+                    error!("{}", err.to_string());
+                    continue
+                }
+                (_, Err(err)) => {
+                    error!("{}", err.to_string());
+                    continue
+                }
+                _ => {
+                    continue
+                }
+            }
+            //
+            // let (Some(start), Some(end)) = (
+            //     phantom_text.final_col_of_merge_col(*start),
+            //     phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)
+            // ) else {
+            //     warn!(
+            //         "line={} start={start}, len={len}, color={fg_color:?} col_at \
+            //          empty",
+            //         phantom_text.line
+            //     );
+            //     continue;
+            // };
+
         }
     }
 
@@ -2087,39 +2125,144 @@ impl DocLines {
         buffer_offset: usize,
         affinity: CursorAffinity,
     ) -> Result<Option<(usize, CursorAffinity)>> {
-        if matches!(affinity, CursorAffinity::Backward) {
-            return Ok(Some((buffer_offset, CursorAffinity::Forward)));
-        }
-        // let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
-
-        let (folded_line, final_col,  _, _, _start_offset_of_line) =
-            self.folded_line_of_offset(buffer_offset, affinity)?;
-
-        // folded_line.text_layout.phantom_text.text_of_final_col(final_col)
-        //
-
-        let line_ending_len = self.buffer().line_ending().len();
-        let mut new_offset = buffer_offset + 1;
-        if new_offset + line_ending_len >= self.buffer().len() {
-            // last char of buffer
+        // if matches!(affinity, CursorAffinity::Backward) {
+        //     return Ok(Some((buffer_offset, CursorAffinity::Forward)));
+        // }
+        if buffer_offset == self.buffer().len() {
+            // last line is empty
             return Ok(None);
-        } else if new_offset + line_ending_len >= folded_line.origin_interval.end {
-            new_offset += line_ending_len;
-            return Ok(Some((new_offset, CursorAffinity::Backward)));
         }
-        new_offset = match folded_line.text_layout.phantom_text.text_of_final_col(final_col) {
-            Text::Phantom { text } => {
-                text.next_merge_col() + self.buffer().offset_of_line(folded_line.origin_line_start)?
+
+        let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
+        let merge_col = buffer_offset - folded_line.origin_interval.start;
+
+        let mut iter = folded_line.text_layout.phantom_text.text.iter();
+        // find text_of_merge_col
+        while let Some(text) = iter.next() {
+            match text {
+                Text::Phantom { text } => {
+                    if text.merge_col <= merge_col
+                        && merge_col <= text.next_merge_col()
+                    {
+                        if matches!(affinity, CursorAffinity::Backward) {
+                            return Ok(Some((buffer_offset, CursorAffinity::Forward)));
+                        } else {
+                            // next merge col
+                            while let Some(text) = iter.next() {
+                                if let Text::OriginText { text } = text {
+                                    return Ok(Some((text.merge_col.start + folded_line.text_layout.phantom_text.offset_of_line + 1, CursorAffinity::Backward)));
+                                }
+                            }
+                            // next line
+                            return Ok(Some((folded_line.origin_interval.end, CursorAffinity::Backward)));
+                        }
+                    }
+                },
+                Text::OriginText { text } => {
+                    if text.merge_col.contains(merge_col) {
+                        let final_col = text.final_col.start + (merge_col - text.merge_col.start);
+                        if folded_line.is_last_char(final_col) {
+                            // 换行
+                            return Ok(Some((folded_line.origin_interval.end, CursorAffinity::Backward)));
+                        } else {
+                            return Ok(Some((buffer_offset + 1, CursorAffinity::Forward)));
+                        }
+                    }
+                },
+                Text::EmptyLine { .. } => {
+                    unreachable!()
+                }
             }
-            Text::OriginText { text } => {
-                let merge_col = final_col - text.final_col.start + text.merge_col.start + 1;
-                merge_col + self.buffer().offset_of_line(folded_line.origin_line_start)?
-            }
-            Text::EmptyLine { .. } => {
-                error!("unreached: greater than self.buffer().len()");
-                0}
-        };
-        Ok(Some((new_offset, affinity)))
+        }
+        Err(anyhow!("move_right buffer_offset={buffer_offset}, affinity={affinity:?} error"))
+        // match folded_line.text_layout.phantom_text.text_of_merge_col(merge_col)? {
+        //     Text::Phantom { text } => {
+        //         if matches!(affinity, CursorAffinity::Backward) {
+        //             return Ok(Some((buffer_offset, CursorAffinity::Forward)));
+        //         } else {
+        //             return Ok(Some((text.next_merge_col() + folded_line.text_layout.phantom_text.offset_of_line, CursorAffinity::Backward)));
+        //         }
+        //     }
+        //     Text::OriginText { text } => {
+        //         let final_col = text.final_col.start + (merge_col - text.merge_col.start);
+        //         if folded_line.is_last_char(final_col) {
+        //             // 换行
+        //             return Ok(Some((folded_line.origin_interval.end, CursorAffinity::Backward)));
+        //         } else {
+        //             return Ok(Some((buffer_offset + 1, CursorAffinity::Forward)));
+        //         }
+        //     }
+        //     Text::EmptyLine { .. } => {
+        //         unreachable!()
+        //     }
+        // }
+
+
+
+        // let (folded_line, final_col,  last_char, origin_line, _start_offset_of_line) =
+        //     self.folded_line_of_offset(buffer_offset, affinity)?;
+        // let (next_folded_line, final_col_of_next_offset) = if last_char {
+        //     if matches!(affinity, CursorAffinity::Backward) {
+        //         return Ok(Some((buffer_offset, CursorAffinity::Forward)));
+        //     }
+        //     // next line
+        //     let Some(next_line) = self.origin_folded_lines.get(folded_line.line_index + 1) else {
+        //         return Ok(None);
+        //     };
+        //     (next_line, 0)
+        // } else {
+        //     // next char
+        //     match folded_line.text_layout.phantom_text.text_of_visual_char(final_col) {
+        //         Text::Phantom { text } => {
+        //             text.merge_col + next_folded_line.origin_interval.start
+        //         }
+        //         Text::OriginText { text } => {
+        //             let merge_col = final_col - text.final_col.start + text.merge_col.start + 1;
+        //             merge_col + self.buffer().offset_of_line(folded_line.origin_line_start)?
+        //         }
+        //         Text::EmptyLine { .. } => {
+        //             error!("unreached: greater than self.buffer().len()");
+        //             0
+        //         }
+        //     }
+        // };
+        // match next_folded_line.text_layout.phantom_text.text_of_final_col(final_col_of_next_offset) {
+        //     Text::Phantom { text } => {
+        //         text.merge_col + next_folded_line.origin_interval.start
+        //     }
+        //     Text::OriginText { text } => {
+        //         let merge_col = final_col - text.final_col.start + text.merge_col.start + 1;
+        //         merge_col + self.buffer().offset_of_line(folded_line.origin_line_start)?
+        //     }
+        //     Text::EmptyLine { .. } => {
+        //         error!("unreached: greater than self.buffer().len()");
+        //         0
+        //     }
+        // }
+        //
+        //
+        // let line_ending_len = self.buffer().line_ending().len();
+        // let mut new_offset = buffer_offset + 1;
+        // if new_offset + line_ending_len >= self.buffer().len() {
+        //     // last char of buffer
+        //     return Ok(None);
+        // } else if new_offset + line_ending_len >= folded_line.origin_interval.end {
+        //     new_offset += line_ending_len;
+        //     return Ok(Some((new_offset, CursorAffinity::Backward)));
+        // }
+        // new_offset = match folded_line.text_layout.phantom_text.text_of_final_col(final_col) {
+        //     Text::Phantom { text } => {
+        //         text.next_merge_col() + self.buffer().offset_of_line(folded_line.origin_line_start)?
+        //     }
+        //     Text::OriginText { text } => {
+        //         let merge_col = final_col - text.final_col.start + text.merge_col.start + 1;
+        //         merge_col + self.buffer().offset_of_line(folded_line.origin_line_start)?
+        //     }
+        //     Text::EmptyLine { .. } => {
+        //         error!("unreached: greater than self.buffer().len()");
+        //         0}
+        // };
+        // Ok(Some((new_offset, affinity)))
     }
 
     pub fn move_up(
@@ -3047,6 +3190,7 @@ impl PubUpdateLines {
     pub fn update_folding_ranges(&mut self, action: UpdateFolding) -> Result<()> {
         match action {
             UpdateFolding::UpdateByItem(item) => {
+                log::info!("{}", serde_json::to_string(&item).unwrap());
                 self.folding_ranges.update_folding_item(item);
             },
             UpdateFolding::New(ranges) => {

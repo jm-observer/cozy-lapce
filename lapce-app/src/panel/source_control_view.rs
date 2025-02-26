@@ -12,6 +12,7 @@ use floem::{
     style::{CursorStyle, Style},
     views::{Decorators, container, dyn_stack, label, scroll, stack, text}
 };
+use log::error;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}
@@ -133,7 +134,15 @@ pub fn source_control_panel(
 
                     if let Some((x, y, width, line_height)) =
                         e_data.editor.screen_lines.with(|x| {
-                            x.visual_position_of_buffer_offset(offset).map(|point| (point.x - 1.0, point.y, 2.0, line_height))
+                            match x.visual_position_of_buffer_offset(offset) {
+                                Ok(point) => {
+                                    point.map(|point| (point.x - 1.0, point.y, 2.0, line_height))
+                                }
+                                Err(err) => {
+                                    error!("{}", err.to_string());
+                                    None
+                                }
+                            }
                         })
                     {
                         let rect =

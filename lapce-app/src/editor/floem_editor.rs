@@ -919,7 +919,15 @@ impl Editor {
         offset: usize,
     ) -> Result<(Point, Point)> {
         let Some((point_above, line_height)) = self.screen_lines.with_untracked(|screen_lines| {
-            screen_lines.visual_position_of_buffer_offset(offset).map(|x| (x, screen_lines.line_height))
+            match screen_lines.visual_position_of_buffer_offset(offset) {
+                Ok(point) => {
+                    point.map(|point| (point, screen_lines.line_height))
+                }
+                Err(err) => {
+                    error!("{}", err.to_string());
+                    None
+                }
+            }
         }) else {
             log::info!("points_of_offset point is none {offset}");
             return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
@@ -1088,16 +1096,16 @@ impl Editor {
         self.rope_text().move_right(offset, mode, count)
     }
 
-    /// Advance to the left in the manner of the given mode.
-    /// This is not the same as the [`Movement::Left`] command.
-    pub fn move_left(
-        &self,
-        offset: usize,
-        mode: Mode,
-        count: usize
-    ) -> Result<usize> {
-        self.rope_text().move_left(offset, mode, count)
-    }
+    // /// Advance to the left in the manner of the given mode.
+    // /// This is not the same as the [`Movement::Left`] command.
+    // pub fn move_left(
+    //     &self,
+    //     offset: usize,
+    //     mode: Mode,
+    //     count: usize
+    // ) -> Result<usize> {
+    //     self.rope_text().move_left(offset, mode, count)
+    // }
 
     /// ~~视觉~~行的text_layout信息
     pub fn text_layout_of_visual_line(&self, line: usize) -> Result<TextLayoutLine> {

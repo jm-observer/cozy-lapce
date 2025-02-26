@@ -8,6 +8,7 @@ use lapce_xi_rope::Interval;
 use log::{info, warn};
 use lsp_types::Position;
 use smallvec::SmallVec;
+use anyhow::{anyhow, Result};
 
 use crate::lines::{cursor::CursorAffinity, delta_compute::Offset};
 
@@ -85,6 +86,7 @@ impl PhantomText {
         }
     }
 
+    /// todo 不准确，存在连续phantom的情况
     pub fn next_merge_col(&self) -> usize {
         if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
             self.merge_col + len
@@ -161,14 +163,14 @@ impl Text {
         }
     }
 
-    fn merge_to(mut self, origin_text_len: usize, final_text_len: usize) -> Self {
+    fn merge_to(mut self, merge_offset: usize, final_text_len: usize) -> Self {
         match &mut self {
             Text::Phantom { text } => {
-                text.merge_col += origin_text_len;
+                text.merge_col += merge_offset;
                 text.final_col += final_text_len;
             },
             Text::OriginText { text } => {
-                text.merge_col = text.merge_col.translate(origin_text_len);
+                text.merge_col = text.merge_col.translate(merge_offset);
                 text.final_col = text.final_col.translate(final_text_len);
             },
             _ => {}
@@ -407,13 +409,15 @@ impl PhantomTextMultiLine {
         //     line.final_text_len
         // ));
 
-        let origin_text_len = self.origin_text_len;
-        self.origin_text_len += line.origin_text_len;
+        let merge_offset = line.offset_of_line - self.offset_of_line;
+
+        // let origin_text_len = self.origin_text_len;
+        self.origin_text_len = merge_offset + line.origin_text_len;
         let final_text_len = self.final_text_len;
         self.final_text_len += line.final_text_len;
         for phantom in line.texts.clone() {
             self.text
-                .push(phantom.merge_to(origin_text_len, final_text_len));
+                .push(phantom.merge_to(merge_offset, final_text_len));
         }
         self.last_line = line.line;
         // self.lines.push(line);
@@ -508,7 +512,7 @@ impl PhantomTextMultiLine {
     // }
 
     /// 视觉字符的Text
-    fn text_of_visual_char(&self, visual_char_offset: usize) -> &Text {
+    pub fn text_of_visual_char(&self, visual_char_offset: usize) -> &Text {
         debug_assert!(
             visual_char_offset == 0 || (visual_char_offset < self.final_text_len)
         );
@@ -596,7 +600,8 @@ impl PhantomTextMultiLine {
         })
     }
 
-    fn text_of_merge_col(&self, merge_col: usize) -> Option<&Text> {
+    /// merge col一定会出现在某个text中
+    pub fn text_of_merge_col(&self, merge_col: usize) -> Result<&Text> {
         self.text.iter().find(|x| {
             match x {
                 Text::Phantom { text } => {
@@ -616,7 +621,7 @@ impl PhantomTextMultiLine {
                 }
             }
             false
-        })
+        }).ok_or(anyhow!("No merge col found"))
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
@@ -633,19 +638,22 @@ impl PhantomTextMultiLine {
         None
     }
 
-    pub fn final_col_of_merge_col(&self, merge_col: usize) -> Option<usize> {
+    pub fn final_col_of_merge_col(&self, merge_col: usize) -> Result<Option<usize>> {
         let text = self.text_of_merge_col(merge_col)?;
-        match text {
+        Ok(match text {
             Text::Phantom { .. } => None,
             Text::OriginText { text } => {
                 Some(text.final_col.start + merge_col - text.merge_col.start)
             },
             Text::EmptyLine { .. } => None
-        }
+        })
     }
 
     pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> Option<usize> {
-        let text = self.text_of_merge_col(merge_col)?;
+        let Ok(text) = self.text_of_merge_col(merge_col) else {
+            warn!("merge_col not found: line={} merge col={}", self.line, merge_col);
+            return None;
+        };
         match text {
             Text::Phantom { text, .. } => {
                 match cursor_affinity {
