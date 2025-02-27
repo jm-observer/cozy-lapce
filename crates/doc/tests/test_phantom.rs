@@ -8,60 +8,6 @@ use crate::lines_util::*;
 
 mod lines_util;
 
-#[test]
-fn test_folded_line_1() {
-    custom_utils::logger::logger_stdout_debug();
-    let mut _lines = init_main_2().unwrap();
-    _lines.update_folding_ranges(folded_v1().into()).unwrap();
-    // _lines.update_folding_ranges(folded_v2().into()).unwrap();
-    {
-        let line = _lines.folded_line_of_origin_line(1).unwrap();
-        check_lines_col!(
-            line.text(),
-            line.len_without_rn(),
-            "    if true {\r\n    } else {\r\n",
-            "    if true {...} else {\r\n"
-        );
-        check_line_final_col!(
-            line.text(),
-            "    if true {...} else {\r\n"
-        );
-    }
-    {
-        let expect_str = "    let a: A  = A;\r\n";
-        let line = _lines.folded_line_of_origin_line(6).unwrap();
-        // print_line(&text_layout.phantom_text);
-        // _lines.log();
-        check_lines_col!(
-           line.text(),
-            line.len_without_rn(),
-            "    let a = A;\r\n",
-            expect_str
-        );
-        check_line_final_col!(line.text(), expect_str);
-    }
-}
-
-#[test]
-fn test_folded_line_1_5() {
-    let mut _lines = init_main_2().unwrap();
-    _lines.update_folding_ranges(folded_v1().into()).unwrap();
-    _lines.update_folding_ranges(folded_v2().into()).unwrap();
-    {
-        let line = _lines.folded_line_of_origin_line(1).unwrap();
-        check_lines_col!(
-            line.text(),
-            line.len_without_rn(),
-            "    if true {\r\n    } else {\r\n    }\r\n",
-            "    if true {...} else {...}\r\n"
-        );
-        check_line_final_col!(
-            line.text(),
-            "    if true {...} else {...}\r\n"
-        );
-    }
-}
-
 
 // "0123456789012345678901234567890123456789
 // "    if true {nr    } else {nr    }nr"
@@ -80,7 +26,7 @@ fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
                 },
                 line: 1,
                 final_col: 12,
-                merge_col: 12,
+                visual_merge_col: 12,
                 col: 12,
                 text: "{...}".to_string(),
                 ..Default::default()
@@ -97,7 +43,7 @@ fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
                 line: 3,
                 final_col: 0,
                 col: 0,
-                merge_col: 0,
+                visual_merge_col: 0,
                 text: "".to_string(),
                 ..Default::default()
             });
@@ -115,7 +61,7 @@ fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
                 line: 3,
                 final_col: 0,
                 col: 0,
-                merge_col: 0,
+                visual_merge_col: 0,
                 text: "".to_string(),
                 ..Default::default()
             });
@@ -128,7 +74,7 @@ fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
                 line: 3,
                 final_col: 11,
                 col: 11,
-                merge_col: 11,
+                visual_merge_col: 11,
                 text: "{...}".to_string(),
                 ..Default::default()
             });
@@ -144,7 +90,7 @@ fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
                 line: 5,
                 final_col: 0,
                 col: 0,
-                merge_col: 0,
+                visual_merge_col: 0,
                 text: "".to_string(),
                 ..Default::default()
             });
@@ -163,7 +109,7 @@ fn let_data() -> PhantomTextLine {
     let origin_text_len = 16;
     text.push(PhantomText {
         kind: PhantomTextKind::InlayHint,
-        merge_col: 9,
+        visual_merge_col: 9,
         line: 6,
         col: 9,
         text: ": A ".to_string(),
@@ -180,70 +126,9 @@ fn let_data() -> PhantomTextLine {
 #[test]
 fn test_all() {
     custom_utils::logger::logger_stdout_debug();
-    _test_merge();
     _check_origin_position_of_final_col();
     _check_col_at();
     // _check_final_col_of_col();
-}
-
-/**
- *2 |    if a.0 {...} else {...}
- */
-fn _test_merge() {
-    let line2 = init_folded_line(2, false);
-    let line4 = init_folded_line(4, false);
-    let line_folded_4 = init_folded_line(4, true);
-    let line6 = init_folded_line(6, false);
-
-    {
-        /*
-        2 |    if a.0 {...} else {
-        */
-        let mut lines = PhantomTextMultiLine::new(line2.clone());
-        check_lines_col!(
-            &lines.text,
-            lines.final_text_len,
-            "    if true {\r\n",
-            "    if true {...}"
-        );
-        lines.merge(line4);
-        // print_lines(&lines);
-        check_lines_col!(
-            &lines.text,
-            lines.final_text_len,
-            "    if true {\r\n    } else {\r\n",
-            "    if true {...} else {\r\n"
-        );
-    }
-    {
-        /*
-        2 |    if a.0 {...} else {...}
-        */
-        let mut lines = PhantomTextMultiLine::new(line2);
-        check_lines_col!(
-            &lines.text,
-            lines.final_text_len,
-            "    if true {\r\n",
-            "    if true {...}"
-        );
-        // print_lines(&lines);
-        // print_line(&line_folded_4);
-        lines.merge(line_folded_4);
-        // print_lines(&lines);
-        check_lines_col!(
-            &lines.text,
-            lines.final_text_len,
-            "    if true {\r\n    } else {\r\n",
-            "    if true {...} else {...}"
-        );
-        lines.merge(line6);
-        check_lines_col!(
-            &lines.text,
-            lines.final_text_len,
-            "    if true {\r\n    } else {\r\n    }\r\n",
-            "    if true {...} else {...}\r\n"
-        );
-    }
 }
 
 #[test]
@@ -634,7 +519,7 @@ fn print_line(lines: &PhantomTextMultiLine) {
                     text.kind,
                     text.line,
                     text.col,
-                    text.merge_col,
+                    text.visual_merge_col,
                     text.final_col,
                     text.text,
                     text.text.len()
@@ -643,7 +528,7 @@ fn print_line(lines: &PhantomTextMultiLine) {
             Text::OriginText { text } => {
                 println!(
                     "\tOriginText line={} col={:?} merge_col={:?} final_col={:?}",
-                    text.line, text.col, text.merge_col, text.final_col
+                    text.line, text.col, text.visual_merge_col, text.final_col
                 );
             },
             Text::EmptyLine { .. } => {

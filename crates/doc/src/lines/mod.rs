@@ -929,18 +929,18 @@ impl DocLines {
                     // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                     if hit_point.index > text.final_col + text.text.len() / 2 {
                         (
-                            info.origin_interval.start + text.merge_col, true,
+                            info.origin_interval.start + text.visual_merge_col, true,
                             CursorAffinity::Forward
                         )
                     } else {
                         (
-                            info.origin_interval.start + text.merge_col, true,
+                            info.origin_interval.start + text.visual_merge_col, true,
                             CursorAffinity::Backward
                         )
                     }
                 },
                 Text::OriginText { text } =>
-                    (hit_point.index - text.final_col.start + text.merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
+                    (hit_point.index - text.final_col.start + text.visual_merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
                 ,
                 Text::EmptyLine { .. } => {unreachable!()}
             })
@@ -948,7 +948,7 @@ impl DocLines {
             // last of line
             Ok(match info.text_of_final_col(hit_point.index) {
                 Text::Phantom { text } => {
-                    (text.merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
+                    (text.visual_merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
                 }
                 Text::OriginText { .. } => {
                     // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
@@ -1318,7 +1318,8 @@ impl DocLines {
                     under_line: None,
                     final_col: col,
                     line,
-                    merge_col: col
+                    visual_merge_col: col,
+                    origin_merge_col: col,
                 })
             });
         // You're quite unlikely to have more than six hints on a
@@ -1418,8 +1419,9 @@ impl DocLines {
                 under_line: None,
                 final_col: completion_col,
                 line,
-                merge_col: completion_col,
+                visual_merge_col: completion_col,
                 // TODO: italics?
+                origin_merge_col: completion_col,
             });
         if let Some(completion_text) = completion_text {
             text.push(completion_text);
@@ -1458,7 +1460,8 @@ impl DocLines {
                     under_line: None,
                     final_col: *inline_completion_col,
                     line,
-                    merge_col: *inline_completion_col // TODO: italics?
+                    visual_merge_col: *inline_completion_col, // TODO: italics?
+                    origin_merge_col: *inline_completion_col,
                 }
             });
         if let Some(inline_completion_text) = inline_completion_text {
@@ -1844,6 +1847,7 @@ impl DocLines {
             ..
         } in semantic_styles.iter()
         {
+
             let origin_line_offset_end =*origin_line_offset_start + *len;
             match (
                 phantom_text.final_col_of_merge_col(*origin_line_offset_start),
@@ -1851,15 +1855,16 @@ impl DocLines {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     attrs_list.add_span(start..end, attrs.color(*fg_color));
                 },
-                (Err(err), _) => {
-                    error!("{}: {}", err.to_string(), *origin_line_offset_start);
-                    continue
-                }
-                (_, Err(err)) => {
-                    error!("{}: {}", err.to_string(), origin_line_offset_end);
-                    continue
-                }
+                // (Err(err), _) => {
+                //     error!("{}: {}", err.to_string(), *origin_line_offset_start);
+                //     continue
+                // }
+                // (_, Err(err)) => {
+                //     error!("{}: {}", err.to_string(), origin_line_offset_end);
+                //     continue
+                // }
                 _ => {
+                    // maybe be folded
                     continue
                 }
             }
@@ -2126,8 +2131,8 @@ impl DocLines {
         while let Some(text) = iter.next() {
             match text {
                 Text::Phantom { text } => {
-                    if text.merge_col <= merge_col
-                        && merge_col <= text.next_merge_col()
+                    if text.origin_merge_col <= merge_col
+                        && merge_col <= text.next_origin_merge_col()
                     {
                         if matches!(affinity, CursorAffinity::Backward) {
                             return Ok(Some((buffer_offset, CursorAffinity::Forward)));
@@ -2135,7 +2140,7 @@ impl DocLines {
                             // next merge col
                             while let Some(text) = iter.next() {
                                 if let Text::OriginText { text } = text {
-                                    return Ok(Some((text.merge_col.start + folded_line.offset_of_line() + 1, CursorAffinity::Backward)));
+                                    return Ok(Some((text.origin_merge_col.start + folded_line.offset_of_line() + 1, CursorAffinity::Backward)));
                                 }
                             }
                             // next line
@@ -2144,8 +2149,8 @@ impl DocLines {
                     }
                 },
                 Text::OriginText { text } => {
-                    if text.merge_col.contains(merge_col) {
-                        let final_col = text.final_col.start + (merge_col - text.merge_col.start);
+                    if text.origin_merge_col.contains(merge_col) {
+                        let final_col = text.final_col.start + (merge_col - text.origin_merge_col.start);
                         if folded_line.is_last_char(final_col) {
                             // 换行
                             return Ok(Some((folded_line.origin_interval.end, CursorAffinity::Backward)));

@@ -303,12 +303,13 @@ pub fn preedit_phantom(
         text: preedit.text,
         affinity: None,
         final_col: col,
-        merge_col: col,
+        visual_merge_col: col,
         font_size: None,
         fg: None,
         bg: None,
         under_line,
-        col
+        col,
+        origin_merge_col: col,
     })
 }
 

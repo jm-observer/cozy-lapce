@@ -269,18 +269,18 @@ impl OriginFoldedLine {
                 // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                 if final_col > text.final_col + text.text.len() / 2 {
                     (
-                        text.merge_col + self.offset_of_line(),
+                        text.visual_merge_col + self.offset_of_line(),
                         CursorAffinity::Forward
                     )
                 } else {
                     (
-                        text.merge_col + self.offset_of_line(),
+                        text.visual_merge_col + self.offset_of_line(),
                         CursorAffinity::Backward
                     )
                 }
             },
             Text::OriginText { text } => {
-                let merge_col = (final_col - text.final_col.start + text.merge_col.start).min(self.len_without_rn());
+                let merge_col = (final_col - text.final_col.start + text.visual_merge_col.start).min(self.len_without_rn());
                 (
                     // text.line,
                     // text.origin_col_of_final_col(visual_char_offset),
