@@ -937,7 +937,13 @@ impl View for EditorView {
         let screen_lines = self.editor.editor.screen_lines.get_untracked();
 
         let cursor_points = cursor_offsets.into_iter().filter_map(|offset| {
-            screen_lines.cursor_position_of_buffer_offset(offset, cursor_affinity)
+            match screen_lines.cursor_position_of_buffer_offset(offset, cursor_affinity) {
+                Ok(rs) => {rs}
+                Err(err) => {
+                    error!("{}", err);
+                    None
+                }
+            }
         }).collect();
 
         let viewport = ed.viewport.get_untracked();
@@ -1819,12 +1825,11 @@ fn editor_content(
         e_data.doc_signal().track();
         e_data.kind().track();
 
-        let Ok(info) =
+        let Ok(mut origin_point) =
             e_data.doc_signal().with(|x| x.lines).with_untracked(|x| x.cursor_position_of_buffer_offset(offset, CursorAffinity::Forward))
         else {
             return Rect::ZERO;
         };
-        let mut origin_point = info.point_of_document;
         log::info!(
                 "offset={offset} offset_line_from_top={offset_line_from_top:?} info={info:?}",
             );

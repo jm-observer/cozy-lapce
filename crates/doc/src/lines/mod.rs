@@ -1131,29 +1131,32 @@ impl DocLines {
     /// return (OriginFoldedLine, final col, last char, origin_line, start_offset_of_origin_line
     pub fn folded_line_of_offset(
         &self,
-        offset: usize,
+        buffer_offset: usize,
         affinity: CursorAffinity
-    ) -> Result<(&OriginFoldedLine, usize, bool, usize, usize)> {
-        // 位于的原始行，以及在原始行的起始offset
-        let (origin_line, start_offset_of_origin_line) = {
-            let origin_line = self.buffer().line_of_offset(offset);
-            let origin_line_start_offset =
-                self.buffer().offset_of_line(origin_line)?;
-            (origin_line, origin_line_start_offset)
-        };
-        let offset_of_col = offset - start_offset_of_origin_line;
-        let folded_line = self.folded_line_of_origin_line(origin_line)?;
+    ) -> Result<(&OriginFoldedLine, usize, //bool, usize, usize
+                 )> {
+        // // 位于的原始行，以及在原始行的起始offset
+        // let (origin_line, start_offset_of_origin_line) = {
+        //     let origin_line = self.buffer().line_of_offset(offset);
+        //     let origin_line_start_offset =
+        //         self.buffer().offset_of_line(origin_line)?;
+        //     (origin_line, origin_line_start_offset)
+        // };
+        // let offset_of_col = offset - start_offset_of_origin_line;
+        let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
+        let merge_offset = buffer_offset - folded_line.origin_interval.start;
+        let final_col = folded_line.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_offset, affinity)?;
 
-        let final_col = folded_line
-            .final_offset_of_line_and_offset(origin_line, offset_of_col, affinity);
-        let last_char = folded_line.is_last_char(final_col);
+        // let final_col = folded_line
+        //     .final_offset_of_line_and_offset(origin_line, offset_of_col, affinity);
+        // let last_char = folded_line.is_last_char(final_col);
 
         Ok((
             // visual_line.clone(),
             // offset_of_visual,
             folded_line,
             final_col,
-            last_char, origin_line, start_offset_of_origin_line,
+            // last_char, origin_line, start_offset_of_origin_line,
         ))
     }
 
@@ -2525,8 +2528,8 @@ impl ComputeLines {
         &self,
         offset: usize,
         affinity: CursorAffinity
-    ) -> Result<InfoOfBufferOffset> {
-        let (vl, offset_folded, _last_char, origin_line, offset_of_origin_line) =
+    ) -> Result<Point> {
+        let (vl, offset_folded, ) =
             self.folded_line_of_offset(offset, affinity)?;
         let mut point_of_document = hit_position_aff(
             &vl.text_layout.text,
@@ -2537,14 +2540,14 @@ impl ComputeLines {
         let line_height = self.line_height;
         point_of_document.y = (vl.line_index  * line_height)as f64;
 
-        let info = crate::lines::InfoOfBufferOffset {
-            origin_line,
-            offset_of_origin_line,
-            origin_folded_line_index: vl.line_index,
-            offset_of_origin_folded_line: None,
-            point_of_document,
-        };
-        Ok(info)
+        // let info = crate::lines::InfoOfBufferOffset {
+        //     origin_line,
+        //     offset_of_origin_line,
+        //     origin_folded_line_index: vl.line_index,
+        //     offset_of_origin_folded_line: None,
+        //     point_of_document,
+        // };
+        Ok(point_of_document)
     }
 
     // pub fn visual_position_of_cursor_position(

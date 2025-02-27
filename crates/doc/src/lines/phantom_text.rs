@@ -369,8 +369,8 @@ pub struct PhantomTextMultiLine {
     pub offset_of_line:  usize,
     // 所有合并在该行的原始行的总长度
     pub origin_text_len: usize,
-    // 所有合并在该行的最后展现的长度，包括幽灵文本、换行符、
-    // 包括后续的折叠行
+    /// 所有合并在该行的最后展现的长度，包括幽灵文本、换行符、
+    /// 包括后续的折叠行
     pub final_text_len:  usize,
     // // 各个原始行的行号、原始长度、最后展现的长度
     // pub len_of_line:     Vec<(usize, usize, usize)>,
@@ -649,19 +649,20 @@ impl PhantomTextMultiLine {
         })
     }
 
-    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> Option<usize> {
-        let Ok(text) = self.text_of_merge_col(merge_col) else {
-            warn!("merge_col not found: line={} merge col={}", self.line, merge_col);
-            return None;
-        };
-        match text {
+    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> Result<usize> {
+        // let Ok(text) = self.text_of_merge_col(merge_col) else {
+        //     warn!("merge_col not found: line={} merge col={}", self.line, merge_col);
+        //     return None;
+        // };
+        let text = self.text_of_merge_col(merge_col)?;
+        Ok(match text {
             Text::Phantom { text, .. } => {
                 match cursor_affinity {
                     CursorAffinity::Forward => {
-                        Some(text.next_final_col())
+                        text.next_final_col()
                     }
                     CursorAffinity::Backward => {
-                        Some(text.final_col)
+                        text.final_col
                     }
                 }
 
@@ -669,15 +670,15 @@ impl PhantomTextMultiLine {
             Text::OriginText { text } => {
                 match cursor_affinity {
                     CursorAffinity::Forward => {
-                        Some(text.final_col.start + merge_col - text.merge_col.start + 1)
+                        text.final_col.start + merge_col - text.merge_col.start + 1
                     }
                     CursorAffinity::Backward => {
-                        Some(text.final_col.start + merge_col - text.merge_col.start)
+                        text.final_col.start + merge_col - text.merge_col.start
                     }
                 }
             },
-            Text::EmptyLine { .. } => Some(0)
-        }
+            Text::EmptyLine { .. } => 0
+        })
     }
 
     /// 原始行的偏移字符！！！，的对应的合并后的位置。
@@ -782,6 +783,7 @@ impl PhantomTextMultiLine {
         mut visual_char_offset: usize
     ) -> (usize, usize, usize, usize, CursorAffinity) {
         // 因为通过hit_point获取的index会大于等于final_text_len
+        // visual_char_offset可能是其他行的final_col
         if visual_char_offset >= self.final_text_len {
             // the final_text_len of an empty line equals 0
             visual_char_offset = self.final_text_len.max(1) - 1;
@@ -805,13 +807,15 @@ impl PhantomTextMultiLine {
                     )
                 }
             },
-            Text::OriginText { text } => (
-                text.line,
-                text.origin_col_of_final_col(visual_char_offset),
-                visual_char_offset,
-                self.offset_of_line,
-                CursorAffinity::Backward
-            ),
+            Text::OriginText { text } => {
+                (
+                    text.line,
+                    text.origin_col_of_final_col(visual_char_offset),
+                    visual_char_offset,
+                    self.offset_of_line,
+                    CursorAffinity::Backward
+                )
+            },
             Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
         }
     }

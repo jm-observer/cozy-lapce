@@ -282,12 +282,16 @@ impl ScreenLines {
     }
 
     /// considering phantom text
+    /// None: not in viewport
+    ///
     pub fn cursor_position_of_buffer_offset(
         &self,
         buffer_offset: usize, affinity: CursorAffinity
-    ) ->         Option<Point>
+    ) ->         Result<Option<Point>>
     {
-        let (vl, final_offset) = self.cursor_info_of_buffer_offset(buffer_offset, affinity)?;
+        let Some((vl, final_offset)) = self.cursor_info_of_buffer_offset(buffer_offset, affinity)? else {
+            return Ok(None);
+        };
         let mut viewpport_point = hit_position_aff(
             &vl.visual_line.text_layout.text,
             final_offset,
@@ -297,16 +301,18 @@ impl ScreenLines {
         viewpport_point.y = vl.folded_line_y;
         viewpport_point.add_assign(self.base.origin().to_vec2());
 
-        Some(viewpport_point)
+        Ok(Some(viewpport_point))
     }
     pub fn cursor_info_of_buffer_offset(
         &self,
         buffer_offset: usize, cursor_affinity: CursorAffinity
-    ) -> Option<(&VisualLineInfo, usize)> {
-        let vl = self.visual_line_for_buffer_offset(buffer_offset)?;
+    ) -> Result<Option<(&VisualLineInfo, usize)>> {
+        let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
+            return Ok(None);
+        };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
         let final_offset = vl.visual_line.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
-        Some((vl, final_offset))
+        Ok(Some((vl, final_offset)))
     }
 
     pub fn char_rect_in_viewport(&self, offset: usize) -> Result<Option<Rect>> {
@@ -335,11 +341,11 @@ impl ScreenLines {
         } else {
             (start_offset, end_offset)
         };
-        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(start_offset, cursor_affinity) else {
+        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(start_offset, cursor_affinity)? else {
             return Ok(vec![]);
         };
         let folded_line_start = &vl_start.visual_line;
-        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(end_offset, cursor_affinity) else {
+        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(end_offset, cursor_affinity)? else {
             return Ok(vec![]);
         };
         let folded_line_end = &vl_end.visual_line;

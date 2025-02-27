@@ -124,7 +124,7 @@ fn test_buffer_offset_of_click() -> Result<()> {
         )?;
         assert_eq!((offset_of_buffer, is_inside, affinity), (145, false, CursorAffinity::Backward));
 
-        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap().unwrap();
         assert_eq!(vl.visual_line.line_index, 10);
         assert_eq!(final_offset, 0);
     }
@@ -196,7 +196,7 @@ fn test_buffer_offset_of_click() -> Result<()> {
         assert_eq!((offset_of_buffer, is_inside, affinity), (128, false, CursorAffinity::Forward));
 
         // screen_lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity)
-        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap().unwrap();
         assert_eq!(vl.visual_line.line_index, 7);
         assert_eq!(final_offset, 18);
     }
