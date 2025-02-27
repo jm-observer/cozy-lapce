@@ -365,7 +365,7 @@ pub struct PhantomTextMultiLine {
     /// 原始文本的行号
     pub line:            usize,
     pub last_line:       usize,
-    // line行起点在文本中的偏移
+    /// line行起点在文本中的偏移
     pub offset_of_line:  usize,
     // 所有合并在该行的原始行的总长度
     pub origin_text_len: usize,
@@ -540,35 +540,35 @@ impl PhantomTextMultiLine {
     }
 
 
-    fn text_of_origin_col(
-        &self,
-        origin_line: usize,
-        origin_col: usize
-    ) -> Option<&Text> {
-        self.text.iter().find(|x| {
-            match x {
-                Text::Phantom { text } => {
-                    if text.line == origin_line
-                        && text.col <= origin_col
-                        && origin_col < text.next_origin_col()
-                    {
-                        return true;
-                    } else if let Some(next_line) = text.next_line() {
-                        if origin_line < next_line {
-                            return true;
-                        }
-                    }
-                },
-                Text::OriginText { text } => {
-                    if text.line == origin_line && text.col.contains(origin_col) {
-                        return true;
-                    }
-                },
-                Text::EmptyLine { .. } => return true
-            }
-            false
-        })
-    }
+    // fn text_of_origin_col(
+    //     &self,
+    //     origin_line: usize,
+    //     origin_col: usize
+    // ) -> Option<&Text> {
+    //     self.text.iter().find(|x| {
+    //         match x {
+    //             Text::Phantom { text } => {
+    //                 if text.line == origin_line
+    //                     && text.col <= origin_col
+    //                     && origin_col < text.next_origin_col()
+    //                 {
+    //                     return true;
+    //                 } else if let Some(next_line) = text.next_line() {
+    //                     if origin_line < next_line {
+    //                         return true;
+    //                     }
+    //                 }
+    //             },
+    //             Text::OriginText { text } => {
+    //                 if text.line == origin_line && text.col.contains(origin_col) {
+    //                     return true;
+    //                 }
+    //             },
+    //             Text::EmptyLine { .. } => return true
+    //         }
+    //         false
+    //     })
+    // }
 
     fn text_of_origin_line_col(
         &self,

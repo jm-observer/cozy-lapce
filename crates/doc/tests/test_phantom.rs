@@ -1,3 +1,4 @@
+#![allow(unused)]
 use log::{debug, info};
 use smallvec::SmallVec;
 use doc::lines::cursor::CursorAffinity;
@@ -14,31 +15,30 @@ fn test_folded_line_1() {
     _lines.update_folding_ranges(folded_v1().into()).unwrap();
     // _lines.update_folding_ranges(folded_v2().into()).unwrap();
     {
-        let text_layout = &_lines.folded_line_of_origin_line(1).unwrap().text_layout;
+        let line = _lines.folded_line_of_origin_line(1).unwrap();
         check_lines_col!(
-            &text_layout.phantom_text.text,
-            text_layout.phantom_text.final_text_len,
+            line.text(),
+            line.len_without_rn(),
             "    if true {\r\n    } else {\r\n",
             "    if true {...} else {\r\n"
         );
         check_line_final_col!(
-            &text_layout.phantom_text,
+            line.text(),
             "    if true {...} else {\r\n"
         );
     }
     {
         let expect_str = "    let a: A  = A;\r\n";
-        let text_layout = &_lines.folded_line_of_origin_line(6).unwrap().text_layout;
+        let line = _lines.folded_line_of_origin_line(6).unwrap();
         // print_line(&text_layout.phantom_text);
-        _lines.log();
-        debug!("{:?}", text_layout.phantom_text);
+        // _lines.log();
         check_lines_col!(
-            &text_layout.phantom_text.text,
-            text_layout.phantom_text.final_text_len,
+           line.text(),
+            line.len_without_rn(),
             "    let a = A;\r\n",
             expect_str
         );
-        check_line_final_col!(&text_layout.phantom_text, expect_str);
+        check_line_final_col!(line.text(), expect_str);
     }
 }
 
@@ -48,15 +48,15 @@ fn test_folded_line_1_5() {
     _lines.update_folding_ranges(folded_v1().into()).unwrap();
     _lines.update_folding_ranges(folded_v2().into()).unwrap();
     {
-        let text_layout = &_lines.folded_line_of_origin_line(1).unwrap().text_layout;
+        let line = _lines.folded_line_of_origin_line(1).unwrap();
         check_lines_col!(
-            &text_layout.phantom_text.text,
-            text_layout.phantom_text.final_text_len,
+            line.text(),
+            line.len_without_rn(),
             "    if true {\r\n    } else {\r\n    }\r\n",
             "    if true {...} else {...}\r\n"
         );
         check_line_final_col!(
-            &text_layout.phantom_text,
+            line.text(),
             "    if true {...} else {...}\r\n"
         );
     }
@@ -172,11 +172,11 @@ fn let_data() -> PhantomTextLine {
     PhantomTextLine::new(6, origin_text_len, 0, text)
 }
 
-fn empty_data() -> PhantomTextLine {
-    let text: SmallVec<[PhantomText; 6]> = SmallVec::new();
-    let origin_text_len = 0;
-    PhantomTextLine::new(6, origin_text_len, 0, text)
-}
+// fn empty_data() -> PhantomTextLine {
+//     let text: SmallVec<[PhantomText; 6]> = SmallVec::new();
+//     let origin_text_len = 0;
+//     PhantomTextLine::new(6, origin_text_len, 0, text)
+// }
 #[test]
 fn test_all() {
     custom_utils::logger::logger_stdout_debug();
@@ -364,7 +364,7 @@ fn _check_empty_origin_position_of_final_col() {
     let line = _lines.folded_line_of_origin_line(28).unwrap();
     info!("{:?}", line);
     {
-        assert_eq!(line.text_layout.phantom_text.cursor_position_of_final_col(9), (28, 0, 0, 461, CursorAffinity::Backward));
+        assert_eq!(line.cursor_position_of_final_col(9), (28, 0, 0, 461, CursorAffinity::Backward));
     }
 }
 

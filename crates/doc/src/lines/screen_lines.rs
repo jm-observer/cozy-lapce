@@ -7,7 +7,6 @@ use anyhow::{Result, bail};
 use floem::{
     kurbo::{Point, Rect},
 };
-use crate::hit_position_aff;
 use crate::lines::cursor::CursorAffinity;
 use crate::lines::line::{OriginFoldedLine};
 
@@ -252,7 +251,7 @@ impl ScreenLines {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let Some(final_offset) = vl.visual_line.text_layout.phantom_text.final_col_of_merge_col(merge_col)? else {
+        let Some(final_offset) = vl.visual_line.final_col_of_merge_col(merge_col)? else {
             return Ok(None);
         };
         Ok(Some((vl, final_offset)))
@@ -268,10 +267,9 @@ impl ScreenLines {
         let Some((vl, final_offset)) = self.visual_line_info_of_buffer_offset(buffer_offset)? else {
             return Ok(None);
         };
-        let mut viewpport_point = hit_position_aff(
-            &vl.visual_line.text_layout.text,
+        let mut viewpport_point =vl.visual_line.hit_position_aff(
             final_offset,
-            true
+            CursorAffinity::Backward
         )
             .point;
 
@@ -292,10 +290,9 @@ impl ScreenLines {
         let Some((vl, final_offset)) = self.cursor_info_of_buffer_offset(buffer_offset, affinity)? else {
             return Ok(None);
         };
-        let mut viewpport_point = hit_position_aff(
-            &vl.visual_line.text_layout.text,
+        let mut viewpport_point = vl.visual_line.hit_position_aff(
             final_offset,
-            true
+            CursorAffinity::Backward
         )
             .point;
         viewpport_point.y = vl.folded_line_y;
@@ -311,7 +308,7 @@ impl ScreenLines {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let final_offset = vl.visual_line.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
+        let final_offset = vl.visual_line.cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
         Ok(Some((vl, final_offset)))
     }
 

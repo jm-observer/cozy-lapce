@@ -6,14 +6,17 @@ use std::{
     ops::AddAssign
 };
 
-use floem::kurbo::{Rect, Size, Vec2};
+use floem::kurbo::{Point, Rect, Size, Vec2};
+use floem::text::{HitPoint, HitPosition};
 use lapce_xi_rope::Interval;
-
+use smallvec::SmallVec;
+use crate::hit_position_aff;
 use super::layout::TextLayoutLine;
 use crate::lines::{
     cursor::CursorAffinity, delta_compute::Offset,
     phantom_text::PhantomTextLine, style::NewLineStyle
 };
+use crate::lines::phantom_text::Text;
 //
 // #[derive(Clone, Debug)]
 // pub struct OriginLine {
@@ -83,7 +86,7 @@ pub struct OriginFoldedLine {
     // [origin_line_start...origin_line_end]
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
-    pub text_layout:       TextLayoutLine,
+    text_layout:       TextLayoutLine,
     // 不易于更新迭代？
     pub semantic_styles:   Vec<NewLineStyle>,
     pub diagnostic_styles: Vec<NewLineStyle>,
@@ -135,20 +138,20 @@ impl OriginFoldedLine {
     //     offset_of_buffer
     // }
 
-    /// 求原始的行的偏移，最终出现在第几个视觉行，
-    /// 以及在视觉行的偏移位置，以及合并行的偏移位置
-    pub(crate) fn final_offset_of_line_and_offset(
-        &self,
-        origin_line: usize,
-        offset: usize,
-        _affinity: CursorAffinity
-    ) -> usize {
-        self.text_layout.phantom_text.final_col_of_col(
-            origin_line,
-            offset,
-            true
-        )
-    }
+    // /// 求原始的行的偏移，最终出现在第几个视觉行，
+    // /// 以及在视觉行的偏移位置，以及合并行的偏移位置
+    // pub(crate) fn final_offset_of_line_and_offset(
+    //     &self,
+    //     origin_line: usize,
+    //     offset: usize,
+    //     _affinity: CursorAffinity
+    // ) -> usize {
+    //     self.text_layout.phantom_text.final_col_of_col(
+    //         origin_line,
+    //         offset,
+    //         true
+    //     )
+    // }
 
     pub(crate) fn visual_offset_of_cursor_offset(
         &self,
@@ -191,14 +194,6 @@ impl OriginFoldedLine {
     //     }
     //     (sub_line_index, final_offset_line)
     // }
-
-    fn len(&self) -> usize {
-        self.text_layout.text.text_len
-    }
-
-    pub(crate) fn len_without_rn(&self, ) -> usize {
-        self.text_layout.text.text_len_without_rn
-    }
 
     pub fn is_last_char(&self, final_offset: usize, ) -> bool {
         final_offset >= self.text_layout.text.text_len_without_rn
@@ -243,6 +238,69 @@ impl OriginFoldedLine {
         } else {
             line_number
         })
+    }
+
+    pub fn size_width(&self) -> Size {
+        self.text_layout.text.size()
+    }
+
+    pub fn hit_position_aff(&self, col: usize, affinity: CursorAffinity) -> HitPosition {
+        hit_position_aff(
+            &self.text_layout.text,
+            col,
+            affinity == CursorAffinity::Backward
+        )
+    }
+
+    pub fn hit_point(&self, point: Point) -> HitPoint {
+        self.text_layout.text.hit_point(point)
+    }
+
+    pub fn text_of_final_col(&self, final_col: usize) -> &Text {
+        self.text_layout.phantom_text.text_of_final_col(final_col)
+    }
+
+    pub fn cursor_position_of_final_col(
+        &self,
+        final_col: usize
+    ) -> (usize, usize, usize, usize, CursorAffinity) {
+        self.text_layout.phantom_text.cursor_position_of_final_col(final_col)
+    }
+
+    pub fn buffer_offset_of_start_line(&self) -> usize {
+        self.text_layout.phantom_text.offset_of_line
+    }
+
+    pub fn text(&self) -> &SmallVec<[Text; 6]> {
+        &self.text_layout.phantom_text.text
+    }
+
+    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> anyhow::Result<usize> {
+        self.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)
+    }
+
+    pub fn final_col_of_merge_col(&self, merge_col: usize) -> anyhow::Result<Option<usize>> {
+        self.text_layout.phantom_text.final_col_of_merge_col(merge_col)
+    }
+
+    pub fn offset_of_line(&self) -> usize {
+        self.text_layout.phantom_text.offset_of_line
+    }
+
+    pub fn len(&self) -> usize {
+        self.text_layout.text.text_len
+    }
+
+    pub fn origin_text_len(&self) -> usize {
+        self.text_layout.phantom_text.origin_text_len
+    }
+
+    pub fn len_without_rn(&self, ) -> usize {
+        self.text_layout.text.text_len_without_rn
+    }
+
+    pub fn final_content(&self) -> &str {
+        self.text_layout.text.line().text()
     }
 }
 

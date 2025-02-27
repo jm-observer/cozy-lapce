@@ -10,8 +10,8 @@ use smallvec::SmallVec;
 }
 
 #[macro_export] macro_rules! check_line_final_col {
-    ($lines:expr, $rs:expr) => {
-        for text in &$lines.text {
+    ($text:expr, $rs:expr) => {
+        for text in $text {
         if let Text::Phantom { text } = text {
             assert_eq!(
                 text.text.as_str(),

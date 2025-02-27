@@ -34,7 +34,6 @@ use style::NewLineStyle;
 use crate::{
     DiagnosticData, EditorViewKind,
     config::EditorConfig,
-    hit_position_aff,
     lines::{
         action::UpdateFolding,
         buffer::{Buffer, InvalLines, rope_text::RopeText},
@@ -922,11 +921,10 @@ impl DocLines {
         point: Point
     ) -> Result<(usize, bool, CursorAffinity)> {
         let info = self.origin_folded_line_of_point(point.y).unwrap_or(self.origin_folded_lines.last().ok_or(anyhow!("origin_folded_lines last line is empty"))?);
-        let text_layout = &info.text_layout;
-        let hit_point = text_layout.text.hit_point(Point::new(point.x, 0.0));
+        let hit_point = info.hit_point(Point::new(point.x, 0.0));
 
         if hit_point.is_inside {
-            Ok(match text_layout.phantom_text.text_of_final_col(hit_point.index) {
+            Ok(match info.text_of_final_col(hit_point.index) {
                 Text::Phantom { text } => {
                     // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                     if hit_point.index > text.final_col + text.text.len() / 2 {
@@ -942,30 +940,28 @@ impl DocLines {
                     }
                 },
                 Text::OriginText { text } =>
-                    (hit_point.index - text.final_col.start + text.merge_col.start + text_layout.phantom_text.offset_of_line, true, CursorAffinity::Backward)
+                    (hit_point.index - text.final_col.start + text.merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
                 ,
                 Text::EmptyLine { .. } => {unreachable!()}
             })
         } else {
             // last of line
-            Ok(match text_layout
-                .phantom_text.text_of_final_col(hit_point.index) {
+            Ok(match info.text_of_final_col(hit_point.index) {
                 Text::Phantom { text } => {
                     (text.merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
                 }
                 Text::OriginText { .. } => {
                     // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
-                    if text_layout.text.text_len_without_rn == 0 {
-                        (text_layout.phantom_text.offset_of_line, false, CursorAffinity::Backward)
+                    if info.len_without_rn() == 0 {
+                        (info.offset_of_line(), false, CursorAffinity::Backward)
                     } else {
                         // 该返回\r的前一个字符，CursorAffinity::Forward
-                        let line_ending_len = text_layout.text.text_len - text_layout.text.text_len_without_rn;
+                        let line_ending_len = info.len() - info.len_without_rn();
                         if line_ending_len == 0 {
-                            (text_layout.phantom_text.offset_of_line + info.text_layout.phantom_text.origin_text_len - 1, false, CursorAffinity::Forward)
+                            (info.offset_of_line() + info.origin_text_len() - 1, false, CursorAffinity::Forward)
                         } else {
-                            (text_layout.phantom_text.offset_of_line + info.text_layout.phantom_text.origin_text_len - 1 - line_ending_len, false, CursorAffinity::Forward)
+                            (info.offset_of_line() + info.origin_text_len() - 1 - line_ending_len, false, CursorAffinity::Forward)
                         }
-
                     }
                     // (text.merge_col.end + text_layout.phantom_text.offset_of_line - 1, false, CursorAffinity::Forward)
                 }
@@ -985,15 +981,13 @@ impl DocLines {
         let Some(info) = self.origin_folded_line_of_point(point.y) else {
             return Ok(ClickResult::NoHintOrNothing)
         };
-        let text_layout =
-            &info.text_layout;
-        let y = text_layout
-            .get_layout_y(0)
-            .unwrap_or(0.0);
-        let hit_point = text_layout.text.hit_point(Point::new(point.x, y as f64));
+        // let y = text_layout
+        //     .get_layout_y(0)
+        //     .unwrap_or(0.0);
+        let hit_point = info.hit_point(point);
         Ok(
             if let Text::Phantom { text: phantom } =
-                text_layout.phantom_text.text_of_final_col(hit_point.index)
+                info.text_of_final_col(hit_point.index)
             {
                 let phantom_offset = hit_point.index - phantom.final_col;
                 if let PhantomTextKind::InlayHint = phantom.kind {
@@ -1145,7 +1139,7 @@ impl DocLines {
         // let offset_of_col = offset - start_offset_of_origin_line;
         let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
         let merge_offset = buffer_offset - folded_line.origin_interval.start;
-        let final_col = folded_line.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_offset, affinity)?;
+        let final_col = folded_line.cursor_final_col_of_merge_col(merge_offset, affinity)?;
 
         // let final_col = folded_line
         //     .final_offset_of_line_and_offset(origin_line, offset_of_col, affinity);
@@ -2127,7 +2121,7 @@ impl DocLines {
         let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
         let merge_col = buffer_offset - folded_line.origin_interval.start;
 
-        let mut iter = folded_line.text_layout.phantom_text.text.iter();
+        let mut iter = folded_line.text().iter();
         // find text_of_merge_col
         while let Some(text) = iter.next() {
             match text {
@@ -2141,7 +2135,7 @@ impl DocLines {
                             // next merge col
                             while let Some(text) = iter.next() {
                                 if let Text::OriginText { text } = text {
-                                    return Ok(Some((text.merge_col.start + folded_line.text_layout.phantom_text.offset_of_line + 1, CursorAffinity::Backward)));
+                                    return Ok(Some((text.merge_col.start + folded_line.offset_of_line() + 1, CursorAffinity::Backward)));
                                 }
                             }
                             // next line
@@ -2381,19 +2375,15 @@ impl DocLines {
     ) -> Result<(usize, CursorAffinity)> {
         Ok(match *horiz {
             ColPosition::Col(final_col) => {
-                let text_layout =
-                    &visual_line.text_layout;
-                let rs = text_layout.phantom_text.cursor_position_of_final_col(final_col);
+                let rs = visual_line.cursor_position_of_final_col(final_col);
                 (rs.3 + rs.1, rs.4)
             }
             ColPosition::End => (visual_line.len_without_rn(), CursorAffinity::Forward),
             ColPosition::Start => (0, CursorAffinity::Forward),
             ColPosition::FirstNonBlank => {
-                let text_layout =
-                    &visual_line.text_layout;
                 // ?
                 let Some(final_offset) =
-                    text_layout.text.line().text()
+                    visual_line.final_content()
                         .char_indices()
                         .find(|(_, c)| !c.is_whitespace())
                         .map(|(idx, _)| idx) else {
@@ -2504,15 +2494,13 @@ impl ComputeLines {
         affinity: CursorAffinity,
         _force_affinity: bool
     ) -> Option<Point> {
-        let text_layout = &self
+        let line = self
             .origin_folded_lines
-            .get(visual_line)?
-            .text_layout;
+            .get(visual_line)?;
         Some(
-            hit_position_aff(
-                &text_layout.text,
+            line.hit_position_aff(
                 col,
-                affinity == CursorAffinity::Backward
+                affinity
             )
             .point
         )
@@ -2531,10 +2519,9 @@ impl ComputeLines {
     ) -> Result<Point> {
         let (vl, offset_folded, ) =
             self.folded_line_of_offset(offset, affinity)?;
-        let mut point_of_document = hit_position_aff(
-            &vl.text_layout.text,
+        let mut point_of_document = vl.hit_position_aff(
             offset_folded,
-            true
+            affinity
         )
         .point;
         let line_height = self.line_height;
@@ -2693,8 +2680,8 @@ impl LinesOnUpdate {
     fn on_update_lines(&mut self) {
         self.max_width = 0.0;
         self.origin_folded_lines.iter().for_each(|x| {
-            if x.text_layout.text.size().width > self.max_width {
-                self.max_width = x.text_layout.text.size().width;
+            if x.size_width().width > self.max_width {
+                self.max_width = x.size_width().width;
             }
         });
 
