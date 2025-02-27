@@ -251,7 +251,7 @@ impl ScreenLines {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let Some(final_offset) = vl.visual_line.final_col_of_merge_col(merge_col)? else {
+        let Some(final_offset) = vl.visual_line.final_col_of_origin_merge_col(merge_col)? else {
             return Ok(None);
         };
         Ok(Some((vl, final_offset)))

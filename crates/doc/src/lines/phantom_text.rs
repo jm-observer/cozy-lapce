@@ -673,12 +673,12 @@ impl PhantomTextMultiLine {
         None
     }
 
-    pub fn final_col_of_merge_col(&self, merge_col: usize) -> Result<Option<usize>> {
-        let text = self.text_of_origin_merge_col(merge_col)?;
+    pub fn final_col_of_origin_merge_col(&self, origin_merge_col: usize) -> Result<Option<usize>> {
+        let text = self.text_of_origin_merge_col(origin_merge_col)?;
         Ok(match text {
             Text::Phantom { .. } => None,
             Text::OriginText { text } => {
-                Some(text.final_col.start + merge_col - text.visual_merge_col.start)
+                Some(text.final_col.start + origin_merge_col - text.origin_merge_col.start)
             },
             Text::EmptyLine { .. } => None
         })

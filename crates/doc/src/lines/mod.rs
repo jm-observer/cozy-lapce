@@ -789,8 +789,8 @@ impl DocLines {
                         start_of_buffer: start,
                         end_of_buffer: end,
                         fg_color: color,
-                        folded_line_offset_start: start - line_start,
-                        folded_line_offset_end: end - line_start
+                        // folded_line_offset_start: start - line_start,
+                        // folded_line_offset_end: end - line_start
                     })
                 } else {
                     None
@@ -1841,17 +1841,14 @@ impl DocLines {
         attrs: Attrs
     ) {
         for NewLineStyle {
-            origin_line_offset_start,
-            len,
-            fg_color,
+            fg_color, start_of_buffer, end_of_buffer,
             ..
         } in semantic_styles.iter()
         {
-
-            let origin_line_offset_end =*origin_line_offset_start + *len;
+            let origin_line_offset_end =*end_of_buffer - phantom_text.offset_of_line;
             match (
-                phantom_text.final_col_of_merge_col(*origin_line_offset_start),
-                phantom_text.final_col_of_merge_col(origin_line_offset_end)) {
+                phantom_text.final_col_of_origin_merge_col(*start_of_buffer - phantom_text.offset_of_line),
+                phantom_text.final_col_of_origin_merge_col(origin_line_offset_end)) {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     attrs_list.add_span(start..end, attrs.color(*fg_color));
                 },
@@ -1886,20 +1883,16 @@ impl DocLines {
     ) {
         let layout = &layout_line.text;
         let phantom_text = &layout_line.phantom_text;
+
         // 暂不考虑
         for NewLineStyle {
-            origin_line_offset_start: start,
-            len,
-            fg_color,
+            fg_color, start_of_buffer, end_of_buffer,
             ..
         } in line_styles
         {
-            // warn!("line={} start={start}, end={end},
-            // color={color:?}", phantom_text.line);
-            // col_at(end)可以为空，因为end是不包含的
             match (
-                phantom_text.final_col_of_merge_col(*start),
-                phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)) {
+                phantom_text.final_col_of_origin_merge_col(*start_of_buffer - phantom_text.offset_of_line),
+                phantom_text.final_col_of_origin_merge_col(*end_of_buffer - phantom_text.offset_of_line)) {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     let styles = util::extra_styles_for_range(
                         layout,
@@ -2091,8 +2084,8 @@ impl DocLines {
                                     start_of_buffer: start_offset,
                                     end_of_buffer: end_offset,
                                     fg_color: color,
-                                    folded_line_offset_start: start - start_offset,
-                                    folded_line_offset_end: end - start_offset
+                                    // folded_line_offset_start: start - start_offset,
+                                    // folded_line_offset_end: end - start_offset
                                 })
                             } else {
                                 None

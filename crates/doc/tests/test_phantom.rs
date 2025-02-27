@@ -463,31 +463,31 @@ fn _check_col_at() {
     {
         let index = 35;
         assert_eq!(orgin_text[index], '\n');
-        assert_eq!(line.final_col_of_merge_col(index).unwrap(), Some(29));
+        assert_eq!(line.final_col_of_origin_merge_col(index).unwrap(), Some(29));
     }
     {
         let index = 26;
         assert_eq!(orgin_text[index], '{');
-        assert_eq!(line.final_col_of_merge_col(index).unwrap(), None);
+        assert_eq!(line.final_col_of_origin_merge_col(index).unwrap(), None);
     }
     {
         let index = 22;
         assert_eq!(orgin_text[index], 'l');
-        assert_eq!(line.final_col_of_merge_col(index).unwrap(), Some(19));
+        assert_eq!(line.final_col_of_origin_merge_col(index).unwrap(), Some(19));
     }
     {
         assert_eq!(orgin_text[9], 'u');
-        assert_eq!(line.final_col_of_merge_col(9).unwrap(), Some(9));
+        assert_eq!(line.final_col_of_origin_merge_col(9).unwrap(), Some(9));
     }
     {
         let index = 12;
         assert_eq!(orgin_text[index], '{');
-        assert_eq!(line.final_col_of_merge_col(index).unwrap(), None);
+        assert_eq!(line.final_col_of_origin_merge_col(index).unwrap(), None);
     }
     {
         let index = 19;
         assert_eq!(orgin_text[index], '}');
-        assert_eq!(line.final_col_of_merge_col(index).unwrap(), None);
+        assert_eq!(line.final_col_of_origin_merge_col(index).unwrap(), None);
     }
 }
 

@@ -305,8 +305,8 @@ impl OriginFoldedLine {
         self.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)
     }
 
-    pub fn final_col_of_merge_col(&self, merge_col: usize) -> anyhow::Result<Option<usize>> {
-        self.text_layout.phantom_text.final_col_of_merge_col(merge_col)
+    pub fn final_col_of_origin_merge_col(&self, merge_col: usize) -> anyhow::Result<Option<usize>> {
+        self.text_layout.phantom_text.final_col_of_origin_merge_col(merge_col)
     }
 
     pub fn offset_of_line(&self) -> usize {
