@@ -641,18 +641,28 @@ impl MainSplitData {
                     )
                 });
 
-
-            let lines = tab
+            let line_index = tab
                 .editor
                 .doc()
-                .lines
-                .lines_of_origin_offset(cursor.offset())?;
-            if min_visual_line <= lines.origin_folded_line.line_index
-                && lines.origin_folded_line.line_index
+                .lines.with_untracked(|x| {
+                let rs = x.folded_line_of_buffer_offset(cursor.offset()).map(|x| x.line_index);
+                if rs.is_err() {
+                    x.log();
+                }
+                rs
+            })?;
+
+            // let lines = tab
+            //     .editor
+            //     .doc()
+            //     .lines
+            //     .lines_of_origin_offset(cursor.offset())?;
+            if min_visual_line <= line_index
+                && line_index
                     <= max_visual_line
             {
                 off_top_line = Some(
-                    lines.origin_folded_line.line_index
+                    line_index
                         - min_visual_line
                 );
             }

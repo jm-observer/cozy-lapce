@@ -424,8 +424,14 @@ impl Editor {
                     return;
                 }
             };
-        let lines = match self.doc().lines.lines_of_origin_offset(mouse_offset) {
-            Ok(lines) => lines,
+        let origin_interval = match self.doc().lines.with_untracked(|x| {
+            let rs = x.folded_line_of_buffer_offset(mouse_offset).map(|x| x.origin_interval);
+            if rs.is_err() {
+                x.log();
+            }
+            rs
+        }) {
+            Ok(origin_interval) => origin_interval,
             Err(err) => {
                 error!("{}", err);
                 return;
@@ -437,8 +443,8 @@ impl Editor {
 
         self.cursor.update(|cursor| {
             cursor.add_region(
-                lines.origin_folded_line.origin_interval.start,
-                lines.origin_folded_line.origin_interval.end,
+                origin_interval.start,
+                origin_interval.end,
                 pointer_event.modifiers.shift(),
                 pointer_event.modifiers.alt()
             )

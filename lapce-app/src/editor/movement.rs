@@ -1,6 +1,6 @@
 //! Movement logic for the editor.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use doc::lines::{
     buffer::rope_text::{RopeText},
     command::MultiSelectionCommand,
@@ -463,8 +463,14 @@ fn start_of_line(
     _affinity: &mut CursorAffinity,
     offset: usize
 ) -> Result<(usize, ColPosition)> {
-    let lines = view.doc().lines.lines_of_origin_offset(offset)?;
-    Ok((lines.origin_line.start_offset, ColPosition::Start))
+    let start_offset = view.doc().lines.with_untracked(|x| {
+        let origin_line = x.buffer().line_of_offset(offset);
+        x
+            .origin_lines
+            .get(origin_line)
+            .ok_or(anyhow!("origin_line is empty")).map(|x| x.start_offset)
+        })?;
+    Ok((start_offset, ColPosition::Start))
 }
 
 fn end_of_line(

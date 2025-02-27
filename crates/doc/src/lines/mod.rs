@@ -163,18 +163,6 @@ impl DocLinesManager {
         batch(|| self.lines.try_update(f))
     }
 
-    pub fn lines_of_origin_offset(
-        &self,
-        buffer_offset: usize
-    ) -> Result<LinesOfOriginOffset> {
-        self.with_untracked(|x| {
-            let rs = x.lines_of_origin_offset(buffer_offset);
-            if rs.is_err() {
-                x.log();
-            }
-            rs
-        })
-    }
 }
 
 #[derive(Clone)]
@@ -1052,45 +1040,45 @@ impl DocLines {
     }
 
     /// 原始位移字符所在的行信息（折叠行、原始行、视觉行）
-    pub fn lines_of_origin_offset(
-        &self,
-        buffer_offset: usize
-    ) -> Result<LinesOfOriginOffset> {
-        // 位于的原始行，以及在原始行的起始offset
-        let origin_line = self.buffer().line_of_offset(buffer_offset);
-        let origin_line = self
-            .origin_lines
-            .get(origin_line)
-            .ok_or(anyhow!("origin_line is empty"))?
-            .clone();
-        let offset = buffer_offset - origin_line.start_offset;
-        let folded_line = self.folded_line_of_origin_line(origin_line.line_index)?;
-        let origin_folded_line_offset = folded_line
-            .text_layout
-            .phantom_text
-            .final_col_of_col(origin_line.line_index, offset, false);
-        let folded_line_layout = folded_line.text_layout.text.line_layout();
-        let mut visual_line_offset = origin_folded_line_offset;
-        for sub_line in folded_line_layout.iter() {
-            if visual_line_offset < sub_line.glyphs.len() {
-                break;
-            } else {
-                visual_line_offset -= sub_line.glyphs.len();
-            }
-        }
-        // let visual_line = self.visual_line_of_folded_line_and_sub_index(
-        //     folded_line.line_index,
-        //     sub_line_index
-        // )?;
-        Ok(LinesOfOriginOffset {
-            origin_offset: 0,
-            origin_line,
-            origin_folded_line: folded_line.clone(),
-            origin_folded_line_offest: 0,
-            // visual_line: visual_line.clone(),
-            // visual_line_offest: 0
-        })
-    }
+    // pub fn lines_of_origin_offset(
+    //     &self,
+    //     buffer_offset: usize
+    // ) -> Result<LinesOfOriginOffset> {
+    //     // 位于的原始行，以及在原始行的起始offset
+    //     let origin_line = self.buffer().line_of_offset(buffer_offset);
+    //     let origin_line = self
+    //         .origin_lines
+    //         .get(origin_line)
+    //         .ok_or(anyhow!("origin_line is empty"))?
+    //         .clone();
+    //     let offset = buffer_offset - origin_line.start_offset;
+    //     let folded_line = self.folded_line_of_origin_line(origin_line.line_index)?;
+    //     let origin_folded_line_offset = folded_line
+    //         .text_layout
+    //         .phantom_text
+    //         .final_col_of_col(origin_line.line_index, offset, false);
+    //     let folded_line_layout = folded_line.text_layout.text.line_layout();
+    //     let mut visual_line_offset = origin_folded_line_offset;
+    //     for sub_line in folded_line_layout.iter() {
+    //         if visual_line_offset < sub_line.glyphs.len() {
+    //             break;
+    //         } else {
+    //             visual_line_offset -= sub_line.glyphs.len();
+    //         }
+    //     }
+    //     // let visual_line = self.visual_line_of_folded_line_and_sub_index(
+    //     //     folded_line.line_index,
+    //     //     sub_line_index
+    //     // )?;
+    //     Ok(LinesOfOriginOffset {
+    //         origin_offset: 0,
+    //         origin_line,
+    //         origin_folded_line: folded_line.clone(),
+    //         origin_folded_line_offest: 0,
+    //         // visual_line: visual_line.clone(),
+    //         // visual_line_offest: 0
+    //     })
+    // }
 
     // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
     // ///
