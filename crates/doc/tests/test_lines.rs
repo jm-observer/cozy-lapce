@@ -155,9 +155,15 @@ fn test_buffer_offset_of_click() -> Result<()> {
         let point = Point::new(176.7, 25.0);
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
-        assert_eq!(offset_of_buffer, 16);
+        // 16
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '{');
         assert_eq!(is_inside, false);
         assert_eq!(affinity, CursorAffinity::Forward);
+
+        let (visual_line, final_col, ..) =
+            lines.folded_line_of_offset(offset_of_buffer, affinity)?;
+        // let info = lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        assert_eq!(final_col, 15);
     }
 
     // (line_index=7 offset with \r\n [115, 135))

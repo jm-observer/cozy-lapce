@@ -40,10 +40,14 @@ use floem::{
         stack, text_input
     }
 };
+use floem::text::AttrsList;
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
+use doc::lines::buffer::rope_text::RopeText;
 use doc::lines::cursor::CursorAffinity;
+use doc::lines::layout::TextLayout;
+use doc::lines::line_ending::LineEnding;
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
@@ -609,24 +613,36 @@ impl EditorView {
         } else {
             0.0
         };
-
         // Clear background
+        // let area_height = sticky_header_info
+        //     .sticky_lines
+        //     .iter()
+        //     .copied()
+        //     .map(
+        //         |line| match self.editor.editor.text_layout_of_visual_line(line) {
+        //             Ok(layout) => layout.line_count() * line_height,
+        //             Err(err) => {
+        //                 error!("{:?}", err);
+        //                 0
+        //             }
+        //         }
+        //     )
+        //     .sum::<usize>() as f64
+        //     - scroll_offset;
 
-        let area_height = sticky_header_info
-            .sticky_lines
-            .iter()
-            .copied()
-            .map(
-                |line| match self.editor.editor.text_layout_of_visual_line(line) {
-                    Ok(layout) => layout.line_count() * line_height,
+        let sticky_lines = sticky_header_info.sticky_lines.clone();
+        let (attrs, line_height, line_ending, sticky_lines): (AttrsList, usize, LineEnding, Vec<(usize, String)>) = self.editor.editor.doc().lines.with_untracked(|lines| {
+            (lines.init_default_attrs_list(), lines.line_height, lines.buffer().line_ending(), sticky_lines.into_iter().filter_map(|line| {
+                match lines.buffer().line_content(line) {
+                    Ok(content) => {Some((line, content.to_string()))}
                     Err(err) => {
-                        error!("{:?}", err);
-                        0
+                        error!("{}", err);
+                        None
                     }
                 }
-            )
-            .sum::<usize>() as f64
-            - scroll_offset;
+            }).collect())
+        });
+        let area_height = (sticky_lines.len() * line_height) as f64 - scroll_offset;
 
         let sticky_area_rect = Size::new(viewport.x1, area_height)
             .to_rect()
@@ -642,18 +658,20 @@ impl EditorView {
         self.editor.sticky_header_info.get_untracked();
         // Paint lines
         let mut y_accum = 0.0;
-        for (i, line) in sticky_header_info.sticky_lines.iter().copied().enumerate()
+
+        let line_ending_str  = line_ending.get_chars();
+        let line_height = line_height as f64;
+        for (i, (line, content)) in sticky_lines.into_iter().enumerate()
         {
             let y_diff = if i == total_sticky_lines - 1 {
                 scroll_offset
             } else {
                 0.0
             };
-
-            let text_layout = self.editor.editor.text_layout_of_visual_line(line)?;
-
-            let text_height = (text_layout.line_count() * line_height) as f64;
-            let height = text_height - y_diff;
+            let text = TextLayout::new(content, attrs.clone(), line_ending_str);
+            // let text_layout = self.editor.editor.text_layout_of_visual_line(line)?;
+            // let text_height = (text_layout.line_count() * line_height) as f64;
+            let height = line_height - y_diff;
 
             cx.save();
 
@@ -665,11 +683,11 @@ impl EditorView {
 
             let y = viewport.y0 - y_diff + y_accum;
             cx.draw_text_with_layout(
-                text_layout.text.layout_runs(),
+                text.layout_runs(),
                 Point::new(viewport.x0, y)
             );
 
-            y_accum += text_height;
+            y_accum += line_height;
 
             cx.restore();
         }
@@ -1085,26 +1103,29 @@ fn get_sticky_header_info(
     //     0.0
     // };
 
-    let sticky_header_height = sticky_lines
-        .iter()
-        // .enumerate()
-        .map(|line| {
-            // TODO(question): won't y_diff always be scroll_offset here? so we should just sub on
-            // the outside
-            // let y_diff = if i == total_sticky_lines - 1 {
-            //     scroll_offset
-            // } else {
-            //     0.0
-            // };
-            match editor.text_layout_of_visual_line(*line) {
-                Ok(layout) => { layout.line_count() as f64 * line_height }
-                Err(err) => {
-                    error!("{:?}", err);
-                    0.0
-                }
-            }
-        })
-        .sum();
+    // let sticky_header_height = sticky_lines
+    //     .iter()
+    //     // .enumerate()
+    //     .map(|line| {
+    //         // TODO(question): won't y_diff always be scroll_offset here? so we should just sub on
+    //         // the outside
+    //         // let y_diff = if i == total_sticky_lines - 1 {
+    //         //     scroll_offset
+    //         // } else {
+    //         //     0.0
+    //         // };
+    //         match editor.text_layout_of_visual_line(*line) {
+    //             Ok(layout) => { layout.line_count() as f64 * line_height }
+    //             Err(err) => {
+    //                 error!("{:?}", err);
+    //                 0.0
+    //             }
+    //         }
+    //     })
+    //     .sum();
+
+    let sticky_header_height = sticky_lines.len() as f64 * line_height;
+
     // info!(
     //     "sticky_header_height={sticky_header_height} len={} y_diff={y_diff}
     // last_sticky_should_scroll={last_sticky_should_scroll}",     sticky_lines.

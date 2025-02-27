@@ -160,7 +160,7 @@ impl TextLayoutLine {
     }
 }
 
-#[allow(dead_code)]
+
 #[derive(Debug)]
 pub struct TextLayout {
     // only for tracing

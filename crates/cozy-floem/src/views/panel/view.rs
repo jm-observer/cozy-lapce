@@ -88,7 +88,7 @@ pub fn panel(doc: DocManager) -> impl View {
         })
 }
 
-#[allow(dead_code)]
+
 pub struct Panel {
     pub id:         ViewId,
     pub inner_node: Option<NodeId>,

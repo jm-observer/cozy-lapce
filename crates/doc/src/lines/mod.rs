@@ -165,10 +165,10 @@ impl DocLinesManager {
 
     pub fn lines_of_origin_offset(
         &self,
-        origin_offset: usize
+        buffer_offset: usize
     ) -> Result<LinesOfOriginOffset> {
         self.with_untracked(|x| {
-            let rs = x.lines_of_origin_offset(origin_offset);
+            let rs = x.lines_of_origin_offset(buffer_offset);
             if rs.is_err() {
                 x.log();
             }
@@ -827,19 +827,19 @@ impl DocLines {
     //     )
     // }
 
-    pub fn text_layout_of_visual_line(
-        &self,
-        line: usize
-    ) -> Result<&TextLayoutLine> {
-        Ok(
-            &self
-                .origin_folded_lines
-                .get(line).ok_or(anyhow!("text layout empty)"))?.text_layout
-        )
-        //
-        // self._text_layout_of_visual_line(line)
-        //     .ok_or(anyhow!("text layout empty)"))
-    }
+    // pub fn text_layout_of_visual_line(
+    //     &self,
+    //     line: usize
+    // ) -> Result<&TextLayoutLine> {
+    //     Ok(
+    //         &self
+    //             .origin_folded_lines
+    //             .get(line).ok_or(anyhow!("text layout empty)"))?.text_layout
+    //     )
+    //     //
+    //     // self._text_layout_of_visual_line(line)
+    //     //     .ok_or(anyhow!("text layout empty)"))
+    // }
 
     // // 原始行的第一个视觉行。原始行可能会有多个视觉行
     // pub fn start_visual_line_of_origin_line(
@@ -1054,16 +1054,16 @@ impl DocLines {
     /// 原始位移字符所在的行信息（折叠行、原始行、视觉行）
     pub fn lines_of_origin_offset(
         &self,
-        origin_offset: usize
+        buffer_offset: usize
     ) -> Result<LinesOfOriginOffset> {
         // 位于的原始行，以及在原始行的起始offset
-        let origin_line = self.buffer().line_of_offset(origin_offset);
+        let origin_line = self.buffer().line_of_offset(buffer_offset);
         let origin_line = self
             .origin_lines
             .get(origin_line)
             .ok_or(anyhow!("origin_line is empty"))?
             .clone();
-        let offset = origin_offset - origin_line.start_offset;
+        let offset = buffer_offset - origin_line.start_offset;
         let folded_line = self.folded_line_of_origin_line(origin_line.line_index)?;
         let origin_folded_line_offset = folded_line
             .text_layout
@@ -1092,51 +1092,51 @@ impl DocLines {
         })
     }
 
-    /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
-    ///
-    /// return (OriginFoldedLine, final col)
-    pub fn previous_visual_line(
-        &self,
-        visual_line_index: usize,
-        line_offset: usize,
-        _affinity: CursorAffinity
-    ) -> Option<(&OriginFoldedLine, usize, usize)> {
-        let line = self
-            .origin_folded_lines
-            .get(visual_line_index)?;
-        let (_origin_line, _origin_col, final_col, _offset_buffer, _) =
-            line.text_layout
-            .phantom_text
-            .cursor_position_of_final_col(line_offset);
-        // let last_char = line.is_last_char(offset_line, self.buffer().line_ending());
+    // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    // ///
+    // /// return (OriginFoldedLine, final col)
+    // pub fn previous_visual_line(
+    //     &self,
+    //     visual_line_index: usize,
+    //     line_offset: usize,
+    //     _affinity: CursorAffinity
+    // ) -> Option<(&OriginFoldedLine, usize, usize)> {
+    //     let line = self
+    //         .origin_folded_lines
+    //         .get(visual_line_index)?;
+    //     let (_origin_line, _origin_col, final_col, _offset_buffer, _) =
+    //         line.text_layout
+    //         .phantom_text
+    //         .cursor_position_of_final_col(line_offset);
+    //     // let last_char = line.is_last_char(offset_line, self.buffer().line_ending());
+    //
+    //     Some((
+    //         line,
+    //         final_col, _offset_buffer
+    //     ))
+    // }
 
-        Some((
-            line,
-            final_col, _offset_buffer
-        ))
-    }
-
-    /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
-    ///
-    /// return (&OriginFoldedLine, final col, offset of buffer)
-    pub fn next_visual_line(
-        &self,
-        visual_line_index: usize,
-        final_cal: usize,
-        _affinity: CursorAffinity
-    ) -> Option<(&OriginFoldedLine, usize, usize)> {
-        let next_line = self.origin_folded_lines.get(visual_line_index + 1)?;
-        let (_origin_line, _offset_line, final_col, _offset_buffer, _) = next_line
-            .text_layout
-            .phantom_text
-            .cursor_position_of_final_col(final_cal);
-        // let last_char = next_line.is_last_char(offset_line, self.buffer().line_ending());
-        Some((
-            next_line,
-            final_col,
-            _offset_buffer
-        ))
-    }
+    // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
+    // ///
+    // /// return (&OriginFoldedLine, final col, offset of buffer)
+    // pub fn next_visual_line(
+    //     &self,
+    //     visual_line_index: usize,
+    //     final_cal: usize,
+    //     _affinity: CursorAffinity
+    // ) -> Option<(&OriginFoldedLine, usize, usize)> {
+    //     let next_line = self.origin_folded_lines.get(visual_line_index + 1)?;
+    //     let (_origin_line, _offset_line, final_col, _offset_buffer, _) = next_line
+    //         .text_layout
+    //         .phantom_text
+    //         .cursor_position_of_final_col(final_cal);
+    //     // let last_char = next_line.is_last_char(offset_line, self.buffer().line_ending());
+    //     Some((
+    //         next_line,
+    //         final_col,
+    //         _offset_buffer
+    //     ))
+    // }
 
     /// 原始位移字符所在的合并行的偏移位置和是否是最后一个字符，point
     ///
@@ -2392,18 +2392,6 @@ impl DocLines {
             ColPosition::Col(final_col) => {
                 let text_layout =
                     &visual_line.text_layout;
-                // let y_pos = text_layout
-                //     .text
-                //     .layout_runs()
-                //     .nth(0)
-                //     .map(|run| run.line_y)
-                //     .or_else(|| {
-                //         text_layout.text.layout_runs().last().map(|run| run.line_y)
-                //     })
-                //     .unwrap_or(0.0);
-                // let hit_point =
-                //     text_layout.text.hit_point(Point::new(final_col, y_pos as f64));
-                // let n = hit_point.index;
                 let rs = text_layout.phantom_text.cursor_position_of_final_col(final_col);
                 (rs.3 + rs.1, rs.4)
             }
@@ -3438,11 +3426,11 @@ impl LinesEditorStyle {
     }
 }
 
-#[allow(dead_code)]
+
 /// 以界面为单位，进行触发。
 type LinesSignals = DocLines;
 
-#[allow(dead_code)]
+
 /// 以界面为单位，进行触发。
 impl LinesSignals {
 

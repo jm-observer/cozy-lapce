@@ -1,4 +1,4 @@
-use log::info;
+use log::{debug, info};
 use smallvec::SmallVec;
 use doc::lines::cursor::CursorAffinity;
 use doc::lines::phantom_text::{PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text, combine_with_text};
@@ -14,7 +14,7 @@ fn test_folded_line_1() {
     _lines.update_folding_ranges(folded_v1().into()).unwrap();
     // _lines.update_folding_ranges(folded_v2().into()).unwrap();
     {
-        let text_layout = _lines.text_layout_of_visual_line(1).unwrap();
+        let text_layout = &_lines.folded_line_of_origin_line(1).unwrap().text_layout;
         check_lines_col!(
             &text_layout.phantom_text.text,
             text_layout.phantom_text.final_text_len,
@@ -27,11 +27,11 @@ fn test_folded_line_1() {
         );
     }
     {
-        // let let_line = &_lines.visual_lines[4];
-        // debug!("{:?}", let_line);
         let expect_str = "    let a: A  = A;\r\n";
-        let text_layout = _lines.text_layout_of_visual_line(4).unwrap();
-
+        let text_layout = &_lines.folded_line_of_origin_line(6).unwrap().text_layout;
+        // print_line(&text_layout.phantom_text);
+        _lines.log();
+        debug!("{:?}", text_layout.phantom_text);
         check_lines_col!(
             &text_layout.phantom_text.text,
             text_layout.phantom_text.final_text_len,
@@ -48,7 +48,7 @@ fn test_folded_line_1_5() {
     _lines.update_folding_ranges(folded_v1().into()).unwrap();
     _lines.update_folding_ranges(folded_v2().into()).unwrap();
     {
-        let text_layout = _lines.text_layout_of_visual_line(1).unwrap();
+        let text_layout = &_lines.folded_line_of_origin_line(1).unwrap().text_layout;
         check_lines_col!(
             &text_layout.phantom_text.text,
             text_layout.phantom_text.final_text_len,
@@ -360,10 +360,11 @@ fn check_empty_origin_position_of_final_col() {
 }
 
 fn _check_empty_origin_position_of_final_col() {
-    let line = PhantomTextMultiLine::new(empty_data());
+    let mut _lines = init_main_2().unwrap();
+    let line = _lines.folded_line_of_origin_line(28).unwrap();
     info!("{:?}", line);
     {
-        assert_eq!(line.cursor_position_of_final_col(9), (6, 0, 0, 0, CursorAffinity::Backward));
+        assert_eq!(line.text_layout.phantom_text.cursor_position_of_final_col(9), (28, 0, 0, 461, CursorAffinity::Backward));
     }
 }
 
@@ -401,7 +402,7 @@ fn _check_folded_origin_position_of_final_col() {
         assert_eq!(orgin_text[index], '{');
         assert_eq!(
             line.cursor_position_of_final_col(index),
-            (1, 15, 0, 0, CursorAffinity::Backward));
+            (1, 15, 12, 0, CursorAffinity::Backward));
     }
     // "0         10        20        30
     // "0123456789012345678901234567890123456789
@@ -409,19 +410,19 @@ fn _check_folded_origin_position_of_final_col() {
     {
         let index = 19;
         assert_eq!(orgin_text[index], 'l');
-        assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 0, 0, CursorAffinity::Backward));
+        assert_eq!(line.cursor_position_of_final_col(index), (3, 7, 19, 0, CursorAffinity::Backward));
     }
     {
         let index = 25;
         assert_eq!(orgin_text[index], '.');
         assert_eq!(
             line.cursor_position_of_final_col(index),
-            (3, 14, 0, 0, CursorAffinity::Backward));
+            (3, 14, 23, 0, CursorAffinity::Backward));
     }
     {
-        let index = 29;
-        assert_eq!(orgin_text[index], '\n');
-        assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 0, 0, CursorAffinity::Backward));
+        let index = 28;
+        assert_eq!(orgin_text[index], '\r');
+        assert_eq!(line.cursor_position_of_final_col(index), (5, 6, 27, 0, CursorAffinity::Forward));
     }
 
     {
@@ -618,6 +619,7 @@ fn get_merged_data() -> PhantomTextMultiLine {
     lines
 }
 
+
 fn print_line(lines: &PhantomTextMultiLine) {
     println!(
         "PhantomTextLine line={} origin_text_len={} final_text_len={}",
@@ -627,7 +629,7 @@ fn print_line(lines: &PhantomTextMultiLine) {
         match text {
             Text::Phantom { text } => {
                 println!(
-                    "Phantom {:?} line={} col={} merge_col={} final_col={} \
+                    "\tPhantom {:?} line={} col={} merge_col={} final_col={} \
                          text={} text.len()={}",
                     text.kind,
                     text.line,
@@ -640,12 +642,12 @@ fn print_line(lines: &PhantomTextMultiLine) {
             },
             Text::OriginText { text } => {
                 println!(
-                    "OriginText line={} col={:?} merge_col={:?} final_col={:?}",
+                    "\tOriginText line={} col={:?} merge_col={:?} final_col={:?}",
                     text.line, text.col, text.merge_col, text.final_col
                 );
             },
             Text::EmptyLine { .. } => {
-                println!("Empty");
+                println!("\tEmpty");
             }
         }
     }

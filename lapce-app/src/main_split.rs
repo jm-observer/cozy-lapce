@@ -640,6 +640,8 @@ impl MainSplitData {
                         x.visual_lines[x.visual_lines.len() - 1].visual_line.line_index
                     )
                 });
+
+
             let lines = tab
                 .editor
                 .doc()

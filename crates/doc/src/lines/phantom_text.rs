@@ -409,10 +409,10 @@ impl PhantomTextMultiLine {
         //     line.final_text_len
         // ));
 
-        let merge_offset = line.offset_of_line - self.offset_of_line;
+        let merge_offset = self.origin_text_len;
 
         // let origin_text_len = self.origin_text_len;
-        self.origin_text_len = merge_offset + line.origin_text_len;
+        self.origin_text_len = self.origin_text_len + line.origin_text_len;
         let final_text_len = self.final_text_len;
         self.final_text_len += line.final_text_len;
         for phantom in line.texts.clone() {
@@ -539,7 +539,7 @@ impl PhantomTextMultiLine {
             .unwrap()
     }
 
-    #[allow(dead_code)]
+
     fn text_of_origin_col(
         &self,
         origin_line: usize,
@@ -810,7 +810,7 @@ impl PhantomTextMultiLine {
                 text.origin_col_of_final_col(visual_char_offset),
                 visual_char_offset,
                 self.offset_of_line,
-                CursorAffinity::Forward
+                CursorAffinity::Backward
             ),
             Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
         }

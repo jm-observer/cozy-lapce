@@ -1107,12 +1107,12 @@ impl Editor {
     //     self.rope_text().move_left(offset, mode, count)
     // }
 
-    /// ~~视觉~~行的text_layout信息
-    pub fn text_layout_of_visual_line(&self, line: usize) -> Result<TextLayoutLine> {
-        self.doc()
-            .lines
-            .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
-    }
+    // /// ~~视觉~~行的text_layout信息
+    // pub fn text_layout_of_visual_line(&self, line: usize) -> Result<TextLayoutLine> {
+    //     self.doc()
+    //         .lines
+    //         .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
+    // }
 
     pub fn viewport_untracked(&self) -> Rect {
         self.viewport.get_untracked()

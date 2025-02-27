@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use anyhow::Result;
-use floem::text::{Attrs, FamilyOwned, LineHeightValue};
+use floem::text::{Attrs, AttrsList, FamilyOwned, LineHeightValue};
 use lapce_xi_rope::Interval;
 use log::{debug, error};
 
@@ -209,6 +209,15 @@ impl DocLines {
             .family(family)
             .font_size(font_size as f32)
             .line_height(LineHeightValue::Px(self.line_height as f32))
+    }
+
+    pub fn init_default_attrs_list(
+        &self,
+    ) -> AttrsList {
+        let family =
+            Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
+        let attrs = self.init_attrs_with_color(&family);
+        AttrsList::new(attrs)
     }
 
     pub fn init_all_origin_folded_line_new(

@@ -14,7 +14,7 @@ use crate::lines::{
     cursor::CursorAffinity, delta_compute::Offset,
     phantom_text::PhantomTextLine, style::NewLineStyle
 };
-// #[allow(dead_code)]
+//
 // #[derive(Clone, Debug)]
 // pub struct OriginLine {
 //     pub line_index: usize,
@@ -23,7 +23,7 @@ use crate::lines::{
 //     pub fg_styles: Vec<(usize, usize, Color)>
 // }
 
-#[allow(dead_code)]
+
 #[derive(Clone, Debug)]
 pub struct OriginLine {
     pub line_index:        usize,
@@ -74,7 +74,7 @@ impl OriginLine {
     }
 }
 
-#[allow(dead_code)]
+
 #[derive(Clone)]
 pub struct OriginFoldedLine {
     pub line_index:        usize,
@@ -89,7 +89,7 @@ pub struct OriginFoldedLine {
     pub diagnostic_styles: Vec<NewLineStyle>,
 }
 
-#[allow(dead_code)]
+
 impl OriginFoldedLine {
     pub fn adjust(
         &self,
