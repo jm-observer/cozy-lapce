@@ -11,7 +11,7 @@ use floem::text::{HitPoint, HitPosition};
 use lapce_xi_rope::Interval;
 use smallvec::SmallVec;
 use crate::hit_position_aff;
-use super::layout::TextLayoutLine;
+use super::layout::{LayoutRunIter, LineExtraStyle, TextLayoutLine};
 use crate::lines::{
     cursor::CursorAffinity, delta_compute::Offset,
     phantom_text::PhantomTextLine, style::NewLineStyle
@@ -257,14 +257,40 @@ impl OriginFoldedLine {
     }
 
     pub fn text_of_final_col(&self, final_col: usize) -> &Text {
-        self.text_layout.phantom_text.text_of_final_col(final_col)
+        self.text_layout.phantom_text.text_of_final_col_even_overflow(final_col)
     }
 
     pub fn cursor_position_of_final_col(
         &self,
         final_col: usize
-    ) -> (usize, usize, usize, usize, CursorAffinity) {
-        self.text_layout.phantom_text.cursor_position_of_final_col(final_col)
+    ) -> (usize, CursorAffinity) {
+        match self.text_layout.phantom_text.text_of_final_col_even_overflow(final_col) {
+            Text::Phantom { text } => {
+                // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+                if final_col > text.final_col + text.text.len() / 2 {
+                    (
+                        text.merge_col + self.offset_of_line(),
+                        CursorAffinity::Forward
+                    )
+                } else {
+                    (
+                        text.merge_col + self.offset_of_line(),
+                        CursorAffinity::Backward
+                    )
+                }
+            },
+            Text::OriginText { text } => {
+                let merge_col = (final_col - text.final_col.start + text.merge_col.start).min(self.len_without_rn());
+                (
+                    // text.line,
+                    // text.origin_col_of_final_col(visual_char_offset),
+                    // visual_char_offset,
+                    self.offset_of_line() + merge_col,
+                    CursorAffinity::Backward
+                )
+            },
+            Text::EmptyLine { text } => (text.offset_of_line, CursorAffinity::Backward)
+        }
     }
 
     pub fn buffer_offset_of_start_line(&self) -> usize {
@@ -301,6 +327,18 @@ impl OriginFoldedLine {
 
     pub fn final_content(&self) -> &str {
         self.text_layout.text.line().text()
+    }
+
+    pub fn layout_runs(&self) -> LayoutRunIter {
+        self.text_layout.text.layout_runs()
+    }
+
+    pub fn extra_style(&self) -> &[LineExtraStyle] {
+        &self.text_layout.extra_style
+    }
+
+    pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {
+        &self.text_layout.whitespaces
     }
 }
 

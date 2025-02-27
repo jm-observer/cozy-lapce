@@ -1560,13 +1560,13 @@ impl Doc {
         }))
     }
 
-    pub(crate) fn tab_width(&self, _: EditorId, _line: usize) -> usize {
+    pub(crate) fn tab_width(&self, ) -> usize {
         self.common
             .config
             .with_untracked(|config| config.editor.tab_width)
     }
 
-    pub(crate) fn atomic_soft_tabs(&self, _: EditorId, _line: usize) -> bool {
+    pub(crate) fn atomic_soft_tabs(&self, ) -> bool {
         self.common
             .config
             .with_untracked(|config| config.editor.atomic_soft_tabs)

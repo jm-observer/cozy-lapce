@@ -2376,7 +2376,7 @@ impl DocLines {
         Ok(match *horiz {
             ColPosition::Col(final_col) => {
                 let rs = visual_line.cursor_position_of_final_col(final_col);
-                (rs.3 + rs.1, rs.4)
+                rs
             }
             ColPosition::End => (visual_line.len_without_rn(), CursorAffinity::Forward),
             ColPosition::Start => (0, CursorAffinity::Forward),

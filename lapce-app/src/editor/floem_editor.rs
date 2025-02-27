@@ -7,7 +7,7 @@ use doc::lines::{
     command::{EditCommand, MoveCommand},
     cursor::{Cursor, CursorAffinity, CursorMode},
     editor_command::Command,
-    layout::{LineExtraStyle, TextLayoutLine},
+    layout::{LineExtraStyle, },
     mode::{Mode, MotionMode, VisualMode},
     movement::Movement,
     register::Register,
@@ -32,7 +32,6 @@ use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
 use doc::lines::fold::FoldingDisplayItem;
-use doc::lines::line::OriginFoldedLine;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -796,18 +795,18 @@ impl Editor {
     //         .with_untracked(|x| x.cursor_position_of_buffer_offset(offset,
     // affinity)) }
 
-    /// return visual_line, offset_of_visual, offset_of_folded, last_char
-    /// 该原始偏移字符所在的视觉行，以及在视觉行的偏移，是否是最后的字符
-    pub fn visual_line_of_offset_v2(
-        &self,
-        offset: usize,
-        affinity: CursorAffinity
-    ) -> Result<(OriginFoldedLine, usize, bool)> {
-        self.doc().lines.with_untracked(|x| {
-            x.folded_line_of_offset(offset, affinity)
-                .map(|x| (x.0.clone(), x.1, x.2))
-        })
-    }
+    // /// return visual_line, offset_of_visual, offset_of_folded, last_char
+    // /// 该原始偏移字符所在的视觉行，以及在视觉行的偏移，是否是最后的字符
+    // pub fn visual_line_of_offset_v2(
+    //     &self,
+    //     offset: usize,
+    //     affinity: CursorAffinity
+    // ) -> Result<(OriginFoldedLine, usize, bool)> {
+    //     self.doc().lines.with_untracked(|x| {
+    //         x.folded_line_of_offset(offset, affinity)
+    //             .map(|x| (x.0.clone(), x.1, x.2))
+    //     })
+    // }
 
     // /// 视觉行的偏移位置，对应的上一行的偏移位置（原始文本）和是否为最后一个字符
     // pub fn previous_visual_line(
@@ -1456,8 +1455,8 @@ pub fn paint_text(
     // todo 不要一次一次的获取text_layout
     for line_info in &screen_lines.visual_lines {
         let y = line_info.paint_point().y;
-        paint_extra_style(cx, &line_info.visual_line.text_layout.extra_style, y, viewport);
-        if let Some(whitespaces) = &line_info.visual_line.text_layout.whitespaces {
+        paint_extra_style(cx, &line_info.visual_line.extra_style(), y, viewport);
+        if let Some(whitespaces) = &line_info.visual_line.whitespaces() {
             let attrs = Attrs::new()
                 .color(visible_whitespace)
                 .family(&font_family)
@@ -1485,7 +1484,7 @@ pub fn paint_text(
             }
         }
 
-        cx.draw_text_with_layout(line_info.visual_line.text_layout.text.layout_runs(), Point::new(0.0, y));
+        cx.draw_text_with_layout(line_info.visual_line.layout_runs(), Point::new(0.0, y));
     }
     Ok(())
 }

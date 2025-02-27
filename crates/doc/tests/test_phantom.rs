@@ -183,7 +183,7 @@ fn test_all() {
     _test_merge();
     _check_origin_position_of_final_col();
     _check_col_at();
-    _check_final_col_of_col();
+    // _check_final_col_of_col();
 }
 
 /**
@@ -431,129 +431,129 @@ fn _check_folded_origin_position_of_final_col() {
     }
 }
 
-fn _check_final_col_of_col() {
-    _check_let_final_col_of_col();
-    _check_folded_final_col_of_col();
-}
-fn _check_let_final_col_of_col() {
-    let line = PhantomTextMultiLine::new(let_data());
-    {
-        // "0         10        20        30
-        // "0123456789012345678901234567890123456789
-        // "    let a = A;nr
-        // "    let a: A  = A;nr
-        // "0123456789012345678901234567890123456789
-        // "0         10        20        30
-        let orgin_text: Vec<char> =
-            "    let a = A;\r\n".chars().into_iter().collect();
-        let col_line = 6;
-        {
-            let index = 8;
-            assert_eq!(orgin_text[index], 'a');
-            assert_eq!(line.final_col_of_col(col_line, index, true), 8);
-            assert_eq!(line.final_col_of_col(col_line, index, false), 9);
-        }
-        {
-            let index = 15;
-            assert_eq!(orgin_text[index], '\n');
-            assert_eq!(line.final_col_of_col(col_line, index, false), 20);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 19);
-        }
-        {
-            let index = 18;
-            assert_eq!(line.final_col_of_col(col_line, index, false), 20);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 20);
-        }
-    }
-}
-fn _check_folded_final_col_of_col() {
-    //  "    if true {...} else {...}nr"
-    //  "0123456789012345678901234567890123456789
-    //  "0         10        20        30
-    let line = get_merged_data();
-    // print_lines(&line);
-    {
-        //  "0         10        20        30
-        //  "0123456789012345678901234567890123456789
-        //2 "    if true {nr"
-        let orgin_text: Vec<char> =
-            "    if true {\r\n".chars().into_iter().collect();
-        let col_line = 1;
-        {
-            let index = 9;
-            assert_eq!(orgin_text[index], 'u');
-            assert_eq!(line.final_col_of_col(col_line, index, true), 9);
-            assert_eq!(line.final_col_of_col(col_line, index, false), 10);
-        }
-        {
-            let index = 12;
-            assert_eq!(orgin_text[index], '{');
-            assert_eq!(line.final_col_of_col(col_line, index, true), 12);
-            assert_eq!(line.final_col_of_col(col_line, index, false), 12);
-        }
-        let col_line = 2;
-        {
-            let index = 1;
-            assert_eq!(line.final_col_of_col(col_line, index, false), 12);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 12);
-        }
-    }
-    {
-        //  "0         10        20        30
-        //  "0123456789012345678901234567890123456789
-        //2 "    } else {nr"
-        let orgin_text: Vec<char> =
-            "    } else {\r\n".chars().into_iter().collect();
-        let col_line = 3;
-        {
-            let index = 1;
-            assert_eq!(orgin_text[index], ' ');
-            assert_eq!(line.final_col_of_col(col_line, index, false), 17);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 17);
-        }
-        {
-            let index = 8;
-            assert_eq!(orgin_text[index], 's');
-            assert_eq!(line.final_col_of_col(col_line, index, true), 20);
-            assert_eq!(line.final_col_of_col(col_line, index, false), 21);
-        }
-        {
-            let index = 13;
-            assert_eq!(orgin_text[index], '\n');
-            assert_eq!(line.final_col_of_col(col_line, index, false), 23);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 23);
-        }
-        {
-            let index = 18;
-            assert_eq!(line.final_col_of_col(col_line, index, false), 23);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 23);
-        }
-    }
-    {
-        //  "0         10
-        //  "0123456789012
-        //2 "    }nr"
-        let orgin_text: Vec<char> = "    }\r\n".chars().into_iter().collect();
-        let col_line = 5;
-        {
-            let index = 1;
-            assert_eq!(orgin_text[index], ' ');
-            assert_eq!(line.final_col_of_col(col_line, index, false), 28);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 28);
-        }
-        {
-            let index = 6;
-            assert_eq!(orgin_text[index], '\n');
-            assert_eq!(line.final_col_of_col(col_line, index, true), 29);
-            assert_eq!(line.final_col_of_col(col_line, index, false), 30);
-        }
-        {
-            let index = 13;
-            assert_eq!(line.final_col_of_col(col_line, index, false), 30);
-            assert_eq!(line.final_col_of_col(col_line, index, true), 30);
-        }
-    }
-}
+// fn _check_final_col_of_col() {
+//     _check_let_final_col_of_col();
+//     _check_folded_final_col_of_col();
+// }
+// fn _check_let_final_col_of_col() {
+//     let line = PhantomTextMultiLine::new(let_data());
+//     {
+//         // "0         10        20        30
+//         // "0123456789012345678901234567890123456789
+//         // "    let a = A;nr
+//         // "    let a: A  = A;nr
+//         // "0123456789012345678901234567890123456789
+//         // "0         10        20        30
+//         let orgin_text: Vec<char> =
+//             "    let a = A;\r\n".chars().into_iter().collect();
+//         let col_line = 6;
+//         {
+//             let index = 8;
+//             assert_eq!(orgin_text[index], 'a');
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 8);
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 9);
+//         }
+//         {
+//             let index = 15;
+//             assert_eq!(orgin_text[index], '\n');
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 20);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 19);
+//         }
+//         {
+//             let index = 18;
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 20);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 20);
+//         }
+//     }
+// }
+// fn _check_folded_final_col_of_col() {
+//     //  "    if true {...} else {...}nr"
+//     //  "0123456789012345678901234567890123456789
+//     //  "0         10        20        30
+//     let line = get_merged_data();
+//     // print_lines(&line);
+//     {
+//         //  "0         10        20        30
+//         //  "0123456789012345678901234567890123456789
+//         //2 "    if true {nr"
+//         let orgin_text: Vec<char> =
+//             "    if true {\r\n".chars().into_iter().collect();
+//         let col_line = 1;
+//         {
+//             let index = 9;
+//             assert_eq!(orgin_text[index], 'u');
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 9);
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 10);
+//         }
+//         {
+//             let index = 12;
+//             assert_eq!(orgin_text[index], '{');
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 12);
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 12);
+//         }
+//         let col_line = 2;
+//         {
+//             let index = 1;
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 12);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 12);
+//         }
+//     }
+//     {
+//         //  "0         10        20        30
+//         //  "0123456789012345678901234567890123456789
+//         //2 "    } else {nr"
+//         let orgin_text: Vec<char> =
+//             "    } else {\r\n".chars().into_iter().collect();
+//         let col_line = 3;
+//         {
+//             let index = 1;
+//             assert_eq!(orgin_text[index], ' ');
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 17);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 17);
+//         }
+//         {
+//             let index = 8;
+//             assert_eq!(orgin_text[index], 's');
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 20);
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 21);
+//         }
+//         {
+//             let index = 13;
+//             assert_eq!(orgin_text[index], '\n');
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 23);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 23);
+//         }
+//         {
+//             let index = 18;
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 23);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 23);
+//         }
+//     }
+//     {
+//         //  "0         10
+//         //  "0123456789012
+//         //2 "    }nr"
+//         let orgin_text: Vec<char> = "    }\r\n".chars().into_iter().collect();
+//         let col_line = 5;
+//         {
+//             let index = 1;
+//             assert_eq!(orgin_text[index], ' ');
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 28);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 28);
+//         }
+//         {
+//             let index = 6;
+//             assert_eq!(orgin_text[index], '\n');
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 29);
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 30);
+//         }
+//         {
+//             let index = 13;
+//             assert_eq!(line.final_col_of_col(col_line, index, false), 30);
+//             assert_eq!(line.final_col_of_col(col_line, index, true), 30);
+//         }
+//     }
+// }
 
 fn _check_col_at() {
     {

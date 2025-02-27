@@ -631,8 +631,8 @@ impl EditorView {
         //     - scroll_offset;
 
         let sticky_lines = sticky_header_info.sticky_lines.clone();
-        let (attrs, line_height, line_ending, sticky_lines): (AttrsList, usize, LineEnding, Vec<(usize, String)>) = self.editor.editor.doc().lines.with_untracked(|lines| {
-            (lines.init_default_attrs_list(), lines.line_height, lines.buffer().line_ending(), sticky_lines.into_iter().filter_map(|line| {
+        let (attrs, line_ending, sticky_lines): (AttrsList, LineEnding, Vec<(usize, String)>) = self.editor.editor.doc().lines.with_untracked(|lines| {
+            (lines.init_default_attrs_list(), lines.buffer().line_ending(), sticky_lines.into_iter().filter_map(|line| {
                 match lines.buffer().line_content(line) {
                     Ok(content) => {Some((line, content.to_string()))}
                     Err(err) => {
@@ -661,7 +661,7 @@ impl EditorView {
 
         let line_ending_str  = line_ending.get_chars();
         let line_height = line_height as f64;
-        for (i, (line, content)) in sticky_lines.into_iter().enumerate()
+        for (i, (_line, content)) in sticky_lines.into_iter().enumerate()
         {
             let y_diff = if i == total_sticky_lines - 1 {
                 scroll_offset
@@ -1029,7 +1029,6 @@ fn get_sticky_header_info(
     screen_lines: &ScreenLines,
     line_height: f64
 ) -> StickyHeaderInfo {
-    let editor = &editor_data.editor;
     let doc = editor_data.doc();
     // let start_line = (viewport.y0 / line_height).floor() as usize;
     let Some(start) = screen_lines.visual_lines.first() else {
@@ -1831,7 +1830,7 @@ fn editor_content(
             return Rect::ZERO;
         };
         log::info!(
-                "offset={offset} offset_line_from_top={offset_line_from_top:?} info={info:?}",
+                "offset={offset} offset_line_from_top={offset_line_from_top:?}",
             );
         if let Some(offset_line_from_top) = offset_line_from_top {
             // from jump

@@ -230,15 +230,15 @@ pub fn move_offset(
 //     offset
 // }
 
-fn atomic_soft_tab_width_for_offset(ed: &Editor, offset: usize) -> Option<usize> {
-    let line = ed
-        .visual_line_of_offset_v2(offset, CursorAffinity::Forward)
-        .ok()?
-        .0
-        .origin_line_start;
+fn atomic_soft_tab_width_for_offset(ed: &Editor) -> Option<usize> {
+    // let line = ed
+    //     .visual_line_of_offset_v2(offset, CursorAffinity::Forward)
+    //     .ok()?
+    //     .0
+    //     .origin_line_start;
     let style = ed.doc();
-    if style.atomic_soft_tabs(ed.id(), line) {
-        Some(style.tab_width(ed.id(), line))
+    if style.atomic_soft_tabs() {
+        Some(style.tab_width())
     } else {
         None
     }
@@ -319,7 +319,7 @@ fn move_left(
     let rope_text = ed.rope_text();
     let mut new_offset = rope_text.move_left(offset, mode, count)?;
 
-    if let Some(soft_tab_width) = atomic_soft_tab_width_for_offset(ed, offset) {
+    if let Some(soft_tab_width) = atomic_soft_tab_width_for_offset(ed) {
         if soft_tab_width > 1 {
             new_offset = snap_to_soft_tab(
                 rope_text.text(),

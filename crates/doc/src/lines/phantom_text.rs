@@ -570,35 +570,35 @@ impl PhantomTextMultiLine {
     //     })
     // }
 
-    fn text_of_origin_line_col(
-        &self,
-        origin_line: usize,
-        origin_col: usize
-    ) -> Option<&Text> {
-        self.text.iter().find(|x| {
-            match x {
-                Text::Phantom { text } => {
-                    if text.line == origin_line
-                        && text.col <= origin_col
-                        && origin_col < text.next_origin_col()
-                    {
-                        return true;
-                    } else if let Some(next_line) = text.next_line() {
-                        if origin_line < next_line {
-                            return true;
-                        }
-                    }
-                },
-                Text::OriginText { text } => {
-                    if text.line == origin_line && text.col.contains(origin_col) {
-                        return true;
-                    }
-                },
-                Text::EmptyLine { .. } => return true
-            }
-            false
-        })
-    }
+    // fn text_of_origin_line_col(
+    //     &self,
+    //     origin_line: usize,
+    //     origin_col: usize
+    // ) -> Option<&Text> {
+    //     self.text.iter().find(|x| {
+    //         match x {
+    //             Text::Phantom { text } => {
+    //                 if text.line == origin_line
+    //                     && text.col <= origin_col
+    //                     && origin_col < text.next_origin_col()
+    //                 {
+    //                     return true;
+    //                 } else if let Some(next_line) = text.next_line() {
+    //                     if origin_line < next_line {
+    //                         return true;
+    //                     }
+    //                 }
+    //             },
+    //             Text::OriginText { text } => {
+    //                 if text.line == origin_line && text.col.contains(origin_col) {
+    //                     return true;
+    //                 }
+    //             },
+    //             Text::EmptyLine { .. } => return true
+    //         }
+    //         false
+    //     })
+    // }
 
     /// merge col一定会出现在某个text中
     pub fn text_of_merge_col(&self, merge_col: usize) -> Result<&Text> {
@@ -681,46 +681,46 @@ impl PhantomTextMultiLine {
         })
     }
 
-    /// 原始行的偏移字符！！！，的对应的合并后的位置。
-    /// 用于求鼠标的实际位置
-    ///
-    /// Translate a column position into the text into what it would
-    /// be after combining
-    ///
-    /// 暂时不考虑_before_cursor，等足够熟悉了再说.
-    /// true: |a
-    //  false: a|
-    pub fn final_col_of_col(
-        &self,
-        line: usize,
-        pre_col: usize,
-        _before_cursor: bool
-    ) -> usize {
-        let adjust_offset = if _before_cursor { 0 } else { 1 };
-        if self.text.is_empty() {
-            return pre_col;
-        }
-        let text = self.text_of_origin_line_col(line, pre_col);
-        if let Some(text) = text {
-            match text {
-                Text::Phantom { text } => {
-                    if text.col == 0 {
-                        // 后一个字符
-                        text.next_final_col()
-                    } else {
-                        // 前一个字符
-                        text.final_col
-                    }
-                },
-                Text::OriginText { text } => {
-                    text.final_col.start + pre_col - text.col.start + adjust_offset
-                },
-                Text::EmptyLine { .. } => 0
-            }
-        } else {
-            self.final_text_len
-        }
-    }
+    // /// 原始行的偏移字符！！！，的对应的合并后的位置。
+    // /// 用于求鼠标的实际位置
+    // ///
+    // /// Translate a column position into the text into what it would
+    // /// be after combining
+    // ///
+    // /// 暂时不考虑_before_cursor，等足够熟悉了再说.
+    // /// true: |a
+    // //  false: a|
+    // pub fn final_col_of_col(
+    //     &self,
+    //     line: usize,
+    //     pre_col: usize,
+    //     _before_cursor: bool
+    // ) -> usize {
+    //     let adjust_offset = if _before_cursor { 0 } else { 1 };
+    //     if self.text.is_empty() {
+    //         return pre_col;
+    //     }
+    //     let text = self.text_of_origin_line_col(line, pre_col);
+    //     if let Some(text) = text {
+    //         match text {
+    //             Text::Phantom { text } => {
+    //                 if text.col == 0 {
+    //                     // 后一个字符
+    //                     text.next_final_col()
+    //                 } else {
+    //                     // 前一个字符
+    //                     text.final_col
+    //                 }
+    //             },
+    //             Text::OriginText { text } => {
+    //                 text.final_col.start + pre_col - text.col.start + adjust_offset
+    //             },
+    //             Text::EmptyLine { .. } => 0
+    //         }
+    //     } else {
+    //         self.final_text_len
+    //     }
+    // }
 
     pub fn visual_offset_of_cursor_offset(
         &self,
@@ -775,53 +775,51 @@ impl PhantomTextMultiLine {
         Some(self.final_text_len)
     }
 
-    /// the position of the cursor should not be in phantom text
-    ///
-    /// return (origin line, col of origin line, col of final, start buffer offset of line, cursor affinity
-    pub fn cursor_position_of_final_col(
-        &self,
-        mut visual_char_offset: usize
-    ) -> (usize, usize, usize, usize, CursorAffinity) {
-        // 因为通过hit_point获取的index会大于等于final_text_len
-        // visual_char_offset可能是其他行的final_col
-        if visual_char_offset >= self.final_text_len {
-            // the final_text_len of an empty line equals 0
-            visual_char_offset = self.final_text_len.max(1) - 1;
-        }
-        match self.text_of_final_col(visual_char_offset) {
-            Text::Phantom { text } => {
-                // 在虚拟文本的后半部分，则光标置于虚拟文本之后
-                if visual_char_offset > text.final_col + text.text.len() / 2 {
-                    (
-                        text.line,
-                        text.next_origin_col(), text.final_col,
-                        self.offset_of_line,
-                        CursorAffinity::Forward
-                    )
-                } else {
-                    (
-                        text.line,
-                        text.next_origin_col(), text.final_col,
-                        self.offset_of_line,
-                        CursorAffinity::Backward
-                    )
-                }
-            },
-            Text::OriginText { text } => {
-                (
-                    text.line,
-                    text.origin_col_of_final_col(visual_char_offset),
-                    visual_char_offset,
-                    self.offset_of_line,
-                    CursorAffinity::Backward
-                )
-            },
-            Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
-        }
-    }
+    // /// the position of the cursor should not be in phantom text
+    // ///
+    // /// return (buffer offset, cursor affinity
+    // pub fn cursor_position_of_final_col(
+    //     &self,
+    //     mut visual_char_offset: usize
+    // ) -> (usize, CursorAffinity) {
+    //     // // 因为通过hit_point获取的index会大于等于final_text_len
+    //     // // visual_char_offset可能是其他行的final_col
+    //     // if visual_char_offset >= self.final_text_len {
+    //     //     // the final_text_len of an empty line equals 0
+    //     //     visual_char_offset = self.final_text_len.max(1) - 1;
+    //     // }
+    //     match self.text_of_final_col_even_overflow(visual_char_offset) {
+    //         Text::Phantom { text } => {
+    //             // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+    //             if visual_char_offset > text.final_col + text.text.len() / 2 {
+    //                 (
+    //                     text.merge_col + self.offset_of_line,
+    //                     CursorAffinity::Forward
+    //                 )
+    //             } else {
+    //                 (
+    //                     text.merge_col + self.offset_of_line,
+    //                     CursorAffinity::Backward
+    //                 )
+    //             }
+    //         },
+    //         Text::OriginText { text } => {
+    //
+    //             let merge_col = visual_char_offset - text.final_col.start + text.merge_col.start;
+    //
+    //             (
+    //                 text.line,
+    //                 text.origin_col_of_final_col(visual_char_offset),
+    //                 visual_char_offset,
+    //                 self.offset_of_line,
+    //                 CursorAffinity::Backward
+    //             )
+    //         },
+    //         Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
+    //     }
+    // }
 
-    /// return (origin line, origin line offset, offset_of_line)
-    pub fn text_of_final_col(&self, mut visual_char_offset: usize) -> &Text {
+    pub fn text_of_final_col_even_overflow(&self, mut visual_char_offset: usize) -> &Text {
         // 因为通过hit_point获取的index会大于等于final_text_len
         if visual_char_offset >= self.final_text_len {
             visual_char_offset = self.final_text_len.max(1) - 1;
