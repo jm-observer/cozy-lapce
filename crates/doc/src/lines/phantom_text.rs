@@ -64,7 +64,6 @@ impl fmt::Debug for PhantomText {
             .field("visual_merge_col", &self.visual_merge_col)
             .field("origin_merge_col", &self.origin_merge_col)
             .field("final_col", &self.final_col)
-            .field("affinity", &self.affinity)
             .field("text", &self.text)
             .finish()
     }

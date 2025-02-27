@@ -1904,15 +1904,16 @@ impl DocLines {
                     );
                     layout_line.extra_style.extend(styles);
                 },
-                (Err(err), _) => {
-                    error!("{}", err.to_string());
-                    continue
-                }
-                (_, Err(err)) => {
-                    error!("{}", err.to_string());
-                    continue
-                }
+                // (Err(err), _) => {
+                //     error!("{}", err.to_string());
+                //     continue
+                // }
+                // (_, Err(err)) => {
+                //     error!("{}", err.to_string());
+                //     continue
+                // }
                 _ => {
+                    // maybe be folded
                     continue
                 }
             }
@@ -3168,6 +3169,7 @@ impl PubUpdateLines {
                 self.folding_ranges.fold_by_offset(offset, rope)?;
             }
         }
+        // todo improve OriginLinesDelta
         self.update_lines_new(OriginLinesDelta::default())?;
         self.check_lines();
         self.signals.update_paint_text();

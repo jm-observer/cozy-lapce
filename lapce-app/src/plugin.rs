@@ -419,7 +419,7 @@ impl PluginData {
                             message: err.to_string()
                         }
                     });
-                    error!("{err:?}")
+                    error!("{err}")
                 }
             }
         );

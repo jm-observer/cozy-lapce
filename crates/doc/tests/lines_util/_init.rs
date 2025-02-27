@@ -103,6 +103,17 @@ pub fn folded_v2() -> FoldingDisplayItem {
     }
 }
 
+/// just for init_main_2()
+pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
+    Ok(vec![serde_json::from_str(
+        r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#
+    )?, serde_json::from_str(
+        r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#
+    )?, serde_json::from_str(
+        r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#
+    )?])
+}
+
 fn _init_lines(
     folded: Option<Vec<FoldingDisplayItem>>,
     (code, buffer): (String, Buffer),

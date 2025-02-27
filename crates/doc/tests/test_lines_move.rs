@@ -18,17 +18,14 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
 
-use crate::lines_util::{
-    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_semantic_2
-};
+use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 mod lines_util;
 
 #[test]
 fn test_move_right() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
     let mut lines = init_main_2()?;
-    let items = init_item()?;
+    let items = init_main_folded_item_2()?;
     for item in items {
         lines.update_folding_ranges(item.into())?;
     }
@@ -52,12 +49,4 @@ fn test_move_right() -> Result<()> {
     Ok(())
 }
 
-fn init_item() -> Result<Vec<FoldingDisplayItem>> {
-    Ok(vec![serde_json::from_str(
-        r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#
-    )?, serde_json::from_str(
-        r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#
-    )?, serde_json::from_str(
-        r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#
-    )?])
-}
+

@@ -21,10 +21,7 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
 
-use crate::lines_util::{
-    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_semantic_2
-};
+use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 mod lines_util;
 
 #[test]
@@ -35,11 +32,18 @@ fn test_all() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_buffer_offset_of_click() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    _test_buffer_offset_of_click()?;
+    Ok(())
+}
+
+
 fn _test_buffer_offset_of_click() -> Result<()> {
     // let file: PathBuf = "resources/test_code/main.rs".into();
     let mut lines = init_main()?;
     assert_eq!(lines.line_height, 20);
-    lines.log();
 
     let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(300.,300.))).0;
 
@@ -87,9 +91,8 @@ fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(is_inside, false);
         assert_eq!(affinity, CursorAffinity::Forward);
 
-        let (visual_line, final_col, ..) =
+        let (_visual_line, final_col, ..) =
             lines.folded_line_of_offset(offset_of_buffer, affinity)?;
-        // let info = lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity).unwrap();
         assert_eq!(final_col, 15);
     }
 
@@ -130,6 +133,12 @@ fn _test_buffer_offset_of_click() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_buffer_offset_of_click_2() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    _test_buffer_offset_of_click_2()?;
+    Ok(())
+}
 fn _test_buffer_offset_of_click_2() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
     let mut lines = init_main_2()?;
@@ -149,6 +158,30 @@ fn _test_buffer_offset_of_click_2() -> Result<()> {
         assert_eq!(offset_of_buffer, 461);
         assert_eq!(is_inside, false);
         assert_eq!(affinity, CursorAffinity::Backward);
+    }
+
+    let items = init_main_folded_item_2()?;
+    for item in items {
+        lines.update_folding_ranges(item.into())?;
+    }
+    // let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(300.,300.))).0;
+    lines.log();
+
+    {
+        // empty of end line(line_index=1 offset with \r\n [2..19))
+        //|    if true {...} else {\r\n  [    ]
+        // new_offset=39 Forward (252, 25.0)
+        let point = Point::new(252., 25.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        // 16
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '{');
+        assert_eq!((offset_of_buffer, is_inside), (35, false));
+        assert_eq!(affinity, CursorAffinity::Forward);
+
+        // let (_visual_line, final_col, ..) =
+        //     lines.folded_line_of_offset(offset_of_buffer, affinity)?;
+        // assert_eq!(final_col, 15);
     }
     Ok(())
 }
