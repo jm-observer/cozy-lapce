@@ -366,7 +366,7 @@ fn move_up(
     _mode: Mode,
     _count: usize
 ) -> Result<Option<(usize, ColPosition)>> {
-    log::info!("move_up {offset}");
+    log::info!("move_up {offset} {affinity:?} {horiz:?}");
     let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines

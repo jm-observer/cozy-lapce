@@ -7,10 +7,12 @@ use floem::{
     peniko::Color,
     text::{AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun}
 };
+use floem::text::Attrs;
+use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::lines::{delta_compute::Offset, phantom_text::PhantomTextMultiLine};
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LineExtraStyle {
     pub x:          f64,
     pub y:          f64,
@@ -24,12 +26,14 @@ pub struct LineExtraStyle {
 /// --以原始文本行为单位，的相关--
 ///
 /// 应该是视觉行（包含了折叠行）的信息
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TextLayoutLine {
     /// Extra styling that should be applied to the text
     /// (x0, x1 or line display end, style)
     /// todo?暂时没有数据，下划线等？
     pub extra_style:  Vec<LineExtraStyle>,
+
+    #[serde(skip)]
     // 文本：包含折叠行的文本、幽灵文本，及其所有的样式（背景色等）
     pub text:         TextLayout,
     // ?
@@ -203,6 +207,12 @@ impl Clone for TextLayout {
             text_len: self.text_len,
             text_len_without_rn: self.text_len_without_rn
         }
+    }
+}
+
+impl Default for TextLayout {
+    fn default() -> Self {
+        Self::new("", AttrsList::new(Attrs::default()), "")
     }
 }
 

@@ -17,7 +17,8 @@ use floem::{
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
-
+use doc::lines::cursor::ColPosition;
+use doc::lines::mode::Mode;
 use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 mod lines_util;
 
@@ -58,6 +59,27 @@ fn test_move_right() -> Result<()> {
     // _lines._log_folding_ranges();
     // _lines._log_visual_lines();
     // _lines._log_screen_lines();
+    Ok(())
+}
+
+
+#[test]
+fn test_move_up() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    let mut lines = init_main_2()?;
+    let items = init_main_folded_item_2()?;
+    for item in items {
+        lines.update_folding_ranges(item.into())?;
+    }
+    // lines._log_folded_lines();
+    lines.log();
+    {
+        //    if true {...} []else {...}
+        //    let a: A  = A;|
+        let rs = lines.move_up(122, CursorAffinity::Forward, None, Mode::Insert, 0).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(122).unwrap(), ';');
+        assert_eq!(rs, (64, ColPosition::Col(18), CursorAffinity::Backward),);
+    }
     Ok(())
 }
 

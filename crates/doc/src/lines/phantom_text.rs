@@ -9,14 +9,14 @@ use log::{info, warn};
 use lsp_types::Position;
 use smallvec::SmallVec;
 use anyhow::{anyhow, Result};
-
+use serde::{Deserialize, Serialize};
 use crate::lines::{cursor::CursorAffinity, delta_compute::Offset};
 
 /// `PhantomText` is for text that is not in the actual document, but
 /// should be rendered with it.
 ///
 /// Ex: Inlay hints, IME text, error lens' diagnostics, etc
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct PhantomText {
     /// The kind is currently used for sorting the phantom text on a
     /// line
@@ -55,6 +55,13 @@ pub struct PhantomText {
     pub under_line: Option<Color>
 }
 
+impl PartialEq for PhantomText {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.line == other.line && self.col == other.col && self.visual_merge_col == other.visual_merge_col && self.origin_merge_col == other.origin_merge_col
+        && self.final_col == other.final_col && self.affinity == other.affinity && self.text == other.text && self.font_size == other.font_size
+    }
+}
+impl Eq for PhantomText {}
 impl fmt::Debug for PhantomText {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PhantomText")
@@ -105,11 +112,11 @@ impl PhantomText {
 
     /// todo 不准确，存在连续phantom的情况?
     pub fn next_visual_merge_col(&self) -> usize {
-        if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
-            self.visual_merge_col + len
-        } else {
-            self.visual_merge_col
-        }
+        // if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
+        self.visual_merge_col + self.text.len()
+        // } else {
+        //     self.visual_merge_col
+        // }
     }
 
     pub fn next_origin_merge_col(&self) -> usize {
@@ -132,7 +139,7 @@ impl PhantomText {
         );
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OriginText {
     /// 在原始文本的行
     pub line:      usize,
@@ -158,7 +165,7 @@ impl OriginText {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EmptyText {
     /// 在原始文本的行
     pub line:           usize,
@@ -168,7 +175,7 @@ pub struct EmptyText {
     /// 在原始行文本的位置
     pub offset_of_line: usize
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Text {
     Phantom { text: PhantomText },
     OriginText { text: OriginText },
@@ -224,7 +231,7 @@ impl From<EmptyText> for Text {
     }
 }
 
-#[derive(Debug, Clone, Copy, Ord, Eq, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, Ord, Eq, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
 pub enum PhantomTextKind {
     #[default]
     /// Input methods
@@ -268,7 +275,7 @@ impl PhantomTextKind {
 /// This has various utility functions for transforming a coordinate
 /// (typically a column) into the resulting coordinate after the
 /// phantom text is combined with the line's real content.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PhantomTextLine {
     pub line:           usize,
     // 该行起点在文本中的偏移
@@ -279,7 +286,7 @@ pub struct PhantomTextLine {
     final_text_len:     usize,
     /// This uses a smallvec because most lines rarely have more than
     /// a couple phantom texts
-    texts:              SmallVec<[Text; 6]>
+    pub texts:              SmallVec<[Text; 6]>
 }
 
 impl PhantomTextLine {
@@ -307,6 +314,7 @@ impl PhantomTextLine {
             match phantom.kind {
                 PhantomTextKind::LineFoldedRang { len, .. } => {
                     phantom.final_col = usize_offset(phantom.visual_merge_col, final_offset);
+
                     final_offset = final_offset + phantom.text.len() as i32 - len as i32;
                 },
                 _ => {
@@ -314,6 +322,7 @@ impl PhantomTextLine {
                     final_offset += phantom.text.len() as i32;
                 }
             }
+            phantom.visual_merge_col = phantom.final_col;
             if final_last_end < phantom.final_col {
                 let len = phantom.final_col - final_last_end;
                 // insert origin text
@@ -329,8 +338,8 @@ impl PhantomTextLine {
                             merge_last_end + len
                         ),
                         origin_merge_col: Interval::new(
-                            merge_last_end,
-                            merge_last_end + len
+                            origin_last_end,
+                            origin_last_end + len
                         ),
                         final_col: Interval::new(
                             final_last_end,
@@ -393,7 +402,7 @@ impl PhantomTextLine {
 /// 2. 末尾的空行，由EmptyText表示
 ///
 /// 3. 所有的原始字符都归属某个Text
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PhantomTextMultiLine {
     /// 原始文本的行号
     pub line:            usize,
@@ -443,7 +452,7 @@ impl PhantomTextMultiLine {
         // ));
 
         // 注意被折叠的长度
-        let visual_merge_offset = self.origin_text_len;
+        let visual_merge_offset = self.final_text_len;
         let origin_merge_offset = line.offset_of_line - self.offset_of_line;
         // let origin_text_len = self.origin_text_len;
         self.origin_text_len = self.origin_text_len + line.origin_text_len;

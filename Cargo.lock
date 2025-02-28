@@ -3574,7 +3574,7 @@ dependencies = [
 [[package]]
 name = "lapce-xi-rope"
 version = "0.3.2"
-source = "git+https://github.com/jm-observer/xi-editor.git#80a37a2cf355f827636bf4813161d5a1f8293ebe"
+source = "git+https://github.com/jm-observer/xi-editor.git#682b43974363bff8e9ca82801c7d5ae691a2543e"
 dependencies = [
  "anyhow",
  "bytecount",

@@ -9,6 +9,7 @@ use std::{
 use floem::kurbo::{Point, Rect, Size, Vec2};
 use floem::text::{HitPoint, HitPosition};
 use lapce_xi_rope::Interval;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use crate::hit_position_aff;
 use super::layout::{LayoutRunIter, LineExtraStyle, TextLayoutLine};
@@ -27,7 +28,7 @@ use crate::lines::phantom_text::Text;
 // }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OriginLine {
     pub line_index:        usize,
     /// [start_offset...end_offset)
@@ -78,7 +79,7 @@ impl OriginLine {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
     pub line_index:        usize,
     /// [origin_line_start...origin_line_end]
@@ -269,18 +270,18 @@ impl OriginFoldedLine {
                 // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                 if final_col > text.final_col + text.text.len() / 2 {
                     (
-                        text.visual_merge_col + self.offset_of_line(),
+                        text.origin_merge_col + self.offset_of_line(),
                         CursorAffinity::Forward
                     )
                 } else {
                     (
-                        text.visual_merge_col + self.offset_of_line(),
+                        text.origin_merge_col + self.offset_of_line(),
                         CursorAffinity::Backward
                     )
                 }
             },
             Text::OriginText { text } => {
-                let merge_col = (final_col - text.final_col.start + text.visual_merge_col.start).min(self.len_without_rn());
+                let merge_col = (final_col - text.final_col.start + text.origin_merge_col.start).min(self.len_without_rn());
                 (
                     // text.line,
                     // text.origin_col_of_final_col(visual_char_offset),

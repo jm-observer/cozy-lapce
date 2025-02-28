@@ -203,7 +203,6 @@ fn _check_folded_origin_position_of_final_col_1() {
     //  "    if true {...} else {"
     //  "0123456789012345678901234567890123456789
     //  "0         10        20        30
-    //              s    e     s    e
     let line = {
         let line2 = init_folded_line(2, false);
         let line_folded_4 = init_folded_line(4, false);
