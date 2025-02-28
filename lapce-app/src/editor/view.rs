@@ -43,7 +43,7 @@ use floem::{
 use floem::text::AttrsList;
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
-use log::{error, info};
+use log::{error};
 use doc::lines::buffer::rope_text::RopeText;
 use doc::lines::cursor::CursorAffinity;
 use doc::lines::layout::TextLayout;
@@ -939,7 +939,7 @@ impl View for EditorView {
         let cursor_points = cursor_offsets.into_iter().filter_map(|offset| {
             match screen_lines.cursor_position_of_buffer_offset(offset, cursor_affinity) {
                 Ok(rs) => {
-                    // info!("buffer offset={offset} cursor_affinity={cursor_affinity:?} cursor position:{:?}", rs);
+                    // log::info!("buffer offset={offset} cursor_affinity={cursor_affinity:?} cursor position:{:?}", rs);
                     rs}
                 Err(err) => {
                     error!("{}", err);

@@ -2118,15 +2118,15 @@ impl DocLines {
         }
 
         let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
-        let merge_col = buffer_offset - folded_line.origin_interval.start;
+        let origin_merge_col = buffer_offset - folded_line.origin_interval.start;
 
         let mut iter = folded_line.text().iter();
         // find text_of_merge_col
         while let Some(text) = iter.next() {
             match text {
                 Text::Phantom { text } => {
-                    if text.origin_merge_col <= merge_col
-                        && merge_col <= text.next_origin_merge_col()
+                    if text.origin_merge_col <= origin_merge_col
+                        && origin_merge_col <= text.next_origin_merge_col()
                     {
                         if matches!(affinity, CursorAffinity::Backward) {
                             return Ok(Some((buffer_offset, CursorAffinity::Forward)));
@@ -2134,7 +2134,11 @@ impl DocLines {
                             // next merge col
                             while let Some(text) = iter.next() {
                                 if let Text::OriginText { text } = text {
-                                    return Ok(Some((text.origin_merge_col.start + folded_line.offset_of_line() + 1, CursorAffinity::Backward)));
+                                    if folded_line.is_last_char(text.visual_merge_col.start) {
+                                        break;
+                                    } else {
+                                        return Ok(Some((text.origin_merge_col.start + folded_line.offset_of_line() + 1, CursorAffinity::Backward)));
+                                    }
                                 }
                             }
                             // next line
@@ -2143,13 +2147,13 @@ impl DocLines {
                     }
                 },
                 Text::OriginText { text } => {
-                    if text.origin_merge_col.contains(merge_col) {
-                        let final_col = text.final_col.start + (merge_col - text.origin_merge_col.start);
+                    if text.origin_merge_col.contains(origin_merge_col) {
+                        let final_col = text.final_col.start + (origin_merge_col - text.origin_merge_col.start);
                         if folded_line.is_last_char(final_col) {
                             // 换行
                             return Ok(Some((folded_line.origin_interval.end, CursorAffinity::Backward)));
                         } else {
-                            return Ok(Some((buffer_offset + 1, CursorAffinity::Forward)));
+                            return Ok(Some((buffer_offset + 1, CursorAffinity::Backward)));
                         }
                     }
                 },

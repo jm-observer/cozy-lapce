@@ -620,6 +620,7 @@ impl EditorData {
         self.editor.last_movement.set(movement.clone());
 
         let mut cursor = self.cursor().get_untracked();
+        let old_val = (cursor.offset(), cursor.affinity);
         self.common.register.update(|register| {
             if let Err(err) = move_cursor(
                 &self.editor,
@@ -630,10 +631,12 @@ impl EditorData {
                 mods.shift(),
                 register
             ) {
-                error!("{:?}", err);
+                error!("{}", err);
             }
         });
-
+        if old_val != (cursor.offset(), cursor.affinity) {
+            self.common.internal_command.send(InternalCommand::ResetBlinkCursor);
+        }
         self.editor.cursor.set(cursor);
 
         if self.snippet.with_untracked(|s| s.is_some()) {
@@ -3566,7 +3569,9 @@ impl KeyPressFocus for EditorData {
             },
             crate::command::CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);
-                self.run_move_command(&movement, count, mods)
+                batch(|| {
+                    self.run_move_command(&movement, count, mods)
+                })
             },
             crate::command::CommandKind::Scroll(cmd) => {
                 if self

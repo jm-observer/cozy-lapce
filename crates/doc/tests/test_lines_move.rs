@@ -38,10 +38,22 @@ fn test_move_right() -> Result<()> {
         assert_eq!((141, CursorAffinity::Backward), rs);
     }
     {
-        //     if true {...}| else {...}
+        //     if true |{...} else {...}
         let rs = lines.move_right(25, CursorAffinity::Forward).unwrap().unwrap();
         assert_eq!((lines.buffer().char_at_offset(25).unwrap(), lines.buffer().char_at_offset(64).unwrap()), ('{', 'e'));
         assert_eq!(rs, (64, CursorAffinity::Backward));
+    }
+    {
+        // | if true {...} else {...}
+        let rs = lines.move_right(16, CursorAffinity::Backward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(17).unwrap(), 'i');
+        assert_eq!(rs, (17, CursorAffinity::Backward));
+    }
+    {
+        //  if true {...} else {...}|
+        let rs = lines.move_right(69, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(108).unwrap(), '\n');
+        assert_eq!(rs, (109, CursorAffinity::Backward));
     }
     // _lines._log_folding_ranges();
     // _lines._log_visual_lines();
