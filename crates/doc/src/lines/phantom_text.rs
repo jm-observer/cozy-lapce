@@ -103,7 +103,7 @@ impl PhantomText {
         }
     }
 
-    /// todo 不准确，存在连续phantom的情况
+    /// todo 不准确，存在连续phantom的情况?
     pub fn next_visual_merge_col(&self) -> usize {
         if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
             self.visual_merge_col + len
@@ -683,12 +683,12 @@ impl PhantomTextMultiLine {
         })
     }
 
-    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> Result<usize> {
+    pub fn cursor_final_col_of_origin_merge_col(&self, origin_merge_col: usize, cursor_affinity: CursorAffinity) -> Result<usize> {
         // let Ok(text) = self.text_of_merge_col(merge_col) else {
         //     warn!("merge_col not found: line={} merge col={}", self.line, merge_col);
         //     return None;
         // };
-        let text = self.text_of_origin_merge_col(merge_col)?;
+        let text = self.text_of_origin_merge_col(origin_merge_col)?;
         Ok(match text {
             Text::Phantom { text, .. } => {
                 match cursor_affinity {
@@ -704,10 +704,10 @@ impl PhantomTextMultiLine {
             Text::OriginText { text } => {
                 match cursor_affinity {
                     CursorAffinity::Forward => {
-                        text.final_col.start + merge_col - text.visual_merge_col.start + 1
+                        text.final_col.start + origin_merge_col - text.origin_merge_col.start + 1
                     }
                     CursorAffinity::Backward => {
-                        text.final_col.start + merge_col - text.visual_merge_col.start
+                        text.final_col.start + origin_merge_col - text.origin_merge_col.start
                     }
                 }
             },

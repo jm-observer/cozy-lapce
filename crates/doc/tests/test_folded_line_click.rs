@@ -18,7 +18,7 @@ use floem::{
 };
 use floem::kurbo::Size;
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
-use log::info;
+use log::{debug, info};
 use lsp_types::Position;
 
 use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
@@ -140,48 +140,36 @@ fn test_buffer_offset_of_click_2() -> Result<()> {
     Ok(())
 }
 fn _test_buffer_offset_of_click_2() -> Result<()> {
-    custom_utils::logger::logger_stdout_debug();
     let mut lines = init_main_2()?;
 
-    // scroll 23 line { x0: 0.0, y0: 480.0, x1: 606.8886108398438, y1:
-    // 1018.1586303710938 }
-    // lines.update_viewport_by_scroll(Rect::new(0.0, 480.0, 606.8, 1018.1));
-    //below end of buffer
-    {
-        // single_click (144.00931549072266, 632.1586074829102)
-        // new_offset=480
-        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(186.0, 608.1)
-        )?;
-        lines.log();
-        assert_eq!(offset_of_buffer, 461);
-        assert_eq!(is_inside, false);
-        assert_eq!(affinity, CursorAffinity::Backward);
-    }
-
     let items = init_main_folded_item_2()?;
-    for item in items {
-        lines.update_folding_ranges(item.into())?;
-    }
-    // let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(300.,300.))).0;
+    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+    let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(1000.,800.))).0;
     lines.log();
 
     {
-        // empty of end line(line_index=1 offset with \r\n [2..19))
         //|    if true {...} else {\r\n  [    ]
-        // new_offset=39 Forward (252, 25.0)
         let point = Point::new(252., 25.0);
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
         // 16
         assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '{');
-        assert_eq!((offset_of_buffer, is_inside), (35, false));
+        assert_eq!((offset_of_buffer, is_inside), (69, false));
         assert_eq!(affinity, CursorAffinity::Forward);
-
-        // let (_visual_line, final_col, ..) =
-        //     lines.folded_line_of_offset(offset_of_buffer, affinity)?;
-        // assert_eq!(final_col, 15);
     }
+    {
+        //|    if true {...} els[]e {\r\n
+        let point = Point::new(160., 25.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), 'e');
+        assert_eq!((offset_of_buffer, is_inside), (67, true));
+        assert_eq!(affinity, CursorAffinity::Backward);
+
+        let point = screen_lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity).unwrap();
+        assert_eq!(157, point.unwrap().x as usize);
+    }
+
+
     Ok(())
 }

@@ -302,7 +302,7 @@ impl OriginFoldedLine {
     }
 
     pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> anyhow::Result<usize> {
-        self.text_layout.phantom_text.cursor_final_col_of_merge_col(merge_col, cursor_affinity)
+        self.text_layout.phantom_text.cursor_final_col_of_origin_merge_col(merge_col, cursor_affinity)
     }
 
     pub fn final_col_of_origin_merge_col(&self, merge_col: usize) -> anyhow::Result<Option<usize>> {
@@ -315,10 +315,6 @@ impl OriginFoldedLine {
 
     pub fn len(&self) -> usize {
         self.text_layout.text.text_len
-    }
-
-    pub fn origin_text_len(&self) -> usize {
-        self.text_layout.phantom_text.origin_text_len
     }
 
     pub fn len_without_rn(&self, ) -> usize {

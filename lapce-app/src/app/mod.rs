@@ -4115,7 +4115,7 @@ pub async fn launch() -> Result<()> {
                     }
                 },
                 Err(err) => {
-                    error!("{err:?}")
+                    error!("{err}")
                 }
             }
         );

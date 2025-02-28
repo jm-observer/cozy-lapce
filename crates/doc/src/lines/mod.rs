@@ -929,18 +929,18 @@ impl DocLines {
                     // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                     if hit_point.index > text.final_col + text.text.len() / 2 {
                         (
-                            info.origin_interval.start + text.visual_merge_col, true,
+                            info.origin_interval.start + text.origin_merge_col, true,
                             CursorAffinity::Forward
                         )
                     } else {
                         (
-                            info.origin_interval.start + text.visual_merge_col, true,
+                            info.origin_interval.start + text.origin_merge_col, true,
                             CursorAffinity::Backward
                         )
                     }
                 },
                 Text::OriginText { text } =>
-                    (hit_point.index - text.final_col.start + text.visual_merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
+                    (hit_point.index - text.final_col.start + text.origin_merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
                 ,
                 Text::EmptyLine { .. } => {unreachable!()}
             })
@@ -948,7 +948,7 @@ impl DocLines {
             // last of line
             Ok(match info.text_of_final_col(hit_point.index) {
                 Text::Phantom { text } => {
-                    (text.visual_merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
+                    (text.origin_merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
                 }
                 Text::OriginText { .. } => {
                     // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
@@ -958,9 +958,9 @@ impl DocLines {
                         // 该返回\r的前一个字符，CursorAffinity::Forward
                         let line_ending_len = info.len() - info.len_without_rn();
                         if line_ending_len == 0 {
-                            (info.offset_of_line() + info.origin_text_len() - 1, false, CursorAffinity::Forward)
+                            (info.origin_interval.end - 1, false, CursorAffinity::Forward)
                         } else {
-                            (info.offset_of_line() + info.origin_text_len() - 1 - line_ending_len, false, CursorAffinity::Forward)
+                            (info.origin_interval.end - 1 - line_ending_len, false, CursorAffinity::Forward)
                         }
                     }
                     // (text.merge_col.end + text_layout.phantom_text.offset_of_line - 1, false, CursorAffinity::Forward)

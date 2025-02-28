@@ -109,98 +109,98 @@ fn _test_merge() -> Result<()> {
 }
 
 
-// "0123456789012345678901234567890123456789
-// "    if true {nr    } else {nr    }nr"
-// "    if true {...} else {...}nr"
-fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
-    let mut text: SmallVec<[PhantomText; 6]> = SmallVec::new();
-    let origin_text_len;
-    match (visual_line, folded) {
-        (2, _) => {
-            origin_text_len = 15;
-            text.push(PhantomText {
-                kind: PhantomTextKind::LineFoldedRang {
-                    len:            3,
-                    next_line:      Some(3),
-                    start_position: Default::default()
-                },
-                line: 1,
-                final_col: 12,
-                visual_merge_col: 12,
-                col: 12,
-                text: "{...}".to_string(),
-                ..Default::default()
-            });
-        },
-        (4, false) => {
-            origin_text_len = 14;
-            text.push(PhantomText {
-                kind: PhantomTextKind::LineFoldedRang {
-                    next_line:      None,
-                    len:            5,
-                    start_position: Default::default()
-                },
-                line: 3,
-                final_col: 0,
-                col: 0,
-                visual_merge_col: 0,
-                text: "".to_string(),
-                ..Default::default()
-            });
-        },
-        (4, true) => {
-            // "0123456789012345678901234567890123456789
-            // "    } else {nr    }nr"
-            origin_text_len = 14;
-            text.push(PhantomText {
-                kind: PhantomTextKind::LineFoldedRang {
-                    next_line:      None,
-                    len:            5,
-                    start_position: Default::default()
-                },
-                line: 3,
-                final_col: 0,
-                col: 0,
-                visual_merge_col: 0,
-                text: "".to_string(),
-                ..Default::default()
-            });
-            text.push(PhantomText {
-                kind: PhantomTextKind::LineFoldedRang {
-                    next_line:      Some(5),
-                    len:            3,
-                    start_position: Default::default()
-                },
-                line: 3,
-                final_col: 11,
-                col: 11,
-                visual_merge_col: 11,
-                text: "{...}".to_string(),
-                ..Default::default()
-            });
-        },
-        (6, _) => {
-            origin_text_len = 7;
-            text.push(PhantomText {
-                kind: PhantomTextKind::LineFoldedRang {
-                    next_line:      None,
-                    len:            5,
-                    start_position: Default::default()
-                },
-                line: 5,
-                final_col: 0,
-                col: 0,
-                visual_merge_col: 0,
-                text: "".to_string(),
-                ..Default::default()
-            });
-        },
-        _ => {
-            panic!("");
-        }
-    }
-    PhantomTextLine::new(visual_line - 1, origin_text_len, 0, text)
-}
+// // "0123456789012345678901234567890123456789
+// // "    if true {nr    } else {nr    }nr"
+// // "    if true {...} else {...}nr"
+// fn init_folded_line(visual_line: usize, folded: bool) -> PhantomTextLine {
+//     let mut text: SmallVec<[PhantomText; 6]> = SmallVec::new();
+//     let origin_text_len;
+//     match (visual_line, folded) {
+//         (2, _) => {
+//             origin_text_len = 15;
+//             text.push(PhantomText {
+//                 kind: PhantomTextKind::LineFoldedRang {
+//                     len:            3,
+//                     next_line:      Some(3),
+//                     start_position: Default::default()
+//                 },
+//                 line: 1,
+//                 final_col: 12,
+//                 visual_merge_col: 12,
+//                 col: 12,
+//                 text: "{...}".to_string(),
+//                 ..Default::default()
+//             });
+//         },
+//         (4, false) => {
+//             origin_text_len = 14;
+//             text.push(PhantomText {
+//                 kind: PhantomTextKind::LineFoldedRang {
+//                     next_line:      None,
+//                     len:            5,
+//                     start_position: Default::default()
+//                 },
+//                 line: 3,
+//                 final_col: 0,
+//                 col: 0,
+//                 visual_merge_col: 0,
+//                 text: "".to_string(),
+//                 ..Default::default()
+//             });
+//         },
+//         (4, true) => {
+//             // "0123456789012345678901234567890123456789
+//             // "    } else {nr    }nr"
+//             origin_text_len = 14;
+//             text.push(PhantomText {
+//                 kind: PhantomTextKind::LineFoldedRang {
+//                     next_line:      None,
+//                     len:            5,
+//                     start_position: Default::default()
+//                 },
+//                 line: 3,
+//                 final_col: 0,
+//                 col: 0,
+//                 visual_merge_col: 0,
+//                 text: "".to_string(),
+//                 ..Default::default()
+//             });
+//             text.push(PhantomText {
+//                 kind: PhantomTextKind::LineFoldedRang {
+//                     next_line:      Some(5),
+//                     len:            3,
+//                     start_position: Default::default()
+//                 },
+//                 line: 3,
+//                 final_col: 11,
+//                 col: 11,
+//                 visual_merge_col: 11,
+//                 text: "{...}".to_string(),
+//                 ..Default::default()
+//             });
+//         },
+//         (6, _) => {
+//             origin_text_len = 7;
+//             text.push(PhantomText {
+//                 kind: PhantomTextKind::LineFoldedRang {
+//                     next_line:      None,
+//                     len:            5,
+//                     start_position: Default::default()
+//                 },
+//                 line: 5,
+//                 final_col: 0,
+//                 col: 0,
+//                 visual_merge_col: 0,
+//                 text: "".to_string(),
+//                 ..Default::default()
+//             });
+//         },
+//         _ => {
+//             panic!("");
+//         }
+//     }
+//     PhantomTextLine::new(visual_line - 1, origin_text_len, 0, text)
+// }
 
 
 fn print_line(lines: &PhantomTextMultiLine) {
