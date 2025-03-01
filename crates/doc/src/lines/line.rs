@@ -281,7 +281,8 @@ impl OriginFoldedLine {
                 }
             },
             Text::OriginText { text } => {
-                let merge_col = (final_col - text.final_col.start + text.origin_merge_col.start).min(self.len_without_rn());
+                let max_origin_merge_col = self.origin_interval.size() - (self.len() - self.len_without_rn());
+                let merge_col = (final_col - text.final_col.start + text.origin_merge_col.start).min(max_origin_merge_col);
                 (
                     // text.line,
                     // text.origin_col_of_final_col(visual_char_offset),
@@ -298,7 +299,7 @@ impl OriginFoldedLine {
         self.text_layout.phantom_text.offset_of_line
     }
 
-    pub fn text(&self) -> &SmallVec<[Text; 6]> {
+    pub fn text(&self) -> &[Text] {
         &self.text_layout.phantom_text.text
     }
 
@@ -318,6 +319,8 @@ impl OriginFoldedLine {
         self.text_layout.text.text_len
     }
 
+    /// note:
+    /// len_without_rn of final content
     pub fn len_without_rn(&self, ) -> usize {
         self.text_layout.text.text_len_without_rn
     }

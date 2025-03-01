@@ -102,7 +102,7 @@ impl PhantomText {
         }
     }
 
-    pub fn next_origin_col(&self) -> usize {
+    fn next_origin_col(&self) -> usize {
         if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
             self.col + len
         } else {
@@ -113,10 +113,15 @@ impl PhantomText {
     /// todo 不准确，存在连续phantom的情况?
     pub fn next_visual_merge_col(&self) -> usize {
         // if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
-        self.visual_merge_col + self.text.len()
+        // self.visual_merge_col + self.text.len()
         // } else {
         //     self.visual_merge_col
         // }
+        if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
+            self.visual_merge_col + len
+        } else {
+            self.visual_merge_col
+        }
     }
 
     pub fn next_origin_merge_col(&self) -> usize {
@@ -305,7 +310,7 @@ impl PhantomTextLine {
         });
 
         let mut final_last_end = 0;
-        let mut origin_last_end = 0;
+        let mut origin_merge_col_last_end = 0;
         let mut merge_last_end = 0;
         let mut texts = SmallVec::new();
 
@@ -313,16 +318,15 @@ impl PhantomTextLine {
         for mut phantom in phantom_texts {
             match phantom.kind {
                 PhantomTextKind::LineFoldedRang { len, .. } => {
-                    phantom.final_col = usize_offset(phantom.visual_merge_col, final_offset);
-
+                    phantom.final_col = usize_offset(phantom.final_col, final_offset);
                     final_offset = final_offset + phantom.text.len() as i32 - len as i32;
                 },
                 _ => {
-                    phantom.final_col = usize_offset(phantom.visual_merge_col, final_offset);
+                    phantom.final_col = usize_offset(phantom.final_col, final_offset);
                     final_offset += phantom.text.len() as i32;
                 }
             }
-            phantom.visual_merge_col = phantom.final_col;
+            // phantom.visual_merge_col = phantom.final_col;
             if final_last_end < phantom.final_col {
                 let len = phantom.final_col - final_last_end;
                 // insert origin text
@@ -330,16 +334,16 @@ impl PhantomTextLine {
                     OriginText {
                         line:      phantom.line,
                         col:       Interval::new(
-                            origin_last_end,
-                            origin_last_end + len
+                            origin_merge_col_last_end,
+                            origin_merge_col_last_end + len
                         ),
                         visual_merge_col: Interval::new(
                             merge_last_end,
                             merge_last_end + len
                         ),
                         origin_merge_col: Interval::new(
-                            origin_last_end,
-                            origin_last_end + len
+                            origin_merge_col_last_end,
+                            origin_merge_col_last_end + len
                         ),
                         final_col: Interval::new(
                             final_last_end,
@@ -350,17 +354,17 @@ impl PhantomTextLine {
                 );
             }
             final_last_end = phantom.next_final_col();
-            origin_last_end = phantom.next_origin_col();
+            origin_merge_col_last_end = phantom.next_origin_col();
             merge_last_end = phantom.next_visual_merge_col();
             texts.push(phantom.into());
         }
 
-        let len = origin_text_len - origin_last_end;
+        let len = origin_text_len - origin_merge_col_last_end;
         if len > 0 {
             texts.push(
                 OriginText {
                     line,
-                    col: Interval::new(origin_last_end, origin_last_end + len),
+                    col: Interval::new(origin_merge_col_last_end, origin_merge_col_last_end + len),
                     visual_merge_col: Interval::new(merge_last_end, merge_last_end + len),
                     origin_merge_col: Interval::new(merge_last_end, merge_last_end + len),
                     final_col: Interval::new(final_last_end, final_last_end + len)
@@ -402,14 +406,14 @@ impl PhantomTextLine {
 /// 2. 末尾的空行，由EmptyText表示
 ///
 /// 3. 所有的原始字符都归属某个Text
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct PhantomTextMultiLine {
     /// 原始文本的行号
     pub line:            usize,
     pub last_line:       usize,
     /// line行起点在文本中的偏移
     pub offset_of_line:  usize,
-    // 所有合并在该行的原始行的总长度
+    // 所有合并在该行的原始行的总长度，中间被合并的行不在计算范围
     pub origin_text_len: usize,
     /// 所有合并在该行的最后展现的长度，包括幽灵文本、换行符、
     /// 包括后续的折叠行
@@ -452,7 +456,7 @@ impl PhantomTextMultiLine {
         // ));
 
         // 注意被折叠的长度
-        let visual_merge_offset = self.final_text_len;
+        let visual_merge_offset = self.origin_text_len;
         let origin_merge_offset = line.offset_of_line - self.offset_of_line;
         // let origin_text_len = self.origin_text_len;
         self.origin_text_len = self.origin_text_len + line.origin_text_len;
