@@ -56,6 +56,13 @@ fn test_move_right() -> Result<()> {
         assert_eq!(lines.buffer().char_at_offset(108).unwrap(), '\n');
         assert_eq!(rs, (109, CursorAffinity::Backward));
     }
+
+    {
+        //struct A;|
+        let rs = lines.move_right(136, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(108).unwrap(), '\n');
+        assert_eq!(rs, (139, CursorAffinity::Backward));
+    }
     // _lines._log_folding_ranges();
     // _lines._log_visual_lines();
     // _lines._log_screen_lines();
