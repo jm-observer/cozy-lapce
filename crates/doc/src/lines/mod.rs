@@ -2261,8 +2261,14 @@ impl DocLines {
         _mode: Mode,
         _count: usize
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
-        let (visual_line, final_col, ..) =
-            self.folded_line_of_offset(offset, affinity)?;
+        let (visual_line, final_col, ..) = if offset >= self.buffer().len() {
+            let Some(folded_line) = self.origin_folded_lines.last() else {
+                bail!("last line is none");
+            };
+            (folded_line, folded_line.len_without_rn())
+        } else {
+            self.folded_line_of_offset(offset, affinity)?
+        };
 
         let horiz = horiz.unwrap_or_else(|| {
             ColPosition::Col(final_col)

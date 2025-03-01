@@ -10,7 +10,6 @@ use floem::kurbo::{Point, Rect, Size, Vec2};
 use floem::text::{HitPoint, HitPosition};
 use lapce_xi_rope::Interval;
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use crate::hit_position_aff;
 use super::layout::{LayoutRunIter, LineExtraStyle, TextLayoutLine};
 use crate::lines::{
@@ -265,6 +264,7 @@ impl OriginFoldedLine {
         &self,
         final_col: usize
     ) -> (usize, CursorAffinity) {
+        log::info!("{:?} {}", self, final_col);
         match self.text_layout.phantom_text.text_of_final_col_even_overflow(final_col) {
             Text::Phantom { text } => {
                 // 在虚拟文本的后半部分，则光标置于虚拟文本之后

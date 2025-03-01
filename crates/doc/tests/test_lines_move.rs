@@ -68,10 +68,15 @@ fn test_move_up() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
     let mut lines = init_main_2()?;
     let items = init_main_folded_item_2()?;
-    for item in items {
-        lines.update_folding_ranges(item.into())?;
-    }
+    // for item in items {
+    //     lines.update_folding_ranges(item.into())?;
+    // }
+
+
     // lines._log_folded_lines();
+    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+    lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
+
     lines.log();
     {
         //    if true {...} []else {...}
@@ -79,6 +84,13 @@ fn test_move_up() -> Result<()> {
         let rs = lines.move_up(122, CursorAffinity::Forward, None, Mode::Insert, 0).unwrap().unwrap();
         assert_eq!(lines.buffer().char_at_offset(122).unwrap(), ';');
         assert_eq!(rs, (64, ColPosition::Col(18), CursorAffinity::Backward),);
+    }
+    {
+        //
+        //|         empty line
+        let rs = lines.move_up(461, CursorAffinity::Backward, None, Mode::Insert, 0).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(122).unwrap(), ';');
+        assert_eq!(rs, (458, ColPosition::Col(0), CursorAffinity::Backward),);
     }
     Ok(())
 }
