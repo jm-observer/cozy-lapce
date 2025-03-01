@@ -966,7 +966,7 @@ impl View for EditorView {
             &screen_lines,
             &editor_debug_break_line_color, current_line_color, line_height as f64, cursor_highlight_current_line, cursor_offset
         );
-        paint_selection(cx, ed, &screen_lines, cursor_affinity);
+        paint_selection(cx, ed, &screen_lines);
         // let screen_lines = ed.screen_lines.get_untracked();
 
         self.paint_diff_sections(

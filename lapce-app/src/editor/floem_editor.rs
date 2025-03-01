@@ -372,7 +372,6 @@ impl Editor {
                     return;
                 }
             };
-        info!("single_click new_offset={new_offset} {:?} {:?}", cursor_affinity, pointer_event.pos);
         self.cursor.update(|cursor| {
             cursor.set_offset(
                 new_offset,
@@ -1230,7 +1229,7 @@ pub trait CommonAction {
     ) -> bool;
 }
 
-pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines, cursor_affinity: CursorAffinity) {
+pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines) {
     let cursor = ed.cursor;
 
     let selection_color = ed.doc().lines.with_untracked(|es| es.selection_color());
@@ -1256,7 +1255,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                 selection_color,
                 *start_offset,
                 end_offset,
-                cursor.affinity, _screen_lines, cursor_affinity
+                _screen_lines, cursor.affinity
             ) {
                 error!("{err:?}");
             }
@@ -1307,7 +1306,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                     selection_color,
                     start.min(end),
                     start.max(end),
-                    cursor.affinity, _screen_lines, cursor_affinity
+                    _screen_lines, cursor.affinity
                 ) {
                     error!("{err:?}");
                 }
@@ -1429,9 +1428,10 @@ fn paint_normal_selection(
     color: Color,
     start_offset: usize,
     end_offset: usize,
-    _affinity: CursorAffinity, screen_lines: &ScreenLines, cursor_affinity: CursorAffinity,
+    screen_lines: &ScreenLines, cursor_affinity: CursorAffinity,
 ) -> Result<()> {
     let rs = screen_lines.normal_selection(start_offset, end_offset, cursor_affinity)?;
+    log::info!("normal_selection {start_offset}-{end_offset} {cursor_affinity:?} {rs:?}");
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use lapce_xi_rope::{RopeDelta, Transformer};
-use log::error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::lines::{
@@ -497,6 +497,7 @@ impl Cursor {
     }
 
     pub fn set_offset(&mut self, offset: usize, modify: bool, new_cursor: bool) {
+        info!("cursor set_offset new_offset={offset} modify={modify} new_cursor={new_cursor} old_offset={}", self.offset());
         match &self.mode {
             CursorMode::Normal(old_offset) => {
                 if modify && *old_offset != offset {
