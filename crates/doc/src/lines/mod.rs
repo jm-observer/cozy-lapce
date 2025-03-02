@@ -922,31 +922,49 @@ impl DocLines {
     ) -> Result<(usize, bool, CursorAffinity)> {
         let info = self.origin_folded_line_of_point(point.y).unwrap_or(self.origin_folded_lines.last().ok_or(anyhow!("origin_folded_lines last line is empty"))?);
         let hit_point = info.hit_point(Point::new(point.x, 0.0));
+        let visual_char_offset = hit_point.index;
 
         if hit_point.is_inside {
-            Ok(match info.text_of_final_col(hit_point.index) {
-                Text::Phantom { text } => {
-                    // 在虚拟文本的后半部分，则光标置于虚拟文本之后
-                    if hit_point.index > text.final_col + text.text.len() / 2 {
-                        (
-                            info.origin_interval.start + text.origin_merge_col, true,
-                            CursorAffinity::Forward
-                        )
-                    } else {
-                        (
-                            info.origin_interval.start + text.origin_merge_col, true,
-                            CursorAffinity::Backward
-                        )
-                    }
-                },
-                Text::OriginText { text } =>
-                    (hit_point.index - text.final_col.start + text.origin_merge_col.start + info.offset_of_line(), true, CursorAffinity::Backward)
-                ,
-                Text::EmptyLine { .. } => {unreachable!()}
-            })
+            for x in info.text() {
+                match x {
+                    Text::Phantom { text } => {
+                        if text.final_col <= visual_char_offset
+                            && visual_char_offset < text.next_final_col()
+                        {
+                            // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+                            return  Ok(if hit_point.index > text.final_col + text.text.len() / 2 {
+                                (
+                                    info.origin_interval.start + text.origin_merge_col, true,
+                                    CursorAffinity::Forward
+                                )
+                            } else {
+                                (
+                                    info.origin_interval.start + text.origin_merge_col, true,
+                                    CursorAffinity::Backward
+                                )
+                            });
+                        } else if visual_char_offset == text.next_final_col() {
+                            return Ok((
+                                info.origin_interval.start + text.origin_merge_col, true,
+                                CursorAffinity::Forward
+                            ))
+                        }
+                    },
+                    Text::OriginText { text } => {
+                        if text.final_col.contains(visual_char_offset) {
+                            return Ok((visual_char_offset - text.final_col.start + text.origin_merge_col.start + info.origin_interval.start, true, CursorAffinity::Backward));
+                        }
+                    },
+                    Text::EmptyLine { .. } => unreachable!()
+                }
+            }
+            unreachable!()
         } else {
+            let Some(text) = info.text().last() else {
+                unreachable!()
+            };
             // last of line
-            Ok(match info.text_of_final_col(hit_point.index) {
+            Ok(match text {
                 Text::Phantom { text } => {
                     (text.origin_merge_col + info.origin_interval.start, false, CursorAffinity::Forward)
                 }

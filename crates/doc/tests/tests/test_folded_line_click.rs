@@ -161,6 +161,13 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
         let point = screen_lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity).unwrap();
         assert_eq!(157, point.unwrap().x as usize);
     }
+    {
+        //|    if true {..[].} else {\r\n
+        let point = Point::new(109.7, 30.0);
+        let rs =
+            lines.result_of_left_click(point)?;
+        assert_eq!(rs, ClickResult::MatchFolded);
+    }
 
 
     Ok(())
@@ -177,16 +184,23 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     let mut lines = init_main_2()?;
 
     let items = init_main_folded_item_2()?;
-    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
-    // let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(1000.,800.))).0;
-    // lines.log();
-
-    {
-        //|    if true {..[].} else {\r\n
-        let point = Point::new(109.7, 30.0);
-        let rs =
-            lines.result_of_left_click(point)?;
-        assert_eq!(rs, ClickResult::MatchFolded);
+    for item in items {
+        lines.update_folding_ranges(item.into())?;
     }
+    //  |    let a: A [] = A;
+    {
+        let point = Point::new(97.7, 49.0);
+        let (offset_of_buffer, is_inside, affinity) =
+            lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), ' ');
+        assert_eq!((offset_of_buffer, is_inside, affinity), (118, true, CursorAffinity::Forward));
+    }
+    // {
+    //     //    if true {...} else {...}|
+    //     let point = Point::new(109.7, 30.0);
+    //     let rs =
+    //         lines.result_of_left_click(point)?;
+    //     assert_eq!(rs, ClickResult::);
+    // }
     Ok(())
 }
