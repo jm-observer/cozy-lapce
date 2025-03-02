@@ -3,15 +3,7 @@
 use std::{path::PathBuf, sync::atomic};
 
 use anyhow::Result;
-use doc::lines::{
-    buffer::rope_text::RopeText,
-    command::EditCommand,
-    cursor::{Cursor, CursorAffinity, CursorMode},
-    fold::{FoldingDisplayItem, FoldingDisplayType},
-    register::Register,
-    selection::Selection,
-    word::WordCursor
-};
+use doc::lines::{buffer::rope_text::RopeText, command::EditCommand, cursor::{Cursor, CursorAffinity, CursorMode}, fold::{FoldingDisplayItem, FoldingDisplayType}, register::Register, selection::Selection, word::WordCursor, ClickResult};
 use floem::{
     kurbo::{Point, Rect},
     reactive::SignalUpdate
@@ -172,5 +164,30 @@ fn _test_buffer_offset_of_click_2() -> Result<()> {
     }
 
 
+    Ok(())
+}
+
+#[test]
+fn test_buffer_offset_of_click_3() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    _test_buffer_offset_of_click_3()?;
+    Ok(())
+}
+
+fn _test_buffer_offset_of_click_3() -> Result<()> {
+    let mut lines = init_main_2()?;
+
+    let items = init_main_folded_item_2()?;
+    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+    // let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(1000.,800.))).0;
+    // lines.log();
+
+    {
+        //|    if true {..[].} else {\r\n
+        let point = Point::new(109.7, 30.0);
+        let rs =
+            lines.result_of_left_click(point)?;
+        assert_eq!(rs, ClickResult::MatchFolded);
+    }
     Ok(())
 }

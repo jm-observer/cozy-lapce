@@ -977,13 +977,14 @@ impl DocLines {
         self.origin_folded_lines.get(origin_folded_line_index)
     }
 
-    pub fn result_of_left_click(&mut self, point: Point) -> Result<ClickResult> {
+    pub fn result_of_left_click(&mut self, mut point: Point) -> Result<ClickResult> {
         let Some(info) = self.origin_folded_line_of_point(point.y) else {
             return Ok(ClickResult::NoHintOrNothing)
         };
         // let y = text_layout
         //     .get_layout_y(0)
         //     .unwrap_or(0.0);
+        point.y = 0.0;
         let hit_point = info.hit_point(point);
         Ok(
             if let Text::Phantom { text: phantom } =
@@ -3469,7 +3470,7 @@ pub trait RopeTextPosition: RopeText {
 
 impl<T: RopeText> RopeTextPosition for T {}
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ClickResult {
     NoHintOrNothing,
     MatchWithoutLocation,
