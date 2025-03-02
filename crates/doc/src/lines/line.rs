@@ -196,7 +196,8 @@ impl OriginFoldedLine {
     // }
 
     pub fn is_last_char(&self, final_offset: usize, ) -> bool {
-        final_offset + 1 >= self.text_layout.text.text_len_without_rn
+        // struct A|;
+        final_offset >= self.text_layout.text.text_len_without_rn
     }
 
     /// 单一视觉行的间隔point

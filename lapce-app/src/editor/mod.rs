@@ -2995,7 +2995,7 @@ impl EditorData {
 
     pub fn pointer_move(&self, pointer_event: &PointerMoveEvent) {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
-        let (offset, is_inside, _) =
+        let (offset, is_inside, affinity) =
             match self.editor.offset_of_point(&mode, pointer_event.pos) {
                 Ok(rs) => rs,
                 Err(err) => {
@@ -3003,11 +3003,12 @@ impl EditorData {
                     return;
                 }
             };
+        log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
         if self.active().get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
             self.cursor().update(|cursor| {
-                cursor.set_offset(offset, true, pointer_event.modifiers.alt())
+                cursor.set_offset_with_affinity(offset, true, pointer_event.modifiers.alt(), Some(affinity))
             });
         }
         if self.common.hover.active.get_untracked() {

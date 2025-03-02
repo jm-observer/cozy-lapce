@@ -506,7 +506,7 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         screen_lines: &ScreenLines,
-        color: Color, cursor_affinity: CursorAffinity
+        color: Color
     ) -> Result<()> {
         let find_visual = self.editor.common.find.visual.get_untracked();
         if !find_visual && self.editor.on_screen_find.with_untracked(|f| !f.active) {
@@ -533,7 +533,7 @@ impl EditorView {
             for region in occurrences.with_untracked(|selection| {
                 selection.regions_in_range(start, end).to_vec()
             }) {
-                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines, cursor_affinity) {
+                if let Err(err) = self.paint_find_region(cx, &region, color, screen_lines) {
                     error!("{err:?}");
                 }
             }
@@ -542,7 +542,7 @@ impl EditorView {
         self.editor.on_screen_find.with_untracked(|find| {
             if find.active {
                 for region in &find.regions {
-                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines, cursor_affinity) {
+                    if let Err(err) = self.paint_find_region(cx, region, color, screen_lines) {
                         error!("{err:?}");
                     }
                 }
@@ -555,11 +555,14 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         region: &SelRegion,
-        color: Color, screen_lines: &ScreenLines, cursor_affinity: CursorAffinity
+        color: Color, screen_lines: &ScreenLines,
     ) -> Result<()> {
-        let start = region.min();
-        let end = region.max();
-        let rs = screen_lines.normal_selection(start, end, cursor_affinity)?;
+        let (start, end, start_affinity, end_affinity) = if region.start > region.end {
+            (region.end, region.start, region.end_cursor_affi, region.start_cursor_affi)
+        } else {
+            (region.start, region.end, region.start_cursor_affi, region.end_cursor_affi)
+        };
+        let rs = screen_lines.normal_selection(start, end, start_affinity, end_affinity)?;
         for rect in rs {
             cx.stroke(&rect, color, &Stroke::new(1.0));
         }
@@ -979,7 +982,7 @@ impl View for EditorView {
             &editor_dim_color
         );
         // let screen_lines = ed.screen_lines.get_untracked();
-        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg, cursor_affinity) {
+        if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg) {
             error!("{err:?}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();

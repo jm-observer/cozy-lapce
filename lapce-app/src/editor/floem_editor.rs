@@ -364,7 +364,7 @@ impl Editor {
         common_data: &CommonData
     ) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
-        let (new_offset, _, cursor_affinity) =
+        let (new_offset, _is_inside, cursor_affinity) =
             match self.offset_of_point(&mode, pointer_event.pos) {
                 Ok(rs) => rs,
                 Err(err) => {
@@ -372,11 +372,12 @@ impl Editor {
                     return;
                 }
             };
+        log::info!("offset_of_point single_click {:?} {new_offset} {_is_inside} {cursor_affinity:?}", pointer_event.pos);
         self.cursor.update(|cursor| {
-            cursor.set_offset(
+            cursor.set_offset_with_affinity(
                 new_offset,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt()
+                pointer_event.modifiers.alt(), Some(cursor_affinity)
             );
             cursor.affinity = cursor_affinity;
         });
@@ -1237,28 +1238,29 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
     cursor.with_untracked(|cursor| match cursor.mode() {
         CursorMode::Normal(_) => {},
         CursorMode::Visual {
-            start,
-            end,
+            start: _start,
+            end: _end,
             mode: VisualMode::Normal
         } => {
-            let start_offset = start.min(end);
-            let end_offset = match ed.move_right(*start.max(end), Mode::Insert, 1) {
-                Ok(rs) => rs,
-                Err(err) => {
-                    error!("{err:?}");
-                    return;
-                }
-            };
-
-            if let Err(err) = paint_normal_selection(
-                cx,
-                selection_color,
-                *start_offset,
-                end_offset,
-                _screen_lines, cursor.affinity
-            ) {
-                error!("{err:?}");
-            }
+            error!("todo implement");
+            // let start_offset = start.min(end);
+            // let end_offset = match ed.move_right(*start.max(end), Mode::Insert, 1) {
+            //     Ok(rs) => rs,
+            //     Err(err) => {
+            //         error!("{err:?}");
+            //         return;
+            //     }
+            // };
+            //
+            // if let Err(err) = paint_normal_selection(
+            //     cx,
+            //     selection_color,
+            //     *start_offset,
+            //     end_offset,
+            //     _screen_lines, cursor.affinity
+            // ) {
+            //     error!("{err:?}");
+            // }
         },
         CursorMode::Visual {
             start: _start,
@@ -1298,15 +1300,20 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
             // }
         },
         CursorMode::Insert(_) => {
-            for (start, end) in
-                cursor.regions_iter().filter(|(start, end)| start != end)
+            for (start, end, start_affinity, end_affinity) in
+                cursor.regions_iter().filter(|(start, end, ..)| start != end)
             {
+                let (start, end, start_affinity, end_affinity) = if start > end {
+                    (end, start, end_affinity, start_affinity)
+                } else {
+                    (start, end, start_affinity, end_affinity)
+                };
                 if let Err(err) = paint_normal_selection(
                     cx,
                     selection_color,
-                    start.min(end),
-                    start.max(end),
-                    _screen_lines, cursor.affinity
+                    start,
+                    end,
+                    _screen_lines, start_affinity, end_affinity
                 ) {
                     error!("{err:?}");
                 }
@@ -1428,10 +1435,10 @@ fn paint_normal_selection(
     color: Color,
     start_offset: usize,
     end_offset: usize,
-    screen_lines: &ScreenLines, cursor_affinity: CursorAffinity,
+    screen_lines: &ScreenLines, start_affinity: Option<CursorAffinity>, end_affinity: Option<CursorAffinity>
 ) -> Result<()> {
-    let rs = screen_lines.normal_selection(start_offset, end_offset, cursor_affinity)?;
-    log::info!("normal_selection {start_offset}-{end_offset} {cursor_affinity:?} {rs:?}");
+    let rs = screen_lines.normal_selection(start_offset, end_offset, start_affinity, end_affinity)?;
+    log::info!("normal_selection {start_offset}-{end_offset} {start_affinity:?}-{end_affinity:?} {rs:?}");
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }

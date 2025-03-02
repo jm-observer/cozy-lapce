@@ -1060,7 +1060,7 @@ impl Ranges {
     }
 }
 
-pub fn combine_with_text(lines: &SmallVec<[Text; 6]>, origin: &str) -> String {
+pub fn combine_with_text(lines: &[Text], origin: &str) -> String {
     let mut rs = String::new();
     // let mut latest_col = 0;
     for text in lines {

@@ -958,9 +958,9 @@ impl DocLines {
                         // 该返回\r的前一个字符，CursorAffinity::Forward
                         let line_ending_len = info.len() - info.len_without_rn();
                         if line_ending_len == 0 {
-                            (info.origin_interval.end - 1, false, CursorAffinity::Forward)
+                            (info.origin_interval.end, false, CursorAffinity::Backward)
                         } else {
-                            (info.origin_interval.end - 1 - line_ending_len, false, CursorAffinity::Forward)
+                            (info.origin_interval.end - line_ending_len, false, CursorAffinity::Backward)
                         }
                     }
                     // (text.merge_col.end + text_layout.phantom_text.offset_of_line - 1, false, CursorAffinity::Forward)
@@ -2056,26 +2056,11 @@ impl DocLines {
                             let start = iv.start();
                             let end = iv.end();
                             let severity = diag.severity?;
-                            // warn!("start_offset={start_offset}
-                            // end_offset={end_offset}
-                            // interval={iv:?}");
-                            if start <= end_offset
-                                && start_offset <= end
+                            // ?
+                            if start_offset <= start
+                                && end <= end_offset
                                 && severity < DiagnosticSeverity::HINT
                             {
-                                // match (severity, *max_severity)
-                                // {
-                                //     (severity, Some(max)) => {
-                                //         if severity < max {
-                                //             *max_severity =
-                                // Some(severity);
-                                //         }
-                                //     }
-                                //     (severity, None) => {
-                                //         *max_severity =
-                                // Some(severity);
-                                //     }
-                                // }
                                 let color =
                                     self.config.color_of_diagnostic(severity)?;
                                 Some(NewLineStyle {

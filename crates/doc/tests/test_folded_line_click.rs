@@ -87,9 +87,9 @@ fn _test_buffer_offset_of_click() -> Result<()> {
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
         // 16
-        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '{');
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '\r');
         assert_eq!(is_inside, false);
-        assert_eq!(affinity, CursorAffinity::Forward);
+        assert_eq!(affinity, CursorAffinity::Backward);
 
         let (_visual_line, final_col, ..) =
             lines.folded_line_of_offset(offset_of_buffer, affinity)?;
@@ -123,7 +123,8 @@ fn _test_buffer_offset_of_click() -> Result<()> {
         let point = Point::new(172.7, 150.0);
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
-        assert_eq!((offset_of_buffer, is_inside, affinity), (128, false, CursorAffinity::Forward));
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '\r');
+        assert_eq!((offset_of_buffer, is_inside, affinity), (129, false, CursorAffinity::Backward));
 
         // screen_lines.cursor_position_of_buffer_offset(offset_of_buffer, affinity)
         let (vl, final_offset) = screen_lines.cursor_info_of_buffer_offset(offset_of_buffer, affinity).unwrap().unwrap();
@@ -153,9 +154,9 @@ fn _test_buffer_offset_of_click_2() -> Result<()> {
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
         // 16
-        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '{');
-        assert_eq!((offset_of_buffer, is_inside), (69, false));
-        assert_eq!(affinity, CursorAffinity::Forward);
+        assert_eq!(lines.buffer().char_at_offset(offset_of_buffer).unwrap(), '\r');
+        assert_eq!((offset_of_buffer, is_inside), (70, false));
+        assert_eq!(affinity, CursorAffinity::Backward);
     }
     {
         //|    if true {...} els[]e {\r\n

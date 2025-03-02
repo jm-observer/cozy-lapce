@@ -3,7 +3,7 @@ use std::cmp::{Ordering, max, min};
 use lapce_xi_rope::{RopeDelta, Transformer};
 use serde::{Deserialize, Serialize};
 
-use crate::lines::cursor::ColPosition;
+use crate::lines::cursor::{ColPosition, CursorAffinity};
 
 /// Indicate whether a delta should be applied inside, outside
 /// non-caret selection or after a caret selection (see
@@ -27,7 +27,9 @@ pub struct SelRegion {
     /// Region end offset
     pub end:   usize,
     /// Horizontal rules for multiple selection
-    pub horiz: Option<ColPosition>
+    pub horiz: Option<ColPosition>,
+    pub start_cursor_affi: Option<CursorAffinity>,
+    pub end_cursor_affi: Option<CursorAffinity>,
 }
 
 /// A selection holding one or more [`SelRegion`].
@@ -48,7 +50,7 @@ impl AsRef<Selection> for Selection {
 impl SelRegion {
     /// Creates new [`SelRegion`] from `start` and `end` offset.
     pub fn new(start: usize, end: usize, horiz: Option<ColPosition>) -> SelRegion {
-        SelRegion { start, end, horiz }
+        SelRegion { start, end, horiz, start_cursor_affi: None, end_cursor_affi: None }
     }
 
     /// Creates a caret [`SelRegion`],
@@ -58,7 +60,9 @@ impl SelRegion {
         SelRegion {
             start: offset,
             end:   offset,
-            horiz: None
+            horiz: None,
+            start_cursor_affi: None,
+            end_cursor_affi: None,
         }
     }
 
@@ -164,7 +168,9 @@ impl Selection {
         Self::sel_region(SelRegion {
             start,
             end,
-            horiz: None
+            horiz: None,
+            start_cursor_affi: None,
+            end_cursor_affi: None,
         })
     }
 

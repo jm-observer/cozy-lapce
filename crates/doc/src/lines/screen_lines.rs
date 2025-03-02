@@ -331,18 +331,18 @@ impl ScreenLines {
     pub fn normal_selection(
         &self,
         start_offset: usize,
-        end_offset: usize, cursor_affinity: CursorAffinity
+        end_offset: usize, start_affinity: Option<CursorAffinity>, end_affinity: Option<CursorAffinity>
     ) -> Result<Vec<Rect>> {
         let (start_offset, end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
         } else {
             (start_offset, end_offset)
         };
-        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(start_offset, cursor_affinity)? else {
+        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(start_offset, start_affinity.unwrap_or_default())? else {
             return Ok(vec![]);
         };
         let folded_line_start = &vl_start.visual_line;
-        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(end_offset, cursor_affinity)? else {
+        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(end_offset, end_affinity.unwrap_or_default())? else {
             return Ok(vec![]);
         };
         let folded_line_end = &vl_end.visual_line;

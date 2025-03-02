@@ -45,23 +45,23 @@ struct RegionsIter<'c> {
 }
 
 impl Iterator for RegionsIter<'_> {
-    type Item = (usize, usize);
+    type Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.cursor_mode {
             &CursorMode::Normal(offset) => (self.idx == 0).then(|| {
                 self.idx = 1;
-                (offset, offset)
+                (offset, offset, None, None)
             }),
             &CursorMode::Visual { start, end, .. } => (self.idx == 0).then(|| {
                 self.idx = 1;
-                (start, end)
+                (start, end, None, None)
             }),
             CursorMode::Insert(selection) => {
                 let next = selection
                     .regions()
                     .get(self.idx)
-                    .map(|&SelRegion { start, end, .. }| (start, end));
+                    .map(|&SelRegion { start, end, start_cursor_affi, end_cursor_affi, .. }| (start, end, start_cursor_affi, end_cursor_affi));
 
                 if next.is_some() {
                     self.idx += 1;
@@ -118,7 +118,7 @@ impl CursorMode {
 
     pub fn regions_iter(
         &self
-    ) -> impl ExactSizeIterator<Item = (usize, usize)> + '_ {
+    ) -> impl ExactSizeIterator<Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)> + '_ {
         RegionsIter {
             cursor_mode: self,
             idx:         0
@@ -152,11 +152,12 @@ impl CursorMode {
 /// hint, `let j|<: String>`. `let j<: String> |=` and you press the
 /// right-arrow key, then it uses your forwards affinity to
 /// keep you on the same side of the hint, `let j<: String>| =`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum CursorAffinity {
     /// `<: String>|`
     Forward,
     /// `|<: String>`
+    #[default]
     Backward
 }
 impl CursorAffinity {
@@ -221,7 +222,7 @@ impl Cursor {
 
     pub fn regions_iter(
         &self
-    ) -> impl ExactSizeIterator<Item = (usize, usize)> + '_ {
+    ) -> impl ExactSizeIterator<Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)> + '_ {
         self.mode.regions_iter()
     }
 
@@ -389,12 +390,12 @@ impl Cursor {
                     text.slice_to_cow(
                         *start.min(end)
                             ..text.next_grapheme_offset(
-                                *start.max(end),
-                                1,
-                                text.len()
-                            )
+                            *start.max(end),
+                            1,
+                            text.len()
+                        )
                     )
-                    .to_string(),
+                        .to_string(),
                     VisualMode::Normal
                 ),
                 VisualMode::Linewise => {
@@ -496,54 +497,62 @@ impl Cursor {
         }
     }
 
-    pub fn set_offset(&mut self, offset: usize, modify: bool, new_cursor: bool) {
+    pub fn set_offset(&mut self, offset: usize, modify: bool, new_cursor: bool,) {
+        self.set_offset_with_affinity(offset, modify, new_cursor, None);
+    }
+    pub fn set_offset_with_affinity(&mut self, offset: usize, modify: bool, new_cursor: bool, new_affinite: Option<CursorAffinity>) {
         info!("cursor set_offset new_offset={offset} modify={modify} new_cursor={new_cursor} old_offset={}", self.offset());
         match &self.mode {
-            CursorMode::Normal(old_offset) => {
-                if modify && *old_offset != offset {
-                    self.mode = CursorMode::Visual {
-                        start: *old_offset,
-                        end:   offset,
-                        mode:  VisualMode::Normal
-                    };
-                } else {
-                    self.mode = CursorMode::Normal(offset);
-                }
+            CursorMode::Normal(_old_offset) => {
+                // todo!()
+                // if modify && *old_offset != offset {
+                //     self.mode = CursorMode::Visual {
+                //         start: *old_offset,
+                //         end:   offset,
+                //         mode:  VisualMode::Normal
+                //     };
+                // } else {
+                //     self.mode = CursorMode::Normal(offset);
+                // }
             },
             CursorMode::Visual {
-                start,
+                start: _,
                 end: _,
                 mode: _
             } => {
-                if modify {
-                    self.mode = CursorMode::Visual {
-                        start: *start,
-                        end:   offset,
-                        mode:  VisualMode::Normal
-                    };
-                } else {
-                    self.mode = CursorMode::Normal(offset);
-                }
+                // todo
+                // if modify {
+                //     self.mode = CursorMode::Visual {
+                //         start: *start,
+                //         end:   offset,
+                //         mode:  VisualMode::Normal
+                //     };
+                // } else {
+                //     self.mode = CursorMode::Normal(offset);
+                // }
             },
             CursorMode::Insert(selection) => {
                 if new_cursor {
-                    let mut new_selection = selection.clone();
-                    if modify {
-                        if let Some(region) = new_selection.last_inserted_mut() {
-                            region.end = offset;
-                        } else {
-                            new_selection.add_region(SelRegion::caret(offset));
-                        }
-                        self.set_insert(new_selection);
-                    } else {
-                        let mut new_selection = selection.clone();
-                        new_selection.add_region(SelRegion::caret(offset));
-                        self.set_insert(new_selection);
-                    }
+                    // todo
+                    // let mut new_selection = selection.clone();
+                    // if modify {
+                    //     if let Some(region) = new_selection.last_inserted_mut() {
+                    //         region.end = offset;
+                    //     } else {
+                    //         new_selection.add_region(SelRegion::caret(offset));
+                    //     }
+                    //     self.set_insert(new_selection);
+                    // } else {
+                    //     let mut new_selection = selection.clone();
+                    //     new_selection.add_region(SelRegion::caret(offset));
+                    //     self.set_insert(new_selection);
+                    // }
                 } else if modify {
                     let mut new_selection = Selection::new();
                     if let Some(region) = selection.first() {
-                        let new_region = SelRegion::new(region.start, offset, None);
+                        let mut new_region = SelRegion::new(region.start, offset, None);
+                        new_region.start_cursor_affi = Some(self.affinity);
+                        new_region.end_cursor_affi = new_affinite;
                         new_selection.add_region(new_region);
                     } else {
                         new_selection
