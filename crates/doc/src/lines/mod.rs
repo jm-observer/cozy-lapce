@@ -871,7 +871,7 @@ impl DocLines {
         buffer_offset: usize
     ) -> Result<&OriginFoldedLine> {
         for folded_line in &self.origin_folded_lines {
-            if folded_line.origin_interval.contains(buffer_offset) {
+            if folded_line.origin_interval.contains(buffer_offset) || folded_line.origin_interval.start == buffer_offset{
                return Ok(folded_line);
             }
         }

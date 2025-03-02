@@ -3003,7 +3003,7 @@ impl EditorData {
                     return;
                 }
             };
-        log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
+        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
         if self.active().get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
