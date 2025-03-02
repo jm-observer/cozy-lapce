@@ -569,7 +569,7 @@ impl PhantomTextMultiLine {
                 match x {
                     Text::Phantom { text } => {
                         if text.final_col <= visual_char_offset
-                            && visual_char_offset < text.next_final_col()
+                            && visual_char_offset <= text.next_final_col()
                         {
                             return true;
                         }

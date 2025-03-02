@@ -3008,7 +3008,8 @@ impl EditorData {
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
             self.cursor().update(|cursor| {
-                cursor.set_offset_with_affinity(offset, true, pointer_event.modifiers.alt(), Some(affinity))
+                cursor.set_offset_with_affinity(offset, true, pointer_event.modifiers.alt(), Some(affinity));
+                cursor.affinity = affinity;
             });
         }
         if self.common.hover.active.get_untracked() {
