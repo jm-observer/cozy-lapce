@@ -72,7 +72,7 @@ impl KeyPressFocus for CodeActionData {
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_cmd) => {
-                if matches!(LapceWorkbenchCommand::OpenUIInspector, _cmd) {
+                if matches!(_cmd, LapceWorkbenchCommand::OpenUIInspector) {
                     self.common.view_id.get_untracked().inspect();
                 }
             },
