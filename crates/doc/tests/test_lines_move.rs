@@ -39,6 +39,14 @@ fn test_move_right() -> Result<()> {
         assert_eq!((141, CursorAffinity::Backward), rs);
     }
     {
+        //
+        // fn test() {...}|
+        //
+        let rs = lines.move_right(151, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(459).unwrap(), '\r');
+        assert_eq!(rs, (461, CursorAffinity::Backward));
+    }
+    {
         //     if true {...}| else {...}
         let rs = lines.move_right(25, CursorAffinity::Forward).unwrap().unwrap();
         assert_eq!((lines.buffer().char_at_offset(25).unwrap(), lines.buffer().char_at_offset(64).unwrap()), ('{', 'e'));
@@ -65,6 +73,54 @@ fn test_move_right() -> Result<()> {
         //struct A;|
         let rs = lines.move_right(137, CursorAffinity::Backward).unwrap().unwrap();
         assert_eq!(rs, (139, CursorAffinity::Backward));
+    }
+    // _lines._log_folding_ranges();
+    // _lines._log_visual_lines();
+    // _lines._log_screen_lines();
+    Ok(())
+}
+
+
+#[test]
+fn test_move_left() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    let mut lines = init_main_2()?;
+    let items = init_main_folded_item_2()?;
+    for item in items {
+        lines.update_folding_ranges(item.into())?;
+    }
+    lines._log_folded_lines();
+    {
+        //
+        // |fn test() {...}
+        let rs = lines.move_left(141, CursorAffinity::Backward).unwrap().unwrap();
+        assert_eq!((lines.buffer().char_at_offset(139).unwrap(), lines.buffer().char_at_offset(141).unwrap()), ('\r', 'f'));
+        assert_eq!(rs, (139, CursorAffinity::Backward));
+    }
+    {
+        //     if true {...}| else {...}
+        let rs = lines.move_left(25, CursorAffinity::Forward).unwrap().unwrap();
+        assert_eq!((lines.buffer().char_at_offset(25).unwrap(), lines.buffer().char_at_offset(64).unwrap()), ('{', 'e'));
+        assert_eq!(rs, (25, CursorAffinity::Backward));
+    }
+    {
+        //  if true {...} |else {...}
+        let rs = lines.move_left(64, CursorAffinity::Backward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(64).unwrap(), 'e');
+        assert_eq!(rs, (25, CursorAffinity::Forward));
+    }
+
+    {
+        //struct A;|
+        let rs = lines.move_left(137, CursorAffinity::Backward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(136).unwrap(), ';');
+        assert_eq!(rs, (136, CursorAffinity::Backward));
+    }
+    {
+        //s|truct A;
+        let rs = lines.move_left(129, CursorAffinity::Backward).unwrap().unwrap();
+        assert_eq!(lines.buffer().char_at_offset(128).unwrap(), 's');
+        assert_eq!(rs, (128, CursorAffinity::Backward));
     }
     // _lines._log_folding_ranges();
     // _lines._log_visual_lines();

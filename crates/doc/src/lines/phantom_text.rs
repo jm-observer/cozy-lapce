@@ -188,6 +188,14 @@ pub enum Text {
 }
 
 impl Text {
+
+    pub fn is_phantom(&self) -> bool {
+        if let Text::Phantom { .. } = self {
+            true
+        } else {
+            false
+        }
+    }
     pub fn adjust(&mut self, line_delta: Offset, _offset_delta: Offset) {
         match self {
             Text::Phantom { text } => {
