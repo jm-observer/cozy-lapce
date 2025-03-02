@@ -19,18 +19,23 @@ use log::info;
 use lsp_types::Position;
 use doc::lines::cursor::ColPosition;
 use doc::lines::mode::Mode;
-use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
-mod lines_util;
+use super::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 
 #[test]
-fn test_move_right() -> Result<()> {
+fn test_all() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
+    test_move_right()?;
+    test_move_left()?;
+    test_move_up()?;
+    Ok(())
+}
+pub fn test_move_right() -> Result<()> {
     let mut lines = init_main_2()?;
     let items = init_main_folded_item_2()?;
     for item in items {
         lines.update_folding_ranges(item.into())?;
     }
-    lines._log_folded_lines();
+    // lines._log_folded_lines();
     {
         // |
         // fn test() {...}
@@ -81,15 +86,13 @@ fn test_move_right() -> Result<()> {
 }
 
 
-#[test]
-fn test_move_left() -> Result<()> {
-    custom_utils::logger::logger_stdout_debug();
+pub fn test_move_left() -> Result<()> {
     let mut lines = init_main_2()?;
     let items = init_main_folded_item_2()?;
     for item in items {
         lines.update_folding_ranges(item.into())?;
     }
-    lines._log_folded_lines();
+    // lines._log_folded_lines();
     {
         //
         // |fn test() {...}
@@ -129,9 +132,7 @@ fn test_move_left() -> Result<()> {
 }
 
 
-#[test]
-fn test_move_up() -> Result<()> {
-    custom_utils::logger::logger_stdout_debug();
+pub fn test_move_up() -> Result<()> {
     let mut lines = init_main_2()?;
     let items = init_main_folded_item_2()?;
     // for item in items {
@@ -143,7 +144,7 @@ fn test_move_up() -> Result<()> {
     lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
     lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
 
-    lines.log();
+    // lines.log();
     {
         //    if true {...} []else {...}
         //    let a: A  = A;|

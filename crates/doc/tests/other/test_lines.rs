@@ -21,11 +21,10 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
 
-use crate::lines_util::{
+use super::lines_util::{
     cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
     init_semantic_2
 };
-mod lines_util;
 
 #[test]
 fn test_performance() -> Result<()> {

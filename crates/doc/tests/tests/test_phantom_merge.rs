@@ -3,11 +3,10 @@ use log::{debug, info};
 use smallvec::SmallVec;
 use doc::lines::cursor::CursorAffinity;
 use doc::lines::phantom_text::{PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text, combine_with_text};
-use crate::lines_util::*;
+use super::lines_util::*;
 use anyhow::{bail, Result};
 use lapce_xi_rope::Interval;
-
-mod lines_util;
+use crate::check_lines_col;
 
 // fn empty_data() -> PhantomTextLine {
 //     let text: SmallVec<[PhantomText; 6]> = SmallVec::new();
@@ -15,7 +14,7 @@ mod lines_util;
 //     PhantomTextLine::new(6, origin_text_len, 0, text)
 // }
 #[test]
-fn test_merge() -> Result<()> {
+fn test_all() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
     _test_merge()?;
     Ok(())
@@ -24,7 +23,7 @@ fn test_merge() -> Result<()> {
 /**
  *2 |    if a.0 {...} else {...}
  */
-fn _test_merge() -> Result<()> {
+pub fn _test_merge() -> Result<()> {
     // let line2 = init_folded_line(2, false);
     // let line4 = init_folded_line(4, false);
     // let line_folded_4 = init_folded_line(4, true);

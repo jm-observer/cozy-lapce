@@ -16,12 +16,14 @@ use doc::lines::cursor::ColPosition;
 use doc::lines::line::OriginLine;
 use doc::lines::mode::Mode;
 use doc::lines::phantom_text::Text;
-use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
-mod lines_util;
+use super::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 
 #[test]
-fn test_line() -> Result<()> {
+fn test_all() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
+    test_folded()
+}
+pub fn test_folded() -> Result<()> {
     let mut lines = init_main_2()?;
     let items = init_main_folded_item_2()?;
 

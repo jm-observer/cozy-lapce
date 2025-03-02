@@ -13,8 +13,7 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::{debug, info};
 use lsp_types::Position;
 
-use crate::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
-mod lines_util;
+use crate::tests::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
 
 #[test]
 fn test_all() -> Result<()> {
@@ -32,7 +31,7 @@ fn test_buffer_offset_of_click() -> Result<()> {
 }
 
 
-fn _test_buffer_offset_of_click() -> Result<()> {
+pub fn _test_buffer_offset_of_click() -> Result<()> {
     // let file: PathBuf = "resources/test_code/main.rs".into();
     let mut lines = init_main()?;
     assert_eq!(lines.line_height, 20);
@@ -132,13 +131,13 @@ fn test_buffer_offset_of_click_2() -> Result<()> {
     _test_buffer_offset_of_click_2()?;
     Ok(())
 }
-fn _test_buffer_offset_of_click_2() -> Result<()> {
+pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     let mut lines = init_main_2()?;
 
     let items = init_main_folded_item_2()?;
     lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
     let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(1000.,800.))).0;
-    lines.log();
+    // lines.log();
 
     {
         //|    if true {...} else {\r\n  [    ]
@@ -174,7 +173,7 @@ fn test_buffer_offset_of_click_3() -> Result<()> {
     Ok(())
 }
 
-fn _test_buffer_offset_of_click_3() -> Result<()> {
+pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     let mut lines = init_main_2()?;
 
     let items = init_main_folded_item_2()?;

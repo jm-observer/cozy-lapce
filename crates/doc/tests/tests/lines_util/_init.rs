@@ -30,7 +30,7 @@ use lapce_xi_rope::{
 use log::info;
 use lsp_types::{Diagnostic, InlayHint, Position};
 
-use crate::lines_util::init_semantic_2;
+use super::init_semantic_2;
 
 fn _init_lsp_folding_range() -> Vec<FoldingRange> {
     let folding_range = r#"[{"startLine":0,"startCharacter":10,"endLine":7,"endCharacter":1},{"startLine":1,"startCharacter":12,"endLine":3,"endCharacter":5},{"startLine":3,"startCharacter":11,"endLine":5,"endCharacter":5}]"#;
