@@ -1,3 +1,4 @@
+use std::cell::RefMut;
 use cosmic_text::LayoutGlyph;
 use floem::{kurbo::Point, reactive::RwSignal, text::HitPosition};
 use lapce_xi_rope::spans::Spans;
@@ -46,7 +47,7 @@ pub struct LineStyle {
 /// (Hit position should be equivalent to `before=false`).
 /// This is needed when we have an idx at the end of, for example, a
 /// wrapped line which could be on the first or second line.
-pub fn hit_position_aff(this: &TextLayout, idx: usize, before: bool) -> HitPosition {
+pub fn hit_position_aff(this: &mut RefMut<TextLayout>, idx: usize, before: bool) -> HitPosition {
     let mut last_line = 0;
     let mut last_end: usize = 0;
     let mut offset = 0;

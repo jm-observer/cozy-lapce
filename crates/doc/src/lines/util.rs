@@ -1,10 +1,10 @@
 use std::{collections::HashMap, str::FromStr};
-
+use std::cell::{RefMut};
 use floem::{kurbo::Rect, peniko::Color, reactive::SignalGet};
 use log::error;
 
 use super::{
-    layout::{LineExtraStyle, TextLayout, TextLayoutLine},
+    layout::{LineExtraStyle, TextLayout},
     phantom_text::{PhantomText, PhantomTextKind}
 };
 use crate::{
@@ -37,7 +37,6 @@ pub fn compute_screen_lines(
                 let folded_line_y = visual_line.line_index * line_height;
                 // let folded_line_y = visual_line_y
                 //     - visual_line.origin_folded_line_sub_index * line_height;
-
                 let visual_line_info = VisualLineInfo {
                     folded_line_y: folded_line_y as f64 - y0,
                     // visual_line_y: visual_line_y as f64 - y0,
@@ -325,46 +324,19 @@ pub fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
     // }
 }
 
-pub fn apply_layout_styles(layout_line: &mut TextLayoutLine) {
-    layout_line.extra_style.clear();
-    let layout = &layout_line.text;
-    layout_line
-        .phantom_text
-        .iter_phantom_text()
-        .for_each(|phantom| {
-            if (phantom.bg.is_none() && phantom.under_line.is_none())
-                || phantom.text.is_empty()
-            {
-                return;
-            }
-            let iter = extra_styles_for_range(
-                layout,
-                phantom.final_col,
-                phantom.final_col + phantom.text.len(),
-                phantom.bg,
-                phantom.under_line,
-                None
-            );
-            for style in iter {
-                layout_line.extra_style.push(style)
-            }
-        });
-}
-
-pub fn extra_styles_for_range(
-    text_layout: &TextLayout,
+pub fn extra_styles_for_range<'a>(
+    text_layout: &'a mut RefMut<TextLayout>,
     start: usize,
     end: usize,
     bg_color: Option<Color>,
     under_line: Option<Color>,
     wave_line: Option<Color>
-) -> impl Iterator<Item = LineExtraStyle> + '_ {
+) -> impl Iterator<Item = LineExtraStyle> + 'a {
     let start_hit = text_layout.hit_position(start);
     let end_hit = text_layout.hit_position(end);
 
     text_layout
-        .layout_runs()
-        .enumerate()
+        .layout_runs().enumerate()
         .filter_map(move |(current_line, run)| {
             if current_line < start_hit.line || current_line > end_hit.line {
                 return None;

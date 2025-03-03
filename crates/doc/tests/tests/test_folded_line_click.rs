@@ -37,7 +37,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     assert_eq!(lines.line_height, 20);
 
     let screen_lines = lines._compute_screen_lines(Rect::from_origin_size((0.0, 0.0), Size::new(300.,300.))).0;
-
+    lines._log_folded_lines();
     //below end of buffer
     {
         let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
@@ -122,6 +122,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(vl.visual_line.line_index, 7);
         assert_eq!(final_offset, 18);
     }
+    lines._log_folded_lines();
     Ok(())
 }
 

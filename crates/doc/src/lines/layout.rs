@@ -1,5 +1,6 @@
+use std::cell::RefCell;
 use cosmic_text::{
-    Affinity, BufferLine, Cursor, FontSystem, LayoutCursor, LayoutGlyph, LayoutLine,
+    Affinity, BufferLine, Cursor, FontSystem, LayoutLine,
     LineEnding, Metrics, Scroll, ShapeBuffer, Shaping, Wrap
 };
 use floem::{
@@ -11,7 +12,10 @@ use floem::text::Attrs;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::lines::{delta_compute::Offset, phantom_text::PhantomTextMultiLine};
+use crate::lines::{delta_compute::Offset, phantom_text::PhantomTextMultiLine, util};
+use crate::lines::style::NewLineStyle;
+use crate::lines::util::extra_styles_for_range;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LineExtraStyle {
     pub x:          f64,
@@ -31,25 +35,51 @@ pub struct TextLayoutLine {
     /// Extra styling that should be applied to the text
     /// (x0, x1 or line display end, style)
     /// todo?暂时没有数据，下划线等？
-    pub extra_style:  Vec<LineExtraStyle>,
+    extra_style:  Vec<LineExtraStyle>,
 
     #[serde(skip)]
     // 文本：包含折叠行的文本、幽灵文本，及其所有的样式（背景色等）
-    pub text:         TextLayout,
+    pub text:         RefCell<TextLayout>,
     // ?
     pub whitespaces:  Option<Vec<(char, (f64, f64))>>,
     // 缩进?
     pub indent:       f64,
     // 幽灵文本相关信息
-    pub phantom_text: PhantomTextMultiLine
+    pub phantom_text: PhantomTextMultiLine,
+    // 不易于更新迭代？
+    pub semantic_styles:   Vec<NewLineStyle>,
+    pub diagnostic_styles: Vec<NewLineStyle>,
+    init: bool
 }
 
 impl TextLayoutLine {
-    // /// The number of line breaks in the text layout. Always at
-    // least `1`.
-    pub fn line_count(&self) -> usize {
-        self.text.line_layout().len()
+
+    pub fn new(text:         RefCell<TextLayout>,
+               // ?
+               whitespaces:  Option<Vec<(char, (f64, f64))>>,
+               // 缩进?
+               indent:       f64,
+               // 幽灵文本相关信息
+               phantom_text: PhantomTextMultiLine,
+               // 不易于更新迭代？
+               semantic_styles:   Vec<NewLineStyle>,
+               diagnostic_styles: Vec<NewLineStyle>,) -> Self {
+        Self {
+            extra_style: vec![],
+            text,
+            whitespaces,
+            indent,
+            phantom_text,
+            semantic_styles,
+            diagnostic_styles,
+            init: false,
+        }
     }
+    // // /// The number of line breaks in the text layout. Always at
+    // // least `1`.
+    // pub fn line_count(&self) -> usize {
+    //     self.text.line_layout().len()
+    // }
 
     //
     // /// Iterate over all the layouts that are nonempty.
@@ -140,20 +170,20 @@ impl TextLayoutLine {
     //     self.layout_cols(text_prov, line).map(|(start, _)| start)
     // }
 
-    /// Get the top y position of the given line index
-    pub fn get_layout_y(&self, nth: usize) -> Option<f32> {
-        self.text.layout_runs().nth(nth).map(|run| run.line_y)
-    }
+    // /// Get the top y position of the given line index
+    // pub fn get_layout_y(&self, nth: usize) -> Option<f32> {
+    //     self.text.layout_runs().nth(nth).map(|run| run.line_y)
+    // }
 
-    /// Get the (start x, end x) positions of the given line index
-    pub fn get_layout_x(&self, nth: usize) -> Option<(f32, f32)> {
-        self.text.layout_runs().nth(nth).map(|run| {
-            (
-                run.glyphs.first().map(|g| g.x).unwrap_or(0.0),
-                run.glyphs.last().map(|g| g.x + g.w).unwrap_or(0.0)
-            )
-        })
-    }
+    // /// Get the (start x, end x) positions of the given line index
+    // pub fn get_layout_x(&self, nth: usize) -> Option<(f32, f32)> {
+    //     self.text.layout_runs().nth(nth).map(|run| {
+    //         (
+    //             run.glyphs.first().map(|g| g.x).unwrap_or(0.0),
+    //             run.glyphs.last().map(|g| g.x + g.w).unwrap_or(0.0)
+    //         )
+    //     })
+    // }
 
     pub fn last_line(&self) -> usize {
         self.phantom_text.last_line
@@ -161,6 +191,85 @@ impl TextLayoutLine {
 
     pub fn adjust(&mut self, line_delta: Offset, offset_delta: Offset) {
         self.phantom_text.adjust(line_delta, offset_delta);
+        self.semantic_styles
+            .iter_mut()
+            .for_each(|x| x.adjust(offset_delta, line_delta));
+        self.diagnostic_styles
+            .iter_mut()
+            .for_each(|x| x.adjust(offset_delta, line_delta));
+    }
+
+    pub fn extra_style(&mut self) -> &[LineExtraStyle] {
+        if !self.init {
+            self.apply_diagnostic_styles_2();
+            self.apply_layout_styles();
+        }
+        &self.extra_style
+    }
+
+    pub fn init(&self) -> bool {
+        self.init
+    }
+
+    fn apply_layout_styles(&mut self) {
+        self.extra_style.clear();
+        let layout = &mut self.text.borrow_mut();
+        self
+            .phantom_text
+            .iter_phantom_text()
+            .for_each(|phantom| {
+                if (phantom.bg.is_none() && phantom.under_line.is_none())
+                    || phantom.text.is_empty()
+                {
+                    return;
+                }
+                let iter = extra_styles_for_range(
+                    layout,
+                    phantom.final_col,
+                    phantom.final_col + phantom.text.len(),
+                    phantom.bg,
+                    phantom.under_line,
+                    None
+                );
+                for style in iter {
+                    self.extra_style.push(style)
+                }
+            });
+    }
+
+    fn apply_diagnostic_styles_2(
+        &mut self,
+    ) {
+        let layout = &mut self.text.borrow_mut();
+        let phantom_text = &self.phantom_text;
+        let line_styles = &self.diagnostic_styles;
+
+        // 暂不考虑
+        for NewLineStyle {
+            fg_color, start_of_buffer, end_of_buffer,
+            ..
+        } in line_styles
+        {
+            match (
+                phantom_text.final_col_of_origin_merge_col(*start_of_buffer - phantom_text.offset_of_line),
+                phantom_text.final_col_of_origin_merge_col(*end_of_buffer - phantom_text.offset_of_line)) {
+                (Ok(Some(start)), Ok(Some(end))) => {
+                    let styles = util::extra_styles_for_range(
+                        layout,
+                        start,
+                        end + 1,
+                        None,
+                        None,
+                        Some(*fg_color)
+                    );
+                    self.extra_style.extend(styles);
+                },
+                _ => {
+                    // maybe be folded
+                    continue
+                }
+            }
+        }
     }
 }
 
@@ -169,7 +278,7 @@ impl TextLayoutLine {
 pub struct TextLayout {
     // only for tracing
     line:       usize,
-    buffer:     BufferLine,
+    pub buffer:     BufferLine,
     // ?
     // pub lines_range: Range<usize>,
     width_opt:  Option<f32>,
@@ -188,6 +297,7 @@ pub struct TextLayout {
     pub(crate) text_len: usize,
     /// 最终文本长度，包括虚拟文本，但不包括末尾的\r\n
     pub(crate) text_len_without_rn: usize,
+    init: bool
 }
 
 impl Clone for TextLayout {
@@ -205,7 +315,8 @@ impl Clone for TextLayout {
             tab_width:       self.tab_width,
             scratch:         ShapeBuffer::default(),
             text_len: self.text_len,
-            text_len_without_rn: self.text_len_without_rn
+            text_len_without_rn: self.text_len_without_rn,
+            init: self.init,
         }
     }
 }
@@ -238,6 +349,39 @@ impl TextLayout {
         )
     }
 
+    pub fn new_without_init<T: Into<String>>(
+        line: usize,
+        text: T,
+        attrs_list: AttrsList,
+        width_opt: Option<f32>,
+        wrap: Wrap, line_ending: &'static str
+    ) -> Self {
+        let text = text.into();
+        let text_len = text.len();
+        // log::info!("{text:?} {line_ending:?}");
+        let new_text = text.strip_suffix(line_ending).map(|x| x.to_string()).unwrap_or(text);
+        let text_len_without_rn = new_text.len();
+        // log::info!("{new_text:?}");
+        let ending = LineEnding::None;
+        let text_layout = Self {
+            text_len, text_len_without_rn,
+            line,
+            buffer: BufferLine::new(new_text, ending, attrs_list.0, Shaping::Advanced),
+            width_opt,
+            height_opt: None,
+            metrics: Metrics::new(16.0, 16.0),
+            scroll: Default::default(),
+            redraw: false,
+            wrap,
+            monospace_width: None,
+            tab_width: 8,
+            scratch: Default::default(),
+            init: false
+        };
+
+        text_layout
+    }
+
     pub fn new_with_config<T: Into<String>>(
         line: usize,
         text: T,
@@ -265,7 +409,8 @@ impl TextLayout {
             wrap,
             monospace_width: None,
             tab_width: 8,
-            scratch: Default::default()
+            scratch: Default::default(),
+            init: false
         };
 
         text_layout.shape_until_scroll(font_system, false);
@@ -286,12 +431,24 @@ impl TextLayout {
         )
     }
 
-    pub fn line_layout(&self) -> &[LayoutLine] {
+    pub fn line_layout(&mut self) -> &[LayoutLine] {
+        self.init_line();
         self.buffer.layout_opt().as_ref().expect("layout_opt empty")
     }
 
+    pub fn init(&self) -> bool {
+        self.init
+    }
+
+    fn init_line(&mut self) {
+        if !self.init {
+            let mut font_system = FONT_SYSTEM.lock();
+            self.shape_until_scroll(&mut font_system, false);
+        }
+    }
+
     /// Shape lines until scroll
-    pub fn shape_until_scroll(&mut self, font_system: &mut FontSystem, prune: bool) {
+    fn shape_until_scroll(&mut self, font_system: &mut FontSystem, prune: bool) {
         let metrics = self.metrics;
         let old_scroll = self.scroll;
 
@@ -373,108 +530,111 @@ impl TextLayout {
         if old_scroll != self.scroll {
             self.redraw = true;
         }
+        self.init = true;
     }
 
-    pub fn set_wrap(&mut self, wrap: Wrap) {
-        if wrap != self.wrap {
-            let mut font_system = FONT_SYSTEM.lock();
-            self.wrap = wrap;
-            self.relayout(&mut font_system);
-            self.shape_until_scroll(&mut font_system, false);
-        }
+    // pub fn set_wrap(&mut self, wrap: Wrap) {
+    //     if wrap != self.wrap {
+    //         let mut font_system = FONT_SYSTEM.lock();
+    //         self.wrap = wrap;
+    //         self.relayout(&mut font_system);
+    //         self.shape_until_scroll(&mut font_system, false);
+    //     }
+    // }
+
+    // pub fn set_tab_width(&mut self, tab_width: usize) {
+    //     let mut font_system = FONT_SYSTEM.lock();
+    //     if tab_width == 0 {
+    //         return;
+    //     }
+    //     let tab_width = tab_width as u16;
+    //     if tab_width != self.tab_width {
+    //         self.tab_width = tab_width;
+    //         // Shaping must be reset when tab width is changed
+    //         if self.buffer.shape_opt().is_some() && self.buffer.text().contains('\t')
+    //         {
+    //             self.buffer.reset_shaping();
+    //         }
+    //         self.redraw = true;
+    //         self.shape_until_scroll(&mut font_system, false);
+    //     }
+    // }
+    //
+    // pub fn set_size(&mut self, width: f32, height: f32) {
+    //     let mut font_system = FONT_SYSTEM.lock();
+    //     self.width_opt = Some(width);
+    //     self.height_opt = Some(height);
+    //     self.set_metrics_and_size(
+    //         &mut font_system,
+    //         self.metrics,
+    //         self.width_opt,
+    //         self.height_opt
+    //     );
+    // }
+    //
+    // fn set_metrics_and_size(
+    //     &mut self,
+    //     font_system: &mut FontSystem,
+    //     metrics: Metrics,
+    //     width_opt: Option<f32>,
+    //     height_opt: Option<f32>
+    // ) {
+    //     let clamped_width_opt = width_opt.map(|width| width.max(0.0));
+    //     let clamped_height_opt = height_opt.map(|height| height.max(0.0));
+    //     // println!("set_metrics_and_size {width_opt:?} {height_opt:?}
+    //     // {} {}", metrics != self.metrics, clamped_width_opt !=
+    //     // self.width_opt);
+    //
+    //     if metrics != self.metrics
+    //         || clamped_width_opt != self.width_opt
+    //         || clamped_height_opt != self.height_opt
+    //     {
+    //         assert_ne!(metrics.font_size, 0.0, "font size cannot be 0");
+    //         self.metrics = metrics;
+    //         self.width_opt = clamped_width_opt;
+    //         self.height_opt = clamped_height_opt;
+    //         self.relayout(font_system);
+    //         self.shape_until_scroll(font_system, false);
+    //     }
+    // }
+
+    pub(crate) fn text(&self) -> &str {
+        self.buffer.text()
     }
 
-    pub fn set_tab_width(&mut self, tab_width: usize) {
-        let mut font_system = FONT_SYSTEM.lock();
-        if tab_width == 0 {
-            return;
-        }
-        let tab_width = tab_width as u16;
-        if tab_width != self.tab_width {
-            self.tab_width = tab_width;
-            // Shaping must be reset when tab width is changed
-            if self.buffer.shape_opt().is_some() && self.buffer.text().contains('\t')
-            {
-                self.buffer.reset_shaping();
-            }
-            self.redraw = true;
-            self.shape_until_scroll(&mut font_system, false);
-        }
-    }
-
-    pub fn set_size(&mut self, width: f32, height: f32) {
-        let mut font_system = FONT_SYSTEM.lock();
-        self.width_opt = Some(width);
-        self.height_opt = Some(height);
-        self.set_metrics_and_size(
-            &mut font_system,
-            self.metrics,
-            self.width_opt,
-            self.height_opt
-        );
-    }
-
-    pub fn set_metrics_and_size(
-        &mut self,
-        font_system: &mut FontSystem,
-        metrics: Metrics,
-        width_opt: Option<f32>,
-        height_opt: Option<f32>
-    ) {
-        let clamped_width_opt = width_opt.map(|width| width.max(0.0));
-        let clamped_height_opt = height_opt.map(|height| height.max(0.0));
-        // println!("set_metrics_and_size {width_opt:?} {height_opt:?}
-        // {} {}", metrics != self.metrics, clamped_width_opt !=
-        // self.width_opt);
-
-        if metrics != self.metrics
-            || clamped_width_opt != self.width_opt
-            || clamped_height_opt != self.height_opt
-        {
-            assert_ne!(metrics.font_size, 0.0, "font size cannot be 0");
-            self.metrics = metrics;
-            self.width_opt = clamped_width_opt;
-            self.height_opt = clamped_height_opt;
-            self.relayout(font_system);
-            self.shape_until_scroll(font_system, false);
-        }
-    }
-
-    pub(crate) fn line(&self) -> &BufferLine {
-        &self.buffer
-    }
-
-    pub fn layout_runs(&self) -> LayoutRunIter {
+    pub fn layout_runs(&mut self) -> LayoutRunIter {
+        self.init_line();
         LayoutRunIter::new(self)
     }
 
-    pub fn layout_cursor(&mut self, _cursor: Cursor) -> LayoutCursor {
-        todo!()
-        // let line = cursor.line;
-        // let mut font_system = FONT_SYSTEM.lock();
-        // self.buffer
-        //     .layout_cursor(&mut font_system, cursor)
-        //     .unwrap_or_else(|| LayoutCursor::new(line, 0, 0))
-    }
+    // pub fn layout_cursor(&mut self, _cursor: Cursor) -> LayoutCursor {
+    //     todo!()
+    //     // let line = cursor.line;
+    //     // let mut font_system = FONT_SYSTEM.lock();
+    //     // self.buffer
+    //     //     .layout_cursor(&mut font_system, cursor)
+    //     //     .unwrap_or_else(|| LayoutCursor::new(line, 0, 0))
+    // }
 
-    fn relayout(&mut self, font_system: &mut FontSystem) {
-        let line = &mut self.buffer;
-        if line.shape_opt().is_some() {
-            line.reset_layout();
-            line.layout(
-                font_system,
-                self.metrics.font_size,
-                self.width_opt,
-                self.wrap,
-                self.monospace_width,
-                self.tab_width
-            );
-        }
+    // fn relayout(&mut self, font_system: &mut FontSystem) {
+    //     let line = &mut self.buffer;
+    //     if line.shape_opt().is_some() {
+    //         line.reset_layout();
+    //         line.layout(
+    //             font_system,
+    //             self.metrics.font_size,
+    //             self.width_opt,
+    //             self.wrap,
+    //             self.monospace_width,
+    //             self.tab_width
+    //         );
+    //     }
+    //
+    //     self.redraw = true;
+    // }
 
-        self.redraw = true;
-    }
-
-    pub fn hit_position(&self, idx: usize) -> HitPosition {
+    pub fn hit_position(&mut self, idx: usize) -> HitPosition {
+        self.init_line();
         let mut last_line = 0;
         let mut last_end: usize = 0;
         let mut offset = 0;
@@ -522,7 +682,8 @@ impl TextLayout {
         }
     }
 
-    pub fn hit_point(&self, point: Point) -> HitPoint {
+    pub fn hit_point(&mut self, point: Point) -> HitPoint {
+        self.init_line();
         if let Some(cursor) = self.hit(point.x as f32, point.y as f32) {
             let size = self.size();
             let is_inside = point.x <= size.width && point.y <= size.height;
@@ -541,7 +702,8 @@ impl TextLayout {
     }
 
     /// Convert x, y position to Cursor (hit detection)
-    pub fn hit(&self, x: f32, y: f32) -> Option<Cursor> {
+    pub fn hit(&mut self, x: f32, y: f32) -> Option<Cursor> {
+        self.init_line();
         let mut new_cursor_opt = None;
 
         let mut runs = self.layout_runs().peekable();
@@ -635,91 +797,94 @@ impl TextLayout {
         new_cursor_opt
     }
 
-    pub fn line_col_position(&self, line: usize, col: usize) -> HitPosition {
-        let mut last_glyph: Option<&LayoutGlyph> = None;
-        let mut last_line = 0;
-        let mut last_line_y = 0.0;
-        let mut last_glyph_ascent = 0.0;
-        let mut last_glyph_descent = 0.0;
-        for (current_line, run) in self.layout_runs().enumerate() {
-            for glyph in run.glyphs {
-                match run.line_i.cmp(&line) {
-                    std::cmp::Ordering::Equal => {
-                        if glyph.start > col {
-                            return HitPosition {
-                                line:          last_line,
-                                point:         Point::new(
-                                    last_glyph
-                                        .map(|g| (g.x + g.w) as f64)
-                                        .unwrap_or(0.0),
-                                    last_line_y as f64
-                                ),
-                                glyph_ascent:  last_glyph_ascent as f64,
-                                glyph_descent: last_glyph_descent as f64
-                            };
-                        }
-                        if (glyph.start..glyph.end).contains(&col) {
-                            return HitPosition {
-                                line:          current_line,
-                                point:         Point::new(
-                                    glyph.x as f64,
-                                    run.line_y as f64
-                                ),
-                                glyph_ascent:  run.max_ascent as f64,
-                                glyph_descent: run.max_descent as f64
-                            };
-                        }
-                    },
-                    std::cmp::Ordering::Greater => {
-                        return HitPosition {
-                            line:          last_line,
-                            point:         Point::new(
-                                last_glyph
-                                    .map(|g| (g.x + g.w) as f64)
-                                    .unwrap_or(0.0),
-                                last_line_y as f64
-                            ),
-                            glyph_ascent:  last_glyph_ascent as f64,
-                            glyph_descent: last_glyph_descent as f64
-                        };
-                    },
-                    std::cmp::Ordering::Less => {}
-                };
-                last_glyph = Some(glyph);
-            }
-            last_line = current_line;
-            last_line_y = run.line_y;
-            last_glyph_ascent = run.max_ascent;
-            last_glyph_descent = run.max_descent;
+    // pub fn line_col_position(&self, line: usize, col: usize) -> HitPosition {
+    //     let mut last_glyph: Option<&LayoutGlyph> = None;
+    //     let mut last_line = 0;
+    //     let mut last_line_y = 0.0;
+    //     let mut last_glyph_ascent = 0.0;
+    //     let mut last_glyph_descent = 0.0;
+    //     for (current_line, run) in self.layout_runs().enumerate() {
+    //         for glyph in run.glyphs {
+    //             match run.line_i.cmp(&line) {
+    //                 std::cmp::Ordering::Equal => {
+    //                     if glyph.start > col {
+    //                         return HitPosition {
+    //                             line:          last_line,
+    //                             point:         Point::new(
+    //                                 last_glyph
+    //                                     .map(|g| (g.x + g.w) as f64)
+    //                                     .unwrap_or(0.0),
+    //                                 last_line_y as f64
+    //                             ),
+    //                             glyph_ascent:  last_glyph_ascent as f64,
+    //                             glyph_descent: last_glyph_descent as f64
+    //                         };
+    //                     }
+    //                     if (glyph.start..glyph.end).contains(&col) {
+    //                         return HitPosition {
+    //                             line:          current_line,
+    //                             point:         Point::new(
+    //                                 glyph.x as f64,
+    //                                 run.line_y as f64
+    //                             ),
+    //                             glyph_ascent:  run.max_ascent as f64,
+    //                             glyph_descent: run.max_descent as f64
+    //                         };
+    //                     }
+    //                 },
+    //                 std::cmp::Ordering::Greater => {
+    //                     return HitPosition {
+    //                         line:          last_line,
+    //                         point:         Point::new(
+    //                             last_glyph
+    //                                 .map(|g| (g.x + g.w) as f64)
+    //                                 .unwrap_or(0.0),
+    //                             last_line_y as f64
+    //                         ),
+    //                         glyph_ascent:  last_glyph_ascent as f64,
+    //                         glyph_descent: last_glyph_descent as f64
+    //                     };
+    //                 },
+    //                 std::cmp::Ordering::Less => {}
+    //             };
+    //             last_glyph = Some(glyph);
+    //         }
+    //         last_line = current_line;
+    //         last_line_y = run.line_y;
+    //         last_glyph_ascent = run.max_ascent;
+    //         last_glyph_descent = run.max_descent;
+    //     }
+    //
+    //     HitPosition {
+    //         line:          last_line,
+    //         point:         Point::new(
+    //             last_glyph.map(|g| (g.x + g.w) as f64).unwrap_or(0.0),
+    //             last_line_y as f64
+    //         ),
+    //         glyph_ascent:  last_glyph_ascent as f64,
+    //         glyph_descent: last_glyph_descent as f64
+    //     }
+    // }
+
+    pub fn size(&mut self) -> Size {
+        if self.init {
+            self.layout_runs()
+                .fold(Size::new(0.0, 0.0), |mut size, run| {
+                    let new_width = run.line_w as f64;
+                    // if line == 9 {
+                    //     println!("new_width {new_width}");
+                    // }
+                    if new_width > size.width {
+                        size.width = new_width;
+                    }
+
+                    size.height += run.line_height as f64;
+
+                    size
+                })
+        } else {
+            Size::new(0.0, 0.0)
         }
-
-        HitPosition {
-            line:          last_line,
-            point:         Point::new(
-                last_glyph.map(|g| (g.x + g.w) as f64).unwrap_or(0.0),
-                last_line_y as f64
-            ),
-            glyph_ascent:  last_glyph_ascent as f64,
-            glyph_descent: last_glyph_descent as f64
-        }
-    }
-
-    pub fn size(&self) -> Size {
-        // let line = self.line;
-        self.layout_runs()
-            .fold(Size::new(0.0, 0.0), |mut size, run| {
-                let new_width = run.line_w as f64;
-                // if line == 9 {
-                //     println!("new_width {new_width}");
-                // }
-                if new_width > size.width {
-                    size.width = new_width;
-                }
-
-                size.height += run.line_height as f64;
-
-                size
-            })
     }
 }
 

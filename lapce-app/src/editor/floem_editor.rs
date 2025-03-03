@@ -1450,7 +1450,7 @@ pub fn paint_text(
     viewport: Rect,
     is_active: bool,
     hide_cursor: bool,
-    screen_lines: &ScreenLines,
+    screen_lines: ScreenLines,
     lines: DocLinesManager,
     font_family: Cow<[FamilyOwned]>,
     visible_whitespace: Color,
@@ -1460,7 +1460,7 @@ pub fn paint_text(
         paint_cursor_caret(cx, lines, cursor_points, line_height);
     }
     // todo 不要一次一次的获取text_layout
-    for line_info in &screen_lines.visual_lines {
+    for mut line_info in screen_lines.visual_lines {
         let y = line_info.paint_point().y;
         paint_extra_style(cx, &line_info.visual_line.extra_style(), y, viewport);
         if let Some(whitespaces) = &line_info.visual_line.whitespaces() {
@@ -1491,7 +1491,7 @@ pub fn paint_text(
             }
         }
 
-        cx.draw_text_with_layout(line_info.visual_line.layout_runs(), Point::new(0.0, y));
+        cx.draw_text_with_layout(line_info.visual_line.borrow_text().layout_runs(), Point::new(0.0, y));
     }
     Ok(())
 }

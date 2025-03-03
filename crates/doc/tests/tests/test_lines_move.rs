@@ -128,6 +128,7 @@ pub fn test_move_left() -> Result<()> {
     // _lines._log_folding_ranges();
     // _lines._log_visual_lines();
     // _lines._log_screen_lines();
+    // lines._log_folded_lines();
     Ok(())
 }
 

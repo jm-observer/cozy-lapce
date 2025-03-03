@@ -52,7 +52,7 @@ use crate::{
         screen_lines::ScreenLines,
         selection::Selection,
         style::EditorStyle,
-        text::{PreeditData, SystemClipboard, WrapMethod},
+        text::{PreeditData, SystemClipboard},
         word::{CharClassification, WordCursor, get_char_property}
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
@@ -1518,7 +1518,7 @@ impl DocLines {
         line: usize,
         origins: &[OriginLine],
         attrs: Attrs, line_ending: &'static str
-    ) -> Result<(TextLayoutLine, Vec<NewLineStyle>, Vec<NewLineStyle>)> {
+    ) -> Result<TextLayoutLine> {
         let origin_line =
             origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
 
@@ -1534,7 +1534,7 @@ impl DocLines {
             PhantomTextMultiLine::new(origin_line.phantom.clone());
 
         let mut attrs_list = AttrsList::new(attrs);
-        let mut font_system = FONT_SYSTEM.lock();
+        // let mut font_system = FONT_SYSTEM.lock();
         let mut semantic_styles = origin_line.semantic_styles(0);
         let mut diagnostic_styles = origin_line.diagnostic_styles(0);
 
@@ -1569,39 +1569,36 @@ impl DocLines {
             &mut attrs_list,
             attrs
         );
-        let mut text_layout = TextLayout::new_with_font_system(
+        let text_layout = TextLayout::new_without_init(
             line,
             &final_line_content,
-            attrs_list,
-            &mut font_system, line_ending
+            attrs_list, None,
+            Wrap::WordOrGlyph, line_ending
         );
-        drop(font_system);
-        match self.editor_style.wrap_method() {
-            WrapMethod::None => {},
-            WrapMethod::EditorWidth => {
-                text_layout.set_wrap(Wrap::WordOrGlyph);
-                text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
-            },
-            WrapMethod::WrapWidth { width } => {
-                text_layout.set_wrap(Wrap::WordOrGlyph);
-                text_layout.set_size(width, f32::MAX);
-            },
-            // TODO:
-            WrapMethod::WrapColumn { .. } => {}
-        }
+        // drop(font_system);
+        // match self.editor_style.wrap_method() {
+        //     WrapMethod::None => {},
+        //     WrapMethod::EditorWidth => {
+        //         text_layout.set_wrap(Wrap::WordOrGlyph);
+        //         text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
+        //     },
+        //     WrapMethod::WrapWidth { width } => {
+        //         text_layout.set_wrap(Wrap::WordOrGlyph);
+        //         text_layout.set_size(width, f32::MAX);
+        //     },
+        //     // TODO:
+        //     WrapMethod::WrapColumn { .. } => {}
+        // }
         let indent = 0.0;
-        let mut layout_line = TextLayoutLine {
-            text: text_layout,
-            extra_style: Vec::new(),
-            whitespaces: None,
+        let layout_line = TextLayoutLine::new(
+            text_layout.into(),
+            None,
             indent,
-            phantom_text
-        };
-        // 下划线？背景色？
-        util::apply_layout_styles(&mut layout_line);
-        self.apply_diagnostic_styles_2(&mut layout_line, &diagnostic_styles);
-
-        Ok((layout_line, semantic_styles, diagnostic_styles))
+            phantom_text,
+            semantic_styles,
+            diagnostic_styles
+        );
+        Ok(layout_line)
     }
 
     // pub fn update_folding_item(&mut self, item: FoldingDisplayItem)
@@ -1776,7 +1773,7 @@ impl DocLines {
     //     line
     // }
 
-    pub fn _compute_screen_lines(&self, base: Rect) -> (ScreenLines, Vec<FoldingDisplayItem>) {
+    pub fn _compute_screen_lines(&mut self, base: Rect) -> (ScreenLines, Vec<FoldingDisplayItem>) {
         debug!("_compute_screen_lines");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
@@ -1892,63 +1889,6 @@ impl DocLines {
             //     continue;
             // };
             // attrs_list.add_span(start..end, attrs.color(*fg_color));
-        }
-    }
-
-    fn apply_diagnostic_styles_2(
-        &self,
-        layout_line: &mut TextLayoutLine,
-        line_styles: &Vec<NewLineStyle>
-    ) {
-        let layout = &layout_line.text;
-        let phantom_text = &layout_line.phantom_text;
-
-        // 暂不考虑
-        for NewLineStyle {
-            fg_color, start_of_buffer, end_of_buffer,
-            ..
-        } in line_styles
-        {
-            match (
-                phantom_text.final_col_of_origin_merge_col(*start_of_buffer - phantom_text.offset_of_line),
-                phantom_text.final_col_of_origin_merge_col(*end_of_buffer - phantom_text.offset_of_line)) {
-                (Ok(Some(start)), Ok(Some(end))) => {
-                    let styles = util::extra_styles_for_range(
-                        layout,
-                        start,
-                        end + 1,
-                        None,
-                        None,
-                        Some(*fg_color)
-                    );
-                    layout_line.extra_style.extend(styles);
-                },
-                // (Err(err), _) => {
-                //     error!("{}", err.to_string());
-                //     continue
-                // }
-                // (_, Err(err)) => {
-                //     error!("{}", err.to_string());
-                //     continue
-                // }
-                _ => {
-                    // maybe be folded
-                    continue
-                }
-            }
-            //
-            // let (Some(start), Some(end)) = (
-            //     phantom_text.final_col_of_merge_col(*start),
-            //     phantom_text.final_col_of_merge_col((*start + *len).max(1) - 1)
-            // ) else {
-            //     warn!(
-            //         "line={} start={start}, len={len}, color={fg_color:?} col_at \
-            //          empty",
-            //         phantom_text.line
-            //     );
-            //     continue;
-            // };
-
         }
     }
 
@@ -2410,10 +2350,7 @@ impl DocLines {
             ColPosition::FirstNonBlank => {
                 // ?
                 let Some(final_offset) =
-                    visual_line.final_content()
-                        .char_indices()
-                        .find(|(_, c)| !c.is_whitespace())
-                        .map(|(idx, _)| idx) else {
+                    visual_line.first_no_whitespace() else {
                     return Ok((visual_line.len_without_rn(), CursorAffinity::Forward));
                 };
                 (final_offset, CursorAffinity::Backward)
@@ -2725,7 +2662,7 @@ impl LinesOnUpdate {
         let attrs_list = AttrsList::new(attrs);
         let mut font_system = FONT_SYSTEM.lock();
         // 创建文本缓冲区
-        let text_buffer = TextLayout::new_with_font_system(
+        let mut text_buffer = TextLayout::new_with_font_system(
             0,
             last_line.to_string(),
             attrs_list,

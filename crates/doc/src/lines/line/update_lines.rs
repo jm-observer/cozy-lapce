@@ -300,7 +300,7 @@ impl DocLines {
         attrs: Attrs,
         origin_folded_line_index: usize, line_ending: &'static str
     ) -> Result<OriginFoldedLine> {
-        let (text_layout, semantic_styles, diagnostic_styles) =
+        let text_layout =
             self.new_text_layout_2(current_origin_line, all_origin_lines, attrs, line_ending)?;
         // duration += time.elapsed().unwrap();
         let origin_line_start = text_layout.phantom_text.line;
@@ -317,8 +317,6 @@ impl DocLines {
             origin_line_end,
             origin_interval,
             text_layout,
-            semantic_styles,
-            diagnostic_styles
         })
     }
 

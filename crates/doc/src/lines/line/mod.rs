@@ -5,14 +5,13 @@ use std::{
     fmt::{Debug, Formatter},
     ops::AddAssign
 };
-
+use std::cell::RefMut;
 use floem::kurbo::{Point, Rect, Size, Vec2};
-use floem::text::{HitPoint, HitPosition, FONT_SYSTEM};
+use floem::text::{HitPoint, HitPosition};
 use lapce_xi_rope::Interval;
-use log::error;
 use serde::{Deserialize, Serialize};
 use crate::hit_position_aff;
-use super::layout::{LayoutRunIter, LineExtraStyle, TextLayoutLine};
+use super::layout::{LineExtraStyle, TextLayout, TextLayoutLine};
 use crate::lines::{
     cursor::CursorAffinity, delta_compute::Offset,
     phantom_text::PhantomTextLine, style::NewLineStyle
@@ -88,9 +87,6 @@ pub struct OriginFoldedLine {
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
     text_layout:       TextLayoutLine,
-    // 不易于更新迭代？
-    pub semantic_styles:   Vec<NewLineStyle>,
-    pub diagnostic_styles: Vec<NewLineStyle>,
 }
 
 
@@ -108,12 +104,7 @@ impl OriginFoldedLine {
         line_offset.adjust(&mut obj.origin_line_end);
         obj.line_index = line_index;
         obj.text_layout.adjust(line_offset, offset);
-        obj.semantic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset, line_offset));
-        obj.diagnostic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset, line_offset));
+
         obj
     }
 
@@ -198,7 +189,7 @@ impl OriginFoldedLine {
 
     pub fn is_last_char(&self, final_offset: usize, ) -> bool {
         // struct A|;
-        final_offset >= self.text_layout.text.text_len_without_rn
+        final_offset >= self.text_layout.text.borrow().text_len_without_rn
     }
 
     /// 单一视觉行的间隔point
@@ -210,8 +201,8 @@ impl OriginFoldedLine {
         y: f64,
         base: Vec2
     ) -> Rect {
-        let mut hit0 = self.text_layout.text.hit_position(start_col);
-        let hit1 = self.text_layout.text.hit_position(end_col);
+        let mut hit0 = self.text_layout.text.borrow_mut().hit_position(start_col);
+        let hit1 = self.text_layout.text.borrow_mut().hit_position(end_col);
         hit0.point.y = y;
         hit0.point.add_assign(base);
         Rect::from_origin_size(
@@ -243,19 +234,19 @@ impl OriginFoldedLine {
     }
 
     pub fn size_width(&self) -> Size {
-        self.text_layout.text.size()
+        self.text_layout.text.borrow_mut().size()
     }
 
     pub fn hit_position_aff(&self, col: usize, affinity: CursorAffinity) -> HitPosition {
         hit_position_aff(
-            &self.text_layout.text,
+            &mut self.text_layout.text.borrow_mut(),
             col,
             affinity == CursorAffinity::Backward
         )
     }
 
     pub fn hit_point(&self, point: Point) -> HitPoint {
-        self.text_layout.text.hit_point(point)
+        self.text_layout.text.borrow_mut().hit_point(point)
     }
 
     pub fn text_of_final_col(&self, final_col: usize) -> &Text {
@@ -318,24 +309,23 @@ impl OriginFoldedLine {
     }
 
     pub fn len(&self) -> usize {
-        self.text_layout.text.text_len
+        self.text_layout.text.borrow().text_len
     }
 
     /// note:
     /// len_without_rn of final content
     pub fn len_without_rn(&self, ) -> usize {
-        self.text_layout.text.text_len_without_rn
+        self.text_layout.text.borrow().text_len_without_rn
     }
 
-    pub fn final_content(&self) -> &str {
-        self.text_layout.text.line().text()
+    pub fn first_no_whitespace(&self) -> Option<usize> {
+        self.text_layout.text.borrow().text().char_indices()
+            .find(|(_, c)| !c.is_whitespace())
+            .map(|(idx, _)| idx)
     }
 
-    pub fn layout_runs(&self) -> LayoutRunIter {
-        // if !self.text_layout.text.init_line {
-        //     error!("\n\n\n\nlayout_runs {}\n\n\n\n", self.text_layout.text.init_line);
-        // }
-        self.text_layout.text.layout_runs()
+    pub fn borrow_text(&self) -> RefMut<TextLayout> {
+        self.text_layout.text.borrow_mut()
     }
 
     // pub fn init_layout(&mut self) {
@@ -346,8 +336,8 @@ impl OriginFoldedLine {
     //     }
     // }
 
-    pub fn extra_style(&self) -> &[LineExtraStyle] {
-        &self.text_layout.extra_style
+    pub fn extra_style(&mut self) -> &[LineExtraStyle] {
+        &self.text_layout.extra_style()
     }
 
     pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {
@@ -360,15 +350,15 @@ impl Debug for OriginFoldedLine {
         write!(
             f,
             "OriginFoldedLine line_index={} origin_line_start={} \
-             origin_line_end={} origin_interval={} {:?} text_len={} text_len_without_rn={} phantom_text={:?} ",
+             origin_line_end={} origin_interval={} {:?} text_len={} text_len_without_rn={} text_layout_line={} text_layout={} phantom_text={:?} ",
             self.line_index,
             self.origin_line_start,
             self.origin_line_end,
             self.origin_interval,
-            self.text_layout.text.line().text(),
-            self.text_layout.text.text_len,
-            self.text_layout.text.text_len_without_rn,
-            self.text_layout.phantom_text
+            self.text_layout.text.borrow().text(),
+            self.len(),
+            self.len_without_rn(),
+            self.text_layout.init(), self.text_layout.text.borrow().init(), self.text_layout.phantom_text,
         )
     }
 }

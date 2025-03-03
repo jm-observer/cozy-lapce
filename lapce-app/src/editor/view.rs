@@ -572,11 +572,10 @@ impl EditorView {
         &self,
         cx: &mut PaintCx,
         viewport: Rect,
-        screen_lines: &ScreenLines,
         sticky_header: bool,
         lapce_dropdown_shadow_color: &Color,
         editor_sticky_header_background_color: &Color,
-        line_height: usize
+        line_height: usize, start_line: usize
     ) -> Result<()> {
         if !sticky_header {
             return Ok(());
@@ -584,12 +583,6 @@ impl EditorView {
         if !self.editor.kind().get_untracked().is_normal() {
             return Ok(());
         }
-
-        let Some(start_vline) = screen_lines.visual_lines.first() else {
-            return Ok(());
-        };
-        // let start_info = screen_lines.vline_info(*start_vline).unwrap();
-        let start_line = start_vline.visual_line.origin_line_start;
 
         let sticky_header_info = self.editor.sticky_header_info.get_untracked();
         let total_sticky_lines = sticky_header_info.sticky_lines.len();
@@ -670,7 +663,7 @@ impl EditorView {
             } else {
                 0.0
             };
-            let text = TextLayout::new(content, attrs.clone(), line_ending_str);
+            let mut text = TextLayout::new(content, attrs.clone(), line_ending_str);
             // let text_layout = self.editor.editor.text_layout_of_visual_line(line)?;
             // let text_height = (text_layout.line_count() * line_height) as f64;
             let height = line_height - y_diff;
@@ -996,13 +989,14 @@ impl View for EditorView {
         // let screen_lines = ed.screen_lines.get_untracked();
         // , cursor: RwSignal<Cursor>, lines: DocLinesManager
         let lines = doc.lines;
+        let start_vline = screen_lines.visual_lines.first().map(|x| x.visual_line.origin_line_start);
 
         if let Err(err) = paint_text(
             cx,
             viewport,
             is_active,
             cursor_hidden,
-            &screen_lines,
+            screen_lines,
             lines,
             font_family,
             visible_whitespace,
@@ -1010,18 +1004,21 @@ impl View for EditorView {
         ) {
             error!("{err:?}");
         }
-        // let screen_lines = ed.screen_lines.get_untracked();
-        if let Err(err) = self.paint_sticky_headers(
-            cx,
-            viewport,
-            &screen_lines,
-            sticky_header,
-            &lapce_dropdown_shadow_color,
-            &editor_sticky_header_background_color,
-            line_height
-        ) {
-            error!("{err:?}");
+
+        if let Some(start_vline) = start_vline {
+            // let screen_lines = ed.screen_lines.get_untracked();
+            if let Err(err) = self.paint_sticky_headers(
+                cx,
+                viewport,
+                sticky_header,
+                &lapce_dropdown_shadow_color,
+                &editor_sticky_header_background_color,
+                line_height, start_vline
+            ) {
+                error!("{err:?}");
+            }
         }
+
         self.paint_scroll_bar(cx, viewport, is_local, &lapce_scroll_bar_color);
     }
 }
