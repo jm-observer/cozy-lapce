@@ -136,7 +136,7 @@ impl SimpleDoc {
                 last_line.max(1) - 1
             ));
         }
-        let text = self.lines.text_layout_of_line(line)?;
+        let mut text = self.lines.text_layout_of_line(line)?;
 
         let hit_point = text.hit_point(Point::new(point.x, 0.0));
         let offset = self.offset_of_line(line)? + hit_point.index;

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
 
-use anyhow::Result;
+use anyhow::{Result};
 use doc::lines::{
     DocLinesManager,
     buffer::rope_text::{RopeText, RopeTextVal},
@@ -140,10 +140,12 @@ impl Editor {
                 x.lines
             });
             let base = viewport_memo.get();
-            let (screen_lines_val, folding_display_item_val, signal_paint_content) = lines.with_untracked(|x| {
+            let Some((screen_lines_val, folding_display_item_val, signal_paint_content)) = lines.try_update(|x| {
                 let (screen_lines_val, folding_display_item_val) = x._compute_screen_lines(base);
                     (screen_lines_val, folding_display_item_val, x.signal_paint_content())
-            });
+            }) else {
+                unreachable!()
+            };
             signal_paint_content.get();
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);

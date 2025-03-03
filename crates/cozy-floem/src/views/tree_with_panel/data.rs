@@ -3,7 +3,7 @@ use std::{
     ops::{AddAssign, Range},
     thread
 };
-
+use std::cell::RefCell;
 use ansi_to_style::TextStyle;
 use anyhow::Result;
 use doc::lines::layout::*;
@@ -142,7 +142,7 @@ pub struct VisualLine {
     pub pos_y:      f64,
     pub line_index: usize,
     pub hyperlinks: Vec<(Point, Point, Color)>,
-    pub text:       TextLayout
+    pub text:       RefCell<TextLayout>
 }
 
 #[derive(Clone)]

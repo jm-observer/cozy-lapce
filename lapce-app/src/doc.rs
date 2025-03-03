@@ -1560,17 +1560,17 @@ impl Doc {
         }))
     }
 
-    pub(crate) fn tab_width(&self, ) -> usize {
-        self.common
-            .config
-            .with_untracked(|config| config.editor.tab_width)
-    }
-
-    pub(crate) fn atomic_soft_tabs(&self, ) -> bool {
-        self.common
-            .config
-            .with_untracked(|config| config.editor.atomic_soft_tabs)
-    }
+    // pub(crate) fn tab_width(&self, ) -> usize {
+    //     self.common
+    //         .config
+    //         .with_untracked(|config| config.editor.tab_width)
+    // }
+    //
+    // pub(crate) fn atomic_soft_tabs(&self, ) -> bool {
+    //     self.common
+    //         .config
+    //         .with_untracked(|config| config.editor.atomic_soft_tabs)
+    // }
 
     // pub fn viewport(&self) -> RwSignal<Rect> {
     //     self.viewport

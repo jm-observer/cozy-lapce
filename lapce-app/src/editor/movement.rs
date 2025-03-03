@@ -230,19 +230,19 @@ pub fn move_offset(
 //     offset
 // }
 
-fn atomic_soft_tab_width_for_offset(ed: &Editor) -> Option<usize> {
-    // let line = ed
-    //     .visual_line_of_offset_v2(offset, CursorAffinity::Forward)
-    //     .ok()?
-    //     .0
-    //     .origin_line_start;
-    let style = ed.doc();
-    if style.atomic_soft_tabs() {
-        Some(style.tab_width())
-    } else {
-        None
-    }
-}
+// fn atomic_soft_tab_width_for_offset(ed: &Editor) -> Option<usize> {
+//     // let line = ed
+//     //     .visual_line_of_offset_v2(offset, CursorAffinity::Forward)
+//     //     .ok()?
+//     //     .0
+//     //     .origin_line_start;
+//     let style = ed.doc();
+//     if style.atomic_soft_tabs() {
+//         Some(style.tab_width())
+//     } else {
+//         None
+//     }
+// }
 
 pub fn snap_to_soft_tab(
     text: &Rope,

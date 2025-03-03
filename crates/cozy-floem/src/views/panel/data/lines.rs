@@ -1,5 +1,5 @@
 use std::{borrow::Cow, collections::HashMap, ops::Range};
-
+use std::cell::{RefCell, RefMut};
 use ansi_to_style::TextStyle;
 use anyhow::{Result, anyhow};
 use cargo_metadata::PackageId;
@@ -63,7 +63,7 @@ pub struct Lines {
     // pub visual_line:      Vec<SimpleLine>,
     // pub visual_links:     Vec<SimpleHyperlink>,
     pub hyperlinks:       Vec<Hyperlink>,
-    pub texts:            Vec<TextLayout>
+    pub texts:            Vec<RefCell<TextLayout>>
 }
 
 impl Default for Lines {
@@ -206,7 +206,7 @@ impl Lines {
             .iter()
             .fold(0., |x, line| {
                 match self.text_layout_of_line(line.line_index) {
-                    Ok(text_layout) => {
+                    Ok(mut text_layout) => {
                         let width = text_layout.size().width;
                         if x < width { width } else { x }
                     },
@@ -220,10 +220,10 @@ impl Lines {
         Ok(Size::new(max_width, height))
     }
 
-    pub fn text_layout_of_line(&self, line: usize) -> Result<&TextLayout> {
+    pub fn text_layout_of_line(&self, line: usize) -> Result<RefMut<TextLayout>> {
         let line_index = self.line_info()?.1.get(line);
         line_index
-            .and_then(|index| self.texts.get(index.text_index))
+            .and_then(|index| self.texts.get(index.text_index).map(|x| x.borrow_mut()))
             .ok_or(anyhow!("not found {}", line))
     }
 
@@ -238,8 +238,8 @@ impl Lines {
         let offset = offset.min(rope.len() - 1);
         let line = rope.line_of_offset(offset);
         let offset_line = rope.offset_of_line(line)?;
-        let text = self.text_layout_of_line(line)?;
-        let point = hit_position_aff(text, offset - offset_line, true).point;
+        let mut text = self.text_layout_of_line(line)?;
+        let point = hit_position_aff(&mut text, offset - offset_line, true).point;
         Ok(Some((point, line, offset_line)))
     }
 
@@ -251,7 +251,7 @@ impl Lines {
         text_index: usize,
         hyperlink: &[Hyperlink],
         line_ending: LineEnding,
-        text: &TextLayout,
+        text: &mut TextLayout,
         line_height: f64
     ) {
         let (rope, lines, links) = self.ropes.entry(text_src.clone()).or_default();
@@ -352,7 +352,7 @@ impl Lines {
                 to_line_attrs(&mut attrs_list, doc_style.attrs(&family), x)
             });
             let mut font_system = FONT_SYSTEM.lock();
-            let text = TextLayout::new_with_font_system(
+            let mut text = TextLayout::new_with_font_system(
                 0,
                 &content_origin_without_lf,
                 attrs_list,
@@ -367,11 +367,11 @@ impl Lines {
                     text_index,
                     &hyperlink,
                     line_ending,
-                    &text,
+                    &mut text,
                     doc_style.line_height
                 );
             }
-            self.texts.push(text);
+            self.texts.push(text.into());
             self.hyperlinks.append(&mut hyperlink);
             // let hyperlinks: Vec<(Point, Point, Color)> = vec![];
             // let hyperlinks: Vec<(Point, Point, Color)> = points

@@ -188,7 +188,7 @@ impl View for DocManager {
             // debug!("line_index={} y={y} ", line_info.line_index);
             paint_extra_style(cx, &line_info.hyperlinks);
             cx.draw_text_with_layout(
-                line_info.text.layout_runs(),
+                line_info.text.borrow_mut().layout_runs(),
                 Point::new(0.0, y)
             );
         }
