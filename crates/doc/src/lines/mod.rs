@@ -229,7 +229,7 @@ impl DocLines {
             (last_line, 0.0)
         );
 
-        log::info!("{}", serde_json::to_string(&config).unwrap());
+        // log::info!("{}", serde_json::to_string(&config).unwrap());
 
         let mut lines = Self {
             signals,
@@ -3183,7 +3183,7 @@ impl PubUpdateLines {
     pub fn update_folding_ranges(&mut self, action: UpdateFolding) -> Result<()> {
         match action {
             UpdateFolding::UpdateByItem(item) => {
-                log::info!("{}", serde_json::to_string(&item).unwrap());
+                // log::info!("{}", serde_json::to_string(&item).unwrap());
                 self.folding_ranges.update_folding_item(item);
             },
             UpdateFolding::New(ranges) => {

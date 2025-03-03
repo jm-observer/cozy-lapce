@@ -994,7 +994,7 @@ impl Doc {
 
         self.common.proxy.get_inlay_hints(path, move |(_, result)| {
             if let Ok(ProxyResponse::GetInlayHints { mut hints }) = result {
-                log::info!("{}", serde_json::to_string(&hints).unwrap());
+                // log::info!("{}", serde_json::to_string(&hints).unwrap());
                 // Sort the inlay hints by their position, as the LSP does not
                 // guarantee that it will provide them in the order
                 // that they are in within the file as well, Spans

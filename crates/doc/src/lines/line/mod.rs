@@ -7,8 +7,9 @@ use std::{
 };
 
 use floem::kurbo::{Point, Rect, Size, Vec2};
-use floem::text::{HitPoint, HitPosition};
+use floem::text::{HitPoint, HitPosition, FONT_SYSTEM};
 use lapce_xi_rope::Interval;
+use log::error;
 use serde::{Deserialize, Serialize};
 use crate::hit_position_aff;
 use super::layout::{LayoutRunIter, LineExtraStyle, TextLayoutLine};
@@ -331,8 +332,19 @@ impl OriginFoldedLine {
     }
 
     pub fn layout_runs(&self) -> LayoutRunIter {
+        // if !self.text_layout.text.init_line {
+        //     error!("\n\n\n\nlayout_runs {}\n\n\n\n", self.text_layout.text.init_line);
+        // }
         self.text_layout.text.layout_runs()
     }
+
+    // pub fn init_layout(&mut self) {
+    //     if !self.text_layout.text.init_line {
+    //         let mut font_system = FONT_SYSTEM.lock();
+    //         self.text_layout.text.shape_until_scroll(&mut font_system, false);
+    //         self.text_layout.text.init_line = true;
+    //     }
+    // }
 
     pub fn extra_style(&self) -> &[LineExtraStyle] {
         &self.text_layout.extra_style
