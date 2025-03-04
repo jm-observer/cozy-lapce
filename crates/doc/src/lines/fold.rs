@@ -21,7 +21,7 @@ pub struct FoldingRanges(pub Vec<FoldingRange>);
 pub struct FoldedRanges(pub Vec<FoldedRange>);
 
 impl FoldingRanges {
-    pub fn get_folded_range(&self) -> FoldedRanges {
+    pub fn get_all_folded_range(&self) -> FoldedRanges {
         let mut range = Vec::new();
         let mut limit_line = 0;
         for item in &self.0 {
@@ -41,28 +41,28 @@ impl FoldingRanges {
         FoldedRanges(range)
     }
 
-    pub fn get_folded_range_by_line(&self, line: u32) -> FoldedRanges {
-        let mut range = Vec::new();
-        let mut limit_line = 0;
-        for item in &self.0 {
-            if item.start.line < limit_line && limit_line > 0 {
-                continue;
-            }
-            if item.status.is_folded()
-                && item.start.line <= line
-                && item.end.line >= line
-            {
-                range.push(FoldedRange {
-                    start:          item.start,
-                    end:            item.end,
-                    collapsed_text: item.collapsed_text.clone()
-                });
-                limit_line = item.end.line;
-            }
-        }
-
-        FoldedRanges(range)
-    }
+    // pub fn get_folded_range_by_line(&self, line: u32) -> FoldedRanges {
+    //     let mut range = Vec::new();
+    //     let mut limit_line = 0;
+    //     for item in &self.0 {
+    //         if item.start.line < limit_line && limit_line > 0 {
+    //             continue;
+    //         }
+    //         if item.status.is_folded()
+    //             && item.start.line <= line
+    //             && item.end.line >= line
+    //         {
+    //             range.push(FoldedRange {
+    //                 start:          item.start,
+    //                 end:            item.end,
+    //                 collapsed_text: item.collapsed_text.clone()
+    //             });
+    //             limit_line = item.end.line;
+    //         }
+    //     }
+    //
+    //     FoldedRanges(range)
+    // }
 
     pub fn fold_by_offset(&mut self, offset: usize, rope: &Rope) -> Result<()> {
         let mut last_range = None;
@@ -163,7 +163,7 @@ impl FoldingRanges {
     }
 
     pub fn update_ranges(&mut self, mut new: Vec<FoldingRange>) {
-        let folded_range = self.get_folded_range();
+        let folded_range = self.get_all_folded_range();
         new.iter_mut().for_each(|x| folded_range.update_status(x));
         self.0 = new;
     }
@@ -206,6 +206,19 @@ impl FoldingRanges {
 }
 
 impl FoldedRanges {
+
+    pub fn filter_by_line(&self, line: usize) -> Self {
+        let line = line as u32;
+        Self(self.0.iter().filter_map(|item| {
+            if item.start.line <= line
+                && item.end.line >= line {
+                Some(item.clone())
+            } else {
+                None
+            }
+        }).collect())
+    }
+
     pub fn visual_line(&self, line: usize) -> usize {
         let line = line as u32;
         for folded in &self.0 {

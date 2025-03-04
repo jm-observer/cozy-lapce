@@ -58,6 +58,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
+use crate::lines::fold::FoldedRanges;
 
 pub mod action;
 pub mod buffer;
@@ -726,7 +727,9 @@ impl DocLines {
     //     Ok(())
     // }
 
-    fn init_origin_line(&self, current_line: usize, semantic_styles: Option<&mut Peekable<SpanIter<String>>>) -> Result<OriginLine> {
+    fn init_origin_line(&self, current_line: usize
+                        , semantic_styles: Option<&mut Peekable<SpanIter<String>>>
+                        , folded_ranges: FoldedRanges) -> Result<OriginLine> {
         let start_offset = self.buffer().offset_of_line(current_line)?;
         let end_offset = self.buffer().offset_of_line(current_line + 1)?;
         // let mut fg_styles = Vec::new();
@@ -739,7 +742,7 @@ impl DocLines {
         //     0,
         // ));
 
-        let phantom_text = self.phantom_text(current_line)?;
+        let phantom_text = self.phantom_text(current_line, folded_ranges)?;
         let semantic_styles = semantic_styles.map(|x| {
             let mut styles = vec![];
             loop {
@@ -1250,7 +1253,7 @@ impl DocLines {
         vline_infos
     }
 
-    fn phantom_text(&self, line: usize) -> Result<PhantomTextLine> {
+    fn phantom_text(&self, line: usize, folded_ranges: FoldedRanges) -> Result<PhantomTextLine> {
         let buffer = self.buffer();
         let (start_offset, end_offset) = (
             buffer.offset_of_line(line)?,
@@ -1269,8 +1272,8 @@ impl DocLines {
         // end_offset={end_offset}
         // origin_text_len={origin_text_len}"); }
 
-        let folded_ranges =
-            self.folding_ranges.get_folded_range_by_line(line as u32);
+        // let folded_ranges =
+        //     self.folding_ranges.get_folded_range_by_line(line as u32);
 
         // If hints are enabled, and the hints field is filled, then
         // get the hints for this line and convert them into
@@ -1325,7 +1328,6 @@ impl DocLines {
                             }
                         }
                     }
-
                     let (_, col) = match buffer.offset_to_line_col(interval.start) {
                         Ok(rs) => rs,
                         Err(err) => {
