@@ -44,9 +44,6 @@ pub struct PhantomText {
     ///
     /// 在最终行文本（考虑折叠、幽灵文本）的位置
     pub final_col:  usize,
-    /// the affinity of cursor, e.g. for completion phantom text,
-    /// we want the cursor always before the phantom text
-    pub affinity:   Option<CursorAffinity>,
     pub text:       String,
     pub font_size:  Option<usize>,
     // font_family: Option<FontFamily>,
@@ -58,7 +55,7 @@ pub struct PhantomText {
 impl PartialEq for PhantomText {
     fn eq(&self, other: &Self) -> bool {
         self.kind == other.kind && self.line == other.line && self.col == other.col && self.visual_merge_col == other.visual_merge_col && self.origin_merge_col == other.origin_merge_col
-        && self.final_col == other.final_col && self.affinity == other.affinity && self.text == other.text && self.font_size == other.font_size
+        && self.final_col == other.final_col && self.text == other.text && self.font_size == other.font_size
     }
 }
 impl Eq for PhantomText {}

@@ -300,7 +300,6 @@ pub fn preedit_phantom(
         kind: PhantomTextKind::Ime,
         line,
         text: preedit.text,
-        affinity: None,
         final_col: col,
         visual_merge_col: col,
         font_size: None,

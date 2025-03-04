@@ -120,6 +120,11 @@ impl DocLines {
         } else {
             self.syntax.styles.as_ref().map(|x| x.iter().peekable())
         };
+        let mut inlay_hints = self
+            .config
+            .enable_inlay_hints
+            .then_some(())
+            .and(self.inlay_hints.as_ref()).map(|x| x.iter().peekable());
 
         if let CopyDelta::Copy {
             recompute_first_or_last_line: recompute_first_line,
@@ -129,7 +134,7 @@ impl DocLines {
         } = lines_delta.copy_line_start
         {
             if recompute_first_line {
-                let line = self.init_origin_line(0, semantic_styles.as_mut(), all_folded_ranges.filter_by_line(0))?;
+                let line = self.init_origin_line(0, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(0))?;
                 origin_lines.push(line);
             }
             origin_lines.extend(self.copy_origin_line(
@@ -142,7 +147,7 @@ impl DocLines {
         let recompute_line_start = lines_delta.recompute_line_start;
 
         for x in recompute_line_start..=last_line {
-            let line = self.init_origin_line(x, semantic_styles.as_mut(), all_folded_ranges.filter_by_line(x))?;
+            let line = self.init_origin_line(x, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(x))?;
             let end = line.start_offset + line.len;
             origin_lines.push(line);
             if end >= recompute_offset_end {
@@ -164,7 +169,7 @@ impl DocLines {
                 line_offset_new
             ));
             if *recompute_first_or_last_line {
-                origin_lines.push(self.init_origin_line(last_line, semantic_styles.as_mut(), all_folded_ranges.filter_by_line(last_line))?);
+                origin_lines.push(self.init_origin_line(last_line, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(last_line))?);
             }
         }
         Ok(origin_lines)

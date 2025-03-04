@@ -54,7 +54,7 @@ use crate::{
         selection::Selection,
         style::EditorStyle,
         text::{PreeditData, SystemClipboard},
-        word::{CharClassification, WordCursor, get_char_property}
+        word::{WordCursor}
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
@@ -729,6 +729,7 @@ impl DocLines {
 
     fn init_origin_line(&self, current_line: usize
                         , semantic_styles: Option<&mut Peekable<SpanIter<String>>>
+                        , inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>
                         , folded_ranges: FoldedRanges) -> Result<OriginLine> {
         let start_offset = self.buffer().offset_of_line(current_line)?;
         let end_offset = self.buffer().offset_of_line(current_line + 1)?;
@@ -742,7 +743,7 @@ impl DocLines {
         //     0,
         // ));
 
-        let phantom_text = self.phantom_text(current_line, folded_ranges)?;
+        let phantom_text = self.phantom_text(current_line, folded_ranges, inlay_hints, start_offset, end_offset)?;
         let semantic_styles = semantic_styles.map(|x| {
             let mut styles = vec![];
             loop {
@@ -1253,14 +1254,70 @@ impl DocLines {
         vline_infos
     }
 
-    fn phantom_text(&self, line: usize, folded_ranges: FoldedRanges) -> Result<PhantomTextLine> {
+    fn phantom_text(&self, line: usize, folded_ranges: FoldedRanges, inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
+        start_offset: usize, end_offset: usize) -> Result<PhantomTextLine> {
         let buffer = self.buffer();
-        let (start_offset, end_offset) = (
-            buffer.offset_of_line(line)?,
-            buffer.offset_of_line(line + 1)?
-        );
-
         let origin_text_len = end_offset - start_offset;
+        let mut text = inlay_hints.map(|x| {
+            let mut styles = SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
+            loop {
+                if let Some((Interval { start, .. }, _)) = x.peek() {
+                    if end_offset <= *start {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+                if let Some((Interval { start, end }, inlay_hint)) = x.next() {
+                    if start_offset <= start && end < end_offset {
+                        let (_, col) = match buffer.offset_to_line_col(start) {
+                            Ok(rs) => rs,
+                            Err(err) => {
+                                error!("{err:?}");
+                                return SmallVec::new();
+                            }
+                        };
+                        let mut text = match &inlay_hint.label {
+                            InlayHintLabel::String(label) => label.to_string(),
+                            InlayHintLabel::LabelParts(parts) => {
+                                parts.iter().map(|p| &p.value).join("")
+                            },
+                        };
+                        match (text.starts_with(':'), text.ends_with(':')) {
+                            (true, true) => {
+                                text.push(' ');
+                            },
+                            (true, false) => {
+                                text.push(' ');
+                            },
+                            (false, true) => {
+                                text = format!(" {} ", text);
+                            },
+                            (false, false) => {
+                                text = format!(" {}", text);
+                            }
+                        }
+                        styles.push(PhantomText {
+                            kind: PhantomTextKind::InlayHint,
+                            col,
+                            text,
+                            fg: Some(self.config.inlay_hint_fg),
+                            // font_family:
+                            // Some(self.config.inlay_hint_font_family()),
+                            font_size: Some(self.config.inlay_hint_font_size()),
+                            bg: Some(self.config.inlay_hint_bg),
+                            under_line: None,
+                            final_col: col,
+                            line,
+                            visual_merge_col: col,
+                            origin_merge_col: col,
+                        })
+                    }
+                }
+            }
+            styles
+        }).unwrap_or_default();
+
         // lsp返回的字符包括换行符，现在长度不考虑，后续会有问题
         // let line_ending =
         // self.buffer.line_ending().get_chars().len();
@@ -1278,107 +1335,68 @@ impl DocLines {
         // If hints are enabled, and the hints field is filled, then
         // get the hints for this line and convert them into
         // PhantomText instances
-        let hints = self
-            .config
-            .enable_inlay_hints
-            .then_some(())
-            .and(self.inlay_hints.as_ref())
-            .map(|hints| hints.iter_chunks(start_offset..end_offset))
-            .into_iter()
-            .flatten()
-            .filter(|(interval, hint)| {
-                interval.start >= start_offset
-                    && interval.start < end_offset
-                    && !folded_ranges.contain_position(hint.position)
-            })
-            .filter_map(|(interval, inlay_hint)| {
-                let (col, affinity) = {
-                    let mut cursor =
-                        lapce_xi_rope::Cursor::new(buffer.text(), interval.start);
-
-                    let next_char = cursor.peek_next_codepoint();
-                    let prev_char = cursor.prev_codepoint();
-
-                    let mut affinity = None;
-                    if let Some(prev_char) = prev_char {
-                        let c = get_char_property(prev_char);
-                        if c == CharClassification::Other {
-                            affinity = Some(CursorAffinity::Backward)
-                        } else if matches!(
-                            c,
-                            CharClassification::Lf
-                                | CharClassification::Cr
-                                | CharClassification::Space
-                        ) {
-                            affinity = Some(CursorAffinity::Forward)
-                        }
-                    };
-                    if affinity.is_none() {
-                        if let Some(next_char) = next_char {
-                            let c = get_char_property(next_char);
-                            if c == CharClassification::Other {
-                                affinity = Some(CursorAffinity::Forward)
-                            } else if matches!(
-                                c,
-                                CharClassification::Lf
-                                    | CharClassification::Cr
-                                    | CharClassification::Space
-                            ) {
-                                affinity = Some(CursorAffinity::Backward)
-                            }
-                        }
-                    }
-                    let (_, col) = match buffer.offset_to_line_col(interval.start) {
-                        Ok(rs) => rs,
-                        Err(err) => {
-                            error!("{err:?}");
-                            return None;
-                        }
-                    };
-                    (col, affinity)
-                };
-                let mut text = match &inlay_hint.label {
-                    InlayHintLabel::String(label) => label.to_string(),
-                    InlayHintLabel::LabelParts(parts) => {
-                        parts.iter().map(|p| &p.value).join("")
-                    },
-                };
-                match (text.starts_with(':'), text.ends_with(':')) {
-                    (true, true) => {
-                        text.push(' ');
-                    },
-                    (true, false) => {
-                        text.push(' ');
-                    },
-                    (false, true) => {
-                        text = format!(" {} ", text);
-                    },
-                    (false, false) => {
-                        text = format!(" {}", text);
-                    }
-                }
-                Some(PhantomText {
-                    kind: PhantomTextKind::InlayHint,
-                    col,
-                    text,
-                    affinity,
-                    fg: Some(self.config.inlay_hint_fg),
-                    // font_family:
-                    // Some(self.config.inlay_hint_font_family()),
-                    font_size: Some(self.config.inlay_hint_font_size()),
-                    bg: Some(self.config.inlay_hint_bg),
-                    under_line: None,
-                    final_col: col,
-                    line,
-                    visual_merge_col: col,
-                    origin_merge_col: col,
-                })
-            });
+        // let hints = self
+        //     .config
+        //     .enable_inlay_hints
+        //     .then_some(())
+        //     .and(self.inlay_hints.as_ref())
+        //     .map(|hints| hints.iter_chunks(start_offset..end_offset))
+        //     .into_iter()
+        //     .flatten()
+        //     .filter(|(interval, hint)| {
+        //         interval.start >= start_offset
+        //             && interval.start < end_offset
+        //             && !folded_ranges.contain_position(hint.position)
+        //     })
+        //     .filter_map(|(interval, inlay_hint)| {
+        //         let (_, col) = match buffer.offset_to_line_col(interval.start) {
+        //             Ok(rs) => rs,
+        //             Err(err) => {
+        //                 error!("{err:?}");
+        //                 return None;
+        //             }
+        //         };
+        //         let mut text = match &inlay_hint.label {
+        //             InlayHintLabel::String(label) => label.to_string(),
+        //             InlayHintLabel::LabelParts(parts) => {
+        //                 parts.iter().map(|p| &p.value).join("")
+        //             },
+        //         };
+        //         match (text.starts_with(':'), text.ends_with(':')) {
+        //             (true, true) => {
+        //                 text.push(' ');
+        //             },
+        //             (true, false) => {
+        //                 text.push(' ');
+        //             },
+        //             (false, true) => {
+        //                 text = format!(" {} ", text);
+        //             },
+        //             (false, false) => {
+        //                 text = format!(" {}", text);
+        //             }
+        //         }
+        //         Some(PhantomText {
+        //             kind: PhantomTextKind::InlayHint,
+        //             col,
+        //             text,
+        //             fg: Some(self.config.inlay_hint_fg),
+        //             // font_family:
+        //             // Some(self.config.inlay_hint_font_family()),
+        //             font_size: Some(self.config.inlay_hint_font_size()),
+        //             bg: Some(self.config.inlay_hint_bg),
+        //             under_line: None,
+        //             final_col: col,
+        //             line,
+        //             visual_merge_col: col,
+        //             origin_merge_col: col,
+        //         })
+        //     });
         // You're quite unlikely to have more than six hints on a
         // single line this later has the diagnostics added
         // onto it, but that's still likely to be below six
         // overall.
-        let mut text: SmallVec<[PhantomText; 6]> = hints.collect();
+        // let mut text: SmallVec<[PhantomText; 6]> = hints.collect();
 
         // If error lens is enabled, and the diagnostics field is
         // filled, then get the diagnostics that end on this
@@ -1465,7 +1483,6 @@ impl DocLines {
                 text: completion.clone(),
                 fg: Some(self.config.completion_lens_foreground),
                 font_size: Some(self.config.completion_lens_font_size()),
-                affinity: Some(CursorAffinity::Backward),
                 // font_family: Some(self.config.editor.completion_lens_font_family()),
                 bg: None,
                 under_line: None,
@@ -1502,7 +1519,6 @@ impl DocLines {
                     kind: PhantomTextKind::Completion,
                     col: *inline_completion_col,
                     text: completion.clone(),
-                    affinity: Some(CursorAffinity::Backward),
                     fg: Some(self.config.completion_lens_foreground),
                     font_size: Some(self.config.completion_lens_font_size()),
                     // font_family:
