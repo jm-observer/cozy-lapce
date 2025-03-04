@@ -88,7 +88,6 @@ pub fn panel(doc: DocManager) -> impl View {
         })
 }
 
-
 pub struct Panel {
     pub id:         ViewId,
     pub inner_node: Option<NodeId>,

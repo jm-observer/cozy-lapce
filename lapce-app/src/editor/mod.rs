@@ -141,7 +141,7 @@ pub struct EditorData {
     // pub kind: RwSignal<EditorViewKind>,
     pub sticky_header_height: RwSignal<f64>,
     pub common:               Rc<CommonData>,
-    pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
+    pub sticky_header_info:   RwSignal<StickyHeaderInfo>
 }
 
 impl PartialEq for EditorData {
@@ -180,7 +180,7 @@ impl EditorData {
             // kind: cx.create_rw_signal(EditorViewKind::Normal),
             sticky_header_height: cx.create_rw_signal(0.0),
             common,
-            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
+            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
         }
     }
 
@@ -635,7 +635,9 @@ impl EditorData {
             }
         });
         if old_val != (cursor.offset(), cursor.affinity) {
-            self.common.internal_command.send(InternalCommand::ResetBlinkCursor);
+            self.common
+                .internal_command
+                .send(InternalCommand::ResetBlinkCursor);
         }
         self.editor.cursor.set(cursor);
 
@@ -1133,12 +1135,12 @@ impl EditorData {
     }
 
     fn on_screen_find(&self, pattern: &str) -> Vec<SelRegion> {
-        let lines: HashSet<usize> = self
-            .editor.screen_lines
-            .with_untracked(|x| x.visual_lines
+        let lines: HashSet<usize> = self.editor.screen_lines.with_untracked(|x| {
+            x.visual_lines
                 .iter()
                 .map(|l| l.visual_line.origin_line_start)
-                .collect());
+                .collect()
+        });
         let mut matcher = nucleo::Matcher::new(nucleo::Config::DEFAULT);
         let pattern = nucleo::pattern::Pattern::parse(
             pattern,
@@ -3003,12 +3005,18 @@ impl EditorData {
                     return;
                 }
             };
-        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
+        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside}
+        // {affinity:?}", pointer_event.pos);
         if self.active().get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
             self.cursor().update(|cursor| {
-                cursor.set_offset_with_affinity(offset, true, pointer_event.modifiers.alt(), Some(affinity));
+                cursor.set_offset_with_affinity(
+                    offset,
+                    true,
+                    pointer_event.modifiers.alt(),
+                    Some(affinity)
+                );
                 cursor.affinity = affinity;
             });
         }
@@ -3208,7 +3216,8 @@ impl EditorData {
         let doc = self.doc();
         let path = match doc
             .content
-            .with_untracked(|content| content.path().cloned()){
+            .with_untracked(|content| content.path().cloned())
+        {
             Some(path) => path,
             None => return
         };
@@ -3571,9 +3580,7 @@ impl KeyPressFocus for EditorData {
             },
             crate::command::CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);
-                batch(|| {
-                    self.run_move_command(&movement, count, mods)
-                })
+                batch(|| self.run_move_command(&movement, count, mods))
             },
             crate::command::CommandKind::Scroll(cmd) => {
                 if self

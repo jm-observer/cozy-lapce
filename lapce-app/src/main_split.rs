@@ -637,15 +637,16 @@ impl MainSplitData {
                 tab.editor.screen_lines.with_untracked(|x| {
                     (
                         x.visual_lines[0].visual_line.line_index,
-                        x.visual_lines[x.visual_lines.len() - 1].visual_line.line_index
+                        x.visual_lines[x.visual_lines.len() - 1]
+                            .visual_line
+                            .line_index
                     )
                 });
 
-            let line_index = tab
-                .editor
-                .doc()
-                .lines.with_untracked(|x| {
-                let rs = x.folded_line_of_buffer_offset(cursor.offset()).map(|x| x.line_index);
+            let line_index = tab.editor.doc().lines.with_untracked(|x| {
+                let rs = x
+                    .folded_line_of_buffer_offset(cursor.offset())
+                    .map(|x| x.line_index);
                 if rs.is_err() {
                     x.log();
                 }
@@ -657,14 +658,8 @@ impl MainSplitData {
             //     .doc()
             //     .lines
             //     .lines_of_origin_offset(cursor.offset())?;
-            if min_visual_line <= line_index
-                && line_index
-                    <= max_visual_line
-            {
-                off_top_line = Some(
-                    line_index
-                        - min_visual_line
-                );
+            if min_visual_line <= line_index && line_index <= max_visual_line {
+                off_top_line = Some(line_index - min_visual_line);
             }
             //
             // if let Some(min_visual_line) = tab
@@ -1136,7 +1131,7 @@ impl MainSplitData {
                     match current_child {
                         EditorTabChildId::Editor(editor_id) => {
                             if let Some(editor) =
-                                editors.editor_untracked(editor_id.clone())
+                                editors.editor_untracked(*editor_id)
                             {
                                 editor.save_doc_position();
                             }

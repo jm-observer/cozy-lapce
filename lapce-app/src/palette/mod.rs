@@ -3,9 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
     rc::Rc,
-    sync::{
-        Arc,
-    },
+    sync::Arc,
     time::{Duration, Instant, SystemTime}
 };
 
@@ -23,11 +21,10 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     reactive::{
-        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch,
-        use_context
+        Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
+        batch, use_context
     }
 };
-use floem::reactive::Memo;
 use im::Vector;
 use itertools::Itertools;
 use lapce_core::{
@@ -92,9 +89,9 @@ impl PaletteInput {
 
 #[derive(Clone, Debug, Default)]
 pub struct RunResult {
-    pub id: u64,
-    pub rs: Vector<PaletteItem>,
-    pub updated: bool,
+    pub id:      u64,
+    pub rs:      Vector<PaletteItem>,
+    pub updated: bool
 }
 
 impl RunResult {
@@ -116,17 +113,12 @@ impl RunResult {
     }
 
     pub fn rs(&self) -> Option<&Vector<PaletteItem>> {
-        if self.updated {
-            Some(&self.rs)
-        } else {
-            None
-        }
+        if self.updated { Some(&self.rs) } else { None }
     }
 
     pub fn is_empty(&self) -> bool {
         self.updated && self.rs.is_empty()
     }
-
 }
 
 #[derive(Clone)]
@@ -143,7 +135,7 @@ pub struct PaletteData {
     pub input_str:             RwSignal<String>,
     pub preview_editor:        EditorData,
     pub has_preview:           RwSignal<bool>,
-    pub has_preview_memo: Memo<bool>,
+    pub has_preview_memo:      Memo<bool>,
     pub keypress:              ReadSignal<KeyPressData>,
     /// Listened on for which entry in the palette has been clicked
     pub clicked_index:         RwSignal<Option<usize>>,
@@ -188,9 +180,7 @@ impl PaletteData {
 
         let preview_editor = main_split.editors.make_local(cx, common.clone());
         let has_preview = cx.create_rw_signal(false);
-        let has_preview_memo = cx.create_memo(move |_| {
-            has_preview.get()
-        });
+        let has_preview_memo = cx.create_memo(move |_| has_preview.get());
 
         let set_filtered_items = cx.create_rw_signal(Vector::new());
 
@@ -207,7 +197,8 @@ impl PaletteData {
             filtered_items: set_filtered_items,
             input_str: cx.create_rw_signal(String::new()),
             preview_editor,
-            has_preview, has_preview_memo,
+            has_preview,
+            has_preview_memo,
             input,
             kind,
             keypress,
@@ -503,10 +494,11 @@ impl PaletteData {
                     + cmd.get_message().unwrap_or("");
 
                 PaletteItem {
-                    content:     PaletteItemContent::PaletteHelp { cmd },
+                    content: PaletteItemContent::PaletteHelp { cmd },
                     filter_text: description,
-                    score:       0,
-                    indices:     vec![], run_id
+                    score: 0,
+                    indices: vec![],
+                    run_id
                 }
             })
             .collect()
@@ -547,7 +539,8 @@ impl PaletteData {
                             content: PaletteItemContent::File { path, full_path },
                             filter_text,
                             score: 0,
-                            indices: Vec::new(), run_id
+                            indices: Vec::new(),
+                            run_id
                         }
                     })
                     .collect::<im::Vector<_>>();
@@ -610,13 +603,14 @@ impl PaletteData {
                     l
                 );
                 PaletteItem {
-                    content:     PaletteItemContent::Line {
+                    content: PaletteItemContent::Line {
                         line:    i,
                         content: text.clone()
                     },
                     filter_text: text,
-                    score:       0,
-                    indices:     vec![], run_id
+                    score: 0,
+                    indices: vec![],
+                    run_id
                 }
             })
             .collect();
@@ -639,12 +633,11 @@ impl PaletteData {
                 .filter_map(|(key, _)| {
                     keypress.commands.get(key).and_then(|c| {
                         c.kind.desc().as_ref().map(|m| PaletteItem {
-                            content:     PaletteItemContent::Command {
-                                cmd: c.clone()
-                            },
+                            content: PaletteItemContent::Command { cmd: c.clone() },
                             filter_text: m.to_string(),
-                            score:       0,
-                            indices:     vec![], run_id
+                            score: 0,
+                            indices: vec![],
+                            run_id
                         })
                     })
                 })
@@ -662,10 +655,11 @@ impl PaletteData {
                 }
 
                 c.kind.desc().as_ref().map(|m| PaletteItem {
-                    content:     PaletteItemContent::Command { cmd: c.clone() },
+                    content: PaletteItemContent::Command { cmd: c.clone() },
                     filter_text: m.to_string(),
-                    score:       0,
-                    indices:     vec![], run_id
+                    score: 0,
+                    indices: vec![],
+                    run_id
                 })
             }));
 
@@ -699,7 +693,8 @@ impl PaletteData {
                     content: PaletteItemContent::Workspace { workspace: w },
                     filter_text,
                     score: 0,
-                    indices: vec![], run_id
+                    indices: vec![],
+                    run_id
                 })
             })
             .collect();
@@ -727,7 +722,8 @@ impl PaletteData {
                     content: PaletteItemContent::Reference { path, location: l },
                     filter_text,
                     score: 0,
-                    indices: vec![], run_id
+                    indices: vec![],
+                    run_id
                 }
             })
             .collect();
@@ -801,7 +797,8 @@ impl PaletteData {
     }
 
     fn format_document_symbol_resp(
-        resp: DocumentSymbolResponse, run_id: u64
+        resp: DocumentSymbolResponse,
+        run_id: u64
     ) -> im::Vector<PaletteItem> {
         match resp {
             DocumentSymbolResponse::Flat(symbols) => symbols
@@ -820,7 +817,8 @@ impl PaletteData {
                         },
                         filter_text,
                         score: 0,
-                        indices: Vec::new(), run_id
+                        indices: Vec::new(),
+                        run_id
                     }
                 })
                 .collect(),
@@ -837,18 +835,20 @@ impl PaletteData {
     fn format_document_symbol(
         items: &mut im::Vector<PaletteItem>,
         parent: Option<String>,
-        s: DocumentSymbol, run_id: u64
+        s: DocumentSymbol,
+        run_id: u64
     ) {
         items.push_back(PaletteItem {
-            content:     PaletteItemContent::DocumentSymbol {
+            content: PaletteItemContent::DocumentSymbol {
                 kind:           s.kind,
                 name:           s.name.replace('\n', "↵"),
                 range:          s.range,
                 container_name: parent
             },
             filter_text: s.name.clone(),
-            score:       0,
-            indices:     Vec::new(), run_id
+            score: 0,
+            indices: Vec::new(),
+            run_id
         });
         if let Some(children) = s.children {
             let parent = Some(s.name.replace('\n', "↵"));
@@ -892,7 +892,8 @@ impl PaletteData {
                                 },
                                 filter_text,
                                 score: 0,
-                                indices: Vec::new(), run_id
+                                indices: Vec::new(),
+                                run_id
                             }
                         })
                         .collect();
@@ -943,10 +944,11 @@ impl PaletteData {
         let items = hosts
             .iter()
             .map(|host| PaletteItem {
-                content:     PaletteItemContent::SshHost { host: host.clone() },
+                content: PaletteItemContent::SshHost { host: host.clone() },
                 filter_text: host.to_string(),
-                score:       0,
-                indices:     vec![], run_id
+                score: 0,
+                indices: vec![],
+                run_id
             })
             .collect();
         self.items.set(items);
@@ -1000,12 +1002,13 @@ impl PaletteData {
         let items = hosts
             .iter()
             .map(|host| PaletteItem {
-                content:     PaletteItemContent::WslHost {
+                content: PaletteItemContent::WslHost {
                     host: WslHost { host: host.clone() }
                 },
                 filter_text: host.to_string(),
-                score:       0,
-                indices:     vec![], run_id
+                score: 0,
+                indices: vec![],
+                run_id
             })
             .collect();
         self.items.set(items);
@@ -1030,7 +1033,7 @@ impl PaletteData {
                     executed_run_configs
                         .get(&(RunDebugMode::Run, config.name.clone())),
                     PaletteItem {
-                        content:     PaletteItemContent::RunAndDebug {
+                        content: PaletteItemContent::RunAndDebug {
                             mode:   RunDebugMode::Run,
                             config: config.clone()
                         },
@@ -1040,8 +1043,9 @@ impl PaletteData {
                             config.program,
                             config.args.clone().unwrap_or_default().join(" ")
                         ),
-                        score:       0,
-                        indices:     vec![], run_id
+                        score: 0,
+                        indices: vec![],
+                        run_id
                     }
                 ));
                 if config.ty.is_some() {
@@ -1049,7 +1053,7 @@ impl PaletteData {
                         executed_run_configs
                             .get(&(RunDebugMode::Debug, config.name.clone())),
                         PaletteItem {
-                            content:     PaletteItemContent::RunAndDebug {
+                            content: PaletteItemContent::RunAndDebug {
                                 mode:   RunDebugMode::Debug,
                                 config: config.clone()
                             },
@@ -1059,8 +1063,9 @@ impl PaletteData {
                                 config.program,
                                 config.args.clone().unwrap_or_default().join(" ")
                             ),
-                            score:       0,
-                            indices:     vec![], run_id
+                            score: 0,
+                            indices: vec![],
+                            run_id
                         }
                     ));
                 }
@@ -1113,12 +1118,13 @@ impl PaletteData {
                     .color_theme_list()
                     .iter()
                     .map(|name| PaletteItem {
-                        content:     PaletteItemContent::ColorTheme {
+                        content: PaletteItemContent::ColorTheme {
                             name: name.clone()
                         },
                         filter_text: name.clone(),
-                        score:       0,
-                        indices:     Vec::new(), run_id
+                        score: 0,
+                        indices: Vec::new(),
+                        run_id
                     })
                     .collect(),
                 config.color_theme.name.clone()
@@ -1136,12 +1142,13 @@ impl PaletteData {
                     .icon_theme_list()
                     .iter()
                     .map(|name| PaletteItem {
-                        content:     PaletteItemContent::IconTheme {
+                        content: PaletteItemContent::IconTheme {
                             name: name.clone()
                         },
                         filter_text: name.clone(),
-                        score:       0,
-                        indices:     Vec::new(), run_id
+                        score: 0,
+                        indices: Vec::new(),
+                        run_id
                     })
                     .collect(),
                 config.icon_theme.name.clone()
@@ -1156,12 +1163,13 @@ impl PaletteData {
         let items = langs
             .iter()
             .map(|lang| PaletteItem {
-                content:     PaletteItemContent::Language {
+                content: PaletteItemContent::Language {
                     name: lang.to_string()
                 },
                 filter_text: lang.to_string(),
-                score:       0,
-                indices:     Vec::new(), run_id
+                score: 0,
+                indices: Vec::new(),
+                run_id
             })
             .collect();
         if let Some(editor) = self.main_split.active_editor.get_untracked() {
@@ -1176,10 +1184,11 @@ impl PaletteData {
         let items = [LineEnding::Lf, LineEnding::CrLf]
             .iter()
             .map(|l| PaletteItem {
-                content:     PaletteItemContent::LineEnding { kind: *l },
+                content: PaletteItemContent::LineEnding { kind: *l },
                 filter_text: l.as_str().to_string(),
-                score:       0,
-                indices:     Vec::new(), run_id
+                score: 0,
+                indices: Vec::new(),
+                run_id
             })
             .collect();
         if let Some(editor) = self.main_split.active_editor.get_untracked() {
@@ -1196,22 +1205,24 @@ impl PaletteData {
         let mut items: im::Vector<PaletteItem> = im::Vector::new();
         for refs in branches.into_iter() {
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::SCMReference {
+                content: PaletteItemContent::SCMReference {
                     name: refs.to_owned()
                 },
                 filter_text: refs.to_owned(),
-                score:       0,
-                indices:     Vec::new(), run_id
+                score: 0,
+                indices: Vec::new(),
+                run_id
             });
         }
         for refs in tags.into_iter() {
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::SCMReference {
+                content: PaletteItemContent::SCMReference {
                     name: refs.to_owned()
                 },
                 filter_text: refs.to_owned(),
-                score:       0,
-                indices:     Vec::new(), run_id
+                score: 0,
+                indices: Vec::new(),
+                run_id
             });
         }
         self.items.set(items);
@@ -1234,7 +1245,7 @@ impl PaletteData {
             };
 
             items.push_back(PaletteItem {
-                content:     PaletteItemContent::TerminalProfile {
+                content: PaletteItemContent::TerminalProfile {
                     name:    name.to_owned(),
                     profile: lapce_rpc::terminal::TerminalProfile {
                         name:        name.to_owned(),
@@ -1245,8 +1256,9 @@ impl PaletteData {
                     }
                 },
                 filter_text: name.to_owned(),
-                score:       0,
-                indices:     Vec::new(), run_id
+                score: 0,
+                indices: Vec::new(),
+                run_id
             });
         }
 
@@ -1445,8 +1457,8 @@ impl PaletteData {
                         &self.common.directory.grammars_directory;
                     if name.is_empty() || name.to_lowercase().eq("plain text") {
                         doc.set_syntax(Syntax::plaintext(
-                            &grammars_directory,
-                            &queries_directory
+                            grammars_directory,
+                            queries_directory
                         ))
                     } else {
                         let lang = match LapceLanguage::from_name(name) {

@@ -1,12 +1,17 @@
 pub mod view;
 
 use std::hash::{Hash, Hasher};
-use floem::peniko::Color;
-use doc::lines::{buffer::rope_text::RopeText, };
-use floem::prelude::{RwSignal, SignalGet, SignalWith};
 
-use crate::{editor::EditorData, window_workspace::WindowWorkspaceData};
-use crate::config::color::LapceColor;
+use doc::lines::buffer::rope_text::RopeText;
+use floem::{
+    peniko::Color,
+    prelude::{RwSignal, SignalGet, SignalWith}
+};
+
+use crate::{
+    config::color::LapceColor, editor::EditorData,
+    window_workspace::WindowWorkspaceData
+};
 
 pub fn gutter_data(
     window_tab_data: WindowWorkspaceData,
@@ -31,37 +36,48 @@ pub fn gutter_data(
     let width = signal_last_line.get().1 + 8.0;
     let screen_lines = e_data.editor.screen_lines.read_only();
 
-    let (fg, dim, style_font_size, font_family) = window_tab_data.common.config.with(|config| {
-        (
-            config.color(LapceColor::EDITOR_FOREGROUND),
-            config.color(LapceColor::EDITOR_DIM),
-            config.editor.font_size(),
-            config.editor.font_family.clone()
-        )
-    });
+    let (fg, dim, style_font_size, font_family) =
+        window_tab_data.common.config.with(|config| {
+            (
+                config.color(LapceColor::EDITOR_FOREGROUND),
+                config.color(LapceColor::EDITOR_DIM),
+                config.editor.font_size(),
+                config.editor.font_family.clone()
+            )
+        });
 
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines
             .iter()
             .map(|vl_info| {
-                let style_color = if vl_info.visual_line.origin_line_start == current_line { fg } else { dim };
+                let style_color =
+                    if vl_info.visual_line.origin_line_start == current_line {
+                        fg
+                    } else {
+                        dim
+                    };
                 if code_lens.contains_key(&vl_info.visual_line.origin_line_start) {
                     GutterData {
                         origin_line_start: vl_info.visual_line.origin_line_end,
                         paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::CodeLen,
                         style_color,
-                        style_width: width,style_font_size, style_font_family: font_family.clone()
+                        style_width: width,
+                        style_font_size,
+                        style_font_family: font_family.clone()
                     }
-                } else if breakpoints.contains_key(&vl_info.visual_line.origin_line_start)
+                } else if breakpoints
+                    .contains_key(&vl_info.visual_line.origin_line_start)
                 {
                     GutterData {
                         origin_line_start: vl_info.visual_line.origin_line_end,
                         paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::Breakpoint,
                         style_color,
-                        style_width: width,style_font_size, style_font_family: font_family.clone()
+                        style_width: width,
+                        style_font_size,
+                        style_font_family: font_family.clone()
                     }
                 } else {
                     GutterData {
@@ -69,7 +85,9 @@ pub fn gutter_data(
                         paint_point_y: vl_info.folded_line_y,
                         marker: GutterMarker::None,
                         style_color,
-                        style_width: width,style_font_size, style_font_family: font_family.clone()
+                        style_width: width,
+                        style_font_size,
+                        style_font_family: font_family.clone()
                     }
                 }
             })
@@ -80,12 +98,12 @@ pub fn gutter_data(
 #[derive(Clone)]
 pub struct GutterData {
     origin_line_start: usize,
-    paint_point_y: f64,
-    marker:          GutterMarker,
-    style_width: f64,
-    style_color: Color,
-    style_font_size: usize,
-    style_font_family: String,
+    paint_point_y:     f64,
+    marker:            GutterMarker,
+    style_width:       f64,
+    style_color:       Color,
+    style_font_size:   usize,
+    style_font_family: String
 }
 
 impl GutterData {

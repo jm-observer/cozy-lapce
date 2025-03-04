@@ -1,13 +1,14 @@
 use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
 
-use anyhow::{Result};
+use anyhow::Result;
 use doc::lines::{
     DocLinesManager,
     buffer::rope_text::{RopeText, RopeTextVal},
     command::{EditCommand, MoveCommand},
     cursor::{Cursor, CursorAffinity, CursorMode},
     editor_command::Command,
-    layout::{LineExtraStyle, },
+    fold::FoldingDisplayItem,
+    layout::LineExtraStyle,
     mode::{Mode, MotionMode, VisualMode},
     movement::Movement,
     register::Register,
@@ -31,7 +32,7 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-use doc::lines::fold::FoldingDisplayItem;
+
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -54,9 +55,9 @@ pub struct Editor {
 
     pub cursor: RwSignal<Cursor>,
 
-    pub window_origin: RwSignal<Point>,
-    pub viewport: RwSignal<Rect>,
-    pub screen_lines:   RwSignal<ScreenLines>,
+    pub window_origin:        RwSignal<Point>,
+    pub viewport:             RwSignal<Rect>,
+    pub screen_lines:         RwSignal<ScreenLines>,
     pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
 
     pub editor_view_focused:    Trigger,
@@ -131,19 +132,25 @@ impl Editor {
         let screen_lines = cx.create_rw_signal(ScreenLines::default());
         let folding_display_item = cx.create_rw_signal(vec![]);
 
-        let viewport_memo = cx.create_memo(move |_| {
-            viewport.get()
-        });
+        let viewport_memo = cx.create_memo(move |_| viewport.get());
 
-        cx.create_effect(move|_| {
-            let lines = doc.with(|x| {
-                x.lines
-            });
+        cx.create_effect(move |_| {
+            let lines = doc.with(|x| x.lines);
             let base = viewport_memo.get();
-            let Some((screen_lines_val, folding_display_item_val, signal_paint_content)) = lines.try_update(|x| {
-                let (screen_lines_val, folding_display_item_val) = x._compute_screen_lines(base);
-                    (screen_lines_val, folding_display_item_val, x.signal_paint_content())
-            }) else {
+            let Some((
+                screen_lines_val,
+                folding_display_item_val,
+                signal_paint_content
+            )) = lines.try_update(|x| {
+                let (screen_lines_val, folding_display_item_val) =
+                    x._compute_screen_lines(base);
+                (
+                    screen_lines_val,
+                    folding_display_item_val,
+                    x.signal_paint_content()
+                )
+            })
+            else {
                 unreachable!()
             };
             signal_paint_content.get();
@@ -374,12 +381,17 @@ impl Editor {
                     return;
                 }
             };
-        log::info!("offset_of_point single_click {:?} {new_offset} {_is_inside} {cursor_affinity:?}", pointer_event.pos);
+        log::info!(
+            "offset_of_point single_click {:?} {new_offset} {_is_inside} \
+             {cursor_affinity:?}",
+            pointer_event.pos
+        );
         self.cursor.update(|cursor| {
             cursor.set_offset_with_affinity(
                 new_offset,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt(), Some(cursor_affinity)
+                pointer_event.modifiers.alt(),
+                Some(cursor_affinity)
             );
             cursor.affinity = cursor_affinity;
         });
@@ -426,7 +438,9 @@ impl Editor {
                 }
             };
         let origin_interval = match self.doc().lines.with_untracked(|x| {
-            let rs = x.folded_line_of_buffer_offset(mouse_offset).map(|x| x.origin_interval);
+            let rs = x
+                .folded_line_of_buffer_offset(mouse_offset)
+                .map(|x| x.origin_interval);
             if rs.is_err() {
                 x.log();
             }
@@ -921,21 +935,20 @@ impl Editor {
 
     /// Get the (point above, point below) of a particular offset within the
     /// editor.
-    pub fn points_of_offset(
-        &self,
-        offset: usize,
-    ) -> Result<(Point, Point)> {
-        let Some((point_above, line_height)) = self.screen_lines.with_untracked(|screen_lines| {
-            match screen_lines.visual_position_of_buffer_offset(offset) {
-                Ok(point) => {
-                    point.map(|point| (point, screen_lines.line_height))
+    pub fn points_of_offset(&self, offset: usize) -> Result<(Point, Point)> {
+        let Some((point_above, line_height)) =
+            self.screen_lines.with_untracked(|screen_lines| {
+                match screen_lines.visual_position_of_buffer_offset(offset) {
+                    Ok(point) => {
+                        point.map(|point| (point, screen_lines.line_height))
+                    },
+                    Err(err) => {
+                        error!("{}", err.to_string());
+                        None
+                    }
                 }
-                Err(err) => {
-                    error!("{}", err.to_string());
-                    None
-                }
-            }
-        }) else {
+            })
+        else {
             log::info!("points_of_offset point is none {offset}");
             return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
         };
@@ -1115,8 +1128,8 @@ impl Editor {
     // }
 
     // /// ~~视觉~~行的text_layout信息
-    // pub fn text_layout_of_visual_line(&self, line: usize) -> Result<TextLayoutLine> {
-    //     self.doc()
+    // pub fn text_layout_of_visual_line(&self, line: usize) ->
+    // Result<TextLayoutLine> {     self.doc()
     //         .lines
     //         .with_untracked(|x| x.text_layout_of_visual_line(line).cloned())
     // }
@@ -1161,8 +1174,8 @@ impl std::fmt::Debug for Editor {
 //         _origin_point,
 //         _
 //     ) = match lines
-//         .with_untracked(|x| x.visual_position_of_cursor_position(offset, affinity))
-//     {
+//         .with_untracked(|x| x.visual_position_of_cursor_position(offset,
+// affinity))     {
 //         Ok(rs) => rs?,
 //         Err(err) => {
 //             error!("{err:?}");
@@ -1246,8 +1259,8 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
         } => {
             error!("todo implement");
             // let start_offset = start.min(end);
-            // let end_offset = match ed.move_right(*start.max(end), Mode::Insert, 1) {
-            //     Ok(rs) => rs,
+            // let end_offset = match ed.move_right(*start.max(end),
+            // Mode::Insert, 1) {     Ok(rs) => rs,
             //     Err(err) => {
             //         error!("{err:?}");
             //         return;
@@ -1302,8 +1315,9 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
             // }
         },
         CursorMode::Insert(_) => {
-            for (start, end, start_affinity, end_affinity) in
-                cursor.regions_iter().filter(|(start, end, ..)| start != end)
+            for (start, end, start_affinity, end_affinity) in cursor
+                .regions_iter()
+                .filter(|(start, end, ..)| start != end)
             {
                 let (start, end, start_affinity, end_affinity) = if start > end {
                     (end, start, end_affinity, start_affinity)
@@ -1315,7 +1329,9 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                     selection_color,
                     start,
                     end,
-                    _screen_lines, start_affinity, end_affinity
+                    _screen_lines,
+                    start_affinity,
+                    end_affinity
                 ) {
                     error!("{err:?}");
                 }
@@ -1437,10 +1453,20 @@ fn paint_normal_selection(
     color: Color,
     start_offset: usize,
     end_offset: usize,
-    screen_lines: &ScreenLines, start_affinity: Option<CursorAffinity>, end_affinity: Option<CursorAffinity>
+    screen_lines: &ScreenLines,
+    start_affinity: Option<CursorAffinity>,
+    end_affinity: Option<CursorAffinity>
 ) -> Result<()> {
-    let rs = screen_lines.normal_selection(start_offset, end_offset, start_affinity, end_affinity)?;
-    log::info!("normal_selection {start_offset}-{end_offset} {start_affinity:?}-{end_affinity:?} {rs:?}");
+    let rs = screen_lines.normal_selection(
+        start_offset,
+        end_offset,
+        start_affinity,
+        end_affinity
+    )?;
+    log::info!(
+        "normal_selection {start_offset}-{end_offset} \
+         {start_affinity:?}-{end_affinity:?} {rs:?}"
+    );
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }
@@ -1456,7 +1482,9 @@ pub fn paint_text(
     lines: DocLinesManager,
     font_family: Cow<[FamilyOwned]>,
     visible_whitespace: Color,
-    font_size: f32, cursor_points: Vec<Point>, line_height: f64
+    font_size: f32,
+    cursor_points: Vec<Point>,
+    line_height: f64
 ) -> Result<()> {
     if is_active && !hide_cursor {
         paint_cursor_caret(cx, lines, cursor_points, line_height);
@@ -1464,7 +1492,7 @@ pub fn paint_text(
     // todo 不要一次一次的获取text_layout
     for mut line_info in screen_lines.visual_lines {
         let y = line_info.paint_point().y;
-        paint_extra_style(cx, &line_info.visual_line.extra_style(), y, viewport);
+        paint_extra_style(cx, line_info.visual_line.extra_style(), y, viewport);
         if let Some(whitespaces) = &line_info.visual_line.whitespaces() {
             let attrs = Attrs::new()
                 .color(visible_whitespace)
@@ -1493,7 +1521,10 @@ pub fn paint_text(
             }
         }
 
-        cx.draw_text_with_layout(line_info.visual_line.borrow_text().layout_runs(), Point::new(0.0, y));
+        cx.draw_text_with_layout(
+            line_info.visual_line.borrow_text().layout_runs(),
+            Point::new(0.0, y)
+        );
     }
     Ok(())
 }
@@ -1572,7 +1603,9 @@ pub fn paint_wave_line(cx: &mut PaintCx, width: f64, point: Point, color: Color)
 
 fn paint_cursor_caret(
     cx: &mut PaintCx,
-    lines: DocLinesManager, cursor_points: Vec<Point>, line_height: f64
+    lines: DocLinesManager,
+    cursor_points: Vec<Point>,
+    line_height: f64
 ) {
     let caret_color = lines.with_untracked(|es| es.ed_caret());
     cursor_points.into_iter().for_each(|point| {

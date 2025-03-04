@@ -92,10 +92,9 @@ pub fn editor_gutter_new(
     .style(move |style| {
         let doc = doc.get();
         let size = config.with_icon_size() as f64;
-        let last_line_width = doc.lines.with_untracked(|x| x.signal_last_line()).get().1;
-        let width = last_line_width
-            + size * 2.0
-            + 8.0;
+        let last_line_width =
+            doc.lines.with_untracked(|x| x.signal_last_line()).get().1;
+        let width = last_line_width + size * 2.0 + 8.0;
         log::info!("signal_last_line ={last_line_width} size={size}");
         style
             .width(width) // 父组件宽度
@@ -125,7 +124,7 @@ fn gutter_data_view(
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
         }),
-        marker_view(&data, window_tab_data.clone(), config, doc)
+        marker_view(data, window_tab_data.clone(), config, doc)
     ))
     .style(move |style| {
         style

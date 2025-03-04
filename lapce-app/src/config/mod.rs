@@ -1208,7 +1208,25 @@ impl LapceConfig {
         }
     }
 
-    pub fn paint_editor(&self) -> (Color, Color, Color, Color, Color, usize, bool, bool, Color, bool, Color, Color, Color, String, f32) {
+    pub fn paint_editor(
+        &self
+    ) -> (
+        Color,
+        Color,
+        Color,
+        Color,
+        Color,
+        usize,
+        bool,
+        bool,
+        Color,
+        bool,
+        Color,
+        Color,
+        Color,
+        String,
+        f32
+    ) {
         let editor_debug_break_line_color =
             self.color(LapceColor::EDITOR_DEBUG_BREAK_LINE);
         let lapce_scroll_bar_color = self.color(LapceColor::LAPCE_SCROLL_BAR);
@@ -1220,8 +1238,7 @@ impl LapceConfig {
         let editor_dim_color = self.color(LapceColor::EDITOR_DIM);
         let line_height = self.editor.line_height();
 
-        let highlight_matching_brackets =
-            self.editor.highlight_matching_brackets;
+        let highlight_matching_brackets = self.editor.highlight_matching_brackets;
         let highlight_scope_lines = self.editor.highlight_scope_lines;
         let editor_bracket_color = self.color(LapceColor::EDITOR_BRACKET);
 
@@ -1252,5 +1269,4 @@ impl LapceConfig {
             font_size
         )
     }
-
 }

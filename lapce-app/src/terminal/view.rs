@@ -354,7 +354,7 @@ impl TerminalView {
         terminal_bg: Color
     ) {
         let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&terminal_font_family).collect();
+            FamilyOwned::parse_list(terminal_font_family).collect();
         let attrs = Attrs::new()
             .family(&family)
             .font_size(terminal_font_size as f32);

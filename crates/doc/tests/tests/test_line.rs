@@ -3,7 +3,17 @@
 use std::{path::PathBuf, sync::atomic};
 
 use anyhow::Result;
-use doc::lines::{buffer::rope_text::RopeText, cursor::{Cursor, CursorAffinity, CursorMode}, fold::{FoldingDisplayItem, FoldingDisplayType}, selection::Selection, word::WordCursor, DocLines};
+use doc::lines::{
+    DocLines,
+    buffer::rope_text::RopeText,
+    cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
+    fold::{FoldingDisplayItem, FoldingDisplayType},
+    line::OriginLine,
+    mode::Mode,
+    phantom_text::Text,
+    selection::Selection,
+    word::WordCursor
+};
 use floem::{
     kurbo::{Point, Rect},
     reactive::SignalUpdate
@@ -12,11 +22,11 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::{debug, info};
 use lsp_types::Position;
 use smallvec::SmallVec;
-use doc::lines::cursor::ColPosition;
-use doc::lines::line::OriginLine;
-use doc::lines::mode::Mode;
-use doc::lines::phantom_text::Text;
-use super::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_folded_item_2, init_semantic_2};
+
+use super::lines_util::{
+    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
+    init_main_folded_item_2, init_semantic_2
+};
 
 #[test]
 fn test_all() -> Result<()> {
@@ -41,7 +51,11 @@ pub fn test_folded() -> Result<()> {
         assert_eq!(lines.origin_lines[5].phantom.texts, line[2].phantom.texts);
     }
     {
-        debug!("{}", serde_json::to_string(lines.origin_folded_lines.get(1).unwrap()).unwrap());
+        debug!(
+            "{}",
+            serde_json::to_string(lines.origin_folded_lines.get(1).unwrap())
+                .unwrap()
+        );
     }
     lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
     {
@@ -51,7 +65,9 @@ pub fn test_folded() -> Result<()> {
         assert_eq!(lines.origin_lines[5].phantom.texts, line[2].phantom.texts);
     }
     {
-        // debug!("{}", serde_json::to_string(lines.origin_folded_lines.get(1).unwrap()).unwrap());
+        // debug!("{}",
+        // serde_json::to_string(lines.origin_folded_lines.get(1).unwrap()).
+        // unwrap());
         assert_eq!(lines.origin_folded_lines[1].text(), de_serde_folded_text());
     }
     {
@@ -68,7 +84,6 @@ pub fn test_folded() -> Result<()> {
     Ok(())
 }
 
-
 fn get_origin_line(lines: &DocLines, index: usize) -> String {
     let mut origin_line = lines.origin_lines.get(index).unwrap().clone();
     origin_line.diagnostic_styles.clear();
@@ -77,13 +92,14 @@ fn get_origin_line(lines: &DocLines, index: usize) -> String {
 }
 
 fn de_serde_origin_line() -> Vec<OriginLine> {
-    let str =
-        [r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":15
+    let str = [
+        r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":15
             ,"texts":[{"OriginText":{"text":{"line":1,"col":{"start":0,"end":15},"visual_merge_col":{"start":0,"end":15},"origin_merge_col":{"start":0,"end":15},"final_col":{"start":0,"end":15}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
         r#"{"line_index":3,"start_offset":58,"len":14,"phantom":{"line":3,"offset_of_line":58,"origin_text_len":14,"final_text_len":14
             ,"texts":[{"OriginText":{"text":{"line":3,"col":{"start":0,"end":14},"visual_merge_col":{"start":0,"end":14},"origin_merge_col":{"start":0,"end":14},"final_col":{"start":0,"end":14}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
         r#"{"line_index":5,"start_offset":102,"len":7,"phantom":{"line":5,"offset_of_line":102,"origin_text_len":7,"final_text_len":7
-            ,"texts":[{"OriginText":{"text":{"line":5,"col":{"start":0,"end":7},"visual_merge_col":{"start":0,"end":7},"origin_merge_col":{"start":0,"end":7},"final_col":{"start":0,"end":7}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#];
+            ,"texts":[{"OriginText":{"text":{"line":5,"col":{"start":0,"end":7},"visual_merge_col":{"start":0,"end":7},"origin_merge_col":{"start":0,"end":7},"final_col":{"start":0,"end":7}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#
+    ];
     let mut lines = vec![];
     for str in str {
         lines.push(serde_json::from_str::<OriginLine>(str).unwrap());
@@ -92,15 +108,16 @@ fn de_serde_origin_line() -> Vec<OriginLine> {
 }
 
 fn de_serde_origin_line_1() -> Vec<OriginLine> {
-    let str =
-        [r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":17,"texts":[
+    let str = [
+        r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":17,"texts":[
                 {"OriginText":{"text":{"line":1,"col":{"start":0,"end":12},"visual_merge_col":{"start":0,"end":12},"origin_merge_col":{"start":0,"end":12},"final_col":{"start":0,"end":12}}}}
                 ,{"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":3,"len":3,"start_position":{"line":1,"character":12}}},"line":1,"col":12,"visual_merge_col":12,"origin_merge_col":12,"final_col":12,"affinity":null,"text":"{...}","font_size":13,"fg":{"components":[0.65882355,0.65882355,0.65882355,1.0],"cs":null},"bg":{"components":[0.9215687,0.9215687,0.9215687,1.0],"cs":null},"under_line":null}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
-            r#"{"line_index":3,"start_offset":58,"len":14,"phantom":{"line":3,"offset_of_line":58,"origin_text_len":14,"final_text_len":9,"texts":[
+        r#"{"line_index":3,"start_offset":58,"len":14,"phantom":{"line":3,"offset_of_line":58,"origin_text_len":14,"final_text_len":9,"texts":[
                 {"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":null,"len":5,"start_position":{"line":1,"character":12}}},"line":3,"col":0,"visual_merge_col":0,"origin_merge_col":0,"final_col":0,"affinity":null,"text":"","font_size":null,"fg":null,"bg":null,"under_line":null}}}
                 ,{"OriginText":{"text":{"line":3,"col":{"start":5,"end":14},"visual_merge_col":{"start":5,"end":14},"origin_merge_col":{"start":5,"end":14},"final_col":{"start":0,"end":9}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
-            r#"{"line_index":5,"start_offset":102,"len":7,"phantom":{"line":5,"offset_of_line":102,"origin_text_len":7,"final_text_len":7,"texts":[
-                {"OriginText":{"text":{"line":5,"col":{"start":0,"end":7},"visual_merge_col":{"start":0,"end":7},"origin_merge_col":{"start":0,"end":7},"final_col":{"start":0,"end":7}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#];
+        r#"{"line_index":5,"start_offset":102,"len":7,"phantom":{"line":5,"offset_of_line":102,"origin_text_len":7,"final_text_len":7,"texts":[
+                {"OriginText":{"text":{"line":5,"col":{"start":0,"end":7},"visual_merge_col":{"start":0,"end":7},"origin_merge_col":{"start":0,"end":7},"final_col":{"start":0,"end":7}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#
+    ];
     let mut lines = vec![];
     for str in str {
         lines.push(serde_json::from_str::<OriginLine>(str).unwrap());
@@ -109,17 +126,18 @@ fn de_serde_origin_line_1() -> Vec<OriginLine> {
 }
 
 fn de_serde_origin_line_2() -> Vec<OriginLine> {
-    let str =
-        [r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":17
+    let str = [
+        r#"{"line_index":1,"start_offset":13,"len":15,"phantom":{"line":1,"offset_of_line":13,"origin_text_len":15,"final_text_len":17
                 ,"texts":[{"OriginText":{"text":{"line":1,"col":{"start":0,"end":12},"visual_merge_col":{"start":0,"end":12},"origin_merge_col":{"start":0,"end":12},"final_col":{"start":0,"end":12}}}}
                 ,{"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":3,"len":3,"start_position":{"line":1,"character":12}}},"line":1,"col":12,"visual_merge_col":12,"origin_merge_col":12,"final_col":12,"affinity":null,"text":"{...}","font_size":13,"fg":{"components":[0.65882355,0.65882355,0.65882355,1.0],"cs":null},"bg":{"components":[0.9215687,0.9215687,0.9215687,1.0],"cs":null},"under_line":null}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
-            r#"{"line_index":3,"start_offset":58,"len":14,"phantom":{"line":3,"offset_of_line":58,"origin_text_len":14,"final_text_len":11
+        r#"{"line_index":3,"start_offset":58,"len":14,"phantom":{"line":3,"offset_of_line":58,"origin_text_len":14,"final_text_len":11
                 ,"texts":[{"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":null,"len":5,"start_position":{"line":1,"character":12}}},"line":3,"col":0,"visual_merge_col":0,"origin_merge_col":0,"final_col":0,"affinity":null,"text":"","font_size":null,"fg":null,"bg":null,"under_line":null}}}
                 ,{"OriginText":{"text":{"line":3,"col":{"start":5,"end":11},"visual_merge_col":{"start":5,"end":11},"origin_merge_col":{"start":5,"end":11},"final_col":{"start":0,"end":6}}}}
                 ,{"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":5,"len":3,"start_position":{"line":3,"character":11}}},"line":3,"col":11,"visual_merge_col":11,"origin_merge_col":11,"final_col":6,"affinity":null,"text":"{...}","font_size":13,"fg":{"components":[0.65882355,0.65882355,0.65882355,1.0],"cs":null},"bg":{"components":[0.9215687,0.9215687,0.9215687,1.0],"cs":null},"under_line":null}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#,
-            r#"{"line_index":5,"start_offset":102,"len":7,"phantom":{"line":5,"offset_of_line":102,"origin_text_len":7,"final_text_len":2
+        r#"{"line_index":5,"start_offset":102,"len":7,"phantom":{"line":5,"offset_of_line":102,"origin_text_len":7,"final_text_len":2
                 ,"texts":[{"Phantom":{"text":{"kind":{"LineFoldedRang":{"next_line":null,"len":5,"start_position":{"line":3,"character":11}}},"line":5,"col":0,"visual_merge_col":0,"origin_merge_col":0,"final_col":0,"affinity":null,"text":"","font_size":null,"fg":null,"bg":null,"under_line":null}}}
-                ,{"OriginText":{"text":{"line":5,"col":{"start":5,"end":7},"visual_merge_col":{"start":5,"end":7},"origin_merge_col":{"start":5,"end":7},"final_col":{"start":0,"end":2}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#];
+                ,{"OriginText":{"text":{"line":5,"col":{"start":5,"end":7},"visual_merge_col":{"start":5,"end":7},"origin_merge_col":{"start":5,"end":7},"final_col":{"start":0,"end":2}}}}]},"semantic_styles":[],"diagnostic_styles":[]}"#
+    ];
     let mut lines = vec![];
     for str in str {
         lines.push(serde_json::from_str::<OriginLine>(str).unwrap());

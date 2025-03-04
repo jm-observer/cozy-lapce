@@ -23,10 +23,10 @@ pub struct NewLineStyle {
     /// 在整个buffer的起始位置
     pub start_of_buffer: usize,
     pub end_of_buffer: usize,
-    pub fg_color: Color,
-    // pub folded_line_offset_start: usize,
-    // pub folded_line_offset_end: usize /* pub fg_color:
-    //                                    * Option<String>, */
+    pub fg_color: Color /* pub folded_line_offset_start: usize,
+                         * pub folded_line_offset_end: usize /* pub fg_color:
+                         *                                    * Option<String>,
+                         *                                      */ */
 }
 
 impl NewLineStyle {

@@ -1,5 +1,6 @@
 use std::{cmp::Ordering, fmt, ops::Range};
 
+use anyhow::{Result, anyhow};
 use floem::{
     peniko::Color,
     text::{Attrs, AttrsList}
@@ -7,9 +8,9 @@ use floem::{
 use lapce_xi_rope::Interval;
 use log::{info, warn};
 use lsp_types::Position;
-use smallvec::SmallVec;
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
+
 use crate::lines::{cursor::CursorAffinity, delta_compute::Offset};
 
 /// `PhantomText` is for text that is not in the actual document, but
@@ -20,42 +21,48 @@ use crate::lines::{cursor::CursorAffinity, delta_compute::Offset};
 pub struct PhantomText {
     /// The kind is currently used for sorting the phantom text on a
     /// line
-    pub kind:       PhantomTextKind,
+    pub kind:             PhantomTextKind,
     /// Column on the line that the phantom text should be displayed
     /// at
     ///
     /// 在原始文本的行
-    pub line:       usize,
+    pub line:             usize,
     /// Column on the line that the phantom text should be displayed
     /// at.Provided by lsp
     ///
     /// 在原始行line文本的位置
-    pub col:        usize,
+    pub col:              usize,
     /// Column on the line that the phantom text should be displayed
     /// at.Provided by lsp
     ///
     /// 合并后，在多行原始行文本（不考虑被折叠行、幽灵文本）的位置。
     /// 与col相差前面折叠行的总长度
-    pub visual_merge_col:  usize,
+    pub visual_merge_col: usize,
     /// 合并后，在多行原始行文本（不考虑幽灵文本，考虑被折叠行）的位置。
     /// 与col相差前面折叠行的总长度
-    pub origin_merge_col:  usize,
+    pub origin_merge_col: usize,
     /// Provided by calculate.Column index in final line.
     ///
     /// 在最终行文本（考虑折叠、幽灵文本）的位置
-    pub final_col:  usize,
-    pub text:       String,
-    pub font_size:  Option<usize>,
+    pub final_col:        usize,
+    pub text:             String,
+    pub font_size:        Option<usize>,
     // font_family: Option<FontFamily>,
-    pub fg:         Option<Color>,
-    pub bg:         Option<Color>,
-    pub under_line: Option<Color>
+    pub fg:               Option<Color>,
+    pub bg:               Option<Color>,
+    pub under_line:       Option<Color>
 }
 
 impl PartialEq for PhantomText {
     fn eq(&self, other: &Self) -> bool {
-        self.kind == other.kind && self.line == other.line && self.col == other.col && self.visual_merge_col == other.visual_merge_col && self.origin_merge_col == other.origin_merge_col
-        && self.final_col == other.final_col && self.text == other.text && self.font_size == other.font_size
+        self.kind == other.kind
+            && self.line == other.line
+            && self.col == other.col
+            && self.visual_merge_col == other.visual_merge_col
+            && self.origin_merge_col == other.origin_merge_col
+            && self.final_col == other.final_col
+            && self.text == other.text
+            && self.font_size == other.font_size
     }
 }
 impl Eq for PhantomText {}
@@ -144,12 +151,12 @@ impl PhantomText {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OriginText {
     /// 在原始文本的行
-    pub line:      usize,
+    pub line:             usize,
     /// Column on the line that the phantom text should be displayed
     /// at.Provided by lsp
     ///
     /// 在原始行文本的位置
-    pub col:       Interval,
+    pub col:              Interval,
     /// 合并后原始行文本的位置，不包含虚拟文本和被折叠行
     pub visual_merge_col: Interval,
     /// 合并后原始行文本的位置，包含被折叠行，但不包含虚拟文本
@@ -157,7 +164,7 @@ pub struct OriginText {
     /// Provided by calculate.Column index in final line.
     ///
     /// 在最终行文本的位置，包含虚拟文本
-    pub final_col: Interval
+    pub final_col:        Interval
 }
 
 impl OriginText {
@@ -185,7 +192,6 @@ pub enum Text {
 }
 
 impl Text {
-
     pub fn is_phantom(&self) -> bool {
         if let Text::Phantom { .. } = self {
             true
@@ -193,6 +199,7 @@ impl Text {
             false
         }
     }
+
     pub fn adjust(&mut self, line_delta: Offset, _offset_delta: Offset) {
         match self {
             Text::Phantom { text } => {
@@ -206,7 +213,12 @@ impl Text {
         }
     }
 
-    fn merge_to(mut self, merge_offset: usize, origin_merge_offset: usize, final_text_len: usize) -> Self {
+    fn merge_to(
+        mut self,
+        merge_offset: usize,
+        origin_merge_offset: usize,
+        final_text_len: usize
+    ) -> Self {
         match &mut self {
             Text::Phantom { text } => {
                 text.visual_merge_col += merge_offset;
@@ -214,8 +226,10 @@ impl Text {
                 text.final_col += final_text_len;
             },
             Text::OriginText { text } => {
-                text.visual_merge_col = text.visual_merge_col.translate(merge_offset);
-                text.origin_merge_col = text.origin_merge_col.translate(origin_merge_offset);
+                text.visual_merge_col =
+                    text.visual_merge_col.translate(merge_offset);
+                text.origin_merge_col =
+                    text.origin_merge_col.translate(origin_merge_offset);
                 text.final_col = text.final_col.translate(final_text_len);
             },
             _ => {}
@@ -241,7 +255,18 @@ impl From<EmptyText> for Text {
     }
 }
 
-#[derive(Debug, Clone, Copy, Ord, Eq, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Ord,
+    Eq,
+    PartialEq,
+    PartialOrd,
+    Default,
+    Serialize,
+    Deserialize,
+)]
 pub enum PhantomTextKind {
     #[default]
     /// Input methods
@@ -296,7 +321,7 @@ pub struct PhantomTextLine {
     final_text_len:     usize,
     /// This uses a smallvec because most lines rarely have more than
     /// a couple phantom texts
-    pub texts:              SmallVec<[Text; 6]>
+    pub texts:          SmallVec<[Text; 6]>
 }
 
 impl PhantomTextLine {
@@ -323,11 +348,14 @@ impl PhantomTextLine {
         for mut phantom in phantom_texts {
             match phantom.kind {
                 PhantomTextKind::LineFoldedRang { len, .. } => {
-                    phantom.final_col = usize_offset(phantom.final_col, final_offset);
-                    final_offset = final_offset + phantom.text.len() as i32 - len as i32;
+                    phantom.final_col =
+                        usize_offset(phantom.final_col, final_offset);
+                    final_offset =
+                        final_offset + phantom.text.len() as i32 - len as i32;
                 },
                 _ => {
-                    phantom.final_col = usize_offset(phantom.final_col, final_offset);
+                    phantom.final_col =
+                        usize_offset(phantom.final_col, final_offset);
                     final_offset += phantom.text.len() as i32;
                 }
             }
@@ -337,8 +365,8 @@ impl PhantomTextLine {
                 // insert origin text
                 texts.push(
                     OriginText {
-                        line:      phantom.line,
-                        col:       Interval::new(
+                        line:             phantom.line,
+                        col:              Interval::new(
                             origin_merge_col_last_end,
                             origin_merge_col_last_end + len
                         ),
@@ -350,7 +378,7 @@ impl PhantomTextLine {
                             origin_merge_col_last_end,
                             origin_merge_col_last_end + len
                         ),
-                        final_col: Interval::new(
+                        final_col:        Interval::new(
                             final_last_end,
                             final_last_end + len
                         )
@@ -369,9 +397,18 @@ impl PhantomTextLine {
             texts.push(
                 OriginText {
                     line,
-                    col: Interval::new(origin_merge_col_last_end, origin_merge_col_last_end + len),
-                    visual_merge_col: Interval::new(merge_last_end, merge_last_end + len),
-                    origin_merge_col: Interval::new(merge_last_end, merge_last_end + len),
+                    col: Interval::new(
+                        origin_merge_col_last_end,
+                        origin_merge_col_last_end + len
+                    ),
+                    visual_merge_col: Interval::new(
+                        merge_last_end,
+                        merge_last_end + len
+                    ),
+                    origin_merge_col: Interval::new(
+                        merge_last_end,
+                        merge_last_end + len
+                    ),
                     final_col: Interval::new(final_last_end, final_last_end + len)
                 }
                 .into()
@@ -468,8 +505,11 @@ impl PhantomTextMultiLine {
         let final_text_len = self.final_text_len;
         self.final_text_len += line.final_text_len;
         for phantom in line.texts.clone() {
-            self.text
-                .push(phantom.merge_to(visual_merge_offset, origin_merge_offset, final_text_len));
+            self.text.push(phantom.merge_to(
+                visual_merge_offset,
+                origin_merge_offset,
+                final_text_len
+            ));
         }
         self.last_line = line.line;
         // self.lines.push(line);
@@ -591,7 +631,6 @@ impl PhantomTextMultiLine {
             .unwrap()
     }
 
-
     // fn text_of_origin_col(
     //     &self,
     //     origin_line: usize,
@@ -612,8 +651,8 @@ impl PhantomTextMultiLine {
     //                 }
     //             },
     //             Text::OriginText { text } => {
-    //                 if text.line == origin_line && text.col.contains(origin_col) {
-    //                     return true;
+    //                 if text.line == origin_line && text.col.contains(origin_col)
+    // {                     return true;
     //                 }
     //             },
     //             Text::EmptyLine { .. } => return true
@@ -642,8 +681,8 @@ impl PhantomTextMultiLine {
     //                 }
     //             },
     //             Text::OriginText { text } => {
-    //                 if text.line == origin_line && text.col.contains(origin_col) {
-    //                     return true;
+    //                 if text.line == origin_line && text.col.contains(origin_col)
+    // {                     return true;
     //                 }
     //             },
     //             Text::EmptyLine { .. } => return true
@@ -653,27 +692,33 @@ impl PhantomTextMultiLine {
     // }
 
     /// merge col一定会出现在某个text中
-    pub fn text_of_origin_merge_col(&self, origin_merge_col: usize) -> Result<&Text> {
-        self.text.iter().find(|x| {
-            match x {
-                Text::Phantom { text } => {
-                    if text.origin_merge_col <= origin_merge_col
-                        && origin_merge_col <= text.next_origin_merge_col()
-                    {
+    pub fn text_of_origin_merge_col(
+        &self,
+        origin_merge_col: usize
+    ) -> Result<&Text> {
+        self.text
+            .iter()
+            .find(|x| {
+                match x {
+                    Text::Phantom { text } => {
+                        if text.origin_merge_col <= origin_merge_col
+                            && origin_merge_col <= text.next_origin_merge_col()
+                        {
+                            return true;
+                        }
+                    },
+                    Text::OriginText { text } => {
+                        if text.origin_merge_col.contains(origin_merge_col) {
+                            return true;
+                        }
+                    },
+                    Text::EmptyLine { .. } => {
                         return true;
                     }
-                },
-                Text::OriginText { text } => {
-                    if text.origin_merge_col.contains(origin_merge_col) {
-                        return true;
-                    }
-                },
-                Text::EmptyLine { .. } => {
-                    return true;
                 }
-            }
-            false
-        }).ok_or(anyhow!("No merge col found"))
+                false
+            })
+            .ok_or(anyhow!("No merge col found"))
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
@@ -690,44 +735,46 @@ impl PhantomTextMultiLine {
         None
     }
 
-    pub fn final_col_of_origin_merge_col(&self, origin_merge_col: usize) -> Result<Option<usize>> {
+    pub fn final_col_of_origin_merge_col(
+        &self,
+        origin_merge_col: usize
+    ) -> Result<Option<usize>> {
         let text = self.text_of_origin_merge_col(origin_merge_col)?;
         Ok(match text {
             Text::Phantom { .. } => None,
-            Text::OriginText { text } => {
-                Some(text.final_col.start + origin_merge_col - text.origin_merge_col.start)
-            },
+            Text::OriginText { text } => Some(
+                text.final_col.start + origin_merge_col
+                    - text.origin_merge_col.start
+            ),
             Text::EmptyLine { .. } => None
         })
     }
 
-    pub fn cursor_final_col_of_origin_merge_col(&self, origin_merge_col: usize, cursor_affinity: CursorAffinity) -> Result<usize> {
+    pub fn cursor_final_col_of_origin_merge_col(
+        &self,
+        origin_merge_col: usize,
+        cursor_affinity: CursorAffinity
+    ) -> Result<usize> {
         // let Ok(text) = self.text_of_merge_col(merge_col) else {
-        //     warn!("merge_col not found: line={} merge col={}", self.line, merge_col);
-        //     return None;
+        //     warn!("merge_col not found: line={} merge col={}", self.line,
+        // merge_col);     return None;
         // };
         let text = self.text_of_origin_merge_col(origin_merge_col)?;
         Ok(match text {
-            Text::Phantom { text, .. } => {
-                match cursor_affinity {
-                    CursorAffinity::Forward => {
-                        text.next_final_col()
-                    }
-                    CursorAffinity::Backward => {
-                        text.final_col
-                    }
-                }
-
+            Text::Phantom { text, .. } => match cursor_affinity {
+                CursorAffinity::Forward => text.next_final_col(),
+                CursorAffinity::Backward => text.final_col
             },
-            Text::OriginText { text } => {
-                match cursor_affinity {
-                    CursorAffinity::Forward => {
-                        text.final_col.start + origin_merge_col - text.origin_merge_col.start + 1
-                    }
-                    CursorAffinity::Backward => {
-                        text.final_col.start + origin_merge_col - text.origin_merge_col.start
-                    }
-                }
+            Text::OriginText { text } => match cursor_affinity {
+                CursorAffinity::Forward => {
+                    text.final_col.start + origin_merge_col
+                        - text.origin_merge_col.start
+                        + 1
+                },
+                CursorAffinity::Backward => {
+                    text.final_col.start + origin_merge_col
+                        - text.origin_merge_col.start
+                },
             },
             Text::EmptyLine { .. } => 0
         })
@@ -765,8 +812,8 @@ impl PhantomTextMultiLine {
     //                 }
     //             },
     //             Text::OriginText { text } => {
-    //                 text.final_col.start + pre_col - text.col.start + adjust_offset
-    //             },
+    //                 text.final_col.start + pre_col - text.col.start +
+    // adjust_offset             },
     //             Text::EmptyLine { .. } => 0
     //         }
     //     } else {
@@ -857,7 +904,8 @@ impl PhantomTextMultiLine {
     //         },
     //         Text::OriginText { text } => {
     //
-    //             let merge_col = visual_char_offset - text.final_col.start + text.merge_col.start;
+    //             let merge_col = visual_char_offset - text.final_col.start +
+    // text.merge_col.start;
     //
     //             (
     //                 text.line,
@@ -867,11 +915,14 @@ impl PhantomTextMultiLine {
     //                 CursorAffinity::Backward
     //             )
     //         },
-    //         Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line, CursorAffinity::Backward)
-    //     }
+    //         Text::EmptyLine { text } => (text.line, 0, 0, text.offset_of_line,
+    // CursorAffinity::Backward)     }
     // }
 
-    pub fn text_of_final_col_even_overflow(&self, mut visual_char_offset: usize) -> &Text {
+    pub fn text_of_final_col_even_overflow(
+        &self,
+        mut visual_char_offset: usize
+    ) -> &Text {
         // 因为通过hit_point获取的index会大于等于final_text_len
         if visual_char_offset >= self.final_text_len {
             visual_char_offset = self.final_text_len.max(1) - 1;

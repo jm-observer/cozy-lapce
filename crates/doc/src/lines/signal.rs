@@ -1,12 +1,11 @@
 use std::ops::AddAssign;
+
 use floem::{
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
-use crate::lines::{
-    buffer::Buffer,
-    style::EditorStyle
-};
+
+use crate::lines::{buffer::Buffer, style::EditorStyle};
 
 #[derive(Clone)]
 pub struct Signals {
@@ -16,7 +15,7 @@ pub struct Signals {
     pub(crate) pristine:          SignalManager<bool>,
     // start from 1, (line num, paint width)
     pub(crate) last_line:         SignalManager<(usize, f64)>,
-    pub paint_content: SignalManager<usize>,
+    pub paint_content:            SignalManager<usize>
 }
 
 impl Signals {
@@ -76,6 +75,7 @@ impl Signals {
             self.paint_content.trigger();
         });
     }
+
     pub fn update_paint_text(&mut self) {
         self.paint_content.val_mut().add_assign(1);
     }

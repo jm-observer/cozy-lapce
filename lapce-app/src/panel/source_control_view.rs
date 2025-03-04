@@ -12,18 +12,18 @@ use floem::{
     style::{CursorStyle, Style},
     views::{Decorators, container, dyn_stack, label, scroll, stack, text}
 };
-use log::error;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind, PanelSection}
 };
 use lapce_rpc::source_control::FileDiff;
+use log::error;
 
 use super::view::foldable_panel_section;
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand},
     config::color::LapceColor,
-    editor::{view::editor_view},
+    editor::view::editor_view,
     settings::checkbox,
     source_control::SourceControlData,
     svg,
@@ -132,16 +132,16 @@ pub fn source_control_panel(
                     e_data.kind().track();
                     let line_height = e_data.editor.line_height(0) as f64;
 
-                    if let Some((x, y, width, line_height)) =
-                        e_data.editor.screen_lines.with(|x| {
-                            match x.visual_position_of_buffer_offset(offset) {
-                                Ok(point) => {
-                                    point.map(|point| (point.x - 1.0, point.y, 2.0, line_height))
-                                }
-                                Err(err) => {
-                                    error!("{}", err.to_string());
-                                    None
-                                }
+                    if let Some((x, y, width, line_height)) = e_data
+                        .editor
+                        .screen_lines
+                        .with(|x| match x.visual_position_of_buffer_offset(offset) {
+                            Ok(point) => point.map(|point| {
+                                (point.x - 1.0, point.y, 2.0, line_height)
+                            }),
+                            Err(err) => {
+                                error!("{}", err.to_string());
+                                None
                             }
                         })
                     {

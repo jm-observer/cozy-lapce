@@ -113,7 +113,7 @@ pub fn parse_markdown(
                                 &last_text,
                                 start_offset,
                                 directory,
-                                &style_colors
+                                style_colors
                             );
                             builder_dirty = true;
                         },

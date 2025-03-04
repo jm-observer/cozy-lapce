@@ -23,13 +23,13 @@ pub enum InsertDrift {
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub struct SelRegion {
     /// Region start offset
-    pub start: usize,
+    pub start:             usize,
     /// Region end offset
-    pub end:   usize,
+    pub end:               usize,
     /// Horizontal rules for multiple selection
-    pub horiz: Option<ColPosition>,
+    pub horiz:             Option<ColPosition>,
     pub start_cursor_affi: Option<CursorAffinity>,
-    pub end_cursor_affi: Option<CursorAffinity>,
+    pub end_cursor_affi:   Option<CursorAffinity>
 }
 
 /// A selection holding one or more [`SelRegion`].
@@ -50,7 +50,13 @@ impl AsRef<Selection> for Selection {
 impl SelRegion {
     /// Creates new [`SelRegion`] from `start` and `end` offset.
     pub fn new(start: usize, end: usize, horiz: Option<ColPosition>) -> SelRegion {
-        SelRegion { start, end, horiz, start_cursor_affi: None, end_cursor_affi: None }
+        SelRegion {
+            start,
+            end,
+            horiz,
+            start_cursor_affi: None,
+            end_cursor_affi: None
+        }
     }
 
     /// Creates a caret [`SelRegion`],
@@ -58,11 +64,11 @@ impl SelRegion {
     /// value.
     pub fn caret(offset: usize) -> SelRegion {
         SelRegion {
-            start: offset,
-            end:   offset,
-            horiz: None,
+            start:             offset,
+            end:               offset,
+            horiz:             None,
             start_cursor_affi: None,
-            end_cursor_affi: None,
+            end_cursor_affi:   None
         }
     }
 
@@ -170,7 +176,7 @@ impl Selection {
             end,
             horiz: None,
             start_cursor_affi: None,
-            end_cursor_affi: None,
+            end_cursor_affi: None
         })
     }
 

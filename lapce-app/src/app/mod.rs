@@ -2849,8 +2849,8 @@ fn palette_content(
             .width_full()
             .min_height(0.0)
             .max_height((layout_rect.get().height() * 0.45 - 36.0).round() as f32)
-            // .padding_bottom(5.0)
-            // .padding_bottom(5.0)
+        // .padding_bottom(5.0)
+        // .padding_bottom(5.0)
     })
 }
 

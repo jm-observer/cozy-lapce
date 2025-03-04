@@ -1,11 +1,17 @@
 #![allow(unused)]
+use anyhow::{Result, bail};
+use doc::lines::{
+    cursor::CursorAffinity,
+    phantom_text::{
+        PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text,
+        combine_with_text
+    }
+};
+use lapce_xi_rope::Interval;
 use log::{debug, info};
 use smallvec::SmallVec;
-use doc::lines::cursor::CursorAffinity;
-use doc::lines::phantom_text::{PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text, combine_with_text};
+
 use super::lines_util::*;
-use anyhow::{bail, Result};
-use lapce_xi_rope::Interval;
 use crate::check_lines_col;
 
 // fn empty_data() -> PhantomTextLine {
@@ -69,22 +75,42 @@ pub fn _test_merge() -> Result<()> {
         let texts = line.text();
         let text_1 = &texts[1];
         //
-        let Text::Phantom {text: text_2 } = &texts[2] else {
+        let Text::Phantom { text: text_2 } = &texts[2] else {
             bail!("should be Phantom");
         };
         assert_eq!((text_2.line, text_2.col), (3, 0));
-        assert_eq!((text_2.visual_merge_col, text_2.origin_merge_col, text_2.final_col), (line_1.len, line_3.start_offset - line_1.start_offset, "    if true {...}".len()));
+        assert_eq!(
+            (
+                text_2.visual_merge_col,
+                text_2.origin_merge_col,
+                text_2.final_col
+            ),
+            (
+                line_1.len,
+                line_3.start_offset - line_1.start_offset,
+                "    if true {...}".len()
+            )
+        );
 
         //  else {
-        let Text::OriginText {text: text_3 } = &texts[3] else {
+        let Text::OriginText { text: text_3 } = &texts[3] else {
             bail!("should be Phantom");
         };
         assert_eq!((text_3.line, text_3.col), (3, Interval::from(5..14)));
-        assert_eq!((text_3.visual_merge_col, text_3.origin_merge_col, text_3.final_col)
-            , (Interval::from((line_1.len + 5)..(line_1.len + 14))
-                , Interval::from((line_1.len + line_2.len + 5)..(line_1.len + line_2.len + 14)), Interval::from(17..26)));
-
-
+        assert_eq!(
+            (
+                text_3.visual_merge_col,
+                text_3.origin_merge_col,
+                text_3.final_col
+            ),
+            (
+                Interval::from((line_1.len + 5)..(line_1.len + 14)),
+                Interval::from(
+                    (line_1.len + line_2.len + 5)..(line_1.len + line_2.len + 14)
+                ),
+                Interval::from(17..26)
+            )
+        );
 
         // // print_lines(&lines);
         // // print_line(&line_folded_4);
@@ -106,7 +132,6 @@ pub fn _test_merge() -> Result<()> {
     }
     Ok(())
 }
-
 
 // // "0123456789012345678901234567890123456789
 // // "    if true {nr    } else {nr    }nr"
@@ -201,7 +226,6 @@ pub fn _test_merge() -> Result<()> {
 //     PhantomTextLine::new(visual_line - 1, origin_text_len, 0, text)
 // }
 
-
 fn print_line(lines: &PhantomTextMultiLine) {
     println!(
         "PhantomTextLine line={} origin_text_len={} final_text_len={}",
@@ -212,7 +236,7 @@ fn print_line(lines: &PhantomTextMultiLine) {
             Text::Phantom { text } => {
                 println!(
                     "\tPhantom {:?} line={} col={} merge_col={} final_col={} \
-                         text={} text.len()={}",
+                     text={} text.len()={}",
                     text.kind,
                     text.line,
                     text.col,

@@ -1,14 +1,9 @@
-use std::{
-    cmp::Ordering,
-    rc::Rc
-};
-use std::ops::AddAssign;
+use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
+
 use anyhow::{Result, bail};
-use floem::{
-    kurbo::{Point, Rect},
-};
-use crate::lines::cursor::CursorAffinity;
-use crate::lines::line::{OriginFoldedLine};
+use floem::kurbo::{Point, Rect};
+
+use crate::lines::{cursor::CursorAffinity, line::OriginFoldedLine};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -49,7 +44,7 @@ pub struct ScreenLines {
     /// 滚动窗口
     pub base:          Rect,
     pub line_height:   f64,
-    pub buffer_len: usize,
+    pub buffer_len:    usize
 }
 
 #[derive(Clone)]
@@ -57,10 +52,11 @@ pub struct VisualLineInfo {
     /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
     pub folded_line_y: f64,
-    // 在不支持编辑器折叠下，该行已无意义。视觉行在窗口的y偏移（不是整个文档的y偏移）。行顶的y值！！！
+    // 在不支持编辑器折叠下，该行已无意义。
+    // 视觉行在窗口的y偏移（不是整个文档的y偏移）。行顶的y值！！！
     // pub visual_line_y: f64,
     pub base:          Rect,
-    pub visual_line: OriginFoldedLine
+    pub visual_line:   OriginFoldedLine
 }
 
 // impl Hash for VisualLineInfo {
@@ -121,9 +117,10 @@ impl ScreenLines {
 impl ScreenLines {
     pub fn line_interval(&self) -> Result<(usize, usize)> {
         match (self.visual_lines.first(), self.visual_lines.last()) {
-            (Some(first), Some(last)) => {
-                Ok((first.visual_line.origin_line_start, last.visual_line.origin_line_start))
-            },
+            (Some(first), Some(last)) => Ok((
+                first.visual_line.origin_line_start,
+                last.visual_line.origin_line_start
+            )),
             _ => bail!("ScreenLines is empty?")
         }
     }
@@ -214,15 +211,26 @@ impl ScreenLines {
 
     /// 求视窗与参数行的交集
     /// 用于选择鼠标选择区域
-    pub fn intersection_with_lines(&self, start_line_index: usize, end_line_index: usize) -> Option<(&VisualLineInfo, &VisualLineInfo)> {
-        let first_visual_line= self.visual_lines.first()?;
-        let last_visual_line= self.visual_lines.last()?;
-        let start_line_index = first_visual_line.visual_line.line_index.max(start_line_index);
-        let end_line_index = last_visual_line.visual_line.line_index.min(end_line_index);
+    pub fn intersection_with_lines(
+        &self,
+        start_line_index: usize,
+        end_line_index: usize
+    ) -> Option<(&VisualLineInfo, &VisualLineInfo)> {
+        let first_visual_line = self.visual_lines.first()?;
+        let last_visual_line = self.visual_lines.last()?;
+        let start_line_index = first_visual_line
+            .visual_line
+            .line_index
+            .max(start_line_index);
+        let end_line_index =
+            last_visual_line.visual_line.line_index.min(end_line_index);
         if start_line_index > end_line_index {
             return None;
         }
-        Some((self.visual_line_info_for_origin_folded_line(start_line_index)?, self.visual_line_info_for_origin_folded_line(end_line_index)?))
+        Some((
+            self.visual_line_info_for_origin_folded_line(start_line_index)?,
+            self.visual_line_info_for_origin_folded_line(end_line_index)?
+        ))
     }
 
     pub fn visual_line_for_buffer_offset(
@@ -230,9 +238,14 @@ impl ScreenLines {
         buffer_offset: usize
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
-            if visual_line.visual_line.origin_interval.contains(buffer_offset) {
+            if visual_line
+                .visual_line
+                .origin_interval
+                .contains(buffer_offset)
+            {
                 return Some(visual_line);
-            } else if visual_line.visual_line.origin_interval.start == buffer_offset {
+            } else if visual_line.visual_line.origin_interval.start == buffer_offset
+            {
                 // last line and line is empty
                 // origin_interval == [buffer_offset, buffer_offset)
                 return Some(visual_line);
@@ -245,32 +258,32 @@ impl ScreenLines {
 
     pub fn visual_line_info_of_buffer_offset(
         &self,
-        buffer_offset: usize,
+        buffer_offset: usize
     ) -> Result<Option<(&VisualLineInfo, usize)>> {
         let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let Some(final_offset) = vl.visual_line.final_col_of_origin_merge_col(merge_col)? else {
+        let Some(final_offset) =
+            vl.visual_line.final_col_of_origin_merge_col(merge_col)?
+        else {
             return Ok(None);
         };
         Ok(Some((vl, final_offset)))
     }
 
-
-
     pub fn visual_position_of_buffer_offset(
         &self,
         buffer_offset: usize
-    ) ->         Result<Option<Point>>
-    {
-        let Some((vl, final_offset)) = self.visual_line_info_of_buffer_offset(buffer_offset)? else {
+    ) -> Result<Option<Point>> {
+        let Some((vl, final_offset)) =
+            self.visual_line_info_of_buffer_offset(buffer_offset)?
+        else {
             return Ok(None);
         };
-        let mut viewpport_point =vl.visual_line.hit_position_aff(
-            final_offset,
-            CursorAffinity::Backward
-        )
+        let mut viewpport_point = vl
+            .visual_line
+            .hit_position_aff(final_offset, CursorAffinity::Backward)
             .point;
 
         viewpport_point.y = vl.folded_line_y;
@@ -281,39 +294,45 @@ impl ScreenLines {
 
     /// considering phantom text
     /// None: not in viewport
-    ///
     pub fn cursor_position_of_buffer_offset(
         &self,
-        buffer_offset: usize, affinity: CursorAffinity
-    ) ->         Result<Option<Point>>
-    {
-        let Some((vl, final_offset)) = self.cursor_info_of_buffer_offset(buffer_offset, affinity)? else {
+        buffer_offset: usize,
+        affinity: CursorAffinity
+    ) -> Result<Option<Point>> {
+        let Some((vl, final_offset)) =
+            self.cursor_info_of_buffer_offset(buffer_offset, affinity)?
+        else {
             return Ok(None);
         };
-        let mut viewpport_point = vl.visual_line.hit_position_aff(
-            final_offset,
-            CursorAffinity::Backward
-        )
+        let mut viewpport_point = vl
+            .visual_line
+            .hit_position_aff(final_offset, CursorAffinity::Backward)
             .point;
         viewpport_point.y = vl.folded_line_y;
         viewpport_point.add_assign(self.base.origin().to_vec2());
 
         Ok(Some(viewpport_point))
     }
+
     pub fn cursor_info_of_buffer_offset(
         &self,
-        buffer_offset: usize, cursor_affinity: CursorAffinity
+        buffer_offset: usize,
+        cursor_affinity: CursorAffinity
     ) -> Result<Option<(&VisualLineInfo, usize)>> {
         let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.visual_line.origin_interval.start;
-        let final_offset = vl.visual_line.cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
+        let final_offset = vl
+            .visual_line
+            .cursor_final_col_of_merge_col(merge_col, cursor_affinity)?;
         Ok(Some((vl, final_offset)))
     }
 
     pub fn char_rect_in_viewport(&self, offset: usize) -> Result<Option<Rect>> {
-        let Some((vl_start, col_start)) = self.visual_line_info_of_buffer_offset(offset)? else {
+        let Some((vl_start, col_start)) =
+            self.visual_line_info_of_buffer_offset(offset)?
+        else {
             return Ok(None);
         };
         let folded_line_start = &vl_start.visual_line;
@@ -322,7 +341,7 @@ impl ScreenLines {
         Ok(Some(folded_line_start.line_scope(
             col_start,
             col_start + 1,
-            self.line_height as f64,
+            self.line_height,
             vl_start.folded_line_y,
             base
         )))
@@ -331,23 +350,36 @@ impl ScreenLines {
     pub fn normal_selection(
         &self,
         start_offset: usize,
-        end_offset: usize, start_affinity: Option<CursorAffinity>, end_affinity: Option<CursorAffinity>
+        end_offset: usize,
+        start_affinity: Option<CursorAffinity>,
+        end_affinity: Option<CursorAffinity>
     ) -> Result<Vec<Rect>> {
         let (start_offset, end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
         } else {
             (start_offset, end_offset)
         };
-        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(start_offset, start_affinity.unwrap_or_default())? else {
+        let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(
+            start_offset,
+            start_affinity.unwrap_or_default()
+        )?
+        else {
             return Ok(vec![]);
         };
         let folded_line_start = &vl_start.visual_line;
-        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(end_offset, end_affinity.unwrap_or_default())? else {
+        let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(
+            end_offset,
+            end_affinity.unwrap_or_default()
+        )?
+        else {
             return Ok(vec![]);
         };
         let folded_line_end = &vl_end.visual_line;
 
-        let Some((rs_start, rs_end)) = self.intersection_with_lines(folded_line_start.line_index, folded_line_end.line_index) else {
+        let Some((rs_start, rs_end)) = self.intersection_with_lines(
+            folded_line_start.line_index,
+            folded_line_end.line_index
+        ) else {
             return Ok(vec![]);
         };
         let base = self.base.origin().to_vec2();
@@ -355,19 +387,19 @@ impl ScreenLines {
             let rs = folded_line_start.line_scope(
                 col_start,
                 col_end,
-                self.line_height as f64,
+                self.line_height,
                 rs_start.folded_line_y,
                 base
             );
             Ok(vec![rs])
         } else {
-
-            let mut first =
-                Vec::with_capacity(folded_line_end.line_index  + 1 - folded_line_start.line_index);
+            let mut first = Vec::with_capacity(
+                folded_line_end.line_index + 1 - folded_line_start.line_index
+            );
             first.push(folded_line_start.line_scope(
                 col_start,
                 folded_line_start.len_without_rn(),
-                self.line_height as f64,
+                self.line_height,
                 rs_start.folded_line_y,
                 base
             ));
@@ -381,7 +413,7 @@ impl ScreenLines {
                     let selection = vl.visual_line.line_scope(
                         0,
                         vl.visual_line.len_without_rn(),
-                        self.line_height as f64,
+                        self.line_height,
                         vl.folded_line_y,
                         base
                     );
@@ -391,7 +423,7 @@ impl ScreenLines {
             let last = folded_line_end.line_scope(
                 0,
                 col_end,
-                self.line_height as f64,
+                self.line_height,
                 rs_end.folded_line_y,
                 base
             );

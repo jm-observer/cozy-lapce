@@ -1,9 +1,10 @@
 use std::{
+    cell::RefCell,
     future::Future,
     ops::{AddAssign, Range},
     thread
 };
-use std::cell::RefCell;
+
 use ansi_to_style::TextStyle;
 use anyhow::Result;
 use doc::lines::layout::*;

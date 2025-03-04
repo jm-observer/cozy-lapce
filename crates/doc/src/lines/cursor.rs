@@ -58,10 +58,17 @@ impl Iterator for RegionsIter<'_> {
                 (start, end, None, None)
             }),
             CursorMode::Insert(selection) => {
-                let next = selection
-                    .regions()
-                    .get(self.idx)
-                    .map(|&SelRegion { start, end, start_cursor_affi, end_cursor_affi, .. }| (start, end, start_cursor_affi, end_cursor_affi));
+                let next = selection.regions().get(self.idx).map(
+                    |&SelRegion {
+                         start,
+                         end,
+                         start_cursor_affi,
+                         end_cursor_affi,
+                         ..
+                     }| {
+                        (start, end, start_cursor_affi, end_cursor_affi)
+                    }
+                );
 
                 if next.is_some() {
                     self.idx += 1;
@@ -118,7 +125,9 @@ impl CursorMode {
 
     pub fn regions_iter(
         &self
-    ) -> impl ExactSizeIterator<Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)> + '_ {
+    ) -> impl ExactSizeIterator<
+        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)
+    > + '_ {
         RegionsIter {
             cursor_mode: self,
             idx:         0
@@ -222,7 +231,9 @@ impl Cursor {
 
     pub fn regions_iter(
         &self
-    ) -> impl ExactSizeIterator<Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)> + '_ {
+    ) -> impl ExactSizeIterator<
+        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)
+    > + '_ {
         self.mode.regions_iter()
     }
 
@@ -390,12 +401,12 @@ impl Cursor {
                     text.slice_to_cow(
                         *start.min(end)
                             ..text.next_grapheme_offset(
-                            *start.max(end),
-                            1,
-                            text.len()
-                        )
+                                *start.max(end),
+                                1,
+                                text.len()
+                            )
                     )
-                        .to_string(),
+                    .to_string(),
                     VisualMode::Normal
                 ),
                 VisualMode::Linewise => {
@@ -497,11 +508,22 @@ impl Cursor {
         }
     }
 
-    pub fn set_offset(&mut self, offset: usize, modify: bool, new_cursor: bool,) {
+    pub fn set_offset(&mut self, offset: usize, modify: bool, new_cursor: bool) {
         self.set_offset_with_affinity(offset, modify, new_cursor, None);
     }
-    pub fn set_offset_with_affinity(&mut self, offset: usize, modify: bool, new_cursor: bool, new_affinite: Option<CursorAffinity>) {
-        info!("cursor set_offset new_offset={offset} modify={modify} new_cursor={new_cursor} old_offset={}", self.offset());
+
+    pub fn set_offset_with_affinity(
+        &mut self,
+        offset: usize,
+        modify: bool,
+        new_cursor: bool,
+        new_affinite: Option<CursorAffinity>
+    ) {
+        info!(
+            "cursor set_offset new_offset={offset} modify={modify} \
+             new_cursor={new_cursor} old_offset={}",
+            self.offset()
+        );
         match &self.mode {
             CursorMode::Normal(_old_offset) => {
                 // todo!()
@@ -536,10 +558,12 @@ impl Cursor {
                     // todo
                     // let mut new_selection = selection.clone();
                     // if modify {
-                    //     if let Some(region) = new_selection.last_inserted_mut() {
+                    //     if let Some(region) =
+                    // new_selection.last_inserted_mut() {
                     //         region.end = offset;
                     //     } else {
-                    //         new_selection.add_region(SelRegion::caret(offset));
+                    //         new_selection.
+                    // add_region(SelRegion::caret(offset));
                     //     }
                     //     self.set_insert(new_selection);
                     // } else {
@@ -550,7 +574,8 @@ impl Cursor {
                 } else if modify {
                     let mut new_selection = Selection::new();
                     if let Some(region) = selection.first() {
-                        let mut new_region = SelRegion::new(region.start, offset, None);
+                        let mut new_region =
+                            SelRegion::new(region.start, offset, None);
                         new_region.start_cursor_affi = Some(self.affinity);
                         new_region.end_cursor_affi = new_affinite;
                         new_selection.add_region(new_region);
@@ -562,7 +587,7 @@ impl Cursor {
                 } else {
                     self.set_insert(Selection::caret(offset));
                 }
-            },
+            }
         }
     }
 

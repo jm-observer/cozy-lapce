@@ -206,17 +206,20 @@ impl FoldingRanges {
 }
 
 impl FoldedRanges {
-
     pub fn filter_by_line(&self, line: usize) -> Self {
         let line = line as u32;
-        Self(self.0.iter().filter_map(|item| {
-            if item.start.line <= line
-                && item.end.line >= line {
-                Some(item.clone())
-            } else {
-                None
-            }
-        }).collect())
+        Self(
+            self.0
+                .iter()
+                .filter_map(|item| {
+                    if item.start.line <= line && item.end.line >= line {
+                        Some(item.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        )
     }
 
     pub fn visual_line(&self, line: usize) -> usize {

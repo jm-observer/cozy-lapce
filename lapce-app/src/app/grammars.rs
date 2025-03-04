@@ -128,11 +128,11 @@ async fn download_release(
 
             if asset.name.ends_with(".zip") {
                 let mut archive = zip::ZipArchive::new(file)?;
-                archive.extract(&dir)?;
+                archive.extract(dir)?;
             } else if asset.name.ends_with(".tar.zst") {
                 let mut archive =
                     tar::Archive::new(zstd::stream::read::Decoder::new(file)?);
-                archive.unpack(&dir)?;
+                archive.unpack(dir)?;
             }
 
             fs::write(dir.join("version"), &release_version).await?;

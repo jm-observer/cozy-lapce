@@ -1,5 +1,10 @@
-use std::{borrow::Cow, collections::HashMap, ops::Range};
-use std::cell::{RefCell, RefMut};
+use std::{
+    borrow::Cow,
+    cell::{RefCell, RefMut},
+    collections::HashMap,
+    ops::Range
+};
+
 use ansi_to_style::TextStyle;
 use anyhow::{Result, anyhow};
 use cargo_metadata::PackageId;
@@ -223,7 +228,9 @@ impl Lines {
     pub fn text_layout_of_line(&self, line: usize) -> Result<RefMut<TextLayout>> {
         let line_index = self.line_info()?.1.get(line);
         line_index
-            .and_then(|index| self.texts.get(index.text_index).map(|x| x.borrow_mut()))
+            .and_then(|index| {
+                self.texts.get(index.text_index).map(|x| x.borrow_mut())
+            })
             .ok_or(anyhow!("not found {}", line))
     }
 
@@ -356,7 +363,8 @@ impl Lines {
                 0,
                 &content_origin_without_lf,
                 attrs_list,
-                &mut font_system, line_ending_str
+                &mut font_system,
+                line_ending_str
             );
 
             let text_index = self.texts.len();

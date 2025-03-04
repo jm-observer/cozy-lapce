@@ -1,5 +1,5 @@
-use std::{collections::HashMap, str::FromStr};
-use std::cell::{RefMut};
+use std::{cell::RefMut, collections::HashMap, str::FromStr};
+
 use floem::{kurbo::Rect, peniko::Color, reactive::SignalGet};
 use log::error;
 
@@ -12,20 +12,21 @@ use crate::{
     lines::{
         buffer::{Buffer, rope_text::RopeText},
         char_buffer::CharBuffer,
+        line::OriginFoldedLine,
         screen_lines::{ScreenLines, VisualLineInfo},
         text::PreeditData,
         word::WordCursor
     },
     syntax::Syntax
 };
-use crate::lines::line::OriginFoldedLine;
 
 pub fn compute_screen_lines(
     view_kind: EditorViewKind,
     base: Rect,
     vline_infos: Vec<OriginFoldedLine>,
     line_height: usize,
-    y0: f64, buffer_len: usize,
+    y0: f64,
+    buffer_len: usize
 ) -> ScreenLines {
     match view_kind {
         EditorViewKind::Normal => {
@@ -41,7 +42,7 @@ pub fn compute_screen_lines(
                     folded_line_y: folded_line_y as f64 - y0,
                     // visual_line_y: visual_line_y as f64 - y0,
                     base,
-                    visual_line: visual_line,
+                    visual_line
                 };
                 visual_lines.push(visual_line_info);
             }
@@ -50,7 +51,7 @@ pub fn compute_screen_lines(
                 diff_sections: None,
                 base,
                 line_height: line_height as f64,
-                buffer_len,
+                buffer_len
             }
         },
         EditorViewKind::Diff(_diff_info) => {
@@ -307,7 +308,7 @@ pub fn preedit_phantom(
         bg: None,
         under_line,
         col,
-        origin_merge_col: col,
+        origin_merge_col: col
     })
 }
 
@@ -319,7 +320,7 @@ pub fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
     //     rs.push_str(s);
     //     rs.push(' ');
     // } else {
-        rs.push_str(line_content_original);
+    rs.push_str(line_content_original);
     // }
 }
 
@@ -335,7 +336,8 @@ pub fn extra_styles_for_range<'a>(
     let end_hit = text_layout.hit_position(end);
 
     text_layout
-        .layout_runs().enumerate()
+        .layout_runs()
+        .enumerate()
         .filter_map(move |(current_line, run)| {
             if current_line < start_hit.line || current_line > end_hit.line {
                 return None;

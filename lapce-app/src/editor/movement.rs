@@ -1,8 +1,8 @@
 //! Movement logic for the editor.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use doc::lines::{
-    buffer::rope_text::{RopeText},
+    buffer::rope_text::RopeText,
     command::MultiSelectionCommand,
     cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
     mode::{Mode, MotionMode, VisualMode},
@@ -112,7 +112,8 @@ pub fn move_offset(
         },
         Movement::Up => {
             let Some((new_offset, horiz)) =
-                move_up(view, offset, affinity, horiz.cloned(), mode, count)? else {
+                move_up(view, offset, affinity, horiz.cloned(), mode, count)?
+            else {
                 return Ok((offset, horiz.cloned()));
             };
 
@@ -120,7 +121,8 @@ pub fn move_offset(
         },
         Movement::Down => {
             let Some((new_offset, horiz)) =
-                move_down(view, offset, affinity, horiz.cloned(), mode, count)? else {
+                move_down(view, offset, affinity, horiz.cloned(), mode, count)?
+            else {
                 return Ok((offset, horiz.cloned()));
             };
 
@@ -317,10 +319,12 @@ fn move_left(
     _count: usize
 ) -> Result<usize> {
     log::info!("move_left {offset} {affinity:?}");
-    let Some((new_offset, new_affinity)) = ed.doc().lines.with_untracked(|x| {
-        x.move_left(offset, *affinity)
-    })? else {
-        return Ok(offset)
+    let Some((new_offset, new_affinity)) = ed
+        .doc()
+        .lines
+        .with_untracked(|x| x.move_left(offset, *affinity))?
+    else {
+        return Ok(offset);
     };
     log::info!("move_left result {new_offset} {new_affinity:?}");
     *affinity = new_affinity;
@@ -354,10 +358,12 @@ fn move_right(
     _count: usize
 ) -> Result<usize> {
     log::info!("move_right {offset} {affinity:?}");
-    let Some((new_offset, new_affinity)) = view.doc().lines.with_untracked(|x| {
-        x.move_right(offset, *affinity)
-    })? else {
-        return Ok(offset)
+    let Some((new_offset, new_affinity)) = view
+        .doc()
+        .lines
+        .with_untracked(|x| x.move_right(offset, *affinity))?
+    else {
+        return Ok(offset);
     };
     log::info!("move_right result {new_offset} {new_affinity:?}");
     *affinity = new_affinity;
@@ -379,7 +385,8 @@ fn move_up(
     let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines
-        .with_untracked(|x| x.move_up(offset, *affinity, horiz, _mode, _count))? else {
+        .with_untracked(|x| x.move_up(offset, *affinity, horiz, _mode, _count))?
+    else {
         return Ok(None);
     };
     *affinity = new_affinity;
@@ -419,7 +426,6 @@ fn move_down_last_rvline(
     todo!()
 }
 
-
 /// Move the offset down by `count` amount.
 /// `count` may be zero, because moving down in a selection just jumps to the
 /// end of the selection.
@@ -435,7 +441,8 @@ fn move_down(
     let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
         .lines
-        .with_untracked(|x| x.move_down(offset, *affinity, horiz, _mode, _count))? else {
+        .with_untracked(|x| x.move_down(offset, *affinity, horiz, _mode, _count))?
+    else {
         return Ok(None);
     };
     *affinity = new_affinity;
@@ -474,11 +481,11 @@ fn start_of_line(
 ) -> Result<(usize, ColPosition)> {
     let start_offset = view.doc().lines.with_untracked(|x| {
         let origin_line = x.buffer().line_of_offset(offset);
-        x
-            .origin_lines
+        x.origin_lines
             .get(origin_line)
-            .ok_or(anyhow!("origin_line is empty")).map(|x| x.start_offset)
-        })?;
+            .ok_or(anyhow!("origin_line is empty"))
+            .map(|x| x.start_offset)
+    })?;
     Ok((start_offset, ColPosition::Start))
 }
 

@@ -1,20 +1,21 @@
 use std::cell::RefCell;
+
 use cosmic_text::{
-    Affinity, BufferLine, Cursor, FontSystem, LayoutLine,
-    LineEnding, Metrics, Scroll, ShapeBuffer, Shaping, Wrap
+    Affinity, BufferLine, Cursor, FontSystem, LayoutLine, LineEnding, Metrics,
+    Scroll, ShapeBuffer, Shaping, Wrap
 };
 use floem::{
     kurbo::{Point, Size},
     peniko::Color,
-    text::{AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun}
+    text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun}
 };
-use floem::text::Attrs;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::lines::{delta_compute::Offset, phantom_text::PhantomTextMultiLine, util};
-use crate::lines::style::NewLineStyle;
-use crate::lines::util::extra_styles_for_range;
+use crate::lines::{
+    delta_compute::Offset, phantom_text::PhantomTextMultiLine, style::NewLineStyle,
+    util, util::extra_styles_for_range
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LineExtraStyle {
@@ -35,35 +36,36 @@ pub struct TextLayoutLine {
     /// Extra styling that should be applied to the text
     /// (x0, x1 or line display end, style)
     /// todo?暂时没有数据，下划线等？
-    extra_style:  Vec<LineExtraStyle>,
+    extra_style: Vec<LineExtraStyle>,
 
     #[serde(skip)]
     // 文本：包含折叠行的文本、幽灵文本，及其所有的样式（背景色等）
-    pub text:         RefCell<TextLayout>,
+    pub text: RefCell<TextLayout>,
     // ?
-    pub whitespaces:  Option<Vec<(char, (f64, f64))>>,
+    pub whitespaces:       Option<Vec<(char, (f64, f64))>>,
     // 缩进?
-    pub indent:       f64,
+    pub indent:            f64,
     // 幽灵文本相关信息
-    pub phantom_text: PhantomTextMultiLine,
+    pub phantom_text:      PhantomTextMultiLine,
     // 不易于更新迭代？
     pub semantic_styles:   Vec<NewLineStyle>,
     pub diagnostic_styles: Vec<NewLineStyle>,
-    init: bool
+    init:                  bool
 }
 
 impl TextLayoutLine {
-
-    pub fn new(text:         RefCell<TextLayout>,
-               // ?
-               whitespaces:  Option<Vec<(char, (f64, f64))>>,
-               // 缩进?
-               indent:       f64,
-               // 幽灵文本相关信息
-               phantom_text: PhantomTextMultiLine,
-               // 不易于更新迭代？
-               semantic_styles:   Vec<NewLineStyle>,
-               diagnostic_styles: Vec<NewLineStyle>,) -> Self {
+    pub fn new(
+        text: RefCell<TextLayout>,
+        // ?
+        whitespaces: Option<Vec<(char, (f64, f64))>>,
+        // 缩进?
+        indent: f64,
+        // 幽灵文本相关信息
+        phantom_text: PhantomTextMultiLine,
+        // 不易于更新迭代？
+        semantic_styles: Vec<NewLineStyle>,
+        diagnostic_styles: Vec<NewLineStyle>
+    ) -> Self {
         Self {
             extra_style: vec![],
             text,
@@ -72,9 +74,10 @@ impl TextLayoutLine {
             phantom_text,
             semantic_styles,
             diagnostic_styles,
-            init: false,
+            init: false
         }
     }
+
     // // /// The number of line breaks in the text layout. Always at
     // // least `1`.
     // pub fn line_count(&self) -> usize {
@@ -214,45 +217,47 @@ impl TextLayoutLine {
     fn apply_layout_styles(&mut self) {
         self.extra_style.clear();
         let layout = &mut self.text.borrow_mut();
-        self
-            .phantom_text
-            .iter_phantom_text()
-            .for_each(|phantom| {
-                if (phantom.bg.is_none() && phantom.under_line.is_none())
-                    || phantom.text.is_empty()
-                {
-                    return;
-                }
-                let iter = extra_styles_for_range(
-                    layout,
-                    phantom.final_col,
-                    phantom.final_col + phantom.text.len(),
-                    phantom.bg,
-                    phantom.under_line,
-                    None
-                );
-                for style in iter {
-                    self.extra_style.push(style)
-                }
-            });
+        self.phantom_text.iter_phantom_text().for_each(|phantom| {
+            if (phantom.bg.is_none() && phantom.under_line.is_none())
+                || phantom.text.is_empty()
+            {
+                return;
+            }
+            let iter = extra_styles_for_range(
+                layout,
+                phantom.final_col,
+                phantom.final_col + phantom.text.len(),
+                phantom.bg,
+                phantom.under_line,
+                None
+            );
+            for style in iter {
+                self.extra_style.push(style)
+            }
+        });
     }
 
-    fn apply_diagnostic_styles_2(
-        &mut self,
-    ) {
+    fn apply_diagnostic_styles_2(&mut self) {
         let layout = &mut self.text.borrow_mut();
         let phantom_text = &self.phantom_text;
         let line_styles = &self.diagnostic_styles;
 
         // 暂不考虑
         for NewLineStyle {
-            fg_color, start_of_buffer, end_of_buffer,
+            fg_color,
+            start_of_buffer,
+            end_of_buffer,
             ..
         } in line_styles
         {
             match (
-                phantom_text.final_col_of_origin_merge_col(*start_of_buffer - phantom_text.offset_of_line),
-                phantom_text.final_col_of_origin_merge_col(*end_of_buffer - phantom_text.offset_of_line)) {
+                phantom_text.final_col_of_origin_merge_col(
+                    *start_of_buffer - phantom_text.offset_of_line
+                ),
+                phantom_text.final_col_of_origin_merge_col(
+                    *end_of_buffer - phantom_text.offset_of_line
+                )
+            ) {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     let styles = util::extra_styles_for_range(
                         layout,
@@ -266,7 +271,7 @@ impl TextLayoutLine {
                 },
                 _ => {
                     // maybe be folded
-                    continue
+                    continue;
                 }
             }
         }
@@ -278,21 +283,21 @@ impl TextLayoutLine {
 pub struct TextLayout {
     // only for tracing
     line:       usize,
-    pub buffer:     BufferLine,
+    pub buffer: BufferLine,
     // ?
     // pub lines_range: Range<usize>,
     width_opt:  Option<f32>,
     height_opt: Option<f32>,
 
-    metrics:         Metrics,
-    scroll:          Scroll,
+    metrics: Metrics,
+    scroll: Scroll,
     /// True if a redraw is requires. Set to false after processing
-    redraw:          bool,
-    wrap:            Wrap,
+    redraw: bool,
+    wrap: Wrap,
     monospace_width: Option<f32>,
-    tab_width:       u16,
+    tab_width: u16,
     /// Scratch buffer for shaping and laying out.
-    scratch:         ShapeBuffer,
+    scratch: ShapeBuffer,
     /// 最终文本长度，包括虚拟文本
     pub(crate) text_len: usize,
     /// 最终文本长度，包括虚拟文本，但不包括末尾的\r\n
@@ -303,20 +308,20 @@ pub struct TextLayout {
 impl Clone for TextLayout {
     fn clone(&self) -> Self {
         Self {
-            line:            self.line,
-            buffer:          self.buffer.clone(),
-            metrics:         self.metrics,
-            width_opt:       self.width_opt,
-            height_opt:      self.height_opt,
-            scroll:          self.scroll,
-            redraw:          self.redraw,
-            wrap:            self.wrap,
-            monospace_width: self.monospace_width,
-            tab_width:       self.tab_width,
-            scratch:         ShapeBuffer::default(),
-            text_len: self.text_len,
+            line:                self.line,
+            buffer:              self.buffer.clone(),
+            metrics:             self.metrics,
+            width_opt:           self.width_opt,
+            height_opt:          self.height_opt,
+            scroll:              self.scroll,
+            redraw:              self.redraw,
+            wrap:                self.wrap,
+            monospace_width:     self.monospace_width,
+            tab_width:           self.tab_width,
+            scratch:             ShapeBuffer::default(),
+            text_len:            self.text_len,
             text_len_without_rn: self.text_len_without_rn,
-            init: self.init,
+            init:                self.init
         }
     }
 }
@@ -328,16 +333,27 @@ impl Default for TextLayout {
 }
 
 impl TextLayout {
-    pub fn new<T: Into<String>>(text: T, attrs_list: AttrsList, line_ending: &'static str) -> Self {
+    pub fn new<T: Into<String>>(
+        text: T,
+        attrs_list: AttrsList,
+        line_ending: &'static str
+    ) -> Self {
         let mut font_system = FONT_SYSTEM.lock();
-        Self::new_with_font_system(0, text, attrs_list, &mut font_system, line_ending)
+        Self::new_with_font_system(
+            0,
+            text,
+            attrs_list,
+            &mut font_system,
+            line_ending
+        )
     }
 
     pub fn new_with_font_system<T: Into<String>>(
         line: usize,
         text: T,
         attrs_list: AttrsList,
-        font_system: &mut FontSystem, line_ending: &'static str
+        font_system: &mut FontSystem,
+        line_ending: &'static str
     ) -> Self {
         Self::new_with_config(
             line,
@@ -345,7 +361,8 @@ impl TextLayout {
             attrs_list,
             font_system,
             None,
-            Wrap::WordOrGlyph, line_ending
+            Wrap::WordOrGlyph,
+            line_ending
         )
     }
 
@@ -354,19 +371,29 @@ impl TextLayout {
         text: T,
         attrs_list: AttrsList,
         width_opt: Option<f32>,
-        wrap: Wrap, line_ending: &'static str
+        wrap: Wrap,
+        line_ending: &'static str
     ) -> Self {
         let text = text.into();
         let text_len = text.len();
         // log::info!("{text:?} {line_ending:?}");
-        let new_text = text.strip_suffix(line_ending).map(|x| x.to_string()).unwrap_or(text);
+        let new_text = text
+            .strip_suffix(line_ending)
+            .map(|x| x.to_string())
+            .unwrap_or(text);
         let text_len_without_rn = new_text.len();
         // log::info!("{new_text:?}");
         let ending = LineEnding::None;
         let text_layout = Self {
-            text_len, text_len_without_rn,
+            text_len,
+            text_len_without_rn,
             line,
-            buffer: BufferLine::new(new_text, ending, attrs_list.0, Shaping::Advanced),
+            buffer: BufferLine::new(
+                new_text,
+                ending,
+                attrs_list.0,
+                Shaping::Advanced
+            ),
             width_opt,
             height_opt: None,
             metrics: Metrics::new(16.0, 16.0),
@@ -388,19 +415,29 @@ impl TextLayout {
         attrs_list: AttrsList,
         font_system: &mut FontSystem,
         width_opt: Option<f32>,
-        wrap: Wrap, line_ending: &'static str
+        wrap: Wrap,
+        line_ending: &'static str
     ) -> Self {
         let text = text.into();
         let text_len = text.len();
         // log::info!("{text:?} {line_ending:?}");
-        let new_text = text.strip_suffix(line_ending).map(|x| x.to_string()).unwrap_or(text);
+        let new_text = text
+            .strip_suffix(line_ending)
+            .map(|x| x.to_string())
+            .unwrap_or(text);
         let text_len_without_rn = new_text.len();
         // log::info!("{new_text:?}");
         let ending = LineEnding::None;
         let mut text_layout = Self {
-            text_len, text_len_without_rn,
+            text_len,
+            text_len_without_rn,
             line,
-            buffer: BufferLine::new(new_text, ending, attrs_list.0, Shaping::Advanced),
+            buffer: BufferLine::new(
+                new_text,
+                ending,
+                attrs_list.0,
+                Shaping::Advanced
+            ),
             width_opt,
             height_opt: None,
             metrics: Metrics::new(16.0, 16.0),
@@ -551,8 +588,8 @@ impl TextLayout {
     //     if tab_width != self.tab_width {
     //         self.tab_width = tab_width;
     //         // Shaping must be reset when tab width is changed
-    //         if self.buffer.shape_opt().is_some() && self.buffer.text().contains('\t')
-    //         {
+    //         if self.buffer.shape_opt().is_some() &&
+    // self.buffer.text().contains('\t')         {
     //             self.buffer.reset_shaping();
     //         }
     //         self.redraw = true;

@@ -1,22 +1,29 @@
 pub mod update_lines;
 
 use std::{
+    cell::RefMut,
     cmp::Ordering,
     fmt::{Debug, Formatter},
     ops::AddAssign
 };
-use std::cell::RefMut;
-use floem::kurbo::{Point, Rect, Size, Vec2};
-use floem::text::{HitPoint, HitPosition};
+
+use floem::{
+    kurbo::{Point, Rect, Size, Vec2},
+    text::{HitPoint, HitPosition}
+};
 use lapce_xi_rope::Interval;
 use serde::{Deserialize, Serialize};
-use crate::hit_position_aff;
+
 use super::layout::{LineExtraStyle, TextLayout, TextLayoutLine};
-use crate::lines::{
-    cursor::CursorAffinity, delta_compute::Offset,
-    phantom_text::PhantomTextLine, style::NewLineStyle
+use crate::{
+    hit_position_aff,
+    lines::{
+        cursor::CursorAffinity,
+        delta_compute::Offset,
+        phantom_text::{PhantomTextLine, Text},
+        style::NewLineStyle
+    }
 };
-use crate::lines::phantom_text::Text;
 //
 // #[derive(Clone, Debug)]
 // pub struct OriginLine {
@@ -25,7 +32,6 @@ use crate::lines::phantom_text::Text;
 //     pub phantom: PhantomTextLine,
 //     pub fg_styles: Vec<(usize, usize, Color)>
 // }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OriginLine {
@@ -77,7 +83,6 @@ impl OriginLine {
     }
 }
 
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
     pub line_index:        usize,
@@ -86,9 +91,8 @@ pub struct OriginFoldedLine {
     // [origin_line_start...origin_line_end]
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
-    text_layout:       TextLayoutLine,
+    text_layout:           TextLayoutLine
 }
-
 
 impl OriginFoldedLine {
     pub fn adjust(
@@ -187,7 +191,7 @@ impl OriginFoldedLine {
     //     (sub_line_index, final_offset_line)
     // }
 
-    pub fn is_last_char(&self, final_offset: usize, ) -> bool {
+    pub fn is_last_char(&self, final_offset: usize) -> bool {
         // struct A|;
         final_offset >= self.text_layout.text.borrow().text_len_without_rn
     }
@@ -237,7 +241,11 @@ impl OriginFoldedLine {
         self.text_layout.text.borrow_mut().size()
     }
 
-    pub fn hit_position_aff(&self, col: usize, affinity: CursorAffinity) -> HitPosition {
+    pub fn hit_position_aff(
+        &self,
+        col: usize,
+        affinity: CursorAffinity
+    ) -> HitPosition {
         hit_position_aff(
             &mut self.text_layout.text.borrow_mut(),
             col,
@@ -250,7 +258,9 @@ impl OriginFoldedLine {
     }
 
     pub fn text_of_final_col(&self, final_col: usize) -> &Text {
-        self.text_layout.phantom_text.text_of_final_col_even_overflow(final_col)
+        self.text_layout
+            .phantom_text
+            .text_of_final_col_even_overflow(final_col)
     }
 
     pub fn cursor_position_of_final_col(
@@ -258,7 +268,11 @@ impl OriginFoldedLine {
         final_col: usize
     ) -> (usize, CursorAffinity) {
         log::info!("{:?} {}", self, final_col);
-        match self.text_layout.phantom_text.text_of_final_col_even_overflow(final_col) {
+        match self
+            .text_layout
+            .phantom_text
+            .text_of_final_col_even_overflow(final_col)
+        {
             Text::Phantom { text } => {
                 // 在虚拟文本的后半部分，则光标置于虚拟文本之后
                 if final_col > text.final_col + text.text.len() / 2 {
@@ -274,8 +288,11 @@ impl OriginFoldedLine {
                 }
             },
             Text::OriginText { text } => {
-                let max_origin_merge_col = self.origin_interval.size() - (self.len() - self.len_without_rn());
-                let merge_col = (final_col - text.final_col.start + text.origin_merge_col.start).min(max_origin_merge_col);
+                let max_origin_merge_col = self.origin_interval.size()
+                    - (self.len() - self.len_without_rn());
+                let merge_col = (final_col - text.final_col.start
+                    + text.origin_merge_col.start)
+                    .min(max_origin_merge_col);
                 (
                     // text.line,
                     // text.origin_col_of_final_col(visual_char_offset),
@@ -284,7 +301,9 @@ impl OriginFoldedLine {
                     CursorAffinity::Backward
                 )
             },
-            Text::EmptyLine { text } => (text.offset_of_line, CursorAffinity::Backward)
+            Text::EmptyLine { text } => {
+                (text.offset_of_line, CursorAffinity::Backward)
+            },
         }
     }
 
@@ -296,12 +315,23 @@ impl OriginFoldedLine {
         &self.text_layout.phantom_text.text
     }
 
-    pub fn cursor_final_col_of_merge_col(&self, merge_col: usize, cursor_affinity: CursorAffinity) -> anyhow::Result<usize> {
-        self.text_layout.phantom_text.cursor_final_col_of_origin_merge_col(merge_col, cursor_affinity)
+    pub fn cursor_final_col_of_merge_col(
+        &self,
+        merge_col: usize,
+        cursor_affinity: CursorAffinity
+    ) -> anyhow::Result<usize> {
+        self.text_layout
+            .phantom_text
+            .cursor_final_col_of_origin_merge_col(merge_col, cursor_affinity)
     }
 
-    pub fn final_col_of_origin_merge_col(&self, merge_col: usize) -> anyhow::Result<Option<usize>> {
-        self.text_layout.phantom_text.final_col_of_origin_merge_col(merge_col)
+    pub fn final_col_of_origin_merge_col(
+        &self,
+        merge_col: usize
+    ) -> anyhow::Result<Option<usize>> {
+        self.text_layout
+            .phantom_text
+            .final_col_of_origin_merge_col(merge_col)
     }
 
     pub fn offset_of_line(&self) -> usize {
@@ -314,12 +344,16 @@ impl OriginFoldedLine {
 
     /// note:
     /// len_without_rn of final content
-    pub fn len_without_rn(&self, ) -> usize {
+    pub fn len_without_rn(&self) -> usize {
         self.text_layout.text.borrow().text_len_without_rn
     }
 
     pub fn first_no_whitespace(&self) -> Option<usize> {
-        self.text_layout.text.borrow().text().char_indices()
+        self.text_layout
+            .text
+            .borrow()
+            .text()
+            .char_indices()
             .find(|(_, c)| !c.is_whitespace())
             .map(|(idx, _)| idx)
     }
@@ -350,7 +384,9 @@ impl Debug for OriginFoldedLine {
         write!(
             f,
             "OriginFoldedLine line_index={} origin_line_start={} \
-             origin_line_end={} origin_interval={} {:?} text_len={} text_len_without_rn={} text_layout_line={} text_layout={} phantom_text={:?} ",
+             origin_line_end={} origin_interval={} {:?} text_len={} \
+             text_len_without_rn={} text_layout_line={} text_layout={} \
+             phantom_text={:?} ",
             self.line_index,
             self.origin_line_start,
             self.origin_line_end,
@@ -358,7 +394,9 @@ impl Debug for OriginFoldedLine {
             self.text_layout.text.borrow().text(),
             self.len(),
             self.len_without_rn(),
-            self.text_layout.init(), self.text_layout.text.borrow().init(), self.text_layout.phantom_text,
+            self.text_layout.init(),
+            self.text_layout.text.borrow().init(),
+            self.text_layout.phantom_text,
         )
     }
 }
@@ -372,7 +410,7 @@ pub struct VisualLine {
     pub origin_line:                  usize,
     pub origin_folded_line:           usize,
     pub origin_folded_line_sub_index: usize,
-    pub text_layout:    TextLayoutLine,
+    pub text_layout:                  TextLayoutLine
 }
 
 impl Debug for VisualLine {

@@ -535,28 +535,26 @@ impl PluginData {
     pub fn uninstall_volt(&self, volt: VoltMetadata) {
         if volt.wasm.is_some() {
             self.common.proxy.remove_volt(volt);
-        } else {
-            if let Some(dir) = &volt.dir {
-                let plugin = self.clone();
-                let info = volt.info();
-                let send = create_ext_action(self.common.scope, move |_| {
-                    plugin.volt_removed(&info);
-                });
-                let dir = dir.clone();
-                self.common.local_task.request_async(
-                    LocalRequest::UninstallVolt { dir },
-                    move |(_id, rs)| match rs {
-                        Ok(response) => {
-                            if let LocalResponse::UninstallVolt = response {
-                                send(());
-                            }
-                        },
-                        Err(err) => {
-                            error!("{err:?}")
+        } else if let Some(dir) = &volt.dir {
+            let plugin = self.clone();
+            let info = volt.info();
+            let send = create_ext_action(self.common.scope, move |_| {
+                plugin.volt_removed(&info);
+            });
+            let dir = dir.clone();
+            self.common.local_task.request_async(
+                LocalRequest::UninstallVolt { dir },
+                move |(_id, rs)| match rs {
+                    Ok(response) => {
+                        if let LocalResponse::UninstallVolt = response {
+                            send(());
                         }
+                    },
+                    Err(err) => {
+                        error!("{err:?}")
                     }
-                );
-            }
+                }
+            );
         }
     }
 

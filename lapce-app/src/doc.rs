@@ -1243,7 +1243,7 @@ impl Doc {
 
     /// Get the sticky headers for a particular line, creating them if
     /// necessary.
-    pub fn    sticky_headers(&self, line: usize) -> Option<Vec<usize>> {
+    pub fn sticky_headers(&self, line: usize) -> Option<Vec<usize>> {
         if let Some(lines) = self.sticky_headers.borrow().get(&line) {
             return lines.clone();
         }

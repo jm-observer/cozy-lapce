@@ -24,81 +24,84 @@ impl DocLines {
 
         let all_origin_lines = self.init_all_origin_line_new(&mut lines_delta)?;
         check_origin_lines(&all_origin_lines, self.buffer().len());
-        let all_origin_folded_lines =
-            self.init_all_origin_folded_line_new(&lines_delta, &all_origin_lines, line_ending)?;
+        let all_origin_folded_lines = self.init_all_origin_folded_line_new(
+            &lines_delta,
+            &all_origin_lines,
+            line_ending
+        )?;
         // 不再支持编辑器折叠（长度超过，则编辑器未换行下折叠）
         // {
-            // while let Some(line) = origin_line_iter.next() {
-            // for line in all_origin_folded_lines.iter() {
-                // duration += time.elapsed().unwrap();
-                // let text_layout = &line.text_layout;
-                // let origin_line_start = text_layout.phantom_text.line;
-                // let origin_line_end = text_layout.phantom_text.last_line;
-                // let origin_folded_line_index = line.line_index;
-                //
-                // let origin_interval = Interval {
-                //     start: self.buffer().offset_of_line(origin_line_start)?,
-                //     end:   self.buffer().offset_of_line(origin_line_end + 1)?
-                // };
-                // let mut visual_offset_start = 0;
-                // let mut visual_offset_end;
-            //     for (origin_folded_line_sub_index, layout) in
-            //         text_layout.text.line_layout().iter().enumerate()
-            //     {
-            //         if layout.glyphs.is_empty() {
-            //             self.visual_lines.push(VisualLine {
-            //                 line_index:                   visual_line_index,
-            //                 origin_interval:              Interval::new(
-            //                     origin_interval.end,
-            //                     origin_interval.end
-            //                 ),
-            //                 visual_interval:              Interval::new(
-            //                     visual_offset_start,
-            //                     visual_offset_start
-            //                 ),
-            //                 origin_line:                  origin_line_start,
-            //                 origin_folded_line:           origin_folded_line_index,
-            //                 origin_folded_line_sub_index: 0 /* text_layout:
-            //                                                  * text_layout.
-            //                                                  * clone(), */
-            //             });
-            //             continue;
-            //         }
-            //         visual_offset_end =
-            //             visual_offset_start + layout.glyphs.len() - 1;
-            //         let offset_info = text_layout
-            //             .phantom_text
-            //             .cursor_position_of_final_col(visual_offset_start);
-            //         let origin_interval_start =
-            //             self.buffer().offset_of_line(offset_info.0)? + offset_info.1;
-            //         let offset_info = text_layout
-            //             .phantom_text
-            //             .cursor_position_of_final_col(visual_offset_end);
-            //
-            //         let origin_interval_end =
-            //             self.buffer().offset_of_line(offset_info.0)? + offset_info.1;
-            //         let origin_interval = Interval {
-            //             start: origin_interval_start,
-            //             end:   origin_interval_end + 1
-            //         };
-            //
-            //         self.visual_lines.push(VisualLine {
-            //             line_index: visual_line_index,
-            //             origin_interval,
-            //             origin_line: origin_line_start,
-            //             origin_folded_line: origin_folded_line_index,
-            //             origin_folded_line_sub_index,
-            //             // text_layout: text_layout.clone(),
-            //             visual_interval: Interval::new(
-            //                 visual_offset_start,
-            //                 visual_offset_end + 1
-            //             )
-            //         });
-            //
-            //         visual_offset_start = visual_offset_end;
-            //         visual_line_index += 1;
-            //     }
-            // }
+        // while let Some(line) = origin_line_iter.next() {
+        // for line in all_origin_folded_lines.iter() {
+        // duration += time.elapsed().unwrap();
+        // let text_layout = &line.text_layout;
+        // let origin_line_start = text_layout.phantom_text.line;
+        // let origin_line_end = text_layout.phantom_text.last_line;
+        // let origin_folded_line_index = line.line_index;
+        //
+        // let origin_interval = Interval {
+        //     start: self.buffer().offset_of_line(origin_line_start)?,
+        //     end:   self.buffer().offset_of_line(origin_line_end + 1)?
+        // };
+        // let mut visual_offset_start = 0;
+        // let mut visual_offset_end;
+        //     for (origin_folded_line_sub_index, layout) in
+        //         text_layout.text.line_layout().iter().enumerate()
+        //     {
+        //         if layout.glyphs.is_empty() {
+        //             self.visual_lines.push(VisualLine {
+        //                 line_index:                   visual_line_index,
+        //                 origin_interval:              Interval::new(
+        //                     origin_interval.end,
+        //                     origin_interval.end
+        //                 ),
+        //                 visual_interval:              Interval::new(
+        //                     visual_offset_start,
+        //                     visual_offset_start
+        //                 ),
+        //                 origin_line:                  origin_line_start,
+        //                 origin_folded_line:           origin_folded_line_index,
+        //                 origin_folded_line_sub_index: 0 /* text_layout:
+        //                                                  * text_layout.
+        //                                                  * clone(), */
+        //             });
+        //             continue;
+        //         }
+        //         visual_offset_end =
+        //             visual_offset_start + layout.glyphs.len() - 1;
+        //         let offset_info = text_layout
+        //             .phantom_text
+        //             .cursor_position_of_final_col(visual_offset_start);
+        //         let origin_interval_start =
+        //             self.buffer().offset_of_line(offset_info.0)? + offset_info.1;
+        //         let offset_info = text_layout
+        //             .phantom_text
+        //             .cursor_position_of_final_col(visual_offset_end);
+        //
+        //         let origin_interval_end =
+        //             self.buffer().offset_of_line(offset_info.0)? + offset_info.1;
+        //         let origin_interval = Interval {
+        //             start: origin_interval_start,
+        //             end:   origin_interval_end + 1
+        //         };
+        //
+        //         self.visual_lines.push(VisualLine {
+        //             line_index: visual_line_index,
+        //             origin_interval,
+        //             origin_line: origin_line_start,
+        //             origin_folded_line: origin_folded_line_index,
+        //             origin_folded_line_sub_index,
+        //             // text_layout: text_layout.clone(),
+        //             visual_interval: Interval::new(
+        //                 visual_offset_start,
+        //                 visual_offset_end + 1
+        //             )
+        //         });
+        //
+        //         visual_offset_start = visual_offset_end;
+        //         visual_line_index += 1;
+        //     }
+        // }
         // }
 
         self.origin_lines = all_origin_lines;
@@ -124,7 +127,8 @@ impl DocLines {
             .config
             .enable_inlay_hints
             .then_some(())
-            .and(self.inlay_hints.as_ref()).map(|x| x.iter().peekable());
+            .and(self.inlay_hints.as_ref())
+            .map(|x| x.iter().peekable());
 
         if let CopyDelta::Copy {
             recompute_first_or_last_line: recompute_first_line,
@@ -134,7 +138,12 @@ impl DocLines {
         } = lines_delta.copy_line_start
         {
             if recompute_first_line {
-                let line = self.init_origin_line(0, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(0))?;
+                let line = self.init_origin_line(
+                    0,
+                    semantic_styles.as_mut(),
+                    inlay_hints.as_mut(),
+                    all_folded_ranges.filter_by_line(0)
+                )?;
                 origin_lines.push(line);
             }
             origin_lines.extend(self.copy_origin_line(
@@ -147,7 +156,12 @@ impl DocLines {
         let recompute_line_start = lines_delta.recompute_line_start;
 
         for x in recompute_line_start..=last_line {
-            let line = self.init_origin_line(x, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(x))?;
+            let line = self.init_origin_line(
+                x,
+                semantic_styles.as_mut(),
+                inlay_hints.as_mut(),
+                all_folded_ranges.filter_by_line(x)
+            )?;
             let end = line.start_offset + line.len;
             origin_lines.push(line);
             if end >= recompute_offset_end {
@@ -169,7 +183,12 @@ impl DocLines {
                 line_offset_new
             ));
             if *recompute_first_or_last_line {
-                origin_lines.push(self.init_origin_line(last_line, semantic_styles.as_mut(), inlay_hints.as_mut(), all_folded_ranges.filter_by_line(last_line))?);
+                origin_lines.push(self.init_origin_line(
+                    last_line,
+                    semantic_styles.as_mut(),
+                    inlay_hints.as_mut(),
+                    all_folded_ranges.filter_by_line(last_line)
+                )?);
             }
         }
         Ok(origin_lines)
@@ -224,9 +243,7 @@ impl DocLines {
             .line_height(LineHeightValue::Px(self.line_height as f32))
     }
 
-    pub fn init_default_attrs_list(
-        &self,
-    ) -> AttrsList {
+    pub fn init_default_attrs_list(&self) -> AttrsList {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
         let attrs = self.init_attrs_with_color(&family);
@@ -236,7 +253,8 @@ impl DocLines {
     pub fn init_all_origin_folded_line_new(
         &mut self,
         lines_delta: &OriginLinesDelta,
-        all_origin_lines: &[OriginLine], line_ending: &'static str
+        all_origin_lines: &[OriginLine],
+        line_ending: &'static str
     ) -> Result<Vec<OriginFoldedLine>> {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
@@ -268,7 +286,8 @@ impl DocLines {
                         x,
                         all_origin_lines,
                         attrs,
-                        origin_folded_lines.len(), line_ending
+                        origin_folded_lines.len(),
+                        line_ending
                     )?
                 };
                 x = line.origin_line_end + 1;
@@ -297,7 +316,8 @@ impl DocLines {
                     x,
                     all_origin_lines,
                     attrs,
-                    origin_folded_lines.len(), line_ending
+                    origin_folded_lines.len(),
+                    line_ending
                 )?
             };
             x = line.origin_line_end + 1;
@@ -311,10 +331,15 @@ impl DocLines {
         current_origin_line: usize,
         all_origin_lines: &[OriginLine],
         attrs: Attrs,
-        origin_folded_line_index: usize, line_ending: &'static str
+        origin_folded_line_index: usize,
+        line_ending: &'static str
     ) -> Result<OriginFoldedLine> {
-        let text_layout =
-            self.new_text_layout_2(current_origin_line, all_origin_lines, attrs, line_ending)?;
+        let text_layout = self.new_text_layout_2(
+            current_origin_line,
+            all_origin_lines,
+            attrs,
+            line_ending
+        )?;
         // duration += time.elapsed().unwrap();
         let origin_line_start = text_layout.phantom_text.line;
         let origin_line_end = text_layout.phantom_text.last_line;
@@ -329,7 +354,7 @@ impl DocLines {
             origin_line_start,
             origin_line_end,
             origin_interval,
-            text_layout,
+            text_layout
         })
     }
 

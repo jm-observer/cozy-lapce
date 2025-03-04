@@ -5,8 +5,9 @@ use std::{path::PathBuf, sync::atomic};
 use anyhow::Result;
 use doc::lines::{
     buffer::rope_text::RopeText,
-    cursor::{Cursor, CursorAffinity, CursorMode},
+    cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
     fold::{FoldingDisplayItem, FoldingDisplayType},
+    mode::Mode,
     selection::Selection,
     word::WordCursor
 };
@@ -17,8 +18,6 @@ use floem::{
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
-use doc::lines::cursor::ColPosition;
-use doc::lines::mode::Mode;
 mod tests;
 
 #[test]
@@ -38,4 +37,3 @@ fn test_all() -> Result<()> {
 
     Ok(())
 }
-
