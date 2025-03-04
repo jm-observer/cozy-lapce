@@ -4,7 +4,7 @@ use std::{
     ops::{Range},
     sync::{Arc, atomic, atomic::AtomicUsize}
 };
-
+use std::iter::Peekable;
 use anyhow::{Result, anyhow, bail};
 use floem::{
     context::StyleCx,
@@ -20,6 +20,7 @@ use lapce_xi_rope::{
     Interval, Rope, RopeDelta, Transformer,
     spans::{Spans, SpansBuilder}
 };
+use lapce_xi_rope::spans::SpanIter;
 use layout::{TextLayout, TextLayoutLine};
 use line::{OriginFoldedLine, VisualLine};
 use log::{debug, error, info, warn};
@@ -725,7 +726,7 @@ impl DocLines {
     //     Ok(())
     // }
 
-    fn init_origin_line(&self, current_line: usize) -> Result<OriginLine> {
+    fn init_origin_line(&self, current_line: usize, semantic_styles: Option<&mut Peekable<SpanIter<String>>>) -> Result<OriginLine> {
         let start_offset = self.buffer().offset_of_line(current_line)?;
         let end_offset = self.buffer().offset_of_line(current_line + 1)?;
         // let mut fg_styles = Vec::new();
@@ -739,8 +740,38 @@ impl DocLines {
         // ));
 
         let phantom_text = self.phantom_text(current_line)?;
-        let semantic_styles =
-            self.get_line_semantic_styles(current_line, start_offset, end_offset);
+        let semantic_styles = semantic_styles.map(|x| {
+            let mut styles = vec![];
+            loop {
+                if let Some((Interval { start, .. }, _)) = x.peek() {
+                    if end_offset <= *start {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+                if let Some((Interval { start, end }, fg_color)) = x.next() {
+                    if start_offset <= start && end < end_offset {
+                        let Some(color) = self.config.syntax_style_color(fg_color) else {
+                            continue
+                        };
+                        styles.push(NewLineStyle {
+                            origin_line: current_line,
+                            origin_line_offset_start: start - start_offset,
+                            len: end - start,
+                            start_of_buffer: start,
+                            end_of_buffer: end,
+                            fg_color: color,
+                            // folded_line_offset_start: start - line_start,
+                            // folded_line_offset_end: end - line_start
+                        });
+                    }
+                }
+            }
+            styles
+        }).unwrap_or_default();
+        // let semantic_styles =
+        //     self.get_line_semantic_styles(current_line, start_offset, end_offset);
         let diagnostic_styles = self.get_line_diagnostic_styles_2(
             current_line,
             start_offset,
@@ -756,49 +787,49 @@ impl DocLines {
         })
     }
 
-    fn get_line_semantic_styles(
-        &self,
-        origin_line: usize,
-        line_start: usize,
-        line_end: usize
-    ) -> Vec<NewLineStyle> {
-        self._get_line_semantic_styles(origin_line, line_start, line_end)
-            .unwrap_or_default()
-    }
-
-    fn _get_line_semantic_styles(
-        &self,
-        origin_line: usize,
-        line_start: usize,
-        line_end: usize
-    ) -> Option<Vec<NewLineStyle>> {
-        Some(
-            if self.style_from_lsp {
-                &self.semantic_styles.as_ref()?.1
-            } else {
-                self.syntax.styles.as_ref()?
-            }
-            .iter()
-            .filter_map(|(Interval { start, end }, fg_color)| {
-                if line_start <= start && end < line_end {
-                    let color = self.config.syntax_style_color(fg_color)?;
-                    Some(NewLineStyle {
-                        origin_line,
-                        origin_line_offset_start: start - line_start,
-                        len: end - start,
-                        start_of_buffer: start,
-                        end_of_buffer: end,
-                        fg_color: color,
-                        // folded_line_offset_start: start - line_start,
-                        // folded_line_offset_end: end - line_start
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect()
-        )
-    }
+    // fn get_line_semantic_styles(
+    //     &self,
+    //     origin_line: usize,
+    //     line_start: usize,
+    //     line_end: usize
+    // ) -> Vec<NewLineStyle> {
+    //     self._get_line_semantic_styles(origin_line, line_start, line_end)
+    //         .unwrap_or_default()
+    // }
+    //
+    // fn _get_line_semantic_styles(
+    //     &self,
+    //     origin_line: usize,
+    //     line_start: usize,
+    //     line_end: usize
+    // ) -> Option<Vec<NewLineStyle>> {
+    //     Some(
+    //         if self.style_from_lsp {
+    //             &self.semantic_styles.as_ref()?.1
+    //         } else {
+    //             self.syntax.styles.as_ref()?
+    //         }
+    //         .iter()
+    //         .filter_map(|(Interval { start, end }, fg_color)| {
+    //             if line_start <= start && end < line_end {
+    //                 let color = self.config.syntax_style_color(fg_color)?;
+    //                 Some(NewLineStyle {
+    //                     origin_line,
+    //                     origin_line_offset_start: start - line_start,
+    //                     len: end - start,
+    //                     start_of_buffer: start,
+    //                     end_of_buffer: end,
+    //                     fg_color: color,
+    //                     // folded_line_offset_start: start - line_start,
+    //                     // folded_line_offset_end: end - line_start
+    //                 })
+    //             } else {
+    //                 None
+    //             }
+    //         })
+    //         .collect()
+    //     )
+    // }
 
     pub fn max_width(&self) -> f64 {
         self.max_width

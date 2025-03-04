@@ -113,6 +113,13 @@ impl DocLines {
     ) -> Result<Vec<OriginLine>> {
         let mut origin_lines = Vec::with_capacity(self.buffer().num_lines());
         let last_line = self.buffer().last_line();
+
+        let mut semantic_styles = if self.style_from_lsp {
+            self.semantic_styles.as_ref().map(|x| x.1.iter().peekable())
+        } else {
+            self.syntax.styles.as_ref().map(|x| x.iter().peekable())
+        };
+
         if let CopyDelta::Copy {
             recompute_first_or_last_line: recompute_first_line,
             offset,
@@ -121,7 +128,7 @@ impl DocLines {
         } = lines_delta.copy_line_start
         {
             if recompute_first_line {
-                let line = self.init_origin_line(0)?;
+                let line = self.init_origin_line(0, semantic_styles.as_mut())?;
                 origin_lines.push(line);
             }
             origin_lines.extend(self.copy_origin_line(
@@ -134,7 +141,7 @@ impl DocLines {
         let recompute_line_start = lines_delta.recompute_line_start;
 
         for x in recompute_line_start..=last_line {
-            let line = self.init_origin_line(x)?;
+            let line = self.init_origin_line(x, semantic_styles.as_mut())?;
             let end = line.start_offset + line.len;
             origin_lines.push(line);
             if end >= recompute_offset_end {
@@ -156,7 +163,7 @@ impl DocLines {
                 line_offset_new
             ));
             if *recompute_first_or_last_line {
-                origin_lines.push(self.init_origin_line(last_line)?);
+                origin_lines.push(self.init_origin_line(last_line, semantic_styles.as_mut())?);
             }
         }
         Ok(origin_lines)
