@@ -160,7 +160,7 @@ pub struct OriginText {
     /// 合并后原始行文本的位置，不包含虚拟文本和被折叠行
     pub visual_merge_col: Interval,
     /// 合并后原始行文本的位置，包含被折叠行，但不包含虚拟文本
-    pub origin_merge_col: Interval,
+    origin_merge_col: Interval,
     /// Provided by calculate.Column index in final line.
     ///
     /// 在最终行文本的位置，包含虚拟文本
@@ -171,6 +171,24 @@ impl OriginText {
     /// 视觉偏移的原始偏移
     pub fn origin_col_of_final_col(&self, final_col: usize) -> usize {
         final_col - self.final_col.start + self.col.start
+    }
+
+    pub fn origin_merge_col_contains(&self, offset: usize, last_line: bool) -> bool {
+        if last_line {
+            self.origin_merge_col.start <= offset && offset <= self.origin_merge_col.end
+        } else {
+            self.origin_merge_col.contains(offset)
+        }
+    }
+
+    #[inline]
+    pub fn origin_merge_col_start(&self) -> usize {
+        self.origin_merge_col.start
+    }
+
+    #[inline]
+    pub fn origin_merge_col_end(&self) -> usize {
+        self.origin_merge_col.end
     }
 }
 
@@ -453,6 +471,7 @@ pub struct PhantomTextMultiLine {
     /// 原始文本的行号
     pub line:            usize,
     pub last_line:       usize,
+    pub is_last_line: bool,
     /// line行起点在文本中的偏移
     pub offset_of_line:  usize,
     // 所有合并在该行的原始行的总长度，中间被合并的行不在计算范围
@@ -471,12 +490,13 @@ pub struct PhantomTextMultiLine {
 }
 
 impl PhantomTextMultiLine {
-    pub fn new(line: PhantomTextLine) -> Self {
+    pub fn new(line: PhantomTextLine, is_last_line: bool) -> Self {
         // let len_of_line =
         //     vec![(line.line, line.origin_text_len, line.final_text_len)];
         Self {
             line:            line.line,
             last_line:       line.line,
+            is_last_line,
             offset_of_line:  line.offset_of_line,
             origin_text_len: line.origin_text_len,
             final_text_len:  line.final_text_len,
@@ -485,18 +505,7 @@ impl PhantomTextMultiLine {
         }
     }
 
-    pub fn merge(&mut self, line: PhantomTextLine) {
-        // let index = self.len_of_line.len();
-        // let last_len = self.len_of_line[index - 1];
-        // for _ in index..line.line - self.line {
-        //     self.len_of_line.push(last_len);
-        // }
-        // self.len_of_line.push((
-        //     line.line,
-        //     line.origin_text_len,
-        //     line.final_text_len
-        // ));
-
+    pub fn merge(&mut self, line: PhantomTextLine, is_last_line: bool) {
         // 注意被折叠的长度
         let visual_merge_offset = self.origin_text_len;
         let origin_merge_offset = line.offset_of_line - self.offset_of_line;
@@ -512,6 +521,7 @@ impl PhantomTextMultiLine {
             ));
         }
         self.last_line = line.line;
+        self.is_last_line = is_last_line;
         // self.lines.push(line);
     }
 
@@ -708,7 +718,7 @@ impl PhantomTextMultiLine {
                         }
                     },
                     Text::OriginText { text } => {
-                        if text.origin_merge_col.contains(origin_merge_col) {
+                        if text.origin_merge_col_contains(origin_merge_col, self.is_last_line) {
                             return true;
                         }
                     },
@@ -718,7 +728,7 @@ impl PhantomTextMultiLine {
                 }
                 false
             })
-            .ok_or(anyhow!("No merge col found"))
+            .ok_or(anyhow!("No merge col found {} {:?}", origin_merge_col, self))
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，

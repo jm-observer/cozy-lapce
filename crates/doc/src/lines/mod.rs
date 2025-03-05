@@ -1009,7 +1009,7 @@ impl DocLines {
                         if text.final_col.contains(visual_char_offset) {
                             return Ok((
                                 visual_char_offset - text.final_col.start
-                                    + text.origin_merge_col.start
+                                    + text.origin_merge_col_start()
                                     + info.origin_interval.start,
                                 true,
                                 CursorAffinity::Backward
@@ -1019,7 +1019,8 @@ impl DocLines {
                     Text::EmptyLine { .. } => unreachable!()
                 }
             }
-            unreachable!("path {:?}, point={:?}, index={}", self.path, point, hit_point.index);
+            error!("path {:?}, point={:?}, index={}", self.path, point, hit_point.index);
+            unreachable!();
         } else {
             let Some(text) = info.text().last() else {
                 unreachable!()
@@ -1621,7 +1622,7 @@ impl DocLines {
         line: usize,
         origins: &[OriginLine],
         attrs: Attrs,
-        line_ending: &'static str
+        line_ending: &'static str, last_line: usize,
     ) -> Result<TextLayoutLine> {
         let origin_line =
             origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
@@ -1635,7 +1636,7 @@ impl DocLines {
 
         let mut collapsed_line_col = origin_line.phantom.folded_line();
         let mut phantom_text =
-            PhantomTextMultiLine::new(origin_line.phantom.clone());
+            PhantomTextMultiLine::new(origin_line.phantom.clone(), line == last_line);
 
         let mut attrs_list = AttrsList::new(attrs);
         // let mut font_system = FONT_SYSTEM.lock();
@@ -1657,7 +1658,8 @@ impl DocLines {
             collapsed_line_col = next_phantom_text.folded_line();
             semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
             diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
-            phantom_text.merge(next_phantom_text);
+            let is_last_line= next_phantom_text.line == last_line;
+            phantom_text.merge(next_phantom_text, is_last_line);
         }
 
         let phantom_color = self.editor_style.phantom_color();
@@ -2211,7 +2213,7 @@ impl DocLines {
                                         break;
                                     } else {
                                         return Ok(Some((
-                                            text.origin_merge_col.start
+                                            text.origin_merge_col_start()
                                                 + folded_line.offset_of_line()
                                                 + 1,
                                             CursorAffinity::Backward
@@ -2228,9 +2230,9 @@ impl DocLines {
                     }
                 },
                 Text::OriginText { text } => {
-                    if text.origin_merge_col.contains(origin_merge_col) {
+                    if text.origin_merge_col_contains(origin_merge_col, folded_line.last_line) {
                         let final_col = text.final_col.start
-                            + (origin_merge_col - text.origin_merge_col.start);
+                            + (origin_merge_col - text.origin_merge_col_start());
                         if folded_line.is_last_char(final_col) {
                             // 换行
                             return Ok(Some((
@@ -2293,7 +2295,7 @@ impl DocLines {
                                     },
                                     Text::OriginText { text: previous } => {
                                         return Ok(Some((
-                                            previous.origin_merge_col.end
+                                            previous.origin_merge_col_end()
                                                 + folded_line.origin_interval.start
                                                 - 1,
                                             CursorAffinity::Backward
@@ -2319,8 +2321,8 @@ impl DocLines {
                     }
                 },
                 Text::OriginText { text: origin_text } => {
-                    if origin_text.origin_merge_col.contains(origin_merge_col) {
-                        if origin_merge_col <= origin_text.origin_merge_col.start + 1
+                    if origin_text.origin_merge_col_contains(origin_merge_col, folded_line.last_line) {
+                        if origin_merge_col <= origin_text.origin_merge_col_start() + 1
                         {
                             if let Some(previous_text) = previous_text.take() {
                                 //  if true {...} |else {...}
@@ -2337,11 +2339,11 @@ impl DocLines {
                                     }
                                 }
                             } else if origin_merge_col
-                                == origin_text.origin_merge_col.start + 1
+                                == origin_text.origin_merge_col_start() + 1
                             {
                                 //s|truct A;
                                 return Ok(Some((
-                                    origin_text.origin_merge_col.start
+                                    origin_text.origin_merge_col_start()
                                         + folded_line.origin_interval.start,
                                     CursorAffinity::Backward
                                 )));
@@ -2384,7 +2386,7 @@ impl DocLines {
             Text::OriginText { text } => {
                 let line_end = previous.len() - previous.len_without_rn();
                 Ok(Some((
-                    text.origin_merge_col.end + previous.origin_interval.start
+                    text.origin_merge_col_end() + previous.origin_interval.start
                         - line_end,
                     CursorAffinity::Backward
                 )))

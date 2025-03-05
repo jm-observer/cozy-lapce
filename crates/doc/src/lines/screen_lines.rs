@@ -240,8 +240,7 @@ impl ScreenLines {
         for visual_line in &self.visual_lines {
             if visual_line
                 .visual_line
-                .origin_interval
-                .contains(buffer_offset)
+                .contain_buffer_offset(buffer_offset)
             {
                 return Some(visual_line);
             } else if visual_line.visual_line.origin_interval.start == buffer_offset

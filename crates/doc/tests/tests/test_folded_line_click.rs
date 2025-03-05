@@ -61,15 +61,15 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         )?;
         assert_eq!(
             (offset_of_buffer, is_inside, affinity),
-            (145, false, CursorAffinity::Backward)
+            (143, false, CursorAffinity::Backward)
         );
 
         let (vl, final_offset) = screen_lines
             .cursor_info_of_buffer_offset(offset_of_buffer, affinity)
             .unwrap()
             .unwrap();
-        assert_eq!(vl.visual_line.line_index, 10);
-        assert_eq!(final_offset, 0);
+        assert_eq!(vl.visual_line.line_index, 9);
+        assert_eq!(final_offset, 9);
     }
     // (line_index=1 offset with \r\n [2..19))
     // new_offset=4 Backward (32.708343505859375, 30.089889526367188)
@@ -229,31 +229,70 @@ fn test_buffer_offset_of_click_3() -> Result<()> {
 
 pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     let mut lines = init_main_2()?;
+    
+    
 
     let items = init_main_folded_item_2()?;
-    for item in items {
-        lines.update_folding_ranges(item.into())?;
-    }
+    lines.update_folding_ranges(items.get(0).cloned().unwrap().into())?;
+    lines.update_folding_ranges(items.get(1).cloned().unwrap().into())?;
+    
+    lines.log();
+    // let screen_lines = lines
+    //     ._compute_screen_lines(Rect::from_origin_size(
+    //         (0.0, 0.0),
+    //         Size::new(300., 300.)
+    //     ))
+    //     .0;
     //  |    let a: A [] = A;
     {
         let point = Point::new(97.7, 49.0);
         let (offset_of_buffer, is_inside, affinity) =
             lines.buffer_offset_of_click(&CursorMode::Normal(0), point)?;
         assert_eq!(
-            lines.buffer().char_at_offset(offset_of_buffer).unwrap(),
-            ' '
-        );
-        assert_eq!(
             (offset_of_buffer, is_inside, affinity),
             (118, true, CursorAffinity::Forward)
         );
+        assert_eq!(
+            lines.buffer().char_at_offset(offset_of_buffer).unwrap(),
+            ' '
+        );
+        
     }
-    // {
-    //     //    if true {...} else {...}|
-    //     let point = Point::new(109.7, 30.0);
-    //     let rs =
-    //         lines.result_of_left_click(point)?;
-    //     assert_eq!(rs, ClickResult::);
-    // }
+    //below end of buffer
+    {
+        // single_click (142.70834350585938, 541.0898895263672) 461 false Backward
+        //last line: |
+        //           |...
+        //           |[ ]
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
+            &CursorMode::Normal(0),
+            Point::new(142.1, 541.1)
+        )?;
+        assert_eq!(
+            (offset_of_buffer, is_inside, affinity),
+            (461, false, CursorAffinity::Backward)
+        );
+        assert_eq!(
+            lines.buffer().char_at_offset(offset_of_buffer - 1).unwrap(),
+            '\n'
+        );
+    }
+    //after empty line
+    {
+        // single_click (243.70834350585938, 486.0898895263672) 461 false Backward
+        //last line: |      [ ]
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
+            &CursorMode::Normal(0),
+            Point::new(248.1, 486.1)
+        )?;
+        assert_eq!(
+            (offset_of_buffer, is_inside, affinity),
+            (461, false, CursorAffinity::Backward)
+        );
+        assert_eq!(
+            lines.buffer().char_at_offset(offset_of_buffer - 1).unwrap(),
+            '\n'
+        );
+    }
     Ok(())
 }

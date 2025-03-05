@@ -287,7 +287,7 @@ impl DocLines {
                         all_origin_lines,
                         attrs,
                         origin_folded_lines.len(),
-                        line_ending
+                        line_ending, last_line
                     )?
                 };
                 x = line.origin_line_end + 1;
@@ -317,7 +317,7 @@ impl DocLines {
                     all_origin_lines,
                     attrs,
                     origin_folded_lines.len(),
-                    line_ending
+                    line_ending, last_line
                 )?
             };
             x = line.origin_line_end + 1;
@@ -332,29 +332,32 @@ impl DocLines {
         all_origin_lines: &[OriginLine],
         attrs: Attrs,
         origin_folded_line_index: usize,
-        line_ending: &'static str
+        line_ending: &'static str,
+        last_line: usize
     ) -> Result<OriginFoldedLine> {
         let text_layout = self.new_text_layout_2(
             current_origin_line,
             all_origin_lines,
             attrs,
-            line_ending
+            line_ending, last_line
         )?;
         // duration += time.elapsed().unwrap();
         let origin_line_start = text_layout.phantom_text.line;
         let origin_line_end = text_layout.phantom_text.last_line;
-
+        
         let origin_interval = Interval {
             start: self.buffer().offset_of_line(origin_line_start)?,
             end:   self.buffer().offset_of_line(origin_line_end + 1)?
         };
+        
+        let last_line = origin_line_start <= last_line && last_line <= origin_line_end;
 
         Ok(OriginFoldedLine {
             line_index: origin_folded_line_index,
             origin_line_start,
             origin_line_end,
             origin_interval,
-            text_layout
+            text_layout, last_line
         })
     }
 

@@ -91,6 +91,7 @@ pub struct OriginFoldedLine {
     // [origin_line_start...origin_line_end]
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
+    pub last_line: bool,
     text_layout:           TextLayoutLine
 }
 
@@ -291,7 +292,7 @@ impl OriginFoldedLine {
                 let max_origin_merge_col = self.origin_interval.size()
                     - (self.len() - self.len_without_rn());
                 let merge_col = (final_col - text.final_col.start
-                    + text.origin_merge_col.start)
+                    + text.origin_merge_col_start())
                     .min(max_origin_merge_col);
                 (
                     // text.line,
@@ -376,6 +377,15 @@ impl OriginFoldedLine {
 
     pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {
         &self.text_layout.whitespaces
+    }
+    
+    #[inline]
+    pub fn contain_buffer_offset(&self, buffer_offset: usize) -> bool {
+        if self.last_line {
+            self.origin_interval.start <= buffer_offset
+        } else {
+            self.origin_interval.contains(buffer_offset)
+        }
     }
 }
 
