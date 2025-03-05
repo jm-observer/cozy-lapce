@@ -3011,6 +3011,9 @@ impl PubUpdateLines {
                 let rs = self.buffer_mut().reload(content, set_pristine);
                 debug!("buffer_edit Reload {:?} {:?}", rs.1, rs.2);
                 self.apply_delta(&rs.1)?;
+                self.inlay_hints = None;
+                self.folding_ranges.0.clear();
+                self.semantic_styles = None;
                 // line_delta = self._compute_change_lines_one(&rs)?;
                 response.push(rs);
             },
