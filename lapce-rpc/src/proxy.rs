@@ -48,7 +48,7 @@ pub enum ProxyStatus {
     Disconnected
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct SearchMatch {
     pub line:         usize,
     pub start:        usize,
