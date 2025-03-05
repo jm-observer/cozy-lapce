@@ -1006,7 +1006,8 @@ impl DocLines {
                         }
                     },
                     Text::OriginText { text } => {
-                        if text.final_col.contains(visual_char_offset) {
+                        if text.final_col.contains(visual_char_offset)
+                            || info.last_line && text.final_col.end == visual_char_offset {
                             return Ok((
                                 visual_char_offset - text.final_col.start
                                     + text.origin_merge_col_start()

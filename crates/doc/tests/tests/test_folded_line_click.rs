@@ -157,6 +157,15 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(vl.visual_line.line_index, 7);
         assert_eq!(final_offset, 18);
     }
+    {
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
+            &CursorMode::Normal(0),
+            Point::new(67.7, 183.0)
+        )?;
+        assert_eq!(offset_of_buffer, 143);
+        assert_eq!(is_inside, true);
+        assert_eq!(affinity, CursorAffinity::Backward);
+    }
     lines._log_folded_lines();
     Ok(())
 }
