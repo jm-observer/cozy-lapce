@@ -3003,11 +3003,6 @@ fn window_message_view(
                 )
                 .style(|s| s.margin_left(6.0))
             ))
-            .on_double_click_stop(move |_| {
-                messages.update(|messages| {
-                    messages.remove(i);
-                });
-            })
             .on_secondary_click_stop({
                 let message = message.message.clone();
                 move |_| {
@@ -3017,7 +3012,19 @@ fn window_message_view(
                     }
                 }
             })
-            .on_event_stop(EventListener::PointerDown, |_| {})
+            .on_event_stop(EventListener::PointerDown, move |event: &Event| {
+                if let Event::PointerDown(pointer) = event {
+                    if pointer.count == 2 {
+                        messages.update(|messages| {
+                            messages.remove(i);
+                        });
+                    } else if pointer.count > 3 {
+                        messages.update(|messages| {
+                            messages.clear()
+                        });
+                    }
+                }
+            })
             .style(move |s| {
                 let (caret_color, bg) = config.with(|config| {
                     (
