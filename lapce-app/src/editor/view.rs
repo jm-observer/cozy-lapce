@@ -1896,7 +1896,7 @@ fn editor_content(
             //     "ensure_visible offset={offset}
             // offset_line_from_top={offset_line_from_top:?} {:?} empty",
             // cursor.affinity );
-            return Rect::ZERO;
+            return current_scroll.get_untracked();
         };
         // log::info!(
         //         "ensure_visible offset={offset}
