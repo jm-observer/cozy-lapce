@@ -1,9 +1,5 @@
 use std::{
-    borrow::Cow,
-    fmt::{Debug, Formatter},
-    iter::Peekable,
-    ops::Range,
-    sync::{Arc, atomic, atomic::AtomicUsize}
+    borrow::Cow, fmt::{Debug, Formatter}, iter::Peekable, ops::Range, path::PathBuf, sync::{atomic::{self, AtomicUsize}, Arc}
 };
 
 use anyhow::{Result, anyhow, bail};
@@ -120,7 +116,7 @@ impl DocLinesManager {
         editor_style: EditorStyle,
         config: EditorConfig,
         buffer: Buffer,
-        kind: RwSignal<EditorViewKind>
+        kind: RwSignal<EditorViewKind>, path: Option<PathBuf>
     ) -> Result<Self> {
         Ok(Self {
             lines: cx.create_rw_signal(DocLines::new(
@@ -132,7 +128,7 @@ impl DocLinesManager {
                 editor_style,
                 config,
                 buffer,
-                kind
+                kind, path
             )?)
         })
     }
@@ -205,7 +201,8 @@ pub struct DocLines {
     pub(crate) signals:    Signals,
     style_from_lsp:        bool,
     // folding_items: Vec<FoldingDisplayItem>,
-    pub line_height:       usize // pub screen_lines: ScreenLines,
+    pub line_height:       usize, // pub screen_lines: ScreenLines,
+    path: Option<PathBuf>
 }
 
 impl DocLines {
@@ -219,7 +216,7 @@ impl DocLines {
         editor_style: EditorStyle,
         config: EditorConfig,
         buffer: Buffer,
-        kind: RwSignal<EditorViewKind>
+        kind: RwSignal<EditorViewKind>, path: Option<PathBuf>
     ) -> Result<Self> {
         let last_line = buffer.last_line() + 1;
         let signals = Signals::new(cx, &editor_style, buffer, (last_line, 0.0));
@@ -227,6 +224,7 @@ impl DocLines {
         // log::info!("{}", serde_json::to_string(&config).unwrap());
 
         let mut lines = Self {
+            path,
             signals,
             // layout_event: Listener::new_empty(cx), //
             // font_size_cache_id: id,
@@ -1021,7 +1019,7 @@ impl DocLines {
                     Text::EmptyLine { .. } => unreachable!()
                 }
             }
-            unreachable!()
+            unreachable!("path {:?}, point={:?}, index={}", self.path, point, hit_point.index);
         } else {
             let Some(text) = info.text().last() else {
                 unreachable!()

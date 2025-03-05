@@ -246,7 +246,7 @@ async fn handle_load_icon(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/icon?id={}",
         volt.author, volt.name, volt.version, volt.updated_at_ts
     );
-
+    log::info!("{url}");
     let cache_file_path = cache_directory.map(|cache_dir| {
         let mut hasher = Sha256::new();
         hasher.update(url.as_bytes());

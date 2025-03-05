@@ -168,7 +168,7 @@ impl Doc {
             editor_style,
             rw_config,
             buffer,
-            kind
+            kind, Some(path.clone())
         )
         .unwrap();
         let config = common.config;
@@ -264,7 +264,7 @@ impl Doc {
             editor_style,
             rw_config,
             buffer,
-            kind
+            kind, None
         )
         .unwrap();
         let config = common.config;
@@ -350,7 +350,8 @@ impl Doc {
             editor_style,
             rw_config,
             buffer,
-            kind
+            kind, 
+            None
         )
         .unwrap();
         let config = common.config;

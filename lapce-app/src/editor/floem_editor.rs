@@ -1463,10 +1463,10 @@ fn paint_normal_selection(
         start_affinity,
         end_affinity
     )?;
-    log::info!(
-        "normal_selection {start_offset}-{end_offset} \
-         {start_affinity:?}-{end_affinity:?} {rs:?}"
-    );
+    // log::info!(
+    //     "normal_selection {start_offset}-{end_offset} \
+    //      {start_affinity:?}-{end_affinity:?} {rs:?}"
+    // );
     for rect in rs {
         cx.fill(&rect, color, 0.0);
     }

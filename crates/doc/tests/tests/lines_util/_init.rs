@@ -219,7 +219,7 @@ fn _init_lines(
         editor_style,
         config.clone(),
         buffer,
-        kind
+        kind, None
     )?;
     lines.update_folding_ranges(folding.into())?;
     if let Some(hints) = hints {
