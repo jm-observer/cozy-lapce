@@ -346,8 +346,8 @@ impl PluginData {
         let query_id = self.available.query_id;
         let current_query_id = self.available.query_id.get_untracked();
         let all = self.all;
-        let local_task = self.common.local_task.clone();
-        let core_rpc_clone = core_rpc.clone();
+        // let local_task = self.common.local_task.clone();
+        // let core_rpc_clone = core_rpc.clone();
         let send = create_ext_action(self.common.scope, move |new: VoltsInfo| {
             loading.set(false);
             if query_id.get_untracked() != current_query_id {
@@ -355,34 +355,34 @@ impl PluginData {
             }
             let plugins = new.plugins.into_iter().map(|volt| {
                 let icon_signal = cx.create_rw_signal(None);
-                let send = create_ext_action(cx, move |icon| {
-                    icon_signal.set(Some(icon));
-                });
-                {
-                    let info = volt.clone();
-                    let core_rpc = core_rpc_clone.clone();
-                    local_task.request_async(
-                        LocalRequest::LoadIcon { info },
-                        move |(_id, rs)| match rs {
-                            Ok(response) => {
-                                if let LocalResponse::LoadIcon { icon } = response {
-                                    send(icon);
-                                }
-                            },
-                            Err(err) => {
-                                core_rpc.notification(
-                                    CoreNotification::ShowMessage {
-                                        title:   "Load Plugin Icon".to_string(),
-                                        message: lsp_types::ShowMessageParams {
-                                            typ:     MessageType::ERROR,
-                                            message: err.to_string()
-                                        }
-                                    }
-                                );
-                            }
-                        }
-                    );
-                }
+                // let send = create_ext_action(cx, move |icon| {
+                //     icon_signal.set(Some(icon));
+                // });
+                // {
+                //     let info = volt.clone();
+                //     let core_rpc = core_rpc_clone.clone();
+                //     local_task.request_async(
+                //         LocalRequest::LoadIcon { info },
+                //         move |(_id, rs)| match rs {
+                //             Ok(response) => {
+                //                 if let LocalResponse::LoadIcon { icon } = response {
+                //                     send(icon);
+                //                 }
+                //             },
+                //             Err(err) => {
+                //                 core_rpc.notification(
+                //                     CoreNotification::ShowMessage {
+                //                         title:   "Load Plugin Icon".to_string(),
+                //                         message: lsp_types::ShowMessageParams {
+                //                             typ:     MessageType::ERROR,
+                //                             message: err.to_string()
+                //                         }
+                //                     }
+                //                 );
+                //             }
+                //         }
+                //     );
+                // }
 
                 let data = AvailableVoltData {
                     info:       cx.create_rw_signal(volt.clone()),
