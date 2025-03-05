@@ -1,6 +1,6 @@
 use floem::{
     View,
-    event::EventListener,
+    event::{Event, EventListener, EventPropagation},
     reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
@@ -44,7 +44,15 @@ pub fn global_search_panel(
     stack((
         container(
             stack((
-                text_input(global_search.search_str).style(|s| s.width_pct(100.0)),
+                text_input(global_search.search_str)
+                    .style(|s| s.width_pct(100.0))
+                    .on_event(EventListener::KeyDown, move |event| {
+                        if let Event::KeyDown(_key_event) = event {
+                            EventPropagation::Stop
+                        } else {
+                            EventPropagation::Continue
+                        }
+                    }),
                 clickable_icon(
                     || LapceIcons::SEARCH_CASE_SENSITIVE,
                     move || {
