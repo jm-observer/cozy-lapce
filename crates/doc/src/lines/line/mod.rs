@@ -387,6 +387,10 @@ impl OriginFoldedLine {
             self.origin_interval.contains(buffer_offset)
         }
     }
+
+    pub fn init_layout(&self) {
+        self.text_layout.text.borrow_mut().init_line();
+    }
 }
 
 impl Debug for OriginFoldedLine {

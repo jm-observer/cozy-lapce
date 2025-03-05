@@ -31,16 +31,10 @@ pub fn compute_screen_lines(
     match view_kind {
         EditorViewKind::Normal => {
             let mut visual_lines = Vec::new();
-
-            // let vline_infos = self.visual_lines(min_val, max_val);
-
             for visual_line in vline_infos {
                 let folded_line_y = visual_line.line_index * line_height;
-                // let folded_line_y = visual_line_y
-                //     - visual_line.origin_folded_line_sub_index * line_height;
                 let visual_line_info = VisualLineInfo {
                     folded_line_y: folded_line_y as f64 - y0,
-                    // visual_line_y: visual_line_y as f64 - y0,
                     base,
                     visual_line
                 };

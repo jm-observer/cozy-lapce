@@ -1293,13 +1293,20 @@ impl DocLines {
         Ok(Some((offset_of_folded, last_char, folded_line)))
     }
 
-    pub fn visual_lines(&self, start: usize, end: usize) -> Vec<OriginFoldedLine> {
+    pub fn visual_lines(&mut self, start: usize, end: usize) -> Vec<OriginFoldedLine> {
         let start = start.min(self.origin_folded_lines.len() - 1);
         let end = end.min(self.origin_folded_lines.len() - 1);
 
         let mut vline_infos = Vec::with_capacity(end - start + 1);
         for index in start..=end {
-            vline_infos.push(self.origin_folded_lines[index].clone());
+            let line = &mut self.origin_folded_lines[index];
+            line.init_layout();
+            line.extra_style();
+            let size_width = line.size_width().width;
+            if size_width > self.max_width {
+                self.max_width = size_width;
+            }
+            vline_infos.push(line.clone());
         }
         vline_infos
     }

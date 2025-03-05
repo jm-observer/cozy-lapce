@@ -477,7 +477,7 @@ impl TextLayout {
         self.init
     }
 
-    fn init_line(&mut self) {
+    pub fn init_line(&mut self) {
         if !self.init {
             let mut font_system = FONT_SYSTEM.lock();
             self.shape_until_scroll(&mut font_system, false);
