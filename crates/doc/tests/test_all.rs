@@ -18,6 +18,8 @@ use floem::{
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
+use crate::tests::test_folded_line_click::_test_main_3_buffer_offset_of_click;
+
 mod tests;
 
 #[test]
@@ -26,6 +28,7 @@ fn test_all() -> Result<()> {
     tests::test_folded_line_click::_test_buffer_offset_of_click()?;
     tests::test_folded_line_click::_test_buffer_offset_of_click_2()?;
     tests::test_folded_line_click::_test_buffer_offset_of_click_3()?;
+    tests::test_folded_line_click::_test_main_3_buffer_offset_of_click()?;
 
     tests::test_line::test_folded()?;
 

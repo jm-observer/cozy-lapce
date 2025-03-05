@@ -1083,6 +1083,9 @@ impl DocLines {
         //     .unwrap_or(0.0);
         point.y = 0.0;
         let hit_point = info.hit_point(point);
+        if !hit_point.is_inside {
+            return Ok(ClickResult::NoHintOrNothing);
+        }
         Ok(
             if let Text::Phantom { text: phantom } =
                 info.text_of_final_col(hit_point.index)
@@ -3295,9 +3298,9 @@ impl PubUpdateLines {
     }
 
     pub fn update_folding_ranges(&mut self, action: UpdateFolding) -> Result<()> {
+        log::info!("{}", serde_json::to_string(&action).unwrap());
         match action {
             UpdateFolding::UpdateByItem(item) => {
-                // log::info!("{}", serde_json::to_string(&item).unwrap());
                 self.folding_ranges.update_folding_item(item);
             },
             UpdateFolding::New(ranges) => {

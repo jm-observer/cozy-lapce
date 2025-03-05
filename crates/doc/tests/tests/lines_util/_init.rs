@@ -33,13 +33,12 @@ use lsp_types::{Diagnostic, InlayHint, Position};
 use super::init_semantic_2;
 
 fn _init_lsp_folding_range() -> Vec<FoldingRange> {
-    let folding_range = r#"[{"startLine":0,"startCharacter":10,"endLine":7,"endCharacter":1},{"startLine":1,"startCharacter":12,"endLine":3,"endCharacter":5},{"startLine":3,"startCharacter":11,"endLine":5,"endCharacter":5}]"#;
-    let folding_range: Vec<lsp_types::FoldingRange> =
+    let folding_range = r#"[{"start":{"line":1,"character":14},"end":{"line":8,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":2,"character":12},"end":{"line":4,"character":5},"status":"Unfold","collapsed_text":null},{"start":{"line":4,"character":11},"end":{"line":6,"character":5},"status":"Unfold","collapsed_text":null}]"#;
+    let folding_range: Vec<FoldingRange> =
         serde_json::from_str(folding_range).unwrap();
 
     folding_range
         .into_iter()
-        .map(FoldingRange::from_lsp)
         .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
         .collect()
 }
@@ -52,6 +51,17 @@ fn _init_lsp_folding_range_2() -> Vec<FoldingRange> {
     folding_range
         .into_iter()
         .map(FoldingRange::from_lsp)
+        .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
+        .collect()
+}
+
+fn _init_lsp_folding_range_3() -> Vec<FoldingRange> {
+    let folding_range = r#"[{"start":{"line":0,"character":14},"end":{"line":6,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":1,"character":12},"end":{"line":3,"character":5},"status":"Unfold","collapsed_text":null},{"start":{"line":3,"character":11},"end":{"line":5,"character":5},"status":"Unfold","collapsed_text":null}]"#;
+    let folding_range: Vec<FoldingRange> =
+        serde_json::from_str(folding_range).unwrap();
+
+    folding_range
+        .into_iter()
         .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
         .collect()
 }
@@ -114,6 +124,15 @@ pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
         )?,
         serde_json::from_str(
             r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#
+        )?,
+    ])
+}
+
+/// just for init_main_2()
+pub fn init_main_folded_item_3() -> Result<Vec<FoldingDisplayItem>> {
+    Ok(vec![
+        serde_json::from_str(
+            r#"{"position":{"line":0,"character":14},"y":0,"ty":"UnfoldStart"}"#
         )?,
     ])
 }
@@ -247,7 +266,6 @@ fn init_diag_2() -> im::Vector<Diagnostic> {
 }
 
 pub fn init_main_2() -> Result<DocLines> {
-    custom_utils::logger::logger_stdout_debug();
     let file: PathBuf = "../../resources/test_code/main_2.rs".into();
 
     let folding = _init_lsp_folding_range_2();
@@ -275,12 +293,20 @@ pub fn init_main_2() -> Result<DocLines> {
 }
 
 pub fn init_main() -> Result<DocLines> {
-    custom_utils::logger::logger_stdout_debug();
     let file: PathBuf = "../../resources/test_code/main.rs".into();
     let rs = _init_code(file);
     let hints = r#"[{"position":{"line":7,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/main.rs","range":{"start":{"line":9,"character":7},"end":{"line":9,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":7,"character":9},"end":{"line":7,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
     let hints = _init_inlay_hint(&rs.1, hints)?;
-    let (lines, _) = _init_lines(None, rs, vec![], Some(hints))?;
+    let folding = _init_lsp_folding_range();
+    let (lines, _) = _init_lines(None, rs, folding, Some(hints))?;
+    Ok(lines)
+}
+
+pub fn init_main_3() -> Result<DocLines> {
+    let file: PathBuf = "../../resources/test_code/main_3.rs".into();
+    let rs = _init_code(file);
+    let folding = _init_lsp_folding_range_3();
+    let (lines, _) = _init_lines(None, rs, folding, None)?;
     Ok(lines)
 }
 

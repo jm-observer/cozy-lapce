@@ -21,10 +21,7 @@ use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::{debug, info};
 use lsp_types::Position;
 
-use crate::tests::lines_util::{
-    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_main_folded_item_2, init_semantic_2
-};
+use crate::tests::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2};
 
 #[test]
 fn test_all() -> Result<()> {
@@ -302,6 +299,29 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
             lines.buffer().char_at_offset(offset_of_buffer - 1).unwrap(),
             '\n'
         );
+    }
+    Ok(())
+}
+
+#[test]
+pub fn test_main_3_buffer_offset_of_click() -> Result<()> {
+    custom_utils::logger::logger_stdout_debug();
+    _test_main_3_buffer_offset_of_click()?;
+    Ok(())
+}
+pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
+    let mut lines = init_main_3()?;
+
+    let items = init_main_folded_item_3()?;
+    lines.update_folding_ranges(items.get(0).cloned().unwrap().into())?;
+    lines.log();
+
+    {
+        // (265.2420196533203, 14.089889526367188) 113 false Forward
+        // pub fn main() {...}|
+        let point = Point::new(265.7, 14.0);
+        let rs = lines.result_of_left_click(point)?;
+        assert_eq!(rs, ClickResult::NoHintOrNothing);
     }
     Ok(())
 }
