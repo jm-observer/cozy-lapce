@@ -1032,7 +1032,7 @@ impl View for EditorView {
         );
         // let screen_lines = ed.screen_lines.get_untracked();
         if let Err(err) = self.paint_find(cx, &screen_lines, editor_fg) {
-            error!("{err:?}");
+            error!("{err}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();
         if let Err(err) = self.paint_bracket_highlights_scope_lines(
@@ -1043,7 +1043,7 @@ impl View for EditorView {
             &screen_lines,
             bracket_offsets
         ) {
-            error!("{err:?}");
+            error!("{err}");
         }
         // let screen_lines = ed.screen_lines.get_untracked();
         // , cursor: RwSignal<Cursor>, lines: DocLinesManager
@@ -1066,7 +1066,7 @@ impl View for EditorView {
             cursor_points,
             line_height as f64
         ) {
-            error!("{err:?}");
+            error!("{err}");
         }
 
         if let Some(start_vline) = start_vline {
@@ -1080,7 +1080,7 @@ impl View for EditorView {
                 line_height,
                 start_vline
             ) {
-                error!("{err:?}");
+                error!("{err}");
             }
         }
 
@@ -1964,8 +1964,9 @@ fn search_editor_view(
     // let focus_trace = common.scope.create_trigger();
 
     let find_view = text_input(find_str)
-        .keyboard_navigable()
-        .style(|s| s.width_pct(100.0));
+        .keyboard_navigable().on_event_stop(EventListener::KeyDown, move |_event| {
+    })
+        .style(|s| s.width_pct(100.0)).debug_name("find_view_input");
 
     find_view_id.set(Some(find_view.id()));
 

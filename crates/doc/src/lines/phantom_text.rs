@@ -6,7 +6,7 @@ use floem::{
     text::{Attrs, AttrsList}
 };
 use lapce_xi_rope::Interval;
-use log::{info, warn};
+use log::{error, info, warn};
 use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -129,8 +129,8 @@ impl PhantomText {
     }
 
     pub fn next_origin_merge_col(&self) -> usize {
-        if let PhantomTextKind::LineFoldedRang { len, .. } = self.kind {
-            self.origin_merge_col + len
+        if let PhantomTextKind::LineFoldedRang { all_len, .. } = self.kind {
+            self.origin_merge_col + all_len
         } else {
             self.origin_merge_col
         }
@@ -299,8 +299,10 @@ pub enum PhantomTextKind {
     // 行内折叠。跨行折叠也都转换成行内折叠。跨行折叠会转成2个PhantomText
     LineFoldedRang {
         next_line:      Option<usize>,
-        // 被折叠的长度
+        // 本行被折叠的长度
         len:            usize,
+        // 包括其他折叠行的长度
+        all_len: usize,
         start_position: Position
     }
 }
@@ -410,8 +412,8 @@ impl PhantomTextLine {
             texts.push(phantom.into());
         }
 
-        let len = origin_text_len - origin_merge_col_last_end;
-        if len > 0 {
+        if origin_text_len > origin_merge_col_last_end {
+            let len = origin_text_len - origin_merge_col_last_end;
             texts.push(
                 OriginText {
                     line,
