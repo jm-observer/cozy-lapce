@@ -1262,7 +1262,8 @@ pub fn editor_container_view(
                 common,
                 find_str,
                 find_view_id,
-                replace_str
+                replace_str,
+                window_tab_data
             )
             .debug_name("find view")
         ))
@@ -1952,7 +1953,8 @@ fn search_editor_view(
     // replace_focus: RwSignal<bool>,
     common: Rc<CommonData>,
     find_str: RwSignal<String>,
-    find_view_id: RwSignal<Option<ViewId>>
+    find_view_id: RwSignal<Option<ViewId>>,
+    window_tab_data: WindowWorkspaceData,
 ) -> impl View {
     let config = common.config;
 
@@ -1964,8 +1966,12 @@ fn search_editor_view(
     // let focus_trace = common.scope.create_trigger();
 
     let find_view = text_input(find_str)
-        .keyboard_navigable().on_event_stop(EventListener::KeyDown, move |_event| {
-    })
+        .keyboard_navigable()
+        .on_event_stop(EventListener::KeyDown, move |event| {
+            if let Event::KeyDown(_key_event) = event {
+                window_tab_data.key_down(_key_event);
+            }
+        })
         .style(|s| s.width_pct(100.0)).debug_name("find_view_input");
 
     find_view_id.set(Some(find_view.id()));
@@ -2089,7 +2095,8 @@ fn find_view(
     common: Rc<CommonData>,
     find_str: RwSignal<String>,
     find_view_id: RwSignal<Option<ViewId>>,
-    replace_str: RwSignal<String>
+    replace_str: RwSignal<String>,
+    window_tab_data: WindowWorkspaceData,
 ) -> impl View {
     // let common = find_editor.common.clone();
     let config = common.config;
@@ -2135,7 +2142,7 @@ fn find_view(
                     config
                 )
                 .style(|s| s.padding_horiz(6.0)),
-                search_editor_view(common.clone(), find_str, find_view_id),
+                search_editor_view(common.clone(), find_str, find_view_id, window_tab_data),
                 label(move || {
                     let (current, all) = find_pos.get();
                     if all == 0 {

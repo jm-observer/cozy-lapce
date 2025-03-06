@@ -6,7 +6,7 @@ use floem::{
     text::{Attrs, AttrsList}
 };
 use lapce_xi_rope::Interval;
-use log::{error, info, warn};
+use log::{info, warn};
 use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
