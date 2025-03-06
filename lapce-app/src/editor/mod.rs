@@ -3648,7 +3648,7 @@ impl KeyPressFocus for EditorData {
                 let next_is_whitespace = doc.lines.with_untracked(|x|
                     x.buffer().char_at_offset(offset).map(|x| {
                     // log::info!("receive_char offset_c={x}");
-                    x.is_whitespace() || x.is_ascii_whitespace()
+                    x.is_whitespace() || x.is_ascii_punctuation()
                 })).unwrap_or(true);
                 let deltas = doc.do_insert(&mut cursor, c);
                 self.cursor().set(cursor);
@@ -3748,7 +3748,7 @@ fn show_completion(
             };
 
             if start > 0 && end > start {
-                let next_char = doc.slice_to_cow(end..end+1).chars().all(|c| c.is_whitespace() || c.is_ascii_whitespace());
+                let next_char = doc.slice_to_cow(end..end+1).chars().all(|c| c.is_whitespace() || c.is_ascii_punctuation());
                 let str = doc.slice_to_cow(start..end);
                 // log::info!("{next_char} {str}");
                 !str
