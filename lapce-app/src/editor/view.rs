@@ -291,6 +291,7 @@ pub fn editor_view(
                     let pos = window_origin
                         + (point_below.x - viewport.x0, point_below.y - viewport.y0);
                     set_ime_cursor_area(pos, Size::new(800.0, 600.0));
+                    // log::info!("set_ime_cursor_area offset={offset} window_origin={window_origin:?} viewport={viewport:?} point_below={point_below:?} pos={pos:?}",);
                 }
             }
         }
@@ -315,6 +316,7 @@ pub fn editor_view(
             if text.is_empty() {
                 ed2.clear_preedit();
             } else {
+                // log::info!("Event::ImePreedit set_ime_cursor_area {text} cursor: {cursor:?}");
                 let offset = editor_cursor.with_untracked(|c| c.offset());
                 ed2.set_preedit(text.clone(), *cursor, offset);
             }

@@ -957,20 +957,24 @@ impl DocLines {
     // }
 
     /// the buffer offset at the click position
-    #[allow(unused_assignments)]
     pub fn buffer_offset_of_click(
         &self,
         _mode: &CursorMode,
         point: Point
     ) -> Result<(usize, bool, CursorAffinity)> {
         let mut is_inside = true;
-        let info = self.origin_folded_line_of_point(point.y).unwrap_or({
+        let info = match self.origin_folded_line_of_point(point.y){
+            None => {
                 is_inside = false;
                 self.origin_folded_lines
                     .last()
                     .ok_or(anyhow!("origin_folded_lines last line is empty"))?
             }
-        );
+            Some(rs) => {
+                rs
+            }
+        }
+        ;
         let hit_point = info.hit_point(Point::new(point.x, 0.0));
         let visual_char_offset = hit_point.index;
 
