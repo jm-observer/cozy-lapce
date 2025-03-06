@@ -31,7 +31,7 @@ use crate::{
     terminal::{event::TermEvent, raw::RawTerminal},
     window_workspace::{CommonData, Focus}
 };
-
+use anyhow::Result;
 pub struct TerminalTabInfo {
     pub active: Option<TerminalTabId>,
     pub tabs:   im::Vector<TerminalTabData>
@@ -484,10 +484,14 @@ impl TerminalPanelData {
         let (terminal_tab, terminal) = self.get_terminal_in_tab(&term_id)?;
         let mut run_debug = terminal.run_debug.get_untracked()?;
         if run_debug.config.config_source.from_palette() {
-            if let Some(new_config) =
-                self.get_run_config_by_name(&run_debug.config.name)
-            {
-                run_debug.config = new_config;
+            match self.get_run_config_by_name(&run_debug.config.name) {
+                Ok(Some(new_config)) => {
+                    run_debug.config = new_config;
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    error!("{err}");
+                }
             }
         }
         let mut is_debug = false;
@@ -529,25 +533,17 @@ impl TerminalPanelData {
         Some(is_debug)
     }
 
-    fn get_run_config_by_name(&self, name: &str) -> Option<RunDebugConfig> {
-        if let Some(workspace) = self.common.workspace.path.as_deref() {
-            let run_toml = workspace.join(".lapce").join("run.toml");
+    fn get_run_config_by_name(&self, name: &str) -> Result<Option<RunDebugConfig>> {
+        if let Some(run_toml) = self.common.workspace.run_and_debug_path_with_create()? {
             let (doc, new_doc) =
                 self.main_split.get_doc(run_toml.clone(), None, false);
             if !new_doc {
                 let content = doc.lines.with_untracked(|x| x.buffer().to_string());
-                match toml::from_str::<RunDebugConfigs>(&content) {
-                    Ok(configs) => {
-                        return configs.configs.into_iter().find(|x| x.name == name);
-                    },
-                    Err(err) => {
-                        // todo show message window
-                        log::error!("deser fail {:?}", err);
-                    }
-                }
+                let configs = toml::from_str::<RunDebugConfigs>(&content)?;
+                return Ok(configs.configs.into_iter().find(|x| x.name == name));
             }
         }
-        None
+        Ok(None)
     }
 
     pub fn focus_terminal(&self, terminal_id: TerminalTabId) {

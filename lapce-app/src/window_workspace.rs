@@ -1707,8 +1707,7 @@ impl WindowWorkspaceData {
                 }
             }
             OpenRunAndDebugFile => {
-                if let Some(path) = self.workspace.path.as_ref() {
-                    let path = path.join(".lapce").join("run.toml");
+                if let Some(path) = self.workspace.run_and_debug_path_with_create()? {
                     self.common
                         .internal_command
                         .send(InternalCommand::OpenFile { path });

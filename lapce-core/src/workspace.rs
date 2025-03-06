@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 use notify::{RecursiveMode, Watcher};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-
+use anyhow::Result;
 use crate::{debug::LapceBreakpoint, main_split::SplitInfo, panel::PanelInfo};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -163,6 +163,21 @@ impl LapceWorkspace {
             }
         }
         None
+    }
+
+    pub fn run_and_debug_path_with_create(&self) -> Result<Option<PathBuf>> {
+        Ok(if let Some(path) = self.path.as_ref() {
+            let path = path.join(".lapce").join("run.toml");
+            if !path.exists() {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::File::create(&path)?;
+            }
+            Some(path)
+        } else {
+            None
+        })
     }
 }
 

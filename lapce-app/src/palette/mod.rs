@@ -58,7 +58,7 @@ use crate::{
     source_control::SourceControlData,
     window_workspace::{CommonData, Focus}
 };
-
+use anyhow::Result;
 pub mod item;
 pub mod kind;
 
@@ -247,7 +247,9 @@ impl PaletteData {
                 let timer_token =
                     exec_after(Duration::from_millis(500), move |timer_token| {
                         if timer_token == blink_timer.get_untracked() {
-                            palette.run_inner_by_input(new_input);
+                            if let Err(err) = palette.run_inner_by_input(new_input) {
+                                error!("{err}");
+                            }
                         }
                     });
                 // warn!("set id={:?} {:?}",
@@ -334,7 +336,7 @@ impl PaletteData {
         }
     }
 
-    fn run_inner_by_input(&self, input: String) {
+    fn run_inner_by_input(&self, input: String) -> Result<()>{
         let kind = match self.kind.get_untracked() {
             None => PaletteKind::from_input(&input),
             Some(kind) => {
@@ -384,7 +386,7 @@ impl PaletteData {
                 self.get_wsl_hosts(run_id);
             },
             PaletteKind::RunAndDebug => {
-                self.get_run_configs(run_id, kind_input.to_string());
+                self.get_run_configs(run_id, kind_input.to_string())?;
             },
             PaletteKind::ColorTheme => {
                 self.get_color_themes(run_id);
@@ -403,6 +405,7 @@ impl PaletteData {
             },
             PaletteKind::TerminalProfile => self.get_terminal_profiles(run_id)
         }
+        Ok(())
     }
 
     fn update_rs(&self, id: u64, rs: Vector<PaletteItem>) {
@@ -1014,11 +1017,10 @@ impl PaletteData {
         self.items.set(items);
     }
 
-    fn set_run_configs(&self, content: String, run_id: u64, input: &str) {
+    fn set_run_configs(&self, content: String, run_id: u64, input: &str) -> Result<()> {
         let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
         if configs.is_none() {
-            if let Some(path) = self.workspace.path.as_ref() {
-                let path = path.join(".lapce").join("run.toml");
+            if let Some(path) = self.workspace.run_and_debug_path_with_create()? {
                 self.common
                     .internal_command
                     .send(InternalCommand::OpenFile { path });
@@ -1079,16 +1081,16 @@ impl PaletteData {
             input,
             items.into_iter().map(|(_, item)| item).collect()
         );
+        Ok(())
     }
 
-    fn get_run_configs(&self, run_id: u64, input_str: String) {
-        if let Some(workspace) = self.common.workspace.path.as_deref() {
-            let run_toml = workspace.join(".lapce").join("run.toml");
+    fn get_run_configs(&self, run_id: u64, input_str: String) -> Result<()> {
+        if let Some(run_toml) = self.common.workspace.run_and_debug_path_with_create()? {
             let (doc, new_doc) =
                 self.main_split.get_doc(run_toml.clone(), None, false);
             if !new_doc {
                 let content = doc.lines.with_untracked(|x| x.buffer().to_string());
-                self.set_run_configs(content, run_id, &input_str);
+                self.set_run_configs(content, run_id, &input_str)?;
             } else {
                 let loaded = doc.loaded;
                 let palette = self.clone();
@@ -1103,12 +1105,15 @@ impl PaletteData {
                         if content.is_empty() {
                             doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
                         }
-                        palette.set_run_configs(content, run_id, &input_str);
+                        if let Err(err) = palette.set_run_configs(content, run_id, &input_str) {
+                            error!("{err}");
+                        }
                     }
                     loaded
                 });
             }
         }
+        Ok(())
     }
 
     fn get_color_themes(&self, run_id: u64) {
