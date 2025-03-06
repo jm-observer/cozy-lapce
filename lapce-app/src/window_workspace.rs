@@ -1706,8 +1706,17 @@ impl WindowWorkspaceData {
                     editor_data.receive_char(DEFAULT_RUN_TOML);
                 }
             }
+            OpenRunAndDebugFile => {
+                if let Some(path) = self.workspace.path.as_ref() {
+                    let path = path.join(".lapce").join("run.toml");
+                    self.common
+                        .internal_command
+                        .send(InternalCommand::OpenFile { path });
+                }
+            }
 
         }
+
         Ok(())
     }
 

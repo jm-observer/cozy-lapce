@@ -239,6 +239,10 @@ pub enum LapceWorkbenchCommand {
     #[strum(message = "Open Settings File")]
     OpenSettingsFile,
 
+    #[strum(serialize = "open_run_and_debug_file")]
+    #[strum(message = "Open Run And Debug File")]
+    OpenRunAndDebugFile,
+
     #[strum(serialize = "open_settings_directory")]
     #[strum(message = "Open Settings Directory")]
     OpenSettingsDirectory,

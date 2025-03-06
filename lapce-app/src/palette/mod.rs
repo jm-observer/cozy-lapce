@@ -1018,7 +1018,7 @@ impl PaletteData {
         let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
         if configs.is_none() {
             if let Some(path) = self.workspace.path.as_ref() {
-                let path = path.join("../../../.lapce").join("run.toml");
+                let path = path.join(".lapce").join("run.toml");
                 self.common
                     .internal_command
                     .send(InternalCommand::OpenFile { path });
