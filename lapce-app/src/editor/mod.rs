@@ -3639,12 +3639,18 @@ impl KeyPressFocus for EditorData {
             // normal editor receive char
             if self.get_mode() == Mode::Insert {
                 let mut cursor = self.cursor().get_untracked();
-                let deltas = self.doc().do_insert(&mut cursor, c);
+                let doc = self.doc();
+                let offset = cursor.offset();
+                let next_is_whitespace = doc.lines.with_untracked(|x|
+                    x.buffer().char_at_offset(offset).map(|x| {
+                    // log::info!("receive_char offset_c={x}");
+                    x.is_whitespace() || x.is_ascii_whitespace()
+                })).unwrap_or(true);
+                let deltas = doc.do_insert(&mut cursor, c);
                 self.cursor().set(cursor);
-
                 if !c
                     .chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
+                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace()) && next_is_whitespace
                 {
                     self.update_completion(false);
                 } else {
@@ -3738,9 +3744,12 @@ fn show_completion(
             };
 
             if start > 0 && end > start {
-                !doc.slice_to_cow(start..end)
+                let next_char = doc.slice_to_cow(end..end+1).chars().all(|c| c.is_whitespace() || c.is_ascii_whitespace());
+                let str = doc.slice_to_cow(start..end);
+                // log::info!("{next_char} {str}");
+                !str
                     .chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
+                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace()) && next_char
             } else {
                 true
             }
