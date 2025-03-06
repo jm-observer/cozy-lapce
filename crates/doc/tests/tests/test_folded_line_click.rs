@@ -323,5 +323,23 @@ pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
         let rs = lines.result_of_left_click(point)?;
         assert_eq!(rs, ClickResult::NoHintOrNothing);
     }
+    {
+        // single_click (51.24201965332031, 128.0898895263672) 7 true Backward
+        // pub fn main() {...}
+        // ...
+        // []
+        let (offset_of_buffer, is_inside, affinity) = lines.buffer_offset_of_click(
+            &CursorMode::Normal(0),
+            Point::new(51.1, 128.1)
+        )?;
+        assert_eq!(
+            (offset_of_buffer, is_inside, affinity),
+            (113, false, CursorAffinity::Forward)
+        );
+        assert_eq!(
+            lines.buffer().char_at_offset(offset_of_buffer).unwrap(),
+            '}'
+        );
+    }
     Ok(())
 }

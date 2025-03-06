@@ -3005,8 +3005,7 @@ impl EditorData {
                     return;
                 }
             };
-        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside}
-        // {affinity:?}", pointer_event.pos);
+        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
         if self.active().get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
@@ -3050,7 +3049,7 @@ impl EditorData {
                                 editor.doc().lines.with_untracked(|buffer| {
                                     buffer.buffer().next_code_boundary(offset)
                                 });
-                            log::info!("update_hover pointer_event={:?}", pos);
+                            log::info!(" update_hoverpointer_event={:?}", pos);
 
                             editor.update_hover(end_offset.max(1) - 1);
                         }
