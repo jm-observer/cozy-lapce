@@ -1905,7 +1905,7 @@ impl DocLines {
         &mut self,
         base: Rect
     ) -> (ScreenLines, Vec<FoldingDisplayItem>) {
-        debug!("_compute_screen_lines");
+        // debug!("_compute_screen_lines");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
         // doc.doc_lines.get_untracked();
@@ -3314,7 +3314,7 @@ impl PubUpdateLines {
     }
 
     pub fn update_folding_ranges(&mut self, action: UpdateFolding) -> Result<()> {
-        log::info!("{}", serde_json::to_string(&action).unwrap());
+        // log::info!("{}", serde_json::to_string(&action).unwrap());
         match action {
             UpdateFolding::UpdateByItem(item) => {
                 self.folding_ranges.update_folding_item(item);

@@ -949,7 +949,7 @@ impl Editor {
                 }
             })
         else {
-            log::info!("points_of_offset point is none {offset}");
+            // log::info!("points_of_offset point is none {offset}");
             return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
         };
         let mut point_below = point_above;
