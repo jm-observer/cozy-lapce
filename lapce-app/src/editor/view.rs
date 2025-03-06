@@ -972,7 +972,7 @@ impl View for EditorView {
             )
         });
         let screen_lines = self.editor.editor.screen_lines.get_untracked();
-
+        let viewport = ed.viewport.get_untracked();
         let cursor_points = cursor_offsets
             .into_iter()
             .filter_map(|offset| {
@@ -981,7 +981,10 @@ impl View for EditorView {
                 {
                     Ok(rs) => {
                         // log::info!("buffer offset={offset} cursor_affinity={cursor_affinity:?} cursor position:{:?}", rs);
-                        rs
+                        rs.map(|mut x| {
+                            x.x -= viewport.x0;
+                            x
+                        })
                     },
                     Err(err) => {
                         error!("{}", err);
@@ -991,7 +994,7 @@ impl View for EditorView {
             })
             .collect();
 
-        let viewport = ed.viewport.get_untracked();
+
 
         let e_data = &self.editor;
         let ed = &e_data.editor;
