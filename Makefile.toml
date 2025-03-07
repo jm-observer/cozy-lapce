@@ -11,7 +11,7 @@ dependencies = ["_build-release"]
 
 [tasks.run-dev]
 script = '''
-cargo run --profile fastdev --bin lapce -- -w -n
+cargo run --profile fastdev --bin lapce --no-default-features --features dev -- -w -n
 '''
 dependencies = ["_build-dev"]
 
