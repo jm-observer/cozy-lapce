@@ -19,6 +19,7 @@ use crate::{
     },
     syntax::Syntax
 };
+use crate::lines::screen_lines::VisualOriginText;
 
 pub fn compute_screen_lines(
     view_kind: EditorViewKind,
@@ -33,10 +34,11 @@ pub fn compute_screen_lines(
             let mut visual_lines = Vec::new();
             for visual_line in vline_infos {
                 let folded_line_y = visual_line.line_index * line_height;
-                let visual_line_info = VisualLineInfo {
-                    folded_line_y: folded_line_y as f64 - y0,
-                    base,
-                    visual_line
+                let visual_line_info = VisualLineInfo::OriginText {
+                    text: VisualOriginText {
+                        folded_line_y: folded_line_y as f64 - y0,
+                        folded_line: visual_line
+                    }
                 };
                 visual_lines.push(visual_line_info);
             }

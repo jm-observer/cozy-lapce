@@ -59,6 +59,7 @@ use lsp_types::{
     Range, TextEdit
 };
 use nucleo::Utf32Str;
+use doc::lines::screen_lines::VisualLineInfo;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -1138,7 +1139,13 @@ impl EditorData {
         let lines: HashSet<usize> = self.editor.screen_lines.with_untracked(|x| {
             x.visual_lines
                 .iter()
-                .map(|l| l.visual_line.origin_line_start)
+                .filter_map(|l| {
+                    if let VisualLineInfo::OriginText { text, ..} = l {
+                        Some(text.folded_line.origin_line_start)
+                    } else {
+                        None
+                    }
+                })
                 .collect()
         });
         let mut matcher = nucleo::Matcher::new(nucleo::Config::DEFAULT);

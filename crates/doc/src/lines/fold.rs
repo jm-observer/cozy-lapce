@@ -103,7 +103,7 @@ impl FoldingRanges {
                             item.start.line,
                             FoldingDisplayItem {
                                 position: item.start,
-                                y:        line.folded_line_y as i32,
+                                y:        line.folded_line_y() as i32,
                                 ty:       FoldingDisplayType::Folded
                             }
                         );
@@ -119,7 +119,7 @@ impl FoldingRanges {
                                 item.start.line,
                                 FoldingDisplayItem {
                                     position: item.start,
-                                    y:        line.folded_line_y as i32,
+                                    y:        line.folded_line_y() as i32,
                                     ty:       FoldingDisplayType::UnfoldStart
                                 }
                             );
@@ -133,7 +133,7 @@ impl FoldingRanges {
                                 item.end.line,
                                 FoldingDisplayItem {
                                     position: item.end,
-                                    y:        line.folded_line_y as i32,
+                                    y:        line.folded_line_y() as i32,
                                     ty:       FoldingDisplayType::UnfoldEnd
                                 }
                             );

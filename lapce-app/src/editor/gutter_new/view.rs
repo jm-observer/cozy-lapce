@@ -43,7 +43,7 @@ fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
 
 fn gutter_marker_code_len_svg_view(
     window_tab_data: WindowWorkspaceData,
-    line: usize,
+    line: Option<usize>,
     doc: DocSignal
 ) -> Svg {
     let config = window_tab_data.common.config;
@@ -57,12 +57,14 @@ fn gutter_marker_code_len_svg_view(
         .on_click_stop({
             move |_| {
                 let code_lens = doc.get_untracked().code_lens.get_untracked();
-                let Some((plugin_id, offset, lens)) = code_lens.get(&line).cloned()
-                else {
-                    error!("code_lens is empty: {} {:?}", line, code_lens);
-                    return;
-                };
-                window_tab_data.show_code_lens(true, plugin_id, offset, lens);
+                if let Some(line) = line {
+                    let Some((plugin_id, offset, lens)) = code_lens.get(&line).cloned()
+                    else {
+                        error!("code_lens is empty: {} {:?}", line, code_lens);
+                        return;
+                    };
+                    window_tab_data.show_code_lens(true, plugin_id, offset, lens);
+                }
             }
         })
 }

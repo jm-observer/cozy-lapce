@@ -222,9 +222,8 @@ pub fn editor_view(
         let (screen_lines_len, screen_lines_first) = (
             screen_lines.visual_lines.len(),
             screen_lines
-                .visual_lines
-                .first()
-                .map(|x| x.visual_line.origin_line_start)
+                .first_end_folded_line()
+                .map(|x| x.0.folded_line.origin_line_start)
         );
         let buffer_rev = doc.lines.with_untracked(|x| x.signal_buffer_rev());
         let rev = (
@@ -475,7 +474,7 @@ impl EditorView {
                 screen_lines.visual_line_info_for_origin_line(breakline)
             {
                 let rect = Rect::from_origin_size(
-                    info.paint_point(),
+                    info.paint_point(screen_lines.base),
                     (viewport.width(), line_height)
                 );
                 cx.fill(&rect, editor_debug_break_line_color, 0.0);
@@ -485,7 +484,7 @@ impl EditorView {
         // Highlight the current line
         if !is_local && cursor_highlight_current_line {
             let info = screen_lines.visual_line_for_buffer_offset(cursor_offset)?;
-            let origin_folded_line = &info.visual_line;
+            let origin_folded_line = &info.folded_line;
             if Some(origin_folded_line.origin_line_start) == breakline {
                 return None;
             }
@@ -493,7 +492,7 @@ impl EditorView {
                 origin_folded_line.origin_line_start
             ) {
                 let rect = Rect::from_origin_size(
-                    info.paint_point(),
+                    info.paint_point(screen_lines.base),
                     (viewport.width(), line_height)
                 );
 
@@ -517,7 +516,9 @@ impl EditorView {
             return Ok(());
         }
 
-        let (start, end) = screen_lines.offset_interval()?;
+        let Some((start, end)) = screen_lines.offset_interval() else {
+            return Ok(())
+        };
 
         let e_data = &self.editor;
         let doc = e_data.doc();
@@ -1048,10 +1049,8 @@ impl View for EditorView {
         // let screen_lines = ed.screen_lines.get_untracked();
         // , cursor: RwSignal<Cursor>, lines: DocLinesManager
         let lines = doc.lines;
-        let start_vline = screen_lines
-            .visual_lines
-            .first()
-            .map(|x| x.visual_line.origin_line_start);
+        let start_vline = screen_lines.first_end_folded_line()
+            .map(|x| x.0.folded_line.origin_line_start);
 
         if let Err(err) = paint_text(
             cx,
@@ -1097,7 +1096,7 @@ fn get_sticky_header_info(
 ) -> StickyHeaderInfo {
     let doc = editor_data.doc();
     // let start_line = (viewport.y0 / line_height).floor() as usize;
-    let Some(start) = screen_lines.visual_lines.first() else {
+    let Some(start) = screen_lines.first_end_folded_line() else {
         return StickyHeaderInfo {
             sticky_lines:              Vec::new(),
             last_sticky_should_scroll: false,
@@ -1105,7 +1104,7 @@ fn get_sticky_header_info(
         };
     };
     // let start_info = screen_lines.info(*start).unwrap();
-    let start_line = start.visual_line.origin_line_start;
+    let start_line = start.0.folded_line.origin_line_start;
 
     // let y_diff = viewport.y0 - start_info.vline_y;
     let y_diff = 0.0;
@@ -2329,7 +2328,9 @@ pub fn changes_colors_screen(
     modified_color: Color,
     removed: Color
 ) -> Result<Vec<(f64, usize, bool, Color)>> {
-    let (min, max) = editor.screen_lines.with_untracked(|x| x.line_interval())?;
+    let Some((min, max)) = editor.screen_lines.with_untracked(|x| x.line_interval()) else {
+        return Ok(vec![]);
+    };
 
     let mut line = 0;
     let mut colors = Vec::new();

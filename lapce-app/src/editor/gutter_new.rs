@@ -7,7 +7,7 @@ use floem::{
     peniko::Color,
     prelude::{RwSignal, SignalGet, SignalWith}
 };
-
+use doc::lines::screen_lines::VisualLineInfo;
 use crate::{
     config::color::LapceColor, editor::EditorData,
     window_workspace::WindowWorkspaceData
@@ -51,43 +51,59 @@ pub fn gutter_data(
             .visual_lines
             .iter()
             .map(|vl_info| {
-                let style_color =
-                    if vl_info.visual_line.origin_line_start == current_line {
-                        fg
-                    } else {
-                        dim
-                    };
-                if code_lens.contains_key(&vl_info.visual_line.origin_line_start) {
-                    GutterData {
-                        origin_line_start: vl_info.visual_line.origin_line_end,
-                        paint_point_y: vl_info.folded_line_y,
-                        marker: GutterMarker::CodeLen,
-                        style_color,
-                        style_width: width,
-                        style_font_size,
-                        style_font_family: font_family.clone()
+                match vl_info {
+                    VisualLineInfo::OriginText { text } => {
+                        let style_color =
+                            if text.folded_line.origin_line_start == current_line {
+                                fg
+                            } else {
+                                dim
+                            };
+                        if code_lens.contains_key(&text.folded_line.origin_line_start) {
+                            GutterData {
+                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                paint_point_y: text.folded_line_y,
+                                marker: GutterMarker::CodeLen,
+                                style_color,
+                                style_width: width,
+                                style_font_size,
+                                style_font_family: font_family.clone()
+                            }
+                        } else if breakpoints
+                            .contains_key(&text.folded_line.origin_line_start)
+                        {
+                            GutterData {
+                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                paint_point_y: text.folded_line_y,
+                                marker: GutterMarker::Breakpoint,
+                                style_color,
+                                style_width: width,
+                                style_font_size,
+                                style_font_family: font_family.clone()
+                            }
+                        } else {
+                            GutterData {
+                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                paint_point_y: text.folded_line_y,
+                                marker: GutterMarker::None,
+                                style_color,
+                                style_width: width,
+                                style_font_size,
+                                style_font_family: font_family.clone()
+                            }
+                        }
                     }
-                } else if breakpoints
-                    .contains_key(&vl_info.visual_line.origin_line_start)
-                {
-                    GutterData {
-                        origin_line_start: vl_info.visual_line.origin_line_end,
-                        paint_point_y: vl_info.folded_line_y,
-                        marker: GutterMarker::Breakpoint,
-                        style_color,
-                        style_width: width,
-                        style_font_size,
-                        style_font_family: font_family.clone()
-                    }
-                } else {
-                    GutterData {
-                        origin_line_start: vl_info.visual_line.origin_line_end,
-                        paint_point_y: vl_info.folded_line_y,
-                        marker: GutterMarker::None,
-                        style_color,
-                        style_width: width,
-                        style_font_size,
-                        style_font_family: font_family.clone()
+                    VisualLineInfo::DiffDelete { folded_line_y } => {
+                        // todo origin_line_start
+                        GutterData {
+                            origin_line_start: None,
+                            paint_point_y: *folded_line_y,
+                            marker: GutterMarker::None,
+                            style_color: dim,
+                            style_width: width,
+                            style_font_size,
+                            style_font_family: font_family.clone()
+                        }
                     }
                 }
             })
@@ -97,7 +113,7 @@ pub fn gutter_data(
 
 #[derive(Clone)]
 pub struct GutterData {
-    origin_line_start: usize,
+    origin_line_start: Option<usize>,
     paint_point_y:     f64,
     marker:            GutterMarker,
     style_width:       f64,
@@ -108,7 +124,7 @@ pub struct GutterData {
 
 impl GutterData {
     pub fn display_line_num(&self) -> String {
-        (self.origin_line_start + 1).to_string()
+        self.origin_line_start.map(|x| (x + 1).to_string()).unwrap_or_default()
     }
 }
 

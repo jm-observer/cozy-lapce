@@ -18,7 +18,7 @@ use lapce_xi_rope::{
     spans::{SpanIter, Spans, SpansBuilder}
 };
 use layout::{TextLayout, TextLayoutLine};
-use line::{OriginFoldedLine, VisualLine};
+use line::{OriginFoldedLine};
 use log::{debug, error, info, warn};
 use lsp_types::{DiagnosticSeverity, InlayHint, InlayHintLabel, Location, Position};
 use phantom_text::{
@@ -920,17 +920,17 @@ impl DocLines {
         bail!("folded_line_of_buffer_offset buffer_offset={buffer_offset}")
     }
 
-    pub fn folded_line_of_visual_line(
-        &self,
-        vl: &VisualLine
-    ) -> Result<&OriginFoldedLine> {
-        for folded_line in &self.origin_folded_lines {
-            if folded_line.line_index == vl.origin_folded_line {
-                return Ok(folded_line);
-            }
-        }
-        bail!("folded_line_of_visual_line {vl:?}")
-    }
+    // pub fn folded_line_of_visual_line(
+    //     &self,
+    //     vl: &VisualLine
+    // ) -> Result<&OriginFoldedLine> {
+    //     for folded_line in &self.origin_folded_lines {
+    //         if folded_line.line_index == vl.origin_folded_line {
+    //             return Ok(folded_line);
+    //         }
+    //     }
+    //     bail!("folded_line_of_visual_line {vl:?}")
+    // }
 
     // 不支持编辑器折叠
     // pub fn visual_line_of_folded_line_and_sub_index(

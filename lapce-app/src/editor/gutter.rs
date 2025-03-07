@@ -9,7 +9,7 @@ use floem::{
     text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
 use log::{debug, error};
-
+use doc::lines::screen_lines::VisualLineInfo;
 use super::{EditorData, view::changes_colors_screen};
 use crate::{config::color::LapceColor, doc::Doc};
 pub struct EditorGutterView {
@@ -205,34 +205,38 @@ impl View for EditorGutterView {
         let current_number = current_visual_line.line_number(false, None);
         screen_lines.with_untracked(|screen_lines| {
             for visual_line_info in screen_lines.visual_lines.iter() {
-                let line_number = visual_line_info
-                    .visual_line
-                    .line_number(show_relative, current_number);
-                let text_layout = if current_number == line_number {
-                    TextLayout::new_with_text(
-                        &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                        current_line_attrs_list.clone()
-                    )
-                } else {
-                    TextLayout::new_with_text(
-                        &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                        attrs_list.clone()
-                    )
-                };
-                let y = visual_line_info.folded_line_y;
-                let size = text_layout.size();
-                let height = size.height;
+                if let VisualLineInfo::OriginText { text, ..} = visual_line_info {
+                    let line_number = text
+                        .folded_line
+                        .line_number(show_relative, current_number);
+                    let text_layout = if current_number == line_number {
+                        TextLayout::new_with_text(
+                            &line_number.map(|x| x.to_string()).unwrap_or_default(),
+                            current_line_attrs_list.clone()
+                        )
+                    } else {
+                        TextLayout::new_with_text(
+                            &line_number.map(|x| x.to_string()).unwrap_or_default(),
+                            attrs_list.clone()
+                        )
+                    };
+                    let y = text.folded_line_y;
+                    let size = text_layout.size();
+                    let height = size.height;
 
-                let x = (self.width
-                    - size.width
-                    - self.gutter_padding_right.get_untracked() as f64)
-                    .max(0.0);
-                let y = y + (line_height - height) / 2.0;
+                    let x = (self.width
+                        - size.width
+                        - self.gutter_padding_right.get_untracked() as f64)
+                        .max(0.0);
+                    let y = y + (line_height - height) / 2.0;
 
-                cx.draw_text_with_layout(
-                    text_layout.layout_runs(),
-                    Point::new(x, y)
-                );
+                    cx.draw_text_with_layout(
+                        text_layout.layout_runs(),
+                        Point::new(x, y)
+                    );
+                }
+
+
             }
         });
 

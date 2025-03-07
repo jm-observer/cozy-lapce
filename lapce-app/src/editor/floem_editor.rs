@@ -32,7 +32,7 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-
+use doc::lines::screen_lines::VisualLineInfo;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
@@ -1490,41 +1490,44 @@ pub fn paint_text(
         paint_cursor_caret(cx, lines, cursor_points, line_height);
     }
     // todo 不要一次一次的获取text_layout
-    for mut line_info in screen_lines.visual_lines {
-        let y = line_info.paint_point().y;
-        paint_extra_style(cx, line_info.visual_line.extra_style(), y, viewport);
-        if let Some(whitespaces) = &line_info.visual_line.whitespaces() {
-            let attrs = Attrs::new()
-                .color(visible_whitespace)
-                .family(&font_family)
-                .font_size(font_size);
-            let attrs_list = AttrsList::new(attrs);
-            let space_text = TextLayout::new_with_text("·", attrs_list.clone());
-            let tab_text = TextLayout::new_with_text("→", attrs_list);
+    for line_info in screen_lines.visual_lines {
+        let y = line_info.paint_point(screen_lines.base).y;
+        if let VisualLineInfo::OriginText { text: mut line_info, ..} = line_info {
+            paint_extra_style(cx, line_info.folded_line.extra_style(), y, viewport);
+            if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
+                let attrs = Attrs::new()
+                    .color(visible_whitespace)
+                    .family(&font_family)
+                    .font_size(font_size);
+                let attrs_list = AttrsList::new(attrs);
+                let space_text = TextLayout::new_with_text("·", attrs_list.clone());
+                let tab_text = TextLayout::new_with_text("→", attrs_list);
 
-            for (c, (x0, _x1)) in whitespaces.iter() {
-                match *c {
-                    '\t' => {
-                        cx.draw_text_with_layout(
-                            tab_text.layout_runs(),
-                            Point::new(*x0, y)
-                        );
-                    },
-                    ' ' => {
-                        cx.draw_text_with_layout(
-                            space_text.layout_runs(),
-                            Point::new(*x0, y)
-                        );
-                    },
-                    _ => {}
+                for (c, (x0, _x1)) in whitespaces.iter() {
+                    match *c {
+                        '\t' => {
+                            cx.draw_text_with_layout(
+                                tab_text.layout_runs(),
+                                Point::new(*x0, y)
+                            );
+                        },
+                        ' ' => {
+                            cx.draw_text_with_layout(
+                                space_text.layout_runs(),
+                                Point::new(*x0, y)
+                            );
+                        },
+                        _ => {}
+                    }
                 }
             }
+
+            cx.draw_text_with_layout(
+                line_info.folded_line.borrow_text().layout_runs(),
+                Point::new(0.0, y)
+            );
         }
 
-        cx.draw_text_with_layout(
-            line_info.visual_line.borrow_text().layout_runs(),
-            Point::new(0.0, y)
-        );
     }
     Ok(())
 }

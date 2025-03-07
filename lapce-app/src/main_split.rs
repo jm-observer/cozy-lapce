@@ -633,15 +633,6 @@ impl MainSplitData {
         // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
         if let Some(tab) = self.get_active_editor_untracked() {
             let cursor = tab.editor.cursor.get_untracked();
-            let (min_visual_line, max_visual_line) =
-                tab.editor.screen_lines.with_untracked(|x| {
-                    (
-                        x.visual_lines[0].visual_line.line_index,
-                        x.visual_lines[x.visual_lines.len() - 1]
-                            .visual_line
-                            .line_index
-                    )
-                });
 
             let line_index = tab.editor.doc().lines.with_untracked(|x| {
                 let rs = x
@@ -652,15 +643,18 @@ impl MainSplitData {
                 }
                 rs
             })?;
+            if let Some(index) = tab.editor.screen_lines.with_untracked(|x| {
+                x.visual_index_for_origin_folded_line_index(line_index)
+            }) {
+                off_top_line = Some(index);
+            }
 
             // let lines = tab
             //     .editor
             //     .doc()
             //     .lines
             //     .lines_of_origin_offset(cursor.offset())?;
-            if min_visual_line <= line_index && line_index <= max_visual_line {
-                off_top_line = Some(line_index - min_visual_line);
-            }
+
             //
             // if let Some(min_visual_line) = tab
             //     .editor

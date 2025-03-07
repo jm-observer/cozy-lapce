@@ -65,7 +65,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             .cursor_info_of_buffer_offset(offset_of_buffer, affinity)
             .unwrap()
             .unwrap();
-        assert_eq!(vl.visual_line.line_index, 9);
+        assert_eq!(vl.folded_line.line_index, 9);
         assert_eq!(final_offset, 9);
     }
     // (line_index=1 offset with \r\n [2..19))
@@ -151,7 +151,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             .cursor_info_of_buffer_offset(offset_of_buffer, affinity)
             .unwrap()
             .unwrap();
-        assert_eq!(vl.visual_line.line_index, 7);
+        assert_eq!(vl.folded_line.line_index, 7);
         assert_eq!(final_offset, 18);
     }
     {
