@@ -310,6 +310,14 @@ pub fn init_main_3() -> Result<DocLines> {
     Ok(lines)
 }
 
+pub fn init_test() -> Result<DocLines> {
+    let file: PathBuf = "../../resources/test_code/test.rs".into();
+    let rs = _init_code(file);
+    let (lines, _) = _init_lines(None, rs, vec![], None)?;
+    Ok(lines)
+}
+
+
 pub fn init_empty() -> Result<DocLines> {
     custom_utils::logger::logger_stdout_debug();
     let file: PathBuf = "../../resources/test_code/empty.rs".into();

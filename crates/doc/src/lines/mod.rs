@@ -54,6 +54,8 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
+use crate::lines::diff::{consume_lines_until_enough, consume_line};
+use crate::lines::screen_lines::{VisualLineInfo, VisualOriginText};
 
 pub mod action;
 pub mod buffer;
@@ -1301,23 +1303,84 @@ impl DocLines {
         Ok(Some((offset_of_folded, last_char, folded_line)))
     }
 
-    pub fn visual_lines(&mut self, start: usize, end: usize) -> Vec<OriginFoldedLine> {
+    pub fn visual_lines(&mut self, start: usize, end: usize, view_kind: EditorViewKind
+                        , line_height: usize, y0: f64, base: Rect,
+    ) -> ScreenLines {
         let start = start.min(self.origin_folded_lines.len() - 1);
         let end = end.min(self.origin_folded_lines.len() - 1);
+        match view_kind {
+            EditorViewKind::Normal => {
+                self.max_width = 0.0;
+                let mut visual_lines = Vec::with_capacity(end - start + 1);
+                for index in start..=end {
+                    let line = &mut self.origin_folded_lines[index];
+                    line.init_layout();
+                    line.extra_style();
+                    let size_width = line.size_width().width;
+                    if size_width > self.max_width {
+                        self.max_width = size_width;
+                    }
+                    let folded_line_y = line.line_index * line_height;
+                    let visual_line_info = VisualLineInfo::OriginText {
+                        text: VisualOriginText {
+                            folded_line_y: folded_line_y as f64 - y0,
+                            folded_line: line.clone()
+                        }
+                    };
+                    visual_lines.push(visual_line_info);
+                }
+                ScreenLines {
+                    visual_lines,
+                    diff_sections: None,
+                    base,
+                    line_height: line_height as f64,
+                    buffer_len: self.buffer().len()
+                }
+            },
+            EditorViewKind::Diff(diff) => {
+                self.max_width = 0.0;
+                log::info!("{diff:?}");
+                let mut changes = diff.left_changes().into_iter().peekable();
 
-        self.max_width = 0.0;
-        let mut vline_infos = Vec::with_capacity(end - start + 1);
-        for index in start..=end {
-            let line = &mut self.origin_folded_lines[index];
-            line.init_layout();
-            line.extra_style();
-            let size_width = line.size_width().width;
-            if size_width > self.max_width {
-                self.max_width = size_width;
+                let len = end - start;
+                let mut start_line = consume_lines_until_enough(&mut changes, start);
+                let mut visual_lines = Vec::with_capacity(end - start + 1);
+                for i in 0..len {
+                    if consume_line(&mut changes, start_line) {
+                        let folded_line_y = (i + start_line) * line_height;
+                        let visual_line_info = VisualLineInfo::DiffDelete {
+                                folded_line_y: folded_line_y as f64 - y0,
+                        };
+                        visual_lines.push(visual_line_info);
+                    } else {
+                        let line = &mut self.origin_folded_lines[start_line];
+                        start_line += 1;
+                        line.init_layout();
+                        line.extra_style();
+                        let size_width = line.size_width().width;
+                        if size_width > self.max_width {
+                            self.max_width = size_width;
+                        }
+                        let folded_line_y = line.line_index * line_height;
+                        let visual_line_info = VisualLineInfo::OriginText {
+                            text: VisualOriginText {
+                                folded_line_y: folded_line_y as f64 - y0,
+                                folded_line: line.clone()
+                            }
+                        };
+                        visual_lines.push(visual_line_info);
+                    }
+                }
+                ScreenLines {
+                    visual_lines,
+                    diff_sections: None,
+                    base,
+                    line_height: line_height as f64,
+                    buffer_len: self.buffer().len()
+                }
             }
-            vline_infos.push(line.clone());
         }
-        vline_infos
+
     }
 
     fn phantom_text(
@@ -1918,15 +1981,15 @@ impl DocLines {
         // the viewport
         let min_val = (y0 / line_height as f64).floor() as usize;
         let max_val = (y1 / line_height as f64).floor() as usize;
-        let vline_infos = self.visual_lines(min_val, max_val);
-        let screen_lines = util::compute_screen_lines(
-            view_kind,
-            base,
-            vline_infos,
-            line_height,
-            y0,
-            self.buffer().len()
-        );
+        let screen_lines = self.visual_lines(min_val, max_val, view_kind, line_height, y0,  base,);
+        // let screen_lines = util::compute_screen_lines(
+        //     view_kind,
+        //     base,
+        //     vline_infos,
+        //     line_height,
+        //     y0,
+        //     self.buffer().len()
+        // );
         let display_items = self.folding_ranges.to_display_items(&screen_lines);
         (screen_lines, display_items)
     }

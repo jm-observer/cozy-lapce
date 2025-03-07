@@ -8,6 +8,7 @@ use std::{
 };
 
 use lapce_xi_rope::Rope;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DiffResult<T> {
@@ -16,17 +17,19 @@ pub enum DiffResult<T> {
     Right(T)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DiffBothInfo {
     pub left:  Range<usize>,
     pub right: Range<usize>,
     pub skip:  Option<Range<usize>>
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DiffLines {
+    /// delete line from left(old)
     Left(Range<usize>),
     Both(DiffBothInfo),
+    /// add line to right(new)
     Right(Range<usize>)
 }
 
