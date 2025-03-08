@@ -715,14 +715,14 @@ fn editor_tab_header(
         let i = child_simple.read_index();
         let layout_rect = child_simple.write_layout();
         let child = child_simple.id();
-        let local_child = child.clone();
+        // let local_child = child.clone();
         let child_for_close = child.clone();
         let child_for_mouse_close = child.clone();
         let child_for_mouse_close_2 = child.clone();
         let main_split = main_split.clone();
         let plugin = plugin.clone();
         let child_view = {
-            let info = child.view_info(editors, diff_editors, plugin, config);
+            let info = child.view_info(editors, diff_editors, plugin, config, child_simple.confirmed_mut());
             let hovered = create_rw_signal(false);
 
             let tab_icon = container({
@@ -747,11 +747,7 @@ fn editor_tab_header(
 
             let tab_content = tooltip(
                 label(move || info.with(|info| info.name.clone())).style(move |s| {
-                    s.apply_if(
-                        !info
-                            .with(|info| info.confirmed)
-                            .map(|confirmed| confirmed.get())
-                            .unwrap_or(true),
+                    s.apply_if(!info.with(|info| info.confirmed.get()),
                         |s| s.font_style(FontStyle::Italic)
                     )
                     .selectable(false)
@@ -849,27 +845,27 @@ fn editor_tab_header(
             })
         };
 
-        let confirmed = match local_child {
-            EditorTabChildId::Editor(editor_id) => {
-                editors.editor_untracked(editor_id).map(|e| e.confirmed)
-            },
-            EditorTabChildId::DiffEditor(diff_editor_id) => diff_editors
-                .with_untracked(|diff_editors| {
-                    diff_editors
-                        .get(&diff_editor_id)
-                        .map(|diff_editor_data| diff_editor_data.confirmed)
-                }),
-            _ => None
-        };
+        let confirmed = child_simple.confirmed_mut();
+
+        // let confirmed = match local_child {
+        //     EditorTabChildId::Editor(editor_id) => {
+        //         editors.editor_untracked(editor_id).map(|e| e.confirmed)
+        //     },
+        //     EditorTabChildId::DiffEditor(diff_editor_id) => diff_editors
+        //         .with_untracked(|diff_editors| {
+        //             diff_editors
+        //                 .get(&diff_editor_id)
+        //                 .map(|diff_editor_data| diff_editor_data.confirmed)
+        //         }),
+        //     _ => None
+        // };
 
         let header_content_size = create_rw_signal(Size::ZERO);
         let drag_over_left: RwSignal<Option<bool>> = create_rw_signal(None);
         stack((
             child_view
                 .on_double_click_stop(move |_| {
-                    if let Some(confirmed) = confirmed {
-                        confirmed.set(true);
-                    }
+                    confirmed.set(true);
                 })
                 .on_event(EventListener::PointerDown, move |event| {
                     if let Event::PointerDown(pointer_event) = event {

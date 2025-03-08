@@ -1730,9 +1730,20 @@ impl WindowWorkspaceData {
                 debug!("{level}");
             },
             InternalCommand::MakeConfirmed => {
-                if let Some(editor) = self.main_split.active_editor.get_untracked() {
-                    editor.confirmed.set(true);
+                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
+                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| if let Some(data) = x.get(&tab_id) {
+                        Some(data.with_untracked(|manage| {
+                            manage.active_child().confirmed_mut()
+                        }))
+                    } else {
+                        None
+                    }) {
+                        confirmed.set(true);
+                    }
                 }
+                // if let Some(editor) = self.main_split.active_editor.get_untracked() {
+                //     editor.confirmed.set(true);
+                // }
             },
             InternalCommand::OpenFile { path } => {
                 self.main_split.jump_to_location(
@@ -1757,9 +1768,20 @@ impl WindowWorkspaceData {
                     },
                     None
                 );
-                if let Some(editor) = self.main_split.active_editor.get_untracked() {
-                    editor.confirmed.set(true);
+                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
+                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| if let Some(data) = x.get(&tab_id) {
+                        Some(data.with_untracked(|manage| {
+                            manage.active_child().confirmed_mut()
+                        }))
+                    } else {
+                        None
+                    }) {
+                        confirmed.set(true);
+                    }
                 }
+                // if let Some(editor) = self.main_split.active_editor.get_untracked() {
+                //     editor.confirmed.set(true);
+                // }
             },
             InternalCommand::OpenFileInNewTab { path } => {
                 self.main_split.jump_to_location(

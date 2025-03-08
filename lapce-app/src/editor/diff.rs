@@ -43,7 +43,7 @@ pub struct DiffEditorData {
     pub scope:         Scope,
     pub left:          EditorData,
     pub right:         EditorData,
-    pub confirmed:     RwSignal<bool>,
+    // pub confirmed:     RwSignal<bool>,
     pub focus_right:   RwSignal<bool>
 }
 
@@ -58,7 +58,6 @@ impl DiffEditorData {
         common: Rc<CommonData>
     ) -> Self {
         let cx = cx.create_child();
-        let confirmed = cx.create_rw_signal(false);
 
         // TODO: ensure that left/right are cleaned up
         let [left, right] = [left_doc, right_doc].map(|doc| {
@@ -67,7 +66,6 @@ impl DiffEditorData {
                 doc,
                 None,
                 Some((editor_tab_id, id)),
-                Some(confirmed),
                 common.clone()
             )
         });
@@ -78,7 +76,6 @@ impl DiffEditorData {
             scope: cx,
             left,
             right,
-            confirmed,
             focus_right: cx.create_rw_signal(true)
         };
 
@@ -102,7 +99,6 @@ impl DiffEditorData {
         editors: Editors
     ) -> Self {
         let cx = cx.create_child();
-        let confirmed = cx.create_rw_signal(true);
 
         let [left, right] = [&self.left, &self.right].map(|editor_data| {
             editors
@@ -111,7 +107,6 @@ impl DiffEditorData {
                     cx,
                     None,
                     Some((editor_tab_id, diff_editor_id)),
-                    Some(confirmed)
                 )
                 .unwrap()
         });
@@ -123,7 +118,6 @@ impl DiffEditorData {
             focus_right: cx.create_rw_signal(true),
             left,
             right,
-            confirmed
         };
 
         diff_editor.listen_diff_changes();

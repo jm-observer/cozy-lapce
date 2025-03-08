@@ -519,10 +519,13 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                            editor_tab: RwSignal<EditorTabManageData>,
                            child_index: ReadSignal<usize>,
                            child: EditorTabChildId| {
-        let editor_tab_id =
-            editor_tab.with_untracked(|editor_tab| editor_tab.editor_tab_manage_id);
+        let (confirmed, editor_tab_id) =
+            editor_tab.with_untracked(|editor_tab| {
+                (editor_tab.active_child().confirmed_mut(),
+                editor_tab.editor_tab_manage_id)
+            });
         let child_for_close = child.clone();
-        let info = child.view_info(editors, diff_editors, plugin, config);
+        let info = child.view_info(editors, diff_editors, plugin, config, confirmed);
         let hovered = create_rw_signal(false);
 
         stack((
@@ -566,9 +569,7 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
             label(move || info.with(|info| info.name.clone())).style(move |s| {
                 s.apply_if(
                     !info
-                        .with(|info| info.confirmed)
-                        .map(|confirmed| confirmed.get())
-                        .unwrap_or(true),
+                        .with(|info| info.confirmed.get()),
                     |s| s.font_style(FontStyle::Italic)
                 )
             })
