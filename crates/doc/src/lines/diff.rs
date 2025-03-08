@@ -1,6 +1,6 @@
-use std::iter::Peekable;
+use std::iter::{Filter, Peekable};
 use std::ops::Range;
-use std::vec::IntoIter;
+use std::slice::Iter;
 use serde::{Deserialize, Serialize};
 use crate::lines::buffer::diff::DiffLines;
 
@@ -19,6 +19,13 @@ pub enum DiffResult {
     Changed {
         lines: Range<usize>,
     }
+}
+
+pub fn is_empty(rs: &&DiffResult) -> bool {
+    matches!(rs, DiffResult::Empty { .. })
+}
+pub fn is_changed(rs: &&DiffResult) -> bool {
+    matches!(rs, DiffResult::Changed { .. })
 }
 
 impl DiffResult {
@@ -45,6 +52,14 @@ impl DiffResult {
 }
 
 impl DiffInfo {
+
+    pub fn changes(&self) -> Vec<DiffResult> {
+        if self.is_right {
+            self.right_changes()
+        } else {
+            self.left_changes()
+        }
+    }
     pub fn left_changes(&self,) -> Vec<DiffResult> {
         log::info!("{}", serde_json::to_string(&self.changes).unwrap());
         let mut changes = self.changes.iter().peekable();
@@ -133,7 +148,7 @@ impl DiffInfo {
     }
 }
 
-pub fn is_diff(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -> bool {
+pub fn is_diff(changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>, line: usize) -> bool {
     loop {
         if let Some(diff) = changes.peek() {
             if diff.line().end <= line{
@@ -148,16 +163,14 @@ pub fn is_diff(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -> boo
     }
 }
 
-pub fn consume_line(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -> bool {
+pub fn consume_line(changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>, line_index: usize) -> bool {
     loop {
         if let Some(diff) = changes.peek() {
-            if diff.consume_line(&line) {
-                return true;
-            } else if diff.line().end <= line{
+            if diff.line().end <= line_index {
                 changes.next();
                 continue;
             } else {
-                return false;
+                return diff.consume_line(&line_index)
             }
         } else {
             return false;
@@ -165,7 +178,7 @@ pub fn consume_line(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -
     }
 }
 
-pub fn consume_lines_until_enough(changes: &mut Peekable<IntoIter<DiffResult>>, end_index: usize) -> usize {
+pub fn consume_lines_until_enough(changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>, end_index: usize) -> usize {
     let mut index= 0;
     let mut line = 0;
     loop {

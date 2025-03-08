@@ -54,7 +54,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
-use crate::lines::diff::{consume_lines_until_enough, consume_line, is_diff};
+use crate::lines::diff::{consume_lines_until_enough, consume_line, is_diff, DiffResult, is_empty, is_changed};
 use crate::lines::screen_lines::{VisualLineInfo, VisualOriginText};
 
 pub mod action;
@@ -1339,20 +1339,23 @@ impl DocLines {
             },
             EditorViewKind::Diff(diff) => {
                 self.max_width = 0.0;
-                let changes = diff.left_changes();
+                let changes = diff.changes();
+
+                let mut empty_lines = changes.iter().filter(is_empty as fn(&&DiffResult) -> bool).peekable();
+                let mut change_lines = changes.iter().filter(is_changed as fn(&&DiffResult) -> bool).peekable();
                 log::info!("{changes:?}");
-                let mut changes = changes.into_iter().peekable();
                 let len = end - start;
-                let mut start_line = consume_lines_until_enough(&mut changes, start);
+                let mut start_line = consume_lines_until_enough(&mut empty_lines, start);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
                 for i in 0..len {
-                    if consume_line(&mut changes, start_line.max(i)) {
+                    if consume_line(&mut empty_lines, start_line.max(i)) {
                         let folded_line_y = i * line_height;
                         let visual_line_info = VisualLineInfo::DiffDelete {
                                 folded_line_y: folded_line_y as f64 - y0,
                         };
                         visual_lines.push(visual_line_info);
                     } else if let Some(line) = &mut self.origin_folded_lines.get_mut(start_line) {
+                        let is_diff = is_diff(&mut change_lines, start_line);
                         start_line += 1;
                         line.init_layout();
                         line.extra_style();
@@ -1364,7 +1367,7 @@ impl DocLines {
                         let visual_line_info = VisualLineInfo::OriginText {
                             text: VisualOriginText {
                                 folded_line_y: folded_line_y as f64 - y0,
-                                folded_line: line.clone(), is_diff: is_diff(&mut changes, start_line)
+                                folded_line: line.clone(), is_diff
                             }
                         };
                         visual_lines.push(visual_line_info);
