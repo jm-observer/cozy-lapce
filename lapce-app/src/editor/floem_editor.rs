@@ -34,6 +34,7 @@ use lapce_xi_rope::Rope;
 use log::{error, info};
 use doc::lines::screen_lines::VisualLineInfo;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
+use crate::editor::view::StickyHeaderInfo;
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
 /// The main structure for the editor view itself.  
@@ -79,7 +80,9 @@ pub struct Editor {
 
     // /// The Editor Style
     // pub es: RwSignal<EditorStyle>,
-    pub floem_style_id: RwSignal<u64> // pub lines: DocLinesManager,
+    pub floem_style_id: RwSignal<u64>, // pub lines: DocLinesManager,
+    pub sticky_header_height: RwSignal<f64>,
+    pub sticky_header_info:   RwSignal<StickyHeaderInfo>
 }
 impl Editor {
     /// Create a new editor into the given document, using the styling.
@@ -182,7 +185,9 @@ impl Editor {
             ime_allowed: cx.create_rw_signal(false),
             floem_style_id: cx.create_rw_signal(0),
             screen_lines,
-            folding_display_item
+            folding_display_item,
+            sticky_header_height: cx.create_rw_signal(0.0),
+            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
         }
     }
 

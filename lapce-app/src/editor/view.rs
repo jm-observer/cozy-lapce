@@ -203,7 +203,7 @@ pub fn editor_view(
     });
 
     let config = e_data.common.config;
-    let sticky_header_height_signal = e_data.sticky_header_height;
+    let sticky_header_height_signal = e_data.editor.sticky_header_height;
     let editor2 = e_data.clone();
     create_effect(move |last_rev| {
         let (line_height, sticky_header) = config.with(|config| {
@@ -609,7 +609,7 @@ impl EditorView {
             return Ok(());
         }
 
-        let sticky_header_info = self.editor.sticky_header_info.get_untracked();
+        let sticky_header_info = self.editor.editor.sticky_header_info.get_untracked();
         let total_sticky_lines = sticky_header_info.sticky_lines.len();
 
         let paint_last_line = total_sticky_lines > 0
@@ -684,7 +684,7 @@ impl EditorView {
             editor_sticky_header_background_color,
             0.0
         );
-        self.editor.sticky_header_info.get_untracked();
+        self.editor.editor.sticky_header_info.get_untracked();
         // Paint lines
         let mut y_accum = 0.0;
 
@@ -826,7 +826,7 @@ impl View for EditorView {
         state: Box<dyn std::any::Any>
     ) {
         if let Ok(state) = state.downcast() {
-            self.editor.sticky_header_info.set(*state);
+            self.editor.editor.sticky_header_info.set(*state);
             self.id.request_layout();
         }
     }
@@ -1237,7 +1237,7 @@ pub fn editor_container_view(
                 let sticky_header =
                     config.with(|config| config.editor.sticky_header);
                 let (sticky_header_height, editor_view) =
-                    editor.with(|x| (x.sticky_header_height, x.kind()));
+                    editor.with(|x| (x.editor.sticky_header_height, x.kind()));
                 let sticky_header_height = sticky_header_height.get() as f32;
 
                 s.absolute()

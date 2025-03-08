@@ -140,9 +140,9 @@ pub struct EditorData {
     pub find_focus:           RwSignal<bool>,
     pub editor:               Rc<Editor>,
     // pub kind: RwSignal<EditorViewKind>,
-    pub sticky_header_height: RwSignal<f64>,
+    // pub sticky_header_height: RwSignal<f64>,
     pub common:               Rc<CommonData>,
-    pub sticky_header_info:   RwSignal<StickyHeaderInfo>
+    // pub sticky_header_info:   RwSignal<StickyHeaderInfo>
 }
 
 impl PartialEq for EditorData {
@@ -178,9 +178,9 @@ impl EditorData {
             find_focus: cx.create_rw_signal(false),
             editor: Rc::new(editor),
             // kind: cx.create_rw_signal(EditorViewKind::Normal),
-            sticky_header_height: cx.create_rw_signal(0.0),
+            // sticky_header_height: cx.create_rw_signal(0.0),
             common,
-            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
+            // sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
         }
     }
 
@@ -1566,7 +1566,7 @@ impl EditorData {
 
     fn scroll(&self, down: bool, count: usize, mods: Modifiers) {
         self.editor.scroll(
-            self.sticky_header_height.get_untracked(),
+            self.editor.sticky_header_height.get_untracked(),
             down,
             count,
             mods
@@ -2877,7 +2877,7 @@ impl EditorData {
                 self.left_click(pointer_event);
 
                 let y = pointer_event.pos.y - self.editor.viewport_untracked().y0;
-                if self.sticky_header_height.get_untracked() > y {
+                if self.editor.sticky_header_height.get_untracked() > y {
                     let index = y as usize
                         / self
                             .common
@@ -2885,7 +2885,7 @@ impl EditorData {
                             .with_untracked(|config| config.editor.line_height());
                     if let (Some(path), Some(line)) = (
                         self.doc().content.get_untracked().path(),
-                        self.sticky_header_info
+                        self.editor.sticky_header_info
                             .get_untracked()
                             .sticky_lines
                             .get(index)
