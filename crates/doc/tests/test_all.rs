@@ -38,5 +38,8 @@ fn test_all() -> Result<()> {
 
     tests::test_phantom_merge::_test_merge()?;
 
+    tests::test_diff::_test_screen()?;
+    tests::test_diff::_test_changes()?;
+
     Ok(())
 }

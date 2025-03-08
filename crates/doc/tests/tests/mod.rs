@@ -3,4 +3,4 @@ pub mod test_folded_line_click;
 pub mod test_line;
 pub mod test_lines_move;
 pub mod test_phantom_merge;
-mod test_diff;
+pub(crate) mod test_diff;

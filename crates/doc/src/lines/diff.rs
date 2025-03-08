@@ -12,7 +12,7 @@ pub struct DiffInfo {
     pub is_right: bool,
     pub changes:  Vec<DiffLines>
 }
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum DiffResult {
     /// 对方新增/已方删除
     Empty {

@@ -47,7 +47,7 @@ pub struct ScreenLines {
     pub buffer_len:    usize
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum VisualLineInfo {
     OriginText {
         text: VisualOriginText
@@ -59,7 +59,7 @@ pub enum VisualLineInfo {
     },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VisualOriginText {
     /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！

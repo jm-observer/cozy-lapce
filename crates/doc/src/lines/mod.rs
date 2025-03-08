@@ -1306,11 +1306,11 @@ impl DocLines {
     pub fn visual_lines(&mut self, start: usize, end: usize, view_kind: EditorViewKind
                         , line_height: usize, y0: f64, base: Rect,
     ) -> ScreenLines {
-        let start = start.min(self.origin_folded_lines.len() - 1);
-        let end = end.min(self.origin_folded_lines.len() - 1);
         match view_kind {
             EditorViewKind::Normal => {
                 self.max_width = 0.0;
+                let start = start.min(self.origin_folded_lines.len() - 1);
+                let end = end.min(self.origin_folded_lines.len() - 1);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
                 for index in start..=end {
                     let line = &mut self.origin_folded_lines[index];
@@ -1339,21 +1339,20 @@ impl DocLines {
             },
             EditorViewKind::Diff(diff) => {
                 self.max_width = 0.0;
-                log::info!("{diff:?}");
-                let mut changes = diff.left_changes().into_iter().peekable();
-
+                let changes = diff.left_changes();
+                log::info!("{changes:?}");
+                let mut changes = changes.into_iter().peekable();
                 let len = end - start;
                 let mut start_line = consume_lines_until_enough(&mut changes, start);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
                 for i in 0..len {
-                    if consume_line(&mut changes, start_line) {
-                        let folded_line_y = (i + start_line) * line_height;
+                    if consume_line(&mut changes, start_line.max(i)) {
+                        let folded_line_y = i * line_height;
                         let visual_line_info = VisualLineInfo::DiffDelete {
                                 folded_line_y: folded_line_y as f64 - y0,
                         };
                         visual_lines.push(visual_line_info);
-                    } else {
-                        let line = &mut self.origin_folded_lines[start_line];
+                    } else if let Some(line) = &mut self.origin_folded_lines.get_mut(start_line) {
                         start_line += 1;
                         line.init_layout();
                         line.extra_style();
@@ -1369,6 +1368,8 @@ impl DocLines {
                             }
                         };
                         visual_lines.push(visual_line_info);
+                    } else {
+                        break;
                     }
                 }
                 ScreenLines {
