@@ -1063,7 +1063,7 @@ impl View for EditorView {
             visible_whitespace,
             font_size,
             cursor_points,
-            line_height as f64
+            line_height as f64, editor_dim_color, source_control_added_color
         ) {
             error!("{err}");
         }

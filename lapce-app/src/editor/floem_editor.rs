@@ -135,8 +135,9 @@ impl Editor {
         let viewport_memo = cx.create_memo(move |_| viewport.get());
 
         cx.create_effect(move |_| {
-            let lines = doc.with(|x| x.lines);
+            let (lines, kind) = doc.with(|x| (x.lines, x.kind));
             let base = viewport_memo.get();
+            let _ = kind.with(|_| ());
             let Some((
                 screen_lines_val,
                 folding_display_item_val,
@@ -1484,52 +1485,122 @@ pub fn paint_text(
     visible_whitespace: Color,
     font_size: f32,
     cursor_points: Vec<Point>,
-    line_height: f64
+    line_height: f64,
+    dim_color: Color, diff_color: Color,
 ) -> Result<()> {
     if is_active && !hide_cursor {
         paint_cursor_caret(cx, lines, cursor_points, line_height);
     }
-    // todo 不要一次一次的获取text_layout
-    for line_info in screen_lines.visual_lines {
+    let mut lines = screen_lines.visual_lines.into_iter().peekable();
+    while let Some(line_info) = lines.next() {
         let y = line_info.paint_point(screen_lines.base).y;
-        if let VisualLineInfo::OriginText { text: mut line_info, ..} = line_info {
-            paint_extra_style(cx, line_info.folded_line.extra_style(), y, viewport);
-            if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
-                let attrs = Attrs::new()
-                    .color(visible_whitespace)
-                    .family(&font_family)
-                    .font_size(font_size);
-                let attrs_list = AttrsList::new(attrs);
-                let space_text = TextLayout::new_with_text("·", attrs_list.clone());
-                let tab_text = TextLayout::new_with_text("→", attrs_list);
+        match line_info {
+            VisualLineInfo::OriginText { text: mut line_info, ..} => {
+                if line_info.is_diff {
+                    cx.fill(
+                        &Rect::ZERO
+                            .with_size(Size::new(
+                                viewport.width(),
+                                line_height
+                            ))
+                            .with_origin(Point::new(
+                                viewport.x0,
+                                y
+                            )),
+                        diff_color.multiply_alpha(0.2),
+                        0.0
+                    );
+                }
+                paint_extra_style(cx, line_info.folded_line.extra_style(), y, viewport);
+                if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
+                    let attrs = Attrs::new()
+                        .color(visible_whitespace)
+                        .family(&font_family)
+                        .font_size(font_size);
+                    let attrs_list = AttrsList::new(attrs);
+                    let space_text = TextLayout::new_with_text("·", attrs_list.clone());
+                    let tab_text = TextLayout::new_with_text("→", attrs_list);
 
-                for (c, (x0, _x1)) in whitespaces.iter() {
-                    match *c {
-                        '\t' => {
-                            cx.draw_text_with_layout(
-                                tab_text.layout_runs(),
-                                Point::new(*x0, y)
-                            );
-                        },
-                        ' ' => {
-                            cx.draw_text_with_layout(
-                                space_text.layout_runs(),
-                                Point::new(*x0, y)
-                            );
-                        },
-                        _ => {}
+                    for (c, (x0, _x1)) in whitespaces.iter() {
+                        match *c {
+                            '\t' => {
+                                cx.draw_text_with_layout(
+                                    tab_text.layout_runs(),
+                                    Point::new(*x0, y)
+                                );
+                            },
+                            ' ' => {
+                                cx.draw_text_with_layout(
+                                    space_text.layout_runs(),
+                                    Point::new(*x0, y)
+                                );
+                            },
+                            _ => {}
+                        }
                     }
                 }
+
+                cx.draw_text_with_layout(
+                    line_info.folded_line.borrow_text().layout_runs(),
+                    Point::new(0.0, y)
+                );
             }
+            VisualLineInfo::DiffDelete { folded_line_y } => {
+                let mut count = 1.0f64;
+                while let Some(VisualLineInfo::DiffDelete {..}) = lines.peek() {
+                    count += 1.0;
+                    lines.next();
+                }
+                paint_diff_no_code(cx, viewport, folded_line_y, dim_color, count * line_height);
 
-            cx.draw_text_with_layout(
-                line_info.folded_line.borrow_text().layout_runs(),
-                Point::new(0.0, y)
-            );
+            }
         }
-
     }
     Ok(())
+}
+
+fn paint_diff_no_code(
+    cx: &mut PaintCx,
+    viewport: Rect,
+    y: f64,
+    color: Color, section_height: f64,
+) {
+    let y_end = y + section_height;
+
+    if y_end < viewport.y0 || y > viewport.y1 {
+        return;
+    }
+
+    let y = y.max(viewport.y0 - 10.0);
+    let y_end = y_end.min(viewport.y1 + 10.0);
+    let height = y_end - y;
+
+    let start_x = viewport.x0.floor() as usize;
+    let start_x = start_x - start_x % 8;
+
+    for x in (start_x..viewport.x1.ceil() as usize + 1 + section_height.ceil() as usize)
+        .step_by(8)
+    {
+        let p0 = if x as f64 > viewport.x1.ceil() {
+            Point::new(viewport.x1.ceil(), y + (x as f64 - viewport.x1.ceil()))
+        } else {
+            Point::new(x as f64, y)
+        };
+
+        let height = if x as f64 - height < viewport.x0.floor() {
+            x as f64 - viewport.x0.floor()
+        } else {
+            height
+        };
+        if height > 0.0 {
+            let p1 = Point::new(x as f64 - height, y + height);
+            cx.stroke(
+                &Line::new(p0, p1),
+                color,
+                &Stroke::new(1.0)
+            );
+        }
+    }
 }
 
 pub fn paint_extra_style(

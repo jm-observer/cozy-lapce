@@ -1,11 +1,8 @@
 use std::iter::Peekable;
 use std::ops::Range;
-use std::slice::Iter;
 use std::vec::IntoIter;
 use serde::{Deserialize, Serialize};
-use crate::lines::buffer::Buffer;
 use crate::lines::buffer::diff::DiffLines;
-use crate::lines::buffer::rope_text::RopeText;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DiffInfo {
@@ -36,6 +33,13 @@ impl DiffResult {
         match self {
             DiffResult::Empty { lines } => {lines.contains(line)}
             DiffResult::Changed { .. } => {false}
+        }
+    }
+
+    pub fn is_diff(&self, line: &usize) -> bool {
+        match self {
+            DiffResult::Empty { .. } => {false}
+            DiffResult::Changed { lines } => {lines.contains(line)}
         }
     }
 }
@@ -129,7 +133,20 @@ impl DiffInfo {
     }
 }
 
-
+pub fn is_diff(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -> bool {
+    loop {
+        if let Some(diff) = changes.peek() {
+            if diff.line().end <= line{
+                changes.next();
+                continue;
+            } else {
+                return diff.is_diff(&line)
+            }
+        } else {
+            return false;
+        }
+    }
+}
 
 pub fn consume_line(changes: &mut Peekable<IntoIter<DiffResult>>, line: usize) -> bool {
     loop {

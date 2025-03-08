@@ -54,7 +54,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
-use crate::lines::diff::{consume_lines_until_enough, consume_line};
+use crate::lines::diff::{consume_lines_until_enough, consume_line, is_diff};
 use crate::lines::screen_lines::{VisualLineInfo, VisualOriginText};
 
 pub mod action;
@@ -145,9 +145,9 @@ impl DocLinesManager {
     //     self.lines.with(f)
     // }
 
-    pub fn get(&self) -> DocLines {
-        self.lines.get()
-    }
+    // pub fn get(&self) -> DocLines {
+    //     self.lines.get()
+    // }
 
     pub fn update(&self, f: impl FnOnce(&mut DocLines)) {
         // not remove `batch`!
@@ -1324,7 +1324,7 @@ impl DocLines {
                     let visual_line_info = VisualLineInfo::OriginText {
                         text: VisualOriginText {
                             folded_line_y: folded_line_y as f64 - y0,
-                            folded_line: line.clone()
+                            folded_line: line.clone(), is_diff: false
                         }
                     };
                     visual_lines.push(visual_line_info);
@@ -1360,11 +1360,11 @@ impl DocLines {
                         if size_width > self.max_width {
                             self.max_width = size_width;
                         }
-                        let folded_line_y = line.line_index * line_height;
+                        let folded_line_y = i * line_height;
                         let visual_line_info = VisualLineInfo::OriginText {
                             text: VisualOriginText {
                                 folded_line_y: folded_line_y as f64 - y0,
-                                folded_line: line.clone()
+                                folded_line: line.clone(), is_diff: is_diff(&mut changes, start_line)
                             }
                         };
                         visual_lines.push(visual_line_info);

@@ -85,7 +85,6 @@ use crate::{
     },
     db::LapceDb,
     editor::{
-        diff::diff_show_more_section_view,
         location::{EditorLocation, EditorPosition},
         view::editor_container_view
     },
@@ -1362,30 +1361,30 @@ fn editor_tab_content(
                                     config.with_color(LapceColor::LAPCE_BORDER)
                                 )
                         }),
-                        container(
-                            editor_container_view(
-                                window_tab_data.clone(),
-                                workspace.clone(),
-                                move |track| {
-                                    is_active(track)
-                                        && if track {
-                                            focus_right.get()
-                                        } else {
-                                            focus_right.get_untracked()
-                                        }
-                                },
-                                right_editor
-                            )
-                            .debug_name("Right Editor")
-                        )
-                        .on_event_cont(EventListener::PointerDown, move |_| {
-                            focus_right.set(true);
-                        })
-                        .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0)),
-                        diff_show_more_section_view(
-                            &diff_editor_data.left,
-                            &diff_editor_data.right
-                        )
+                        // container(
+                        //     editor_container_view(
+                        //         window_tab_data.clone(),
+                        //         workspace.clone(),
+                        //         move |track| {
+                        //             is_active(track)
+                        //                 && if track {
+                        //                     focus_right.get()
+                        //                 } else {
+                        //                     focus_right.get_untracked()
+                        //                 }
+                        //         },
+                        //         right_editor
+                        //     )
+                        //     .debug_name("Right Editor")
+                        // )
+                        // .on_event_cont(EventListener::PointerDown, move |_| {
+                        //     focus_right.set(true);
+                        // })
+                        // .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0)),
+                        // diff_show_more_section_view(
+                        //     &diff_editor_data.left,
+                        //     &diff_editor_data.right
+                        // )
                     ))
                     .style(|s: Style| s.size_full())
                     .on_cleanup(move || {

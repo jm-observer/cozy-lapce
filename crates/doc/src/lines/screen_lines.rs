@@ -64,7 +64,8 @@ pub struct VisualOriginText {
     /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
     pub folded_line_y: f64,
-    pub folded_line:   OriginFoldedLine
+    pub folded_line:   OriginFoldedLine,
+    pub is_diff: bool,
 }
 // impl Hash for VisualLineInfo {
 //     fn hash<H: Hasher>(&self, state: &mut H) {

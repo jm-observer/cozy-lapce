@@ -1,6 +1,6 @@
 use std::{cell::RefMut, collections::HashMap, str::FromStr};
 
-use floem::{kurbo::Rect, peniko::Color, reactive::SignalGet};
+use floem::{peniko::Color, reactive::SignalGet};
 use log::error;
 
 use super::{
