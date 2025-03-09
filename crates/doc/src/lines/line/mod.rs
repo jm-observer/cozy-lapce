@@ -265,6 +265,12 @@ impl OriginFoldedLine {
             .text_of_final_col_even_overflow(final_col)
     }
 
+    pub fn text_of_origin_merge_col(&self, final_col: usize) -> anyhow::Result<&Text> {
+        self.text_layout
+            .phantom_text
+            .text_of_origin_merge_col(final_col)
+    }
+
     pub fn cursor_position_of_final_col(
         &self,
         final_col: usize

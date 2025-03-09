@@ -32,7 +32,9 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
+use doc::lines::phantom_text::Text;
 use doc::lines::screen_lines::VisualLineInfo;
+use doc::lines::selection::SelRegion;
 use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 use crate::editor::view::StickyHeaderInfo;
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
@@ -420,9 +422,24 @@ impl Editor {
                 }
             };
         let (start, end) = self.select_word(mouse_offset);
+        let start_affi = self.screen_lines.with_untracked(|x| {
+            let Some(text) = x.visual_line_for_buffer_offset(start) else {
+                return None;
+            };
+            let Ok(text) = text.folded_line.text_of_origin_merge_col(start - text.folded_line.origin_interval.start) else {
+                error!("start {start}, folded {}-{}", text.folded_line.origin_line_start, text.folded_line.origin_line_end);
+                return None;
+            };
+            if let Text::Phantom { .. } = text {
+                Some(CursorAffinity::Forward)
+            } else {
+                None
+            }
+        });
+
         info!(
             "double_click {:?} {:?} mouse_offset={mouse_offset},  start={start} \
-             end={end}",
+             end={end} start_affi={start_affi:?}",
             pointer_event.pos, mode
         );
         self.cursor.update(|cursor| {
@@ -430,8 +447,8 @@ impl Editor {
                 start,
                 end,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt()
-            )
+                pointer_event.modifiers.alt(), start_affi
+            );
         });
     }
 
@@ -470,7 +487,7 @@ impl Editor {
                 origin_interval.start,
                 origin_interval.end,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt()
+                pointer_event.modifiers.alt(), None
             )
         });
     }
@@ -977,7 +994,7 @@ impl Editor {
         point: Point
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
         let viewport = self.viewport_untracked();
-        log::info!("point={point:?}, viewport={viewport:?}");
+        // log::info!("point={point:?}, viewport={viewport:?}");
         self.screen_lines.with_untracked(|x| {
             x.buffer_offset_of_click(mode, point.sub(viewport.origin().to_vec2()))
         })
@@ -1338,6 +1355,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                 } else {
                     (start, end, start_affinity, end_affinity)
                 };
+                // log::info!("start={start} end={end} start_affinity={start_affinity:?}");
                 if let Err(err) = paint_normal_selection(
                     cx,
                     selection_color,

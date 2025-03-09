@@ -58,6 +58,7 @@ impl Iterator for RegionsIter<'_> {
                 (start, end, None, None)
             }),
             CursorMode::Insert(selection) => {
+                // log::info!("selection: {:?}", selection);
                 let next = selection.regions().get(self.idx).map(
                     |&SelRegion {
                          start,
@@ -596,7 +597,7 @@ impl Cursor {
         start: usize,
         end: usize,
         modify: bool,
-        new_cursor: bool
+        new_cursor: bool, start_affinity: Option<CursorAffinity>
     ) {
         match &self.mode {
             CursorMode::Normal(_offset) => {
@@ -629,24 +630,31 @@ impl Cursor {
                 let new_selection = if new_cursor {
                     let mut new_selection = selection.clone();
                     if modify {
-                        let new_region =
+                        let mut new_region =
                             if let Some(last_inserted) = selection.last_inserted() {
                                 last_inserted
                                     .merge_with(SelRegion::new(start, end, None))
                             } else {
                                 SelRegion::new(start, end, None)
                             };
+                        new_region.start_cursor_affi = start_affinity;
                         new_selection.replace_last_inserted_region(new_region);
                     } else {
-                        new_selection.add_region(SelRegion::new(start, end, None));
+                        let mut new_region = SelRegion::new(start, end, None);
+                        new_region.start_cursor_affi = start_affinity;
+                        new_selection.add_region(new_region);
                     }
                     new_selection
                 } else if modify {
                     let mut new_selection = selection.clone();
-                    new_selection.add_region(SelRegion::new(start, end, None));
+                    let mut new_region = SelRegion::new(start, end, None);
+                    new_region.start_cursor_affi = start_affinity;
+                    new_selection.add_region(new_region);
                     new_selection
                 } else {
-                    Selection::region(start, end)
+                    let mut new_region = SelRegion::new(start, end, None);
+                    new_region.start_cursor_affi = start_affinity;
+                    Selection::sel_region(new_region)
                 };
                 self.mode = CursorMode::Insert(new_selection);
             }
