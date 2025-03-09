@@ -2,8 +2,9 @@ use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
 
 use anyhow::{Result};
 use floem::kurbo::{Point, Rect};
-
 use crate::lines::{cursor::CursorAffinity, line::OriginFoldedLine};
+use crate::lines::cursor::CursorMode;
+use crate::lines::phantom_text::Text;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -442,6 +443,130 @@ impl ScreenLines {
             );
             first.push(last);
             Ok(first)
+        }
+    }
+
+
+    pub(crate) fn visual_line_of_point(
+        &self,
+        point_y: f64
+    ) -> Option<&VisualLineInfo> {
+        for line in &self.visual_lines {
+            let folded_line_y = line.folded_line_y();
+            if folded_line_y <= point_y && point_y < folded_line_y + self.line_height {
+                return Some(line)
+            }
+        }
+        None
+    }
+
+    pub fn buffer_offset_of_click(
+        &self,
+        _mode: &CursorMode,
+        point: Point
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let Some(info) = self.visual_line_of_point(point.y) else {
+            return Ok(None);
+        };
+        let VisualLineInfo::OriginText {text, ..} = info else {
+            return Ok(None);
+        };
+        let info = &text.folded_line;
+        let hit_point = info.hit_point(Point::new(point.x, 0.0));
+        let visual_char_offset = hit_point.index;
+
+        if hit_point.is_inside {
+            for x in info.text() {
+                match x {
+                    Text::Phantom { text } => {
+                        if text.final_col <= visual_char_offset
+                            && visual_char_offset < text.next_final_col()
+                        {
+                            // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+                            return Ok(Some(
+                                if hit_point.index
+                                    > text.final_col + text.text.len() / 2
+                                {
+                                    (
+                                        info.origin_interval.start
+                                            + text.origin_merge_col,
+                                        true,
+                                        CursorAffinity::Forward
+                                    )
+                                } else {
+                                    (
+                                        info.origin_interval.start
+                                            + text.origin_merge_col,
+                                        true,
+                                        CursorAffinity::Backward
+                                    )
+                                }
+                            ));
+                        } else if visual_char_offset == text.next_final_col() {
+                            return Ok(Some((
+                                info.origin_interval.start + text.origin_merge_col,
+                                true,
+                                CursorAffinity::Forward
+                            )));
+                        }
+                    },
+                    Text::OriginText { text } => {
+                        if text.final_col.contains(visual_char_offset)
+                            || info.last_line && text.final_col.end == visual_char_offset {
+                            return Ok(Some((
+                                visual_char_offset - text.final_col.start
+                                    + text.origin_merge_col_start()
+                                    + info.origin_interval.start,
+                                true,
+                                CursorAffinity::Backward
+                            )));
+                        }
+                    },
+                    Text::EmptyLine { .. } => unreachable!()
+                }
+            }
+            // error!("path {:?}, point={:?}, index={}", self.path, point, hit_point.index);
+            unreachable!();
+        } else {
+            let Some(text) = info.text().last() else {
+                unreachable!()
+            };
+            // last of line
+            Ok(Some(match text {
+                Text::Phantom { text } => (
+                    text.origin_merge_col + info.origin_interval.start,
+                    false,
+                    CursorAffinity::Forward
+                ),
+                Text::OriginText { .. } => {
+                    // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
+                    if info.len_without_rn() == 0 {
+                        (info.offset_of_line(), false, CursorAffinity::Backward)
+                    } else {
+                        // 该返回\r的前一个字符，CursorAffinity::Forward
+                        let line_ending_len = info.len() - info.len_without_rn();
+                        if line_ending_len == 0 {
+                            (
+                                info.origin_interval.end,
+                                false,
+                                CursorAffinity::Backward
+                            )
+                        } else {
+                            (
+                                info.origin_interval.end - line_ending_len,
+                                false,
+                                CursorAffinity::Backward
+                            )
+                        }
+                    }
+                    // (text.merge_col.end +
+                    // text_layout.phantom_text.offset_of_line - 1, false,
+                    // CursorAffinity::Forward)
+                },
+                Text::EmptyLine { text } => {
+                    (text.offset_of_line, false, CursorAffinity::Backward)
+                },
+            }))
         }
     }
 }

@@ -60,7 +60,6 @@ use lsp_types::{
 };
 use nucleo::Utf32Str;
 use doc::lines::screen_lines::VisualLineInfo;
-use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
 use crate::{
@@ -3000,7 +2999,8 @@ impl EditorData {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
         let (offset, is_inside, affinity) =
             match self.editor.offset_of_point(&mode, pointer_event.pos) {
-                Ok(rs) => rs,
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
                 Err(err) => {
                     error!("{err:?}");
                     return;

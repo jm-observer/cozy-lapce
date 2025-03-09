@@ -119,7 +119,6 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData}
 };
-use crate::editor::diff::diff_show_more_section_view;
 
 pub(crate) mod grammars;
 mod logging;
@@ -601,7 +600,11 @@ impl AppData {
 
         view_id.request_focus();
 
-        view.window_scale(move || window_scale.get())
+        view.window_scale(move || {
+            let window_scale = window_scale.get();
+            log::error!("window_scale {}", window_scale);
+            window_scale
+        })
             .keyboard_navigable()
             .on_event(EventListener::KeyDown, move |event| {
                 if let Event::KeyDown(key_event) = event {
@@ -1311,6 +1314,7 @@ fn editor_tab_content(
                     let left_scroll_to = diff_editor_data.left.scroll_to();
                     let right_viewport = diff_editor_data.right.editor.viewport;
                     let right_scroll_to = diff_editor_data.right.scroll_to();
+                    // keep scroll common
                     // create_effect(move |_| {
                     //     let left_viewport = left_viewport.get();
                     //     if right_viewport.get_untracked() != left_viewport {

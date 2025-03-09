@@ -61,7 +61,7 @@ impl DiffInfo {
         }
     }
     pub fn left_changes(&self,) -> Vec<DiffResult> {
-        log::info!("{}", serde_json::to_string(&self.changes).unwrap());
+        // log::info!("{}", serde_json::to_string(&self.changes).unwrap());
         let mut changes = self.changes.iter().peekable();
         let mut next_left_change_line: Option<Range<usize>> = None;
         let mut diff_tys = vec![];
@@ -103,7 +103,7 @@ impl DiffInfo {
     }
 
     pub fn right_changes(&self,) -> Vec<DiffResult> {
-        log::info!("{}", serde_json::to_string(&self.changes).unwrap());
+        // log::info!("{}", serde_json::to_string(&self.changes).unwrap());
         let mut changes = self.changes.iter().peekable();
         let mut next_right_change_line: Option<Range<usize>> = None;
         let mut diff_tys = vec![];

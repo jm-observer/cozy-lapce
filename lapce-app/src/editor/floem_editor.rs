@@ -381,7 +381,8 @@ impl Editor {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (new_offset, _is_inside, cursor_affinity) =
             match self.offset_of_point(&mode, pointer_event.pos) {
-                Ok(rs) => rs,
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
                 Err(err) => {
                     error!("{err:?}");
                     return;
@@ -411,7 +412,8 @@ impl Editor {
 
         let (mouse_offset, _, _) =
             match self.offset_of_point(&mode, pointer_event.pos) {
-                Ok(rs) => rs,
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
                 Err(err) => {
                     error!("{err:?}");
                     return;
@@ -437,7 +439,8 @@ impl Editor {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (mouse_offset, _, _) =
             match self.offset_of_point(&mode, pointer_event.pos) {
-                Ok(rs) => rs,
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
                 Err(err) => {
                     error!("{err:?}");
                     return;
@@ -972,11 +975,14 @@ impl Editor {
         &self,
         mode: &CursorMode,
         point: Point
-    ) -> Result<(usize, bool, CursorAffinity)> {
-        self.doc
-            .get_untracked()
-            .lines
-            .with_untracked(|x| x.buffer_offset_of_click(mode, point))
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        self.screen_lines.with_untracked(|x| {
+            x.buffer_offset_of_click(mode, point)
+        })
+        // self.doc
+        //     .get_untracked()
+        //     .lines
+        //     .with_untracked(|x| x.buffer_offset_of_click(mode, point))
     }
 
     // /// 获取该坐标所在的视觉行和行偏离

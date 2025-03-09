@@ -1343,7 +1343,6 @@ impl DocLines {
 
                 let mut empty_lines = changes.iter().filter(is_empty as fn(&&DiffResult) -> bool).peekable();
                 let mut change_lines = changes.iter().filter(is_changed as fn(&&DiffResult) -> bool).peekable();
-                log::info!("{changes:?}");
                 let len = end - start;
                 let mut start_line = consume_lines_until_enough(&mut empty_lines, start);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
