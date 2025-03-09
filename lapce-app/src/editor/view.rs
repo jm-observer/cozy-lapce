@@ -999,8 +999,7 @@ impl View for EditorView {
 
 
 
-        let e_data = &self.editor;
-        let ed = &e_data.editor;
+
         let bracket_offsets = doc.find_enclosing_brackets(cursor_offset);
 
         let (visible_whitespace, current_line_color) = ed
@@ -1829,7 +1828,8 @@ fn editor_content(
             .on_event_cont(EventListener::FocusLost, move |_| {
                 editor2.editor_view_focus_lost.notify();
             })
-            .on_event_stop(EventListener::PointerDown, move |event| {
+            // 不能on_event_stop。否则会导致diff的左侧光标无法渲染
+            .on_event_cont(EventListener::PointerDown, move |event| {
                 if let Event::PointerDown(pointer_event) = event {
                     id.request_active();
                     e_data.get_untracked().pointer_down(pointer_event);
