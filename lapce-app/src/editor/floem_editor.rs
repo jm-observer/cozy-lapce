@@ -1,5 +1,5 @@
 use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
-
+use std::ops::{Sub};
 use anyhow::Result;
 use doc::lines::{
     DocLinesManager,
@@ -976,8 +976,10 @@ impl Editor {
         mode: &CursorMode,
         point: Point
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let viewport = self.viewport_untracked();
+        log::info!("point={point:?}, viewport={viewport:?}");
         self.screen_lines.with_untracked(|x| {
-            x.buffer_offset_of_click(mode, point)
+            x.buffer_offset_of_click(mode, point.sub(viewport.origin().to_vec2()))
         })
         // self.doc
         //     .get_untracked()
