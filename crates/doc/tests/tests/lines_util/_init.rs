@@ -2,7 +2,8 @@ use std::{
     fs::File,
     path::{Path, PathBuf}
 };
-
+use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use anyhow::Result;
 use doc::{
     DiagnosticData, EditorViewKind,
@@ -29,7 +30,7 @@ use lapce_xi_rope::{
 };
 use log::info;
 use lsp_types::{Diagnostic, InlayHint, Position};
-use doc::lines::buffer::diff::DiffLines;
+use doc::lines::buffer::diff::{rope_diff, DiffLines};
 use doc::lines::diff::DiffInfo;
 use super::init_semantic_2;
 
@@ -312,13 +313,36 @@ pub fn init_main_3() -> Result<DocLines> {
     Ok(lines)
 }
 
-pub fn init_test() -> Result<DocLines> {
-    let file: PathBuf = "../../resources/test_code/test.rs".into();
-    let rs = _init_code(file);
-    let diff = init_diff()?;
-    let kind = EditorViewKind::Diff(diff);
-    let (lines, _) = _init_lines(None, rs, vec![], None, Some(kind))?;
-    Ok(lines)
+pub fn init_test_diff() -> Vec<DiffLines> {
+    let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
+    let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
+
+    let code_old = load_code(&file_old);
+    let code = load_code(&file_new);
+    rope_diff(code_old.into(), code.into(), 0, Arc::new(AtomicU64::new(0)), None).unwrap()
+}
+
+pub fn init_test() -> Result<(DocLines, DocLines)> {
+    let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
+    let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
+
+    let diff = init_test_diff();
+    let rs_new = _init_code(file_new);
+    let rs_old = _init_code(file_old);
+
+    // let diff = init_diff()?;
+    let left_kind = EditorViewKind::Diff(DiffInfo {
+        is_right: false,
+        changes: diff.clone(),
+    });
+    let right_kind = EditorViewKind::Diff(DiffInfo {
+        is_right: true,
+        changes: diff,
+    });
+    let (left_lines, _) = _init_lines(None, rs_old, vec![], None, Some(left_kind))?;
+    let (right_lines, _) = _init_lines(None, rs_new, vec![], None, Some(right_kind))?;
+
+    Ok((left_lines, right_lines))
 }
 
 

@@ -119,6 +119,7 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData}
 };
+use crate::editor::diff::diff_show_more_section_view;
 
 pub(crate) mod grammars;
 mod logging;
@@ -1310,13 +1311,13 @@ fn editor_tab_content(
                     let left_scroll_to = diff_editor_data.left.scroll_to();
                     let right_viewport = diff_editor_data.right.editor.viewport;
                     let right_scroll_to = diff_editor_data.right.scroll_to();
-                    create_effect(move |_| {
-                        let left_viewport = left_viewport.get();
-                        if right_viewport.get_untracked() != left_viewport {
-                            right_scroll_to
-                                .set(Some(left_viewport.origin().to_vec2()));
-                        }
-                    });
+                    // create_effect(move |_| {
+                    //     let left_viewport = left_viewport.get();
+                    //     if right_viewport.get_untracked() != left_viewport {
+                    //         right_scroll_to
+                    //             .set(Some(left_viewport.origin().to_vec2()));
+                    //     }
+                    // });
                     create_effect(move |_| {
                         let right_viewport = right_viewport.get();
                         if left_viewport.get_untracked() != right_viewport {
@@ -1357,26 +1358,26 @@ fn editor_tab_content(
                                     config.with_color(LapceColor::LAPCE_BORDER)
                                 )
                         }),
-                        // container(
-                        //     editor_container_view(
-                        //         window_tab_data.clone(),
-                        //         workspace.clone(),
-                        //         move |track| {
-                        //             is_active(track)
-                        //                 && if track {
-                        //                     focus_right.get()
-                        //                 } else {
-                        //                     focus_right.get_untracked()
-                        //                 }
-                        //         },
-                        //         right_editor
-                        //     )
-                        //     .debug_name("Right Editor")
-                        // )
-                        // .on_event_cont(EventListener::PointerDown, move |_| {
-                        //     focus_right.set(true);
-                        // })
-                        // .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0)),
+                        container(
+                            editor_container_view(
+                                window_tab_data.clone(),
+                                workspace.clone(),
+                                move |track| {
+                                    is_active(track)
+                                        && if track {
+                                            focus_right.get()
+                                        } else {
+                                            focus_right.get_untracked()
+                                        }
+                                },
+                                right_editor
+                            )
+                            .debug_name("Right Editor")
+                        )
+                        .on_event_cont(EventListener::PointerDown, move |_| {
+                            focus_right.set(true);
+                        })
+                        .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0)),
                         // diff_show_more_section_view(
                         //     &diff_editor_data.left,
                         //     &diff_editor_data.right

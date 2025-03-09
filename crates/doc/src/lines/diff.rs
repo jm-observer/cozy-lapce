@@ -70,11 +70,14 @@ impl DiffInfo {
                 match change {
                     DiffLines::Left(diff) => {
                         next_left_change_line = Some(diff.clone());
-                        if let Some(DiffLines::Right(_)) = changes.peek() {
+                        diff_tys.push(DiffResult::Changed { lines: diff.clone() });
+                        if let Some(DiffLines::Right(right_diff)) = changes.peek() {
                             // edit
+                            if diff.len() < right_diff.len() {
+                                diff_tys.push(DiffResult::Empty { lines: diff.end..diff.end + right_diff.len() - diff.len() });
+                            }
                             changes.next();
                         }
-                        diff_tys.push(DiffResult::Changed { lines: diff.clone() });
                     }
                     DiffLines::Both(diff) => {
                         next_left_change_line = Some(diff.left.clone());
@@ -112,6 +115,9 @@ impl DiffInfo {
                             // edit
                             changes.next();
                             diff_tys.push(DiffResult::Changed { lines: diff.clone() });
+                            if diff.len() < left_diff.len() {
+                                diff_tys.push(DiffResult::Empty { lines: diff.end..diff.end + left_diff.len() - diff.len() });
+                            }
                             next_right_change_line = Some(diff.clone());
                         } else {
                             diff_tys.push(match &next_right_change_line {
