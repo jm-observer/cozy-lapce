@@ -25,6 +25,7 @@ use crate::{
     },
     window_workspace::CommonData
 };
+use crate::window_workspace::WindowWorkspaceData;
 
 #[derive(Clone)]
 pub struct KeymapPicker {
@@ -33,7 +34,7 @@ pub struct KeymapPicker {
     keys:   RwSignal<Vec<(KeyMapPress, bool)>>
 }
 
-pub fn keymap_view(common: Rc<CommonData>) -> impl View {
+pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,) -> impl View {
     let config = common.config;
     let keypress = common.keypress;
     let ui_line_height_memo = common.ui_line_height;
@@ -52,32 +53,41 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
 
     let query_str = create_rw_signal(String::new());
     let key_map_items = move || {
-        let pattern = query_str.get();
+        let pattern = query_str.get().to_lowercase();
         let keypress = keypress.get();
         let items = keypress.commands_with_keymap.iter().filter_map(|keymap| {
             let cmd = keypress.commands.get(&keymap.command).cloned()?;
 
             let cmd_name_contains_pattern =
-                cmd.kind.str().replace('_', " ").contains(&pattern);
+                cmd.kind.str().contains(&pattern);
+            if cmd_name_contains_pattern
+            {
+                return Some((cmd, Some(keymap.clone())))
+            }
             let cmd_desc_contains_pattern = cmd
                 .kind
                 .desc()
                 .map(|desc| desc.to_lowercase().contains(&pattern))
                 .unwrap_or(false);
+            if cmd_desc_contains_pattern
+            {
+                return Some((cmd, Some(keymap.clone())))
+            }
             let shortcut_contains_pattern = keymap
                 .key
                 .iter()
-                .any(|k| k.label().trim().to_lowercase().contains(&pattern));
+                .any(|k| k.label().trim().to_lowercase().contains(&pattern) || k.label().trim().replace('+',"").to_lowercase().contains(&pattern));
+            if shortcut_contains_pattern
+            {
+                return Some((cmd, Some(keymap.clone())))
+            }
             let when_contains_pattern = keymap
                 .when
                 .as_ref()
                 .map(|when| when.to_lowercase().contains(&pattern))
                 .unwrap_or(false);
 
-            if cmd_name_contains_pattern
-                || cmd_desc_contains_pattern
-                || shortcut_contains_pattern
-                || when_contains_pattern
+            if when_contains_pattern
             {
                 Some((cmd, Some(keymap.clone())))
             } else {
@@ -303,6 +313,11 @@ pub fn keymap_view(common: Rc<CommonData>) -> impl View {
             text_input(query_str)
                 .placeholder("Search Key Bindings")
                 .keyboard_navigable()
+                .on_event_stop(EventListener::KeyDown, move |event| {
+                    if let Event::KeyDown(_key_event) = event {
+                        window_tab_data.key_down(_key_event);
+                    }
+                })
                 .style(move |s| {
                     s.width_pct(100.0)
                         .border_radius(2.0)
