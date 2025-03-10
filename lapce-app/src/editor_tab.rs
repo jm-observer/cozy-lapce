@@ -123,6 +123,9 @@ impl EditorTabChildId {
                     let doc = editor_data.doc_signal().get();
                     let is_pristine =
                         doc.lines.with_untracked(|x| x.signal_pristine()).get();
+                    if !is_pristine {
+                        confirmed.set(true);
+                    }
                     let content = doc.content.get();
                     match content {
                         DocContent::File { path, .. } => Some((path, is_pristine)),
