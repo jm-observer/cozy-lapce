@@ -25,6 +25,7 @@ use doc::{
         editor_command::CommandExecuted,
         mode::{Mode, MotionMode},
         movement::Movement,
+        screen_lines::VisualLineInfo,
         selection::{InsertDrift, SelRegion, Selection}
     }
 };
@@ -59,7 +60,6 @@ use lsp_types::{
     Range, TextEdit
 };
 use nucleo::Utf32Str;
-use doc::lines::screen_lines::VisualLineInfo;
 
 use self::location::{EditorLocation, EditorPosition};
 use crate::{
@@ -128,20 +128,20 @@ pub type SnippetIndex = Vec<(usize, (usize, usize))>;
 /// out.
 #[derive(Clone, Debug)]
 pub struct EditorData {
-    pub scope:                Scope,
-    pub editor_tab_id:        RwSignal<Option<EditorTabManageId>>,
-    pub diff_editor_id:       RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
+    pub scope:            Scope,
+    pub editor_tab_id:    RwSignal<Option<EditorTabManageId>>,
+    pub diff_editor_id:   RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
     // pub confirmed:            RwSignal<bool>,
-    pub snippet:              RwSignal<Option<SnippetIndex>>,
-    pub inline_find:          RwSignal<Option<InlineFindDirection>>,
-    pub on_screen_find:       RwSignal<OnScreenFind>,
-    pub last_inline_find:     RwSignal<Option<(InlineFindDirection, String)>>,
-    pub find_focus:           RwSignal<bool>,
-    pub editor:               Rc<Editor>,
+    pub snippet:          RwSignal<Option<SnippetIndex>>,
+    pub inline_find:      RwSignal<Option<InlineFindDirection>>,
+    pub on_screen_find:   RwSignal<OnScreenFind>,
+    pub last_inline_find: RwSignal<Option<(InlineFindDirection, String)>>,
+    pub find_focus:       RwSignal<bool>,
+    pub editor:           Rc<Editor>,
     // pub kind: RwSignal<EditorViewKind>,
     // pub sticky_header_height: RwSignal<f64>,
-    pub common:               Rc<CommonData>,
-    // pub sticky_header_info:   RwSignal<StickyHeaderInfo>
+    pub common:           Rc<CommonData> /* pub sticky_header_info:
+                                          * RwSignal<StickyHeaderInfo> */
 }
 
 impl PartialEq for EditorData {
@@ -178,8 +178,8 @@ impl EditorData {
             editor: Rc::new(editor),
             // kind: cx.create_rw_signal(EditorViewKind::Normal),
             // sticky_header_height: cx.create_rw_signal(0.0),
-            common,
-            // sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
+            common /* sticky_header_info:
+                    * cx.create_rw_signal(StickyHeaderInfo::default()) */
         }
     }
 
@@ -226,7 +226,8 @@ impl EditorData {
         doc: Rc<Doc>,
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
-        common: Rc<CommonData>, view_kind: EditorViewKind,
+        common: Rc<CommonData>,
+        view_kind: EditorViewKind
     ) -> Self {
         let editor = doc.create_editor(cx, false, view_kind);
         Self::new(cx, editor, editor_tab_id, diff_editor_id, common)
@@ -242,7 +243,7 @@ impl EditorData {
         &self,
         cx: Scope,
         editor_tab_id: Option<EditorTabManageId>,
-        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>
     ) -> Self {
         let cx = cx.create_child();
 
@@ -251,7 +252,8 @@ impl EditorData {
             self.doc(),
             editor_tab_id,
             diff_editor_id,
-            self.common.clone(), self.editor.kind.get_untracked()
+            self.common.clone(),
+            self.editor.kind.get_untracked()
         );
         editor.editor.cursor.set(self.editor.cursor.get_untracked());
         // editor
@@ -1133,7 +1135,7 @@ impl EditorData {
             x.visual_lines
                 .iter()
                 .filter_map(|l| {
-                    if let VisualLineInfo::OriginText { text, ..} = l {
+                    if let VisualLineInfo::OriginText { text, .. } = l {
                         Some(text.folded_line.origin_line_start)
                     } else {
                         None
@@ -2884,7 +2886,8 @@ impl EditorData {
                             .with_untracked(|config| config.editor.line_height());
                     if let (Some(path), Some(line)) = (
                         self.doc().content.get_untracked().path(),
-                        self.editor.sticky_header_info
+                        self.editor
+                            .sticky_header_info
                             .get_untracked()
                             .sticky_lines
                             .get(index)
@@ -3006,7 +3009,8 @@ impl EditorData {
                     return;
                 }
             };
-        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside} {affinity:?}", pointer_event.pos);
+        // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside}
+        // {affinity:?}", pointer_event.pos);
         if self.active().get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
@@ -3646,16 +3650,21 @@ impl KeyPressFocus for EditorData {
                 let mut cursor = self.cursor().get_untracked();
                 let doc = self.doc();
                 let offset = cursor.offset();
-                let next_is_whitespace = doc.lines.with_untracked(|x|
-                    x.buffer().char_at_offset(offset).map(|x| {
-                    // log::info!("receive_char offset_c={x}");
-                    x.is_whitespace() || x.is_ascii_punctuation()
-                })).unwrap_or(true);
+                let next_is_whitespace = doc
+                    .lines
+                    .with_untracked(|x| {
+                        x.buffer().char_at_offset(offset).map(|x| {
+                            // log::info!("receive_char offset_c={x}");
+                            x.is_whitespace() || x.is_ascii_punctuation()
+                        })
+                    })
+                    .unwrap_or(true);
                 let deltas = doc.do_insert(&mut cursor, c);
                 self.cursor().set(cursor);
                 if !c
                     .chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace()) && next_is_whitespace
+                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
+                    && next_is_whitespace
                 {
                     self.update_completion(false);
                 } else {
@@ -3749,12 +3758,15 @@ fn show_completion(
             };
 
             if start > 0 && end > start {
-                let next_char = doc.slice_to_cow(end..end+1).chars().all(|c| c.is_whitespace() || c.is_ascii_punctuation());
+                let next_char = doc
+                    .slice_to_cow(end..end + 1)
+                    .chars()
+                    .all(|c| c.is_whitespace() || c.is_ascii_punctuation());
                 let str = doc.slice_to_cow(start..end);
                 // log::info!("{next_char} {str}");
-                !str
-                    .chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace()) && next_char
+                !str.chars()
+                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
+                    && next_char
             } else {
                 true
             }
@@ -4033,6 +4045,7 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //   Some(Rc::new(diff_sections)), //     base, // } } }
 // }
 
+#[allow(clippy::too_many_arguments)]
 fn parse_hover_resp(
     hover: lsp_types::Hover,
     directory: &Directory,

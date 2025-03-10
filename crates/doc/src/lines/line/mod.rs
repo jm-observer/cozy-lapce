@@ -82,8 +82,6 @@ impl OriginLine {
     }
 }
 
-
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
     pub line_index:        usize,
@@ -92,7 +90,7 @@ pub struct OriginFoldedLine {
     /// origin_line_start..=origin_line_end
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
-    pub last_line: bool,
+    pub last_line:         bool,
     text_layout:           TextLayoutLine
 }
 
@@ -265,7 +263,10 @@ impl OriginFoldedLine {
             .text_of_final_col_even_overflow(final_col)
     }
 
-    pub fn text_of_origin_merge_col(&self, final_col: usize) -> anyhow::Result<&Text> {
+    pub fn text_of_origin_merge_col(
+        &self,
+        final_col: usize
+    ) -> anyhow::Result<&Text> {
         self.text_layout
             .phantom_text
             .text_of_origin_merge_col(final_col)
@@ -300,7 +301,7 @@ impl OriginFoldedLine {
                     - (self.len() - self.len_without_rn());
                 let merge_col = (final_col - text.final_col.start
                     + text.origin_merge_col_start())
-                    .min(max_origin_merge_col);
+                .min(max_origin_merge_col);
                 (
                     // text.line,
                     // text.origin_col_of_final_col(visual_char_offset),
@@ -385,7 +386,7 @@ impl OriginFoldedLine {
     pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {
         &self.text_layout.whitespaces
     }
-    
+
     #[inline]
     pub fn contain_buffer_offset(&self, buffer_offset: usize) -> bool {
         if self.last_line {
@@ -422,8 +423,6 @@ impl Debug for OriginFoldedLine {
     }
 }
 
-
-
 // #[derive(Clone)]
 // pub struct VisualLine {
 //     pub line_index:                   usize,
@@ -448,9 +447,9 @@ impl Debug for OriginFoldedLine {
 //                 "origin_folded_line_sub_index",
 //                 &self.origin_folded_line_sub_index,
 //             )
-//             // .field("text_layout layout len=", &self.text_layout.text.line().layout_opt().map(|x| x.len()))
-//             // .field("phantom_text", &self.text_layout.phantom_text)
-//             .finish()
+//             // .field("text_layout layout len=",
+// &self.text_layout.text.line().layout_opt().map(|x| x.len()))             //
+// .field("phantom_text", &self.text_layout.phantom_text)             .finish()
 //     }
 // }
 

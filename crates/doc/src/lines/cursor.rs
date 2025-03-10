@@ -597,7 +597,8 @@ impl Cursor {
         start: usize,
         end: usize,
         modify: bool,
-        new_cursor: bool, start_affinity: Option<CursorAffinity>
+        new_cursor: bool,
+        start_affinity: Option<CursorAffinity>
     ) {
         match &self.mode {
             CursorMode::Normal(_offset) => {

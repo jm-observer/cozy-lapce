@@ -180,7 +180,7 @@ async fn handle_find_grammar(
     updated |= fetch_queries(&release, queries_directory).await?;
     Ok(LocalResponse::FindGrammar { updated })
 }
-
+#[allow(clippy::too_many_arguments)]
 async fn handle_download_readme(
     volt: &VoltInfo,
     directory: &Directory,

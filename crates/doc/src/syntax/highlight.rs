@@ -13,8 +13,8 @@ use std::{
     path::Path,
     sync::{
         Arc, LazyLock,
-        atomic::{AtomicUsize, Ordering},
-    },
+        atomic::{AtomicUsize, Ordering}
+    }
 };
 
 use anyhow::Result;
@@ -23,7 +23,7 @@ use lapce_xi_rope::Rope;
 use log::error;
 use regex::Regex;
 use tree_sitter::{
-    Language, Point, Query, QueryCaptures, QueryCursor, QueryMatch, Tree,
+    Language, Point, Query, QueryCaptures, QueryCursor, QueryMatch, Tree
 };
 
 use super::{PARSER, util::RopeProvider};
@@ -70,7 +70,7 @@ pub const SCOPES: &[&str] = &[
     "markup.heading",
     "markup.link.url",
     "markup.link.label",
-    "markup.link.text",
+    "markup.link.text"
 ];
 
 pub fn reset_highlight_configs() {
@@ -82,7 +82,7 @@ pub fn reset_highlight_configs() {
 pub fn get_highlight_config(
     lang: LapceLanguage,
     grammars_directory: &Path,
-    queries_directory: &Path,
+    queries_directory: &Path
 ) -> Result<Arc<HighlightConfiguration>, HighlightIssue> {
     HIGHLIGHT_CONFIGS.with(|configs| {
         let mut configs = configs.borrow_mut();
@@ -92,13 +92,13 @@ pub fn get_highlight_config(
                     &lang.grammar_name(),
                     &lang.grammar_fn_name(),
                     lang.name(),
-                    grammars_directory,
+                    grammars_directory
                 ),
                 &lang.query_name(),
                 crate::language::LapceLanguage::HIGHLIGHTS_INJECTIONS_FILE_NAME,
                 LapceLanguage::HIGHLIGHTS_QUERIES_FILE_NAME,
                 lang.name(),
-                queries_directory,
+                queries_directory
             )
             .map(Arc::new)
         });
@@ -110,7 +110,7 @@ fn get_grammar(
     grammar_name: &str,
     grammar_fn_name: &str,
     language_name: &str,
-    grammars_directory: &Path,
+    grammars_directory: &Path
 ) -> Option<tree_sitter::Language> {
     if language_name == "Plain Text" {
         return None;
@@ -120,7 +120,7 @@ fn get_grammar(
         Err(err) => {
             error!("{} {:?}", language_name, err);
             None
-        },
+        }
     }
 }
 
@@ -130,14 +130,14 @@ pub fn new_highlight_config(
     highlights_injections_file_name: &str,
     highlights_queries_file_name: &str,
     language_name: &str,
-    queries_directory: &Path,
+    queries_directory: &Path
 ) -> Result<HighlightConfiguration, HighlightIssue> {
     let grammar = grammar.ok_or(HighlightIssue::NotAvailable)?;
     let (query, injection) = get_grammar_query(
         query_name,
         highlights_injections_file_name,
         highlights_queries_file_name,
-        queries_directory,
+        queries_directory
     );
 
     match HighlightConfiguration::new(grammar, &query, &injection, "") {
@@ -149,7 +149,7 @@ pub fn new_highlight_config(
                 language_name
             );
             Err(HighlightIssue::Error(str))
-        },
+        }
     }
 }
 
@@ -157,19 +157,19 @@ fn get_grammar_query(
     query_name: &str,
     highlights_injections_file_name: &str,
     highlights_queries_file_name: &str,
-    queries_directory: &Path,
+    queries_directory: &Path
 ) -> (String, String) {
     (
         read_grammar_query(
             queries_directory,
             query_name,
-            highlights_queries_file_name,
+            highlights_queries_file_name
         ),
         read_grammar_query(
             queries_directory,
             query_name,
-            highlights_injections_file_name,
-        ),
+            highlights_injections_file_name
+        )
     )
 }
 
@@ -181,7 +181,7 @@ pub struct Highlight(pub usize);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum HighlightIssue {
     Error(String),
-    NotAvailable,
+    NotAvailable
 }
 
 /// Represents a single step in rendering a syntax-highlighted
@@ -190,28 +190,28 @@ pub enum HighlightIssue {
 pub enum HighlightEvent {
     Source { start: usize, end: usize },
     HighlightStart(Highlight),
-    HighlightEnd,
+    HighlightEnd
 }
 
 #[derive(Debug)]
 pub(crate) struct LocalDef<'a> {
-    name: Cow<'a, str>,
+    name:        Cow<'a, str>,
     value_range: std::ops::Range<usize>,
-    highlight: Option<Highlight>,
+    highlight:   Option<Highlight>
 }
 
 #[derive(Debug)]
 pub(crate) struct LocalScope<'a> {
-    pub(crate) inherits: bool,
-    pub(crate) range: std::ops::Range<usize>,
-    pub(crate) local_defs: Vec<LocalDef<'a>>,
+    pub(crate) inherits:   bool,
+    pub(crate) range:      std::ops::Range<usize>,
+    pub(crate) local_defs: Vec<LocalDef<'a>>
 }
 
 #[derive(Debug, Clone)]
 pub enum InjectionLanguageMarker<'a> {
     Name(Cow<'a, str>),
     Filename(Cow<'a, Path>),
-    Shebang(String),
+    Shebang(String)
 }
 
 const SHEBANG: &str = r"#!\s*(?:\S*[/\\](?:env\s+(?:\-\S+\s+)*)?)?([^\s\.\d]+)";
@@ -238,7 +238,7 @@ pub struct HighlightConfiguration {
     pub local_scope_capture_index: Option<u32>,
     pub local_def_capture_index: Option<u32>,
     pub local_def_value_capture_index: Option<u32>,
-    pub local_ref_capture_index: Option<u32>,
+    pub local_ref_capture_index: Option<u32>
 }
 
 impl HighlightConfiguration {
@@ -265,7 +265,7 @@ impl HighlightConfiguration {
         language: Language,
         highlights_query: &str,
         injection_query: &str,
-        locals_query: &str,
+        locals_query: &str
     ) -> Result<Self, tree_sitter::QueryError> {
         // Concatenate the query strings, keeping track of the start
         // offset of each section.
@@ -322,7 +322,7 @@ impl HighlightConfiguration {
                 "local.definition-value" => local_def_value_capture_index = i,
                 "local.reference" => local_ref_capture_index = i,
                 "local.scope" => local_scope_capture_index = i,
-                _ => {},
+                _ => {}
             }
         }
 
@@ -333,7 +333,7 @@ impl HighlightConfiguration {
                 "injection.language" => injection_language_capture_index = i,
                 "injection.filename" => injection_filename_capture_index = i,
                 "injection.shebang" => injection_shebang_capture_index = i,
-                _ => {},
+                _ => {}
             }
         }
 
@@ -354,7 +354,7 @@ impl HighlightConfiguration {
             local_scope_capture_index,
             local_def_capture_index,
             local_def_value_capture_index,
-            local_ref_capture_index,
+            local_ref_capture_index
         };
         conf.configure(SCOPES);
         Ok(conf)
@@ -401,7 +401,7 @@ impl HighlightConfiguration {
                             _ => {
                                 matches = false;
                                 break;
-                            },
+                            }
                         }
                     }
                     if matches && len > best_match_len {
@@ -419,10 +419,10 @@ impl HighlightConfiguration {
     pub fn injection_pair<'a>(
         &self,
         query_match: &QueryMatch<'a, 'a>,
-        source: &'a Rope,
+        source: &'a Rope
     ) -> Result<(
         Option<InjectionLanguageMarker<'a>>,
-        Option<tree_sitter::Node<'a>>,
+        Option<tree_sitter::Node<'a>>
     )> {
         let mut injection_capture = None;
         let mut content_node = None;
@@ -464,11 +464,11 @@ impl HighlightConfiguration {
         &self,
         query: &'a Query,
         query_match: &QueryMatch<'a, 'a>,
-        source: &'a Rope,
+        source: &'a Rope
     ) -> Result<(
         Option<InjectionLanguageMarker<'a>>,
         Option<tree_sitter::Node<'a>>,
-        IncludedChildren,
+        IncludedChildren
     )> {
         let (mut injection_capture, content_node) =
             self.injection_pair(query_match, source)?;
@@ -505,7 +505,7 @@ impl HighlightConfiguration {
                 "injection.include-unnamed-children" => {
                     included_children = IncludedChildren::Unnamed
                 },
-                _ => {},
+                _ => {}
             }
         }
 
@@ -515,25 +515,25 @@ impl HighlightConfiguration {
 
 #[derive(Debug)]
 pub(crate) struct HighlightIter<'a> {
-    pub(crate) source: &'a Rope,
-    pub(crate) byte_offset: usize,
-    pub(crate) cancellation_flag: Option<&'a AtomicUsize>,
-    pub(crate) layers: Vec<HighlightIterLayer<'a>>,
-    pub(crate) iter_count: usize,
-    pub(crate) next_event: Option<HighlightEvent>,
-    pub(crate) last_highlight_range: Option<(usize, usize, usize)>,
+    pub(crate) source:               &'a Rope,
+    pub(crate) byte_offset:          usize,
+    pub(crate) cancellation_flag:    Option<&'a AtomicUsize>,
+    pub(crate) layers:               Vec<HighlightIterLayer<'a>>,
+    pub(crate) iter_count:           usize,
+    pub(crate) next_event:           Option<HighlightEvent>,
+    pub(crate) last_highlight_range: Option<(usize, usize, usize)>
 }
 
 pub(crate) struct HighlightIterLayer<'a> {
-    pub(crate) _tree: Option<Tree>,
-    pub(crate) cursor: QueryCursor,
+    pub(crate) _tree:               Option<Tree>,
+    pub(crate) cursor:              QueryCursor,
     pub(crate) captures: RefCell<
-        std::iter::Peekable<QueryCaptures<'a, 'a, RopeProvider<'a>, &'a [u8]>>,
+        std::iter::Peekable<QueryCaptures<'a, 'a, RopeProvider<'a>, &'a [u8]>>
     >,
-    pub(crate) config: &'a HighlightConfiguration,
+    pub(crate) config:              &'a HighlightConfiguration,
     pub(crate) highlight_end_stack: Vec<usize>,
-    pub(crate) scope_stack: Vec<LocalScope<'a>>,
-    pub(crate) depth: usize,
+    pub(crate) scope_stack:         Vec<LocalScope<'a>>,
+    pub(crate) depth:               usize
 }
 
 impl std::fmt::Debug for HighlightIterLayer<'_> {
@@ -565,7 +565,7 @@ impl HighlightIterLayer<'_> {
             },
             (Some(i), None) => Some((i, true, depth)),
             (None, Some(j)) => Some((j, false, depth)),
-            _ => None,
+            _ => None
         }
     }
 }
@@ -574,13 +574,13 @@ impl HighlightIter<'_> {
     fn emit_event(
         &mut self,
         offset: usize,
-        event: Option<HighlightEvent>,
+        event: Option<HighlightEvent>
     ) -> Option<Result<HighlightEvent, super::Error>> {
         let result;
         if self.byte_offset < offset {
             result = Some(Ok(HighlightEvent::Source {
                 start: self.byte_offset,
-                end: offset,
+                end:   offset
             }));
             self.byte_offset = offset;
             self.next_event = event;
@@ -656,7 +656,7 @@ impl Iterator for HighlightIter<'_> {
                 return if self.byte_offset < len {
                     let result = Some(Ok(HighlightEvent::Source {
                         start: self.byte_offset,
-                        end: len,
+                        end:   len
                     }));
                     self.byte_offset = len;
                     result
@@ -684,7 +684,7 @@ impl Iterator for HighlightIter<'_> {
                         layer.highlight_end_stack.pop();
                         return self.emit_event(
                             end_byte,
-                            Some(HighlightEvent::HighlightEnd),
+                            Some(HighlightEvent::HighlightEnd)
                         );
                     }
                 }
@@ -720,9 +720,9 @@ impl Iterator for HighlightIter<'_> {
                 if Some(capture.index) == layer.config.local_scope_capture_index {
                     definition_highlight = None;
                     let mut scope = LocalScope {
-                        inherits: true,
-                        range: range.clone(),
-                        local_defs: Vec::new(),
+                        inherits:   true,
+                        range:      range.clone(),
+                        local_defs: Vec::new()
                     };
                     for prop in
                         layer.config.query.property_settings(match_.pattern_index)
@@ -757,7 +757,7 @@ impl Iterator for HighlightIter<'_> {
                     scope.local_defs.push(LocalDef {
                         name,
                         value_range,
-                        highlight: None,
+                        highlight: None
                     });
                     definition_highlight =
                         scope.local_defs.last_mut().map(|s| &mut s.highlight);
@@ -876,7 +876,7 @@ impl Iterator for HighlightIter<'_> {
                 layer.highlight_end_stack.push(range.end);
                 return self.emit_event(
                     range.start,
-                    Some(HighlightEvent::HighlightStart(highlight)),
+                    Some(HighlightEvent::HighlightStart(highlight))
                 );
             }
 
@@ -889,7 +889,7 @@ impl Iterator for HighlightIter<'_> {
 pub(crate) enum IncludedChildren {
     None,
     All,
-    Unnamed,
+    Unnamed
 }
 
 impl Default for IncludedChildren {
@@ -911,7 +911,7 @@ impl Default for IncludedChildren {
 pub(crate) fn intersect_ranges(
     parent_ranges: &[tree_sitter::Range],
     nodes: &[tree_sitter::Node],
-    included_children: IncludedChildren,
+    included_children: IncludedChildren
 ) -> Vec<tree_sitter::Range> {
     let mut cursor = nodes[0].walk();
     let mut result = Vec::new();
@@ -921,16 +921,16 @@ pub(crate) fn intersect_ranges(
         .expect("Layers should only be constructed with non-empty ranges vectors");
     for node in nodes.iter() {
         let mut preceding_range = tree_sitter::Range {
-            start_byte: 0,
+            start_byte:  0,
             start_point: Point::new(0, 0),
-            end_byte: node.start_byte(),
-            end_point: node.start_position(),
+            end_byte:    node.start_byte(),
+            end_point:   node.start_position()
         };
         let following_range = tree_sitter::Range {
-            start_byte: node.end_byte(),
+            start_byte:  node.end_byte(),
             start_point: node.end_position(),
-            end_byte: usize::MAX,
-            end_point: Point::new(usize::MAX, usize::MAX),
+            end_byte:    usize::MAX,
+            end_point:   Point::new(usize::MAX, usize::MAX)
         };
 
         for excluded_range in node
@@ -949,10 +949,10 @@ pub(crate) fn intersect_ranges(
             .chain([following_range].iter().cloned())
         {
             let mut range = tree_sitter::Range {
-                start_byte: preceding_range.end_byte,
+                start_byte:  preceding_range.end_byte,
                 start_point: preceding_range.end_point,
-                end_byte: excluded_range.start_byte,
-                end_point: excluded_range.start_point,
+                end_byte:    excluded_range.start_byte,
+                end_point:   excluded_range.start_point
             };
             preceding_range = excluded_range;
 
@@ -970,10 +970,10 @@ pub(crate) fn intersect_ranges(
                     if parent_range.end_byte < range.end_byte {
                         if range.start_byte < parent_range.end_byte {
                             result.push(tree_sitter::Range {
-                                start_byte: range.start_byte,
+                                start_byte:  range.start_byte,
                                 start_point: range.start_point,
-                                end_byte: parent_range.end_byte,
-                                end_point: parent_range.end_point,
+                                end_byte:    parent_range.end_byte,
+                                end_point:   parent_range.end_point
                             });
                         }
                         range.start_byte = parent_range.end_byte;

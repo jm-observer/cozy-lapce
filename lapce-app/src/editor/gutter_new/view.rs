@@ -58,7 +58,8 @@ fn gutter_marker_code_len_svg_view(
             move |_| {
                 let code_lens = doc.get_untracked().code_lens.get_untracked();
                 if let Some(line) = line {
-                    let Some((plugin_id, offset, lens)) = code_lens.get(&line).cloned()
+                    let Some((plugin_id, offset, lens)) =
+                        code_lens.get(&line).cloned()
                     else {
                         error!("code_lens is empty: {} {:?}", line, code_lens);
                         return;

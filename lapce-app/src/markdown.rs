@@ -21,6 +21,7 @@ pub enum MarkdownContent {
     Separator
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn parse_markdown(
     text: &str,
     line_height: f64,
@@ -328,7 +329,7 @@ pub fn highlight_as_code(
         }
     }
 }
-
+#[allow(clippy::too_many_arguments)]
 pub fn from_marked_string(
     text: MarkedString,
     directory: &Directory,

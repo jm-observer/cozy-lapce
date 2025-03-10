@@ -1731,13 +1731,14 @@ impl WindowWorkspaceData {
             },
             InternalCommand::MakeConfirmed => {
                 if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| if let Some(data) = x.get(&tab_id) {
+                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                        if let Some(data) = x.get(&tab_id) {
                         Some(data.with_untracked(|manage| {
                             manage.active_child().confirmed_mut()
                         }))
                     } else {
                         None
-                    }) {
+                    }}) {
                         confirmed.set(true);
                     }
                 }
@@ -1769,13 +1770,12 @@ impl WindowWorkspaceData {
                     None
                 );
                 if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| if let Some(data) = x.get(&tab_id) {
-                        Some(data.with_untracked(|manage| {
+                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                        x.get(&tab_id).map(|data| {
+                        data.with_untracked(|manage| {
                             manage.active_child().confirmed_mut()
-                        }))
-                    } else {
-                        None
-                    }) {
+                        })
+                    })}) {
                         confirmed.set(true);
                     }
                 }
@@ -2337,7 +2337,10 @@ impl WindowWorkspaceData {
                     .diagnostics
                     .set(diagnostics);
 
-                let doc_content = DocContent::File { path: path.clone(), read_only: false };
+                let doc_content = DocContent::File {
+                    path:      path.clone(),
+                    read_only: false
+                };
 
                 // inform the document about the diagnostics
                 if let Some(doc) = self

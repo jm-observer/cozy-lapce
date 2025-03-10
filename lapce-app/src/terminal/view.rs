@@ -339,6 +339,7 @@ impl TerminalView {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn paint_content(
         &self,
         cx: &mut PaintCx,
@@ -453,6 +454,7 @@ impl TerminalView {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn paint_line_content(
         &self,
         cx: &mut PaintCx,

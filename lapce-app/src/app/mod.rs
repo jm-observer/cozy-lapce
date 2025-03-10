@@ -605,70 +605,70 @@ impl AppData {
             log::error!("window_scale {}", window_scale);
             window_scale
         })
-            .keyboard_navigable()
-            .on_event(EventListener::KeyDown, move |event| {
-                if let Event::KeyDown(key_event) = event {
-                    batch(|| {
-                        if key_down_window_data.key_down(key_event) {
-                            view_id.request_focus();
-                        }
-                    });
+        .keyboard_navigable()
+        .on_event(EventListener::KeyDown, move |event| {
+            if let Event::KeyDown(key_event) = event {
+                batch(|| {
+                    if key_down_window_data.key_down(key_event) {
+                        view_id.request_focus();
+                    }
+                });
+                EventPropagation::Stop
+            } else {
+                EventPropagation::Continue
+            }
+        })
+        .on_event(EventListener::PointerDown, {
+            let window_data = window_data.clone();
+            move |event| {
+                if let Event::PointerDown(pointer_event) = event {
+                    window_data.key_down(pointer_event);
                     EventPropagation::Stop
                 } else {
                     EventPropagation::Continue
                 }
-            })
-            .on_event(EventListener::PointerDown, {
-                let window_data = window_data.clone();
-                move |event| {
-                    if let Event::PointerDown(pointer_event) = event {
-                        window_data.key_down(pointer_event);
-                        EventPropagation::Stop
-                    } else {
-                        EventPropagation::Continue
-                    }
+            }
+        })
+        .on_event_stop(EventListener::WindowResized, move |event| {
+            if let Event::WindowResized(size) = event {
+                window_size.set(*size);
+            }
+        })
+        .on_event_stop(EventListener::WindowMoved, move |event| {
+            if let Event::WindowMoved(point) = event {
+                position.set(*point);
+            }
+        })
+        .on_event_stop(EventListener::WindowGotFocus, move |_| {
+            app_command.send(AppCommand::WindowGotFocus(window_id));
+        })
+        .on_event_stop(EventListener::WindowClosed, move |_| {
+            app_command.send(AppCommand::WindowClosed(window_id));
+        })
+        .on_event_stop(EventListener::DroppedFile, move |event: &Event| {
+            if let Event::DroppedFile(file) = event {
+                if file.path.is_dir() {
+                    app_command.send(AppCommand::NewWindow {
+                        folder: Some(file.path.clone())
+                    });
+                } else {
+                    window_data
+                        .active_window_tab()
+                        .common
+                        .internal_command
+                        .send(InternalCommand::GoToLocation {
+                            location: EditorLocation {
+                                path:               file.path.clone(),
+                                position:           None,
+                                scroll_offset:      None,
+                                ignore_unconfirmed: false,
+                                same_editor_tab:    false
+                            }
+                        })
                 }
-            })
-            .on_event_stop(EventListener::WindowResized, move |event| {
-                if let Event::WindowResized(size) = event {
-                    window_size.set(*size);
-                }
-            })
-            .on_event_stop(EventListener::WindowMoved, move |event| {
-                if let Event::WindowMoved(point) = event {
-                    position.set(*point);
-                }
-            })
-            .on_event_stop(EventListener::WindowGotFocus, move |_| {
-                app_command.send(AppCommand::WindowGotFocus(window_id));
-            })
-            .on_event_stop(EventListener::WindowClosed, move |_| {
-                app_command.send(AppCommand::WindowClosed(window_id));
-            })
-            .on_event_stop(EventListener::DroppedFile, move |event: &Event| {
-                if let Event::DroppedFile(file) = event {
-                    if file.path.is_dir() {
-                        app_command.send(AppCommand::NewWindow {
-                            folder: Some(file.path.clone())
-                        });
-                    } else {
-                        window_data
-                            .active_window_tab()
-                            .common
-                            .internal_command
-                            .send(InternalCommand::GoToLocation {
-                                location: EditorLocation {
-                                    path:               file.path.clone(),
-                                    position:           None,
-                                    scroll_offset:      None,
-                                    ignore_unconfirmed: false,
-                                    same_editor_tab:    false
-                                }
-                            })
-                    }
-                }
-            })
-            .debug_name("App View")
+            }
+        })
+        .debug_name("App View")
     }
 }
 
@@ -726,7 +726,13 @@ fn editor_tab_header(
         let main_split = main_split.clone();
         let plugin = plugin.clone();
         let child_view = {
-            let info = child.view_info(editors, diff_editors, plugin, config, child_simple.confirmed_mut());
+            let info = child.view_info(
+                editors,
+                diff_editors,
+                plugin,
+                config,
+                child_simple.confirmed_mut()
+            );
             let hovered = create_rw_signal(false);
 
             let tab_icon = container({
@@ -751,9 +757,9 @@ fn editor_tab_header(
 
             let tab_content = tooltip(
                 label(move || info.with(|info| info.name.clone())).style(move |s| {
-                    s.apply_if(!info.with(|info| info.confirmed.get()),
-                        |s| s.font_style(FontStyle::Italic)
-                    )
+                    s.apply_if(!info.with(|info| info.confirmed.get()), |s| {
+                        s.font_style(FontStyle::Italic)
+                    })
                     .selectable(false)
                 }),
                 move || {
@@ -1383,7 +1389,7 @@ fn editor_tab_content(
                         .on_event_cont(EventListener::PointerDown, move |_| {
                             focus_right.set(true);
                         })
-                        .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0)),
+                        .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.0))
                         // diff_show_more_section_view(
                         //     &diff_editor_data.left,
                         //     &diff_editor_data.right
@@ -3021,9 +3027,7 @@ fn window_message_view(
                             messages.remove(i);
                         });
                     } else if pointer.count > 3 {
-                        messages.update(|messages| {
-                            messages.clear()
-                        });
+                        messages.update(|messages| messages.clear());
                     }
                 }
             })

@@ -347,7 +347,10 @@ impl FoldedRange {
             };
             let start = self.start.character as usize;
             let (all_len, len) = if same_line {
-                (self.end.character as usize - start, self.end.character as usize - start)
+                (
+                    self.end.character as usize - start,
+                    self.end.character as usize - start
+                )
             } else {
                 let folded = buffer.offset_of_line(self.end.line as usize)?;
                 let current = buffer.offset_of_line(self.start.line as usize)?;
@@ -378,7 +381,7 @@ impl FoldedRange {
                 kind: PhantomTextKind::LineFoldedRang {
                     next_line:      None,
                     len:            self.end.character as usize,
-                    all_len: self.end.character as usize,
+                    all_len:        self.end.character as usize,
                     start_position: self.start
                 },
                 col: 0,

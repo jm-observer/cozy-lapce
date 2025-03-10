@@ -1,11 +1,14 @@
 use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
 
-use anyhow::{Result};
+use anyhow::Result;
 use floem::kurbo::{Point, Rect};
 use log::info;
-use crate::lines::{cursor::CursorAffinity, line::OriginFoldedLine};
-use crate::lines::cursor::CursorMode;
-use crate::lines::phantom_text::Text;
+
+use crate::lines::{
+    cursor::{CursorAffinity, CursorMode},
+    line::OriginFoldedLine,
+    phantom_text::Text
+};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -57,8 +60,8 @@ pub enum VisualLineInfo {
     DiffDelete {
         /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
         /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
-        folded_line_y: f64,
-    },
+        folded_line_y: f64
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -66,8 +69,8 @@ pub struct VisualOriginText {
     /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
     pub folded_line_y: f64,
-    pub is_diff: bool,
-    pub folded_line:   OriginFoldedLine,
+    pub is_diff:       bool,
+    pub folded_line:   OriginFoldedLine
 }
 // impl Hash for VisualLineInfo {
 //     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -84,22 +87,24 @@ impl VisualLineInfo {
 
     pub fn folded_line_y(&self) -> f64 {
         match self {
-            VisualLineInfo::OriginText { text } => {text.folded_line_y}
-            VisualLineInfo::DiffDelete { folded_line_y } => {*folded_line_y}
+            VisualLineInfo::OriginText { text } => text.folded_line_y,
+            VisualLineInfo::DiffDelete { folded_line_y } => *folded_line_y
         }
     }
 
     pub fn is_diff(&self) -> bool {
         match self {
-            VisualLineInfo::OriginText { text: VisualOriginText { is_diff, ..
-            } } => {*is_diff}
-            VisualLineInfo::DiffDelete { .. } => {false}
+            VisualLineInfo::OriginText {
+                text: VisualOriginText { is_diff, .. }
+            } => *is_diff,
+            VisualLineInfo::DiffDelete { .. } => false
         }
     }
+
     pub fn is_diff_delete(&self) -> bool {
         match self {
-            VisualLineInfo::OriginText { .. } => {false}
-            VisualLineInfo::DiffDelete { .. } => {true}
+            VisualLineInfo::OriginText { .. } => false,
+            VisualLineInfo::DiffDelete { .. } => true
         }
     }
 }
@@ -133,7 +138,8 @@ impl ScreenLines {
     pub fn visual_line_of_y(&self, y: f64) -> &VisualLineInfo {
         let y = y - self.base.y0;
         for vli in &self.visual_lines {
-            if vli.folded_line_y() <= y && y < vli.folded_line_y() + self.line_height {
+            if vli.folded_line_y() <= y && y < vli.folded_line_y() + self.line_height
+            {
                 return vli;
             }
         }
@@ -146,39 +152,43 @@ impl ScreenLines {
 }
 
 impl ScreenLines {
-
-    pub fn first_end_folded_line(&self) -> Option<(&VisualOriginText, &VisualOriginText)> {
+    pub fn first_end_folded_line(
+        &self
+    ) -> Option<(&VisualOriginText, &VisualOriginText)> {
         let first = self.visual_lines.iter().find_map(|x| {
-            if let VisualLineInfo::OriginText { text} = x {
-                return Some(text)
+            if let VisualLineInfo::OriginText { text } = x {
+                return Some(text);
             } else {
                 None
             }
         });
         let end = self.visual_lines.iter().rev().find_map(|x| {
-            if let VisualLineInfo::OriginText { text} = x {
-                return Some(text)
+            if let VisualLineInfo::OriginText { text } = x {
+                Some(text)
             } else {
                 None
             }
         });
         match end {
-            None => {
-                first.map(|x| (x, x))
-            }
-            Some(end) => {
-                first.map(|x| (x, end))
-            }
+            None => first.map(|x| (x, x)),
+            Some(end) => first.map(|x| (x, end))
         }
     }
+
     pub fn line_interval(&self) -> Option<(usize, usize)> {
         let (first, end) = self.first_end_folded_line()?;
-        Some((first.folded_line.origin_line_start, end.folded_line.origin_line_start))
+        Some((
+            first.folded_line.origin_line_start,
+            end.folded_line.origin_line_start
+        ))
     }
 
     pub fn offset_interval(&self) -> Option<(usize, usize)> {
         let (first, end) = self.first_end_folded_line()?;
-        Some((first.folded_line.origin_interval.start, end.folded_line.origin_interval.end))
+        Some((
+            first.folded_line.origin_interval.start,
+            end.folded_line.origin_interval.end
+        ))
     }
 
     /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
@@ -187,7 +197,7 @@ impl ScreenLines {
         origin_line: usize
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
-            if let VisualLineInfo::OriginText { text, ..} = visual_line {
+            if let VisualLineInfo::OriginText { text, .. } = visual_line {
                 match origin_line.cmp(&text.folded_line.origin_line_start) {
                     Ordering::Less => {
                         return None;
@@ -207,7 +217,7 @@ impl ScreenLines {
         line_index: usize
     ) -> Option<usize> {
         for (index, visual_line) in self.visual_lines.iter().enumerate() {
-            if let VisualLineInfo::OriginText { text, ..} = visual_line {
+            if let VisualLineInfo::OriginText { text, .. } = visual_line {
                 match line_index.cmp(&text.folded_line.origin_line_start) {
                     Ordering::Less => {
                         return None;
@@ -228,12 +238,11 @@ impl ScreenLines {
         line_index: usize
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
-            if let VisualLineInfo::OriginText { text, ..} = visual_line {
+            if let VisualLineInfo::OriginText { text, .. } = visual_line {
                 if line_index == text.folded_line.line_index {
                     return Some(visual_line);
                 }
             }
-
         }
         None
     }
@@ -247,7 +256,8 @@ impl ScreenLines {
     ) -> Option<(&VisualLineInfo, &VisualLineInfo)> {
         let (first_visual_line, last_visual_line) = self.first_end_folded_line()?;
 
-        let start_line_index = first_visual_line.folded_line
+        let start_line_index = first_visual_line
+            .folded_line
             .line_index
             .max(start_line_index);
         let end_line_index =
@@ -266,13 +276,10 @@ impl ScreenLines {
         buffer_offset: usize
     ) -> Option<&VisualOriginText> {
         for visual_line in &self.visual_lines {
-            if let VisualLineInfo::OriginText { text, ..} = visual_line {
-                if text.folded_line
-                    .contain_buffer_offset(buffer_offset)
-                {
+            if let VisualLineInfo::OriginText { text, .. } = visual_line {
+                if text.folded_line.contain_buffer_offset(buffer_offset) {
                     return Some(text);
-                } else if text.folded_line.origin_interval.start == buffer_offset
-                {
+                } else if text.folded_line.origin_interval.start == buffer_offset {
                     // last line and line is empty
                     // origin_interval == [buffer_offset, buffer_offset)
                     return Some(text);
@@ -309,7 +316,8 @@ impl ScreenLines {
         else {
             return Ok(None);
         };
-        let mut viewpport_point = vl.folded_line
+        let mut viewpport_point = vl
+            .folded_line
             .hit_position_aff(final_offset, CursorAffinity::Backward)
             .point;
 
@@ -431,10 +439,12 @@ impl ScreenLines {
             ));
 
             for vl in &self.visual_lines {
-                if let VisualLineInfo::OriginText { text, ..} = vl {
+                if let VisualLineInfo::OriginText { text, .. } = vl {
                     if text.folded_line.line_index >= folded_line_end.line_index {
                         break;
-                    } else if text.folded_line.line_index <= folded_line_start.line_index {
+                    } else if text.folded_line.line_index
+                        <= folded_line_start.line_index
+                    {
                         continue;
                     } else {
                         let selection = text.folded_line.line_scope(
@@ -447,7 +457,6 @@ impl ScreenLines {
                         first.push(selection)
                     }
                 }
-
             }
             let last = folded_line_end.line_scope(
                 0,
@@ -461,15 +470,15 @@ impl ScreenLines {
         }
     }
 
-
     pub(crate) fn visual_line_of_point(
         &self,
         point_y: f64
     ) -> Option<&VisualLineInfo> {
         for line in &self.visual_lines {
             let folded_line_y = line.folded_line_y();
-            if folded_line_y <= point_y && point_y < folded_line_y + self.line_height {
-                return Some(line)
+            if folded_line_y <= point_y && point_y < folded_line_y + self.line_height
+            {
+                return Some(line);
             }
         }
         None
@@ -483,7 +492,7 @@ impl ScreenLines {
         let Some(info) = self.visual_line_of_point(point.y) else {
             return Ok(None);
         };
-        let VisualLineInfo::OriginText {text, ..} = info else {
+        let VisualLineInfo::OriginText { text, .. } = info else {
             return Ok(None);
         };
         let info = &text.folded_line;
@@ -527,7 +536,9 @@ impl ScreenLines {
                     },
                     Text::OriginText { text } => {
                         if text.final_col.contains(visual_char_offset)
-                            || info.last_line && text.final_col.end == visual_char_offset {
+                            || info.last_line
+                                && text.final_col.end == visual_char_offset
+                        {
                             return Ok(Some((
                                 visual_char_offset - text.final_col.start
                                     + text.origin_merge_col_start()
@@ -540,7 +551,8 @@ impl ScreenLines {
                     Text::EmptyLine { .. } => unreachable!()
                 }
             }
-            // error!("path {:?}, point={:?}, index={}", self.path, point, hit_point.index);
+            // error!("path {:?}, point={:?}, index={}", self.path, point,
+            // hit_point.index);
             unreachable!();
         } else {
             let Some(text) = info.text().last() else {

@@ -18,6 +18,7 @@ use floem::{
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
 use lsp_types::Position;
+
 use crate::tests::test_folded_line_click::_test_main_3_buffer_offset_of_click;
 
 mod tests;

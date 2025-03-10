@@ -12,7 +12,7 @@ use floem::{
 };
 use lapce_core::{
     icon::LapceIcons,
-    panel::{PanelContainerPosition, PanelKind},
+    panel::{PanelContainerPosition, PanelKind}
 };
 use lapce_rpc::proxy::SearchMatch;
 use lapce_xi_rope::find::CaseMatching;
@@ -142,12 +142,9 @@ fn search_result(
                         folder,
                         path.clone()
                     )),
-                    SearchItem::Item { path, m } => container(result_item(
-                        config,
-                        path,
-                        m,
-                        internal_command.clone()
-                    ))
+                    SearchItem::Item { path, m } => {
+                        container(result_item(config, path, m, internal_command))
+                    },
                 }
             )
             .style(|s| s.flex_col().min_width_pct(100.0).line_height(1.8))

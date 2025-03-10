@@ -160,7 +160,7 @@ pub struct OriginText {
     /// 合并后原始行文本的位置，不包含虚拟文本和被折叠行
     pub visual_merge_col: Interval,
     /// 合并后原始行文本的位置，包含被折叠行，但不包含虚拟文本
-    origin_merge_col: Interval,
+    origin_merge_col:     Interval,
     /// Provided by calculate.Column index in final line.
     ///
     /// 在最终行文本的位置，包含虚拟文本
@@ -175,7 +175,8 @@ impl OriginText {
 
     pub fn origin_merge_col_contains(&self, offset: usize, last_line: bool) -> bool {
         if last_line {
-            self.origin_merge_col.start <= offset && offset <= self.origin_merge_col.end
+            self.origin_merge_col.start <= offset
+                && offset <= self.origin_merge_col.end
         } else {
             self.origin_merge_col.contains(offset)
         }
@@ -302,7 +303,7 @@ pub enum PhantomTextKind {
         // 本行被折叠的长度
         len:            usize,
         // 包括其他折叠行的长度
-        all_len: usize,
+        all_len:        usize,
         start_position: Position
     }
 }
@@ -473,7 +474,7 @@ pub struct PhantomTextMultiLine {
     /// 原始文本的行号
     pub line:            usize,
     pub last_line:       usize,
-    pub is_last_line: bool,
+    pub is_last_line:    bool,
     /// line行起点在文本中的偏移
     pub offset_of_line:  usize,
     // 所有合并在该行的原始行的总长度，中间被合并的行不在计算范围
@@ -496,14 +497,14 @@ impl PhantomTextMultiLine {
         // let len_of_line =
         //     vec![(line.line, line.origin_text_len, line.final_text_len)];
         Self {
-            line:            line.line,
-            last_line:       line.line,
+            line: line.line,
+            last_line: line.line,
             is_last_line,
-            offset_of_line:  line.offset_of_line,
+            offset_of_line: line.offset_of_line,
             origin_text_len: line.origin_text_len,
-            final_text_len:  line.final_text_len,
+            final_text_len: line.final_text_len,
             // len_of_line,
-            text:            line.texts
+            text: line.texts
         }
     }
 
@@ -512,7 +513,7 @@ impl PhantomTextMultiLine {
         let visual_merge_offset = self.origin_text_len;
         let origin_merge_offset = line.offset_of_line - self.offset_of_line;
         // let origin_text_len = self.origin_text_len;
-        self.origin_text_len = self.origin_text_len + line.origin_text_len;
+        self.origin_text_len += line.origin_text_len;
         let final_text_len = self.final_text_len;
         self.final_text_len += line.final_text_len;
         for phantom in line.texts.clone() {
@@ -720,7 +721,10 @@ impl PhantomTextMultiLine {
                         }
                     },
                     Text::OriginText { text } => {
-                        if text.origin_merge_col_contains(origin_merge_col, self.is_last_line) {
+                        if text.origin_merge_col_contains(
+                            origin_merge_col,
+                            self.is_last_line
+                        ) {
                             return true;
                         }
                     },
@@ -730,7 +734,11 @@ impl PhantomTextMultiLine {
                 }
                 false
             })
-            .ok_or(anyhow!("No merge col found {} {:?}", origin_merge_col, self))
+            .ok_or(anyhow!(
+                "No merge col found {} {:?}",
+                origin_merge_col,
+                self
+            ))
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
@@ -852,21 +860,20 @@ impl PhantomTextMultiLine {
                             }
                             continue;
                         },
-                        Ordering::Equal => {
-                            if text.col < origin_col {
-                                // be merged
+                        Ordering::Equal => match text.col.cmp(&origin_col) {
+                            Ordering::Less => {
                                 if text.next_line().is_some() {
                                     return None;
                                 }
-                            } else if text.col == origin_col {
+                            },
+                            Ordering::Equal => {
                                 return Some(if affinity.forward() {
                                     text.next_final_col()
                                 } else {
                                     text.final_col
                                 });
-                            } else {
-                                break;
-                            }
+                            },
+                            Ordering::Greater => break
                         },
                         Ordering::Greater => {
                             break;

@@ -101,7 +101,8 @@ pub fn _test_merge() -> Result<()> {
             (
                 text_3.visual_merge_col,
                 Interval::from(
-                    (text_3.origin_merge_col_start())..(text_3.origin_merge_col_end())
+                    (text_3.origin_merge_col_start())
+                        ..(text_3.origin_merge_col_end())
                 ),
                 text_3.final_col
             ),

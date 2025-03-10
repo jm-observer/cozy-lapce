@@ -1,5 +1,5 @@
 use anyhow::Result;
-use doc::lines::cursor::CursorAffinity;
+use doc::lines::{cursor::CursorAffinity, screen_lines::VisualLineInfo};
 use floem::{
     Renderer, View, ViewId,
     context::PaintCx,
@@ -9,7 +9,7 @@ use floem::{
     text::{Attrs, AttrsList, FamilyOwned, TextLayout}
 };
 use log::{debug, error};
-use doc::lines::screen_lines::VisualLineInfo;
+
 use super::{EditorData, view::changes_colors_screen};
 use crate::{config::color::LapceColor, doc::Doc};
 pub struct EditorGutterView {
@@ -34,6 +34,7 @@ pub fn editor_gutter_view(
 }
 
 impl EditorGutterView {
+    #[allow(clippy::too_many_arguments)]
     fn paint_head_changes(
         &self,
         cx: &mut PaintCx,
@@ -97,7 +98,8 @@ impl EditorGutterView {
         if !sticky_header {
             return;
         }
-        let sticky_header_height = self.editor.editor.sticky_header_height.get_untracked();
+        let sticky_header_height =
+            self.editor.editor.sticky_header_height.get_untracked();
         if sticky_header_height == 0.0 {
             return;
         }
@@ -170,8 +172,10 @@ impl View for EditorGutterView {
             )
         });
 
-        let kind_is_normal =
-            self.editor.kind_read().with_untracked(|kind| kind.is_normal());
+        let kind_is_normal = self
+            .editor
+            .kind_read()
+            .with_untracked(|kind| kind.is_normal());
         let (offset, is_insert) =
             cursor.with_untracked(|c| (c.offset(), c.is_insert()));
 
@@ -205,10 +209,9 @@ impl View for EditorGutterView {
         let current_number = current_visual_line.line_number(false, None);
         screen_lines.with_untracked(|screen_lines| {
             for visual_line_info in screen_lines.visual_lines.iter() {
-                if let VisualLineInfo::OriginText { text, ..} = visual_line_info {
-                    let line_number = text
-                        .folded_line
-                        .line_number(show_relative, current_number);
+                if let VisualLineInfo::OriginText { text, .. } = visual_line_info {
+                    let line_number =
+                        text.folded_line.line_number(show_relative, current_number);
                     let text_layout = if current_number == line_number {
                         TextLayout::new_with_text(
                             &line_number.map(|x| x.to_string()).unwrap_or_default(),
@@ -235,8 +238,6 @@ impl View for EditorGutterView {
                         Point::new(x, y)
                     );
                 }
-
-
             }
         });
 

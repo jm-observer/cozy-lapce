@@ -365,8 +365,8 @@ impl PluginData {
                 //         LocalRequest::LoadIcon { info },
                 //         move |(_id, rs)| match rs {
                 //             Ok(response) => {
-                //                 if let LocalResponse::LoadIcon { icon } = response {
-                //                     send(icon);
+                //                 if let LocalResponse::LoadIcon { icon } = response
+                // {                     send(icon);
                 //                 }
                 //             },
                 //             Err(err) => {

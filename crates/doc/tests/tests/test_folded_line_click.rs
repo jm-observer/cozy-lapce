@@ -3,15 +3,18 @@
 use std::{path::PathBuf, sync::atomic};
 
 use anyhow::Result;
-use doc::lines::{
-    ClickResult,
-    buffer::rope_text::RopeText,
-    command::EditCommand,
-    cursor::{Cursor, CursorAffinity, CursorMode},
-    fold::{FoldingDisplayItem, FoldingDisplayType},
-    register::Register,
-    selection::Selection,
-    word::WordCursor
+use doc::{
+    EditorViewKind,
+    lines::{
+        ClickResult,
+        buffer::rope_text::RopeText,
+        command::EditCommand,
+        cursor::{Cursor, CursorAffinity, CursorMode},
+        fold::{FoldingDisplayItem, FoldingDisplayType},
+        register::Register,
+        selection::Selection,
+        word::WordCursor
+    }
 };
 use floem::{
     kurbo::{Point, Rect, Size},
@@ -20,8 +23,11 @@ use floem::{
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::{debug, info};
 use lsp_types::Position;
-use doc::EditorViewKind;
-use crate::tests::lines_util::{cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2, init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2};
+
+use crate::tests::lines_util::{
+    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
+    init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2
+};
 
 #[test]
 fn test_all() -> Result<()> {
@@ -44,10 +50,10 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     assert_eq!(lines.line_height, 20);
 
     let screen_lines = lines
-        ._compute_screen_lines(Rect::from_origin_size(
-            (0.0, 0.0),
-            Size::new(300., 300.)
-        ), EditorViewKind::Normal)
+        ._compute_screen_lines(
+            Rect::from_origin_size((0.0, 0.0), Size::new(300., 300.)),
+            EditorViewKind::Normal
+        )
         .0;
     lines._log_folded_lines();
     //below end of buffer
@@ -179,10 +185,10 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     let items = init_main_folded_item_2()?;
     lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
     let screen_lines = lines
-        ._compute_screen_lines(Rect::from_origin_size(
-            (0.0, 0.0),
-            Size::new(1000., 800.)
-        ), EditorViewKind::Normal)
+        ._compute_screen_lines(
+            Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
+            EditorViewKind::Normal
+        )
         .0;
     // lines.log();
 
@@ -235,13 +241,11 @@ fn test_buffer_offset_of_click_3() -> Result<()> {
 
 pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     let mut lines = init_main_2()?;
-    
-    
 
     let items = init_main_folded_item_2()?;
     lines.update_folding_ranges(items.get(0).cloned().unwrap().into())?;
     lines.update_folding_ranges(items.get(1).cloned().unwrap().into())?;
-    
+
     lines.log();
     // let screen_lines = lines
     //     ._compute_screen_lines(Rect::from_origin_size(
@@ -262,7 +266,6 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
             lines.buffer().char_at_offset(offset_of_buffer).unwrap(),
             ' '
         );
-        
     }
     //below end of buffer
     {

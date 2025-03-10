@@ -183,13 +183,18 @@ impl KeyPressFocus for GlobalSearchData {
         _count: Option<usize>,
         _mods: Modifiers
     ) -> CommandExecuted {
-        match &_command.kind {
-            CommandKind::Workbench(_cmd) => {
-                if matches!(_cmd, LapceWorkbenchCommand::OpenUIInspector) {
-                    self.common.view_id.get_untracked().inspect();
-                }
-            },
-            _ => {}
+        // match &_command.kind {
+        //     CommandKind::Workbench(_cmd) => {
+        //         if matches!(_cmd, LapceWorkbenchCommand::OpenUIInspector) {
+        //             self.common.view_id.get_untracked().inspect();
+        //         }
+        //     },
+        //     _ => {}
+        // }
+        if let CommandKind::Workbench(_cmd) = &_command.kind {
+            if matches!(_cmd, LapceWorkbenchCommand::OpenUIInspector) {
+                self.common.view_id.get_untracked().inspect();
+            }
         }
         CommandExecuted::Yes
     }

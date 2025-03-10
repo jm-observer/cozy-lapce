@@ -1,9 +1,10 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
+use anyhow::Result;
 use notify::{RecursiveMode, Watcher};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
+
 use crate::{debug::LapceBreakpoint, main_split::SplitInfo, panel::PanelInfo};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]

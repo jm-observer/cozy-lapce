@@ -1,8 +1,9 @@
 #![allow(unused_imports)]
 use floem::reactive::SignalGet;
 use itertools::Itertools;
-use log::{debug, error, info, warn};
 use lapce_core::doc::DocContent;
+use log::{debug, error, info, warn};
+
 use crate::window_workspace::WindowWorkspaceData;
 
 pub fn log(window: &WindowWorkspaceData) {
@@ -16,14 +17,13 @@ pub fn print_screen_lines(window: &WindowWorkspaceData) {
     for (_, editor) in &editors {
         let content = editor.doc().content.get_untracked();
         match &content {
-            DocContent::File { .. } |
-            DocContent::History(_) => {
+            DocContent::File { .. } | DocContent::History(_) => {
                 warn!("{:?} {:?}", content, editor.editor.cursor.get_untracked());
                 // editor.doc().lines.with_untracked(|x| x.log());
                 warn!("");
                 let screen_lines = editor.editor.screen_lines.get_untracked();
                 screen_lines.log();
-            }
+            },
             _ => {}
         }
 

@@ -2,12 +2,12 @@ pub mod view;
 
 use std::hash::{Hash, Hasher};
 
-use doc::lines::buffer::rope_text::RopeText;
+use doc::lines::{buffer::rope_text::RopeText, screen_lines::VisualLineInfo};
 use floem::{
     peniko::Color,
     prelude::{RwSignal, SignalGet, SignalWith}
 };
-use doc::lines::screen_lines::VisualLineInfo;
+
 use crate::{
     config::color::LapceColor, editor::EditorData,
     window_workspace::WindowWorkspaceData
@@ -59,9 +59,13 @@ pub fn gutter_data(
                             } else {
                                 dim
                             };
-                        if code_lens.contains_key(&text.folded_line.origin_line_start) {
+                        if code_lens
+                            .contains_key(&text.folded_line.origin_line_start)
+                        {
                             GutterData {
-                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                origin_line_start: Some(
+                                    text.folded_line.origin_line_end
+                                ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::CodeLen,
                                 style_color,
@@ -73,7 +77,9 @@ pub fn gutter_data(
                             .contains_key(&text.folded_line.origin_line_start)
                         {
                             GutterData {
-                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                origin_line_start: Some(
+                                    text.folded_line.origin_line_end
+                                ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::Breakpoint,
                                 style_color,
@@ -83,7 +89,9 @@ pub fn gutter_data(
                             }
                         } else {
                             GutterData {
-                                origin_line_start: Some(text.folded_line.origin_line_end),
+                                origin_line_start: Some(
+                                    text.folded_line.origin_line_end
+                                ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::None,
                                 style_color,
@@ -92,7 +100,7 @@ pub fn gutter_data(
                                 style_font_family: font_family.clone()
                             }
                         }
-                    }
+                    },
                     VisualLineInfo::DiffDelete { folded_line_y } => {
                         // todo origin_line_start
                         GutterData {
@@ -124,7 +132,9 @@ pub struct GutterData {
 
 impl GutterData {
     pub fn display_line_num(&self) -> String {
-        self.origin_line_start.map(|x| (x + 1).to_string()).unwrap_or_default()
+        self.origin_line_start
+            .map(|x| (x + 1).to_string())
+            .unwrap_or_default()
     }
 }
 
