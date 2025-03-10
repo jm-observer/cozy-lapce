@@ -2184,7 +2184,7 @@ impl EditorData {
                     .text()
                     .slice_to_cow(0..cursor.offset())
                     .chars()
-                    .filter(|c| !c.is_whitespace())
+                    .filter(|c| c.is_ascii())
                     .count()
             })
         } else {
@@ -2209,7 +2209,7 @@ impl EditorData {
                     .slice_to_cow(0..rope.len())
                     .chars()
                     .enumerate()
-                    .filter(|(_, c)| !c.is_whitespace())
+                    .filter(|(_, c)| c.is_ascii())
                     .nth(rev_offset.saturating_sub(1))
                     .map(|(index, _)| index + 1)
                     .unwrap_or_default();
