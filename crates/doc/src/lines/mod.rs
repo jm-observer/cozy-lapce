@@ -1373,28 +1373,35 @@ impl DocLines {
                     .filter(is_changed as fn(&&DiffResult) -> bool)
                     .peekable();
                 let len = end - start;
+                // 合并后，起始行
                 let mut start_line =
                     consume_lines_until_enough(&mut empty_lines, start);
+                let mut empty_count = 0;
+                let mut origin_line_index = start_line;
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
-                for i in 0..len {
-                    if consume_line(&mut empty_lines, start_line.max(i)) {
-                        let folded_line_y = i * line_height;
+                //
+                for folded_line_index in start_line..start_line + len {
+                    // 未合并的原始行
+                    if consume_line(&mut empty_lines, start_line + empty_count) {
+                        let folded_line_y = folded_line_index * line_height;
                         let visual_line_info = VisualLineInfo::DiffDelete {
                             folded_line_y: folded_line_y as f64 - y0,
                         };
                         visual_lines.push(visual_line_info);
+                        empty_count += 1;
                     } else if let Some(line) =
-                        &mut self.origin_folded_lines.get_mut(start_line)
+                        &mut self.origin_folded_lines.get_mut(origin_line_index)
                     {
-                        let is_diff = is_diff(&mut change_lines, start_line);
-                        start_line += 1;
+                        let is_diff = is_diff(&mut change_lines, folded_line_index);
+                        start_line = line.origin_line_end + 1;
+                        origin_line_index += 1;
                         line.init_layout();
                         line.extra_style();
                         let size_width = line.size_width().width;
                         if size_width > self.max_width {
                             self.max_width = size_width;
                         }
-                        let folded_line_y = (start + i) * line_height;
+                        let folded_line_y = folded_line_index * line_height;
                         let visual_line_info = VisualLineInfo::OriginText {
                             text: VisualOriginText {
                                 folded_line_y: folded_line_y as f64 - y0,

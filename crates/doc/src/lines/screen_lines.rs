@@ -2,6 +2,7 @@ use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
 
 use anyhow::{Result};
 use floem::kurbo::{Point, Rect};
+use log::info;
 use crate::lines::{cursor::CursorAffinity, line::OriginFoldedLine};
 use crate::lines::cursor::CursorMode;
 use crate::lines::phantom_text::Text;
@@ -85,6 +86,20 @@ impl VisualLineInfo {
         match self {
             VisualLineInfo::OriginText { text } => {text.folded_line_y}
             VisualLineInfo::DiffDelete { folded_line_y } => {*folded_line_y}
+        }
+    }
+
+    pub fn is_diff(&self) -> bool {
+        match self {
+            VisualLineInfo::OriginText { text: VisualOriginText { is_diff, ..
+            } } => {*is_diff}
+            VisualLineInfo::DiffDelete { .. } => {false}
+        }
+    }
+    pub fn is_diff_delete(&self) -> bool {
+        match self {
+            VisualLineInfo::OriginText { .. } => {false}
+            VisualLineInfo::DiffDelete { .. } => {true}
         }
     }
 }
@@ -567,6 +582,13 @@ impl ScreenLines {
                     (text.offset_of_line, false, CursorAffinity::Backward)
                 },
             }))
+        }
+    }
+
+    pub fn log(&self) {
+        info!("base {:?} buffer_len = {}", self.base, self.buffer_len);
+        for line in &self.visual_lines {
+            info!("{:?}", line);
         }
     }
 }

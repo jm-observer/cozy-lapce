@@ -144,7 +144,6 @@ fn _init_lines(
     (code, buffer): (String, Buffer),
     folding: Vec<FoldingRange>,
     hints: Option<Spans<InlayHint>>,
-    kind: Option<EditorViewKind>
 ) -> Result<(DocLines, EditorConfig)> {
     // let folding = _init_lsp_folding_range();
     let config_str = r##"{"font_family":"monospace","font_size":13,"line_height":20,"enable_inlay_hints":true,"inlay_hint_font_size":0,"enable_error_lens":true,"error_lens_end_of_line":true,"error_lens_multiline":false,"error_lens_font_size":0,"enable_completion_lens":false,"enable_inline_completion":true,"completion_lens_font_size":0,"only_render_error_styling":true,"auto_closing_matching_pairs":true,"auto_surround":true,"diagnostic_error":{"components":[0.8980393,0.078431375,0.0,1.0],"cs":null},"diagnostic_warn":{"components":[0.91372555,0.654902,0.0,1.0],"cs":null},"inlay_hint_fg":{"components":[0.65882355,0.65882355,0.65882355,1.0],"cs":null},"inlay_hint_bg":{"components":[0.9215687,0.9215687,0.9215687,1.0],"cs":null},"error_lens_error_foreground":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"error_lens_warning_foreground":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"error_lens_other_foreground":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"completion_lens_foreground":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"editor_foreground":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"syntax":{"markup.link.url":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"function.method":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"markup.heading":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"punctuation.delimiter":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"tag":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"variable.other.member":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"escape":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"markup.link.label":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"property":{"components":[0.53333336,0.08627451,0.5882353,1.0],"cs":null},"enum-member":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"text.reference":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"text.uri":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"builtinType":{"components":[0.07058824,0.24705884,0.72156864,1.0],"cs":null},"enumMember":{"components":[0.57254905,0.06666667,0.654902,1.0],"cs":null},"keyword":{"components":[0.027450982,0.23529413,0.7176471,1.0],"cs":null},"markup.list":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"text.title":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"struct":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"type":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"interface":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"selfKeyword":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"type.builtin":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"constant":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"variable":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"attribute":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"enum":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"markup.bold":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"method":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"string.escape":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"embedded":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"markup.link.text":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"comment":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"typeAlias":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"function":{"components":[0.2392157,0.42352945,0.49411768,1.0],"cs":null},"string":{"components":[0.3137255,0.6313726,0.30980393,1.0],"cs":null},"constructor":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"bracket.unpaired":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"field":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"structure":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"markup.italic":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"number":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null}}}"##;
@@ -220,7 +219,6 @@ fn _init_lines(
     // 538.1586303710938 }
     let view = Rect::new(0.0, 0.0, 591.0, 538.0);
     let editor_style = EditorStyle::default();
-    let kind = cx.create_rw_signal(kind.unwrap_or(EditorViewKind::Normal));
     let language = LapceLanguage::Rust;
     let grammars_dir: PathBuf = "C:\\Users\\36225\\AppData\\Local\\lapce\\\
                                  Lapce-Debug\\data\\grammars"
@@ -241,7 +239,7 @@ fn _init_lines(
         editor_style,
         config.clone(),
         buffer,
-        kind, None
+        None
     )?;
     lines.update_folding_ranges(folding.into())?;
     if let Some(hints) = hints {
@@ -275,7 +273,7 @@ pub fn init_main_2() -> Result<DocLines> {
     let rs = _init_code(file);
     let hints = r#"[{"position":{"line":6,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/main.rs","range":{"start":{"line":8,"character":7},"end":{"line":8,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":6,"character":9},"end":{"line":6,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
     let hints = _init_inlay_hint(&rs.1, hints)?;
-    let (mut lines, _) = _init_lines(None, rs, folding, Some(hints), None)?;
+    let (mut lines, _) = _init_lines(None, rs, folding, Some(hints))?;
     let diags = init_diag_2();
     let semantic = init_semantic_2();
 
@@ -301,7 +299,7 @@ pub fn init_main() -> Result<DocLines> {
     let hints = r#"[{"position":{"line":7,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/main.rs","range":{"start":{"line":9,"character":7},"end":{"line":9,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":7,"character":9},"end":{"line":7,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
     let hints = _init_inlay_hint(&rs.1, hints)?;
     let folding = _init_lsp_folding_range();
-    let (lines, _) = _init_lines(None, rs, folding, Some(hints), None)?;
+    let (lines, _) = _init_lines(None, rs, folding, Some(hints))?;
     Ok(lines)
 }
 
@@ -309,7 +307,7 @@ pub fn init_main_3() -> Result<DocLines> {
     let file: PathBuf = "../../resources/test_code/main_3.rs".into();
     let rs = _init_code(file);
     let folding = _init_lsp_folding_range_3();
-    let (lines, _) = _init_lines(None, rs, folding, None, None)?;
+    let (lines, _) = _init_lines(None, rs, folding, None)?;
     Ok(lines)
 }
 
@@ -322,7 +320,7 @@ pub fn init_test_diff() -> Vec<DiffLines> {
     rope_diff(code_old.into(), code.into(), 0, Arc::new(AtomicU64::new(0)), None).unwrap()
 }
 
-pub fn init_test() -> Result<(DocLines, DocLines)> {
+pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)> {
     let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
     let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
 
@@ -339,10 +337,10 @@ pub fn init_test() -> Result<(DocLines, DocLines)> {
         is_right: true,
         changes: diff,
     });
-    let (left_lines, _) = _init_lines(None, rs_old, vec![], None, Some(left_kind))?;
-    let (right_lines, _) = _init_lines(None, rs_new, vec![], None, Some(right_kind))?;
+    let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
+    let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
 
-    Ok((left_lines, right_lines))
+    Ok((left_lines, right_lines, left_kind, right_kind))
 }
 
 
@@ -351,7 +349,7 @@ pub fn init_empty() -> Result<DocLines> {
     let file: PathBuf = "../../resources/test_code/empty.rs".into();
 
     let (lines, _) =
-        _init_lines(None, _init_code(file), _init_lsp_folding_range(), None, None)?;
+        _init_lines(None, _init_code(file), _init_lsp_folding_range(), None)?;
     Ok(lines)
 }
 

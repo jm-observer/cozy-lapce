@@ -1602,7 +1602,7 @@ pub fn paint_text(
                     Point::new(0.0, y),
                 );
             },
-            VisualLineInfo::DiffDelete { folded_line_y } => {
+            VisualLineInfo::DiffDelete { .. } => {
                 let mut count = 1.0f64;
                 while let Some(VisualLineInfo::DiffDelete { .. }) = lines.peek() {
                     count += 1.0;
@@ -1611,7 +1611,7 @@ pub fn paint_text(
                 paint_diff_no_code(
                     cx,
                     viewport,
-                    folded_line_y,
+                    y,
                     dim_color,
                     count * line_height,
                 );

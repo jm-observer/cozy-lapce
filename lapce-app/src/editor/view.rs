@@ -1880,7 +1880,7 @@ fn editor_content(
     })
     .scroll_to(move || {
         scroll_to.get().map(|s| {
-            log::info!("scroll_to {:?}", s);
+            // log::info!("scroll_to {:?}", s);
             s.to_point()
         })
     })

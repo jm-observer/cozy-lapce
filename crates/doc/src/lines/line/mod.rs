@@ -87,9 +87,9 @@ impl OriginLine {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
     pub line_index:        usize,
-    /// [origin_line_start...origin_line_end]
+    /// origin_line_start..=origin_line_end
     pub origin_line_start: usize,
-    // [origin_line_start...origin_line_end]
+    /// origin_line_start..=origin_line_end
     pub origin_line_end:   usize,
     pub origin_interval:   Interval,
     pub last_line: bool,
