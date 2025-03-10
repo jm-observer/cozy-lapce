@@ -2337,11 +2337,13 @@ impl WindowWorkspaceData {
                     .diagnostics
                     .set(diagnostics);
 
+                let doc_content = DocContent::File { path: path.clone(), read_only: false };
+
                 // inform the document about the diagnostics
                 if let Some(doc) = self
                     .main_split
                     .docs
-                    .with_untracked(|docs| docs.get(&path).cloned())
+                    .with_untracked(|docs| docs.get(&doc_content).cloned())
                 {
                     // warn!("PublishDiagnostics docs {:?}", path);
                     doc.init_diagnostics();

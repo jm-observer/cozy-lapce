@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData,
+    DiagnosticData, EditorViewKind,
     lines::{RopeTextPosition, command::FocusCommand, cursor::Cursor},
     syntax::Syntax,
 };
@@ -204,6 +204,7 @@ impl Editors {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
+        view_kind: EditorViewKind,
     ) -> EditorId {
         let editor = EditorData::new_doc(
             cx,
@@ -211,6 +212,7 @@ impl Editors {
             editor_tab_id,
             diff_editor_id,
             common,
+            view_kind,
         );
 
         self.insert(editor)
@@ -225,6 +227,7 @@ impl Editors {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
+        view_kind: EditorViewKind,
     ) -> EditorData {
         let id = self.new_from_doc(
             cx,
@@ -232,6 +235,7 @@ impl Editors {
             editor_tab_id,
             diff_editor_id,
             common,
+            view_kind,
         );
         self.editor_untracked(id).unwrap()
     }
@@ -257,8 +261,7 @@ impl Editors {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
     ) -> Option<EditorData> {
-        let editor_id =
-            self.copy(editor_id, cx, editor_tab_id, diff_editor_id)?;
+        let editor_id = self.copy(editor_id, cx, editor_tab_id, diff_editor_id)?;
         self.editor_untracked(editor_id)
     }
 
@@ -322,7 +325,7 @@ pub struct MainSplitData {
         RwSignal<im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>>,
     pub editors: Editors,
     pub diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>>,
-    pub docs: RwSignal<im::HashMap<PathBuf, Rc<Doc>>>,
+    pub docs: RwSignal<im::HashMap<DocContent, Rc<Doc>>>,
     pub scratch_docs: RwSignal<im::HashMap<String, Rc<Doc>>>,
     pub diagnostics: RwSignal<im::HashMap<PathBuf, DiagnosticData>>,
     pub references: Tabs<ReferencesRoot>,
@@ -358,7 +361,7 @@ impl MainSplitData {
         let editors = Editors::new(cx);
         let diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>> =
             cx.create_rw_signal(im::HashMap::new());
-        let docs: RwSignal<im::HashMap<PathBuf, Rc<Doc>>> =
+        let docs: RwSignal<im::HashMap<DocContent, Rc<Doc>>> =
             cx.create_rw_signal(im::HashMap::new());
         let scratch_docs = cx.create_rw_signal(im::HashMap::new());
         let locations = cx.create_rw_signal(im::Vector::new());
@@ -555,9 +558,10 @@ impl MainSplitData {
         path: PathBuf,
         unsaved: Option<String>,
         lsp_req: bool,
+        content: DocContent,
     ) -> (Rc<Doc>, bool) {
         let cx = self.scope;
-        let doc = self.docs.with_untracked(|docs| docs.get(&path).cloned());
+        let doc = self.docs.with_untracked(|docs| docs.get(&content).cloned());
         if let Some(doc) = doc {
             (doc, false)
         } else {
@@ -569,10 +573,11 @@ impl MainSplitData {
                 diagnostic_data,
                 self.editors,
                 self.common.clone(),
+                content.clone(),
             );
             let doc = Rc::new(doc);
             self.docs.update(|docs| {
-                docs.insert(path.clone(), doc.clone());
+                docs.insert(content, doc.clone());
             });
 
             {
@@ -668,7 +673,15 @@ impl MainSplitData {
             // }
         }
         let path = location.path.clone();
-        let (doc, new_doc) = self.get_doc(path.clone(), None, true);
+        let (doc, new_doc) = self.get_doc(
+            path.clone(),
+            None,
+            true,
+            DocContent::File {
+                path: path.clone(),
+                read_only: false,
+            },
+        );
 
         let child = self.get_editor_tab_child(
             EditorTabChildSource::Editor { path, doc },
@@ -687,7 +700,15 @@ impl MainSplitData {
     }
 
     pub fn open_file_changes(&self, path: PathBuf) {
-        let (right, _) = self.get_doc(path.clone(), None, false);
+        let (right, _) = self.get_doc(
+            path.clone(),
+            None,
+            false,
+            DocContent::File {
+                path: path.clone(),
+                read_only: false,
+            },
+        );
         let left = Doc::new_history(
             self.scope,
             DocContent::History(DocHistory {
@@ -720,8 +741,18 @@ impl MainSplitData {
     }
 
     pub fn open_diff_files(&self, left_path: PathBuf, right_path: PathBuf) {
-        let [left, right] =
-            [left_path, right_path].map(|path| self.get_doc(path, None, false).0);
+        let [left, right] = [left_path, right_path].map(|path| {
+            self.get_doc(
+                path.clone(),
+                None,
+                false,
+                DocContent::File {
+                    path,
+                    read_only: true,
+                },
+            )
+            .0
+        });
 
         self.get_editor_tab_child(
             EditorTabChildSource::DiffEditor { left, right },
@@ -887,8 +918,7 @@ impl MainSplitData {
                                     None
                                 } else {
                                     editor_tab
-                                        .get_unconfirmed_editor_tab_child(
-                                        )
+                                        .get_unconfirmed_editor_tab_child()
                                         .map(|(i, _)| i)
                                 }
                             })
@@ -913,8 +943,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -925,8 +954,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -945,8 +973,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -968,8 +995,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -988,8 +1014,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -1014,8 +1039,7 @@ impl MainSplitData {
                     } else {
                         active_editor_tab.with_untracked(|editor_tab| {
                             editor_tab
-                                .get_unconfirmed_editor_tab_child(
-                                )
+                                .get_unconfirmed_editor_tab_child()
                                 .map(|(i, _)| i)
                         })
                     }
@@ -1033,6 +1057,7 @@ impl MainSplitData {
                             Some(editor_tab_id),
                             None,
                             self.common.clone(),
+                            EditorViewKind::Normal,
                         );
 
                         EditorTabChildId::Editor(editor_id)
@@ -1060,6 +1085,7 @@ impl MainSplitData {
                             Some(editor_tab_id),
                             None,
                             self.common.clone(),
+                            EditorViewKind::Normal,
                         );
 
                         EditorTabChildId::Editor(editor_id)
@@ -2366,9 +2392,15 @@ impl MainSplitData {
 
     pub fn open_file_changed(&self, path: &Path, content: &FileChanged) {
         log::debug!("open_file_changed {:?}", path);
+        let doc_content = DocContent::File {
+            path: path.to_path_buf(),
+            read_only: false,
+        };
         match content {
             FileChanged::Change(content) => {
-                let doc = self.docs.with_untracked(|docs| docs.get(path).cloned());
+                let doc = self
+                    .docs
+                    .with_untracked(|docs| docs.get(&doc_content).cloned());
                 let doc = match doc {
                     Some(doc) => doc,
                     None => return,
@@ -2376,7 +2408,7 @@ impl MainSplitData {
                 doc.handle_file_changed(Rope::from(content));
             },
             FileChanged::Delete => {
-                if self.docs.with_untracked(|x| x.get(path).is_none()) {
+                if self.docs.with_untracked(|x| x.get(&doc_content).is_none()) {
                     return;
                 }
                 let Some(editor_id) = self.editors.get_editor_id_by_path(path)
@@ -2398,7 +2430,7 @@ impl MainSplitData {
                 }
                 self.editors.remove(editor_id);
                 self.docs.update(|x| {
-                    x.remove(path);
+                    x.remove(&doc_content);
                 });
             },
         }
@@ -3133,14 +3165,18 @@ impl MainSplitData {
         let common = self.common.clone();
         match &data.content {
             DocContent::File { path, .. } => {
-                let (doc, new_doc) =
-                    self.get_doc(path.clone(), data.unsaved.clone(), true);
+                let (doc, new_doc) = self.get_doc(
+                    path.clone(),
+                    data.unsaved.clone(),
+                    true,
+                    data.content.clone(),
+                );
                 let editor = editors.make_from_doc(
                     self.scope,
                     doc,
                     Some(editor_tab_id),
                     None,
-                    common,
+                    common, EditorViewKind::Normal
                 );
                 editor.go_to_location(
                     EditorLocation {
@@ -3193,7 +3229,7 @@ impl MainSplitData {
                     doc,
                     Some(editor_tab_id),
                     None,
-                    common,
+                    common, EditorViewKind::Normal
                 )
             },
         }
@@ -3213,7 +3249,8 @@ impl MainSplitData {
             let common = data.common.clone();
             move |content: &DocContent| match content {
                 DocContent::File { path, .. } => {
-                    let (doc, _) = data.get_doc(path.clone(), None, false);
+                    let (doc, _) =
+                        data.get_doc(path.clone(), None, false, content.clone());
                     doc
                 },
                 DocContent::Local => {

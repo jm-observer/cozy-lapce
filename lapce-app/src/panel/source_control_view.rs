@@ -129,7 +129,7 @@ pub fn source_control_panel(
                     let cursor = cursor.get();
                     let offset = cursor.offset();
                     let e_data = editor.get_untracked();
-                    e_data.kind().track();
+                    e_data.kind_read().track();
                     let line_height = e_data.editor.line_height(0) as f64;
 
                     if let Some((x, y, width, line_height)) = e_data

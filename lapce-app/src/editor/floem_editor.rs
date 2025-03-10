@@ -1,6 +1,9 @@
-use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
-use std::ops::{Sub};
+use crate::editor::view::StickyHeaderInfo;
+use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
 use anyhow::Result;
+use doc::EditorViewKind;
+use doc::lines::phantom_text::Text;
+use doc::lines::screen_lines::VisualLineInfo;
 use doc::lines::{
     DocLinesManager,
     buffer::rope_text::{RopeText, RopeTextVal},
@@ -14,7 +17,7 @@ use doc::lines::{
     register::Register,
     screen_lines::ScreenLines,
     selection::Selection,
-    text::{Preedit, PreeditData}
+    text::{Preedit, PreeditData},
 };
 use floem::{
     Renderer, ViewId,
@@ -25,18 +28,15 @@ use floem::{
     peniko::Color,
     pointer::PointerInputEvent,
     reactive::{
-        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch
+        RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, Trigger, batch,
     },
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout}
+    text::{Attrs, AttrsList, FamilyOwned, TextLayout},
 };
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{error, info};
-use doc::lines::phantom_text::Text;
-use doc::lines::screen_lines::VisualLineInfo;
-use doc::lines::selection::SelRegion;
-use crate::{command::InternalCommand, doc::Doc, window_workspace::CommonData};
-use crate::editor::view::StickyHeaderInfo;
+use std::ops::Sub;
+use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
 /// The main structure for the editor view itself.  
@@ -44,7 +44,7 @@ use crate::editor::view::StickyHeaderInfo;
 /// It holds an `Rc<Doc>` within as the document it is a view into.  
 #[derive(Clone)]
 pub struct Editor {
-    pub cx:     Cell<Scope>,
+    pub cx: Cell<Scope>,
     effects_cx: Cell<Scope>,
 
     id: EditorId,
@@ -55,21 +55,22 @@ pub struct Editor {
     pub read_only: RwSignal<bool>,
 
     pub(crate) doc: RwSignal<Rc<Doc>>,
+    pub kind: RwSignal<EditorViewKind>,
 
     pub cursor: RwSignal<Cursor>,
 
-    pub window_origin:        RwSignal<Point>,
-    pub viewport:             RwSignal<Rect>,
-    pub screen_lines:         RwSignal<ScreenLines>,
+    pub window_origin: RwSignal<Point>,
+    pub viewport: RwSignal<Rect>,
+    pub screen_lines: RwSignal<ScreenLines>,
     pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
 
-    pub editor_view_focused:    Trigger,
+    pub editor_view_focused: Trigger,
     pub editor_view_focus_lost: Trigger,
-    pub editor_view_id:         RwSignal<Option<ViewId>>,
+    pub editor_view_id: RwSignal<Option<ViewId>>,
 
     /// The current scroll position.
     pub scroll_delta: RwSignal<Vec2>,
-    pub scroll_to:    RwSignal<Option<Vec2>>,
+    pub scroll_to: RwSignal<Option<Vec2>>,
 
     /// Modal mode register
     pub register: RwSignal<Register>,
@@ -84,7 +85,7 @@ pub struct Editor {
     // pub es: RwSignal<EditorStyle>,
     pub floem_style_id: RwSignal<u64>, // pub lines: DocLinesManager,
     pub sticky_header_height: RwSignal<f64>,
-    pub sticky_header_info:   RwSignal<StickyHeaderInfo>
+    pub sticky_header_info: RwSignal<StickyHeaderInfo>,
 }
 impl Editor {
     /// Create a new editor into the given document, using the styling.
@@ -93,8 +94,13 @@ impl Editor {
     /// [TextDocument](self::text_document::TextDocument) `style`: How the
     /// editor should be styled, such as
     /// [SimpleStyling](self::text::SimpleStyling)
-    pub fn new(cx: Scope, doc: Rc<Doc>, modal: bool) -> Editor {
-        let editor = Editor::new_direct(cx, doc, modal);
+    pub fn new(
+        cx: Scope,
+        doc: Rc<Doc>,
+        modal: bool,
+        view_kind: EditorViewKind,
+    ) -> Editor {
+        let editor = Editor::new_direct(cx, doc, modal, view_kind);
         editor.recreate_view_effects();
 
         editor
@@ -118,7 +124,12 @@ impl Editor {
     /// let editor = Editor::new_direct(cx, id, doc, style);
     /// editor.scroll_beyond_last_line.set(shared_scroll_beyond_last_line);
     /// ```
-    pub fn new_direct(cx: Scope, doc: Rc<Doc>, modal: bool) -> Editor {
+    pub fn new_direct(
+        cx: Scope,
+        doc: Rc<Doc>,
+        modal: bool,
+        view_kind: EditorViewKind,
+    ) -> Editor {
         let id = doc.editor_id();
         // let viewport = doc.viewport();
         let cx = cx.create_child();
@@ -139,21 +150,23 @@ impl Editor {
 
         let viewport_memo = cx.create_memo(move |_| viewport.get());
 
+        let kind = cx.create_rw_signal(view_kind);
         cx.create_effect(move |_| {
-            let (lines, kind) = doc.with(|x| (x.lines, x.kind));
+
+            let lines = doc.with(|x| x.lines, );
             let base = viewport_memo.get();
-            let _ = kind.with(|_| ());
+            let kind = kind.get();
             let Some((
                 screen_lines_val,
                 folding_display_item_val,
-                signal_paint_content
+                signal_paint_content,
             )) = lines.try_update(|x| {
                 let (screen_lines_val, folding_display_item_val) =
-                    x._compute_screen_lines(base);
+                    x._compute_screen_lines(base, kind);
                 (
                     screen_lines_val,
                     folding_display_item_val,
-                    x.signal_paint_content()
+                    x.signal_paint_content(),
                 )
             })
             else {
@@ -189,7 +202,8 @@ impl Editor {
             screen_lines,
             folding_display_item,
             sticky_header_height: cx.create_rw_signal(0.0),
-            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default())
+            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
+            kind
         }
     }
 
@@ -342,13 +356,13 @@ impl Editor {
         &self,
         text: String,
         cursor: Option<(usize, usize)>,
-        offset: usize
+        offset: usize,
     ) {
         batch(|| {
             self.preedit().preedit.set(Some(Preedit {
                 text,
                 cursor,
-                offset
+                offset,
             }));
 
             self.doc().cache_rev().update(|cache_rev| {
@@ -378,7 +392,7 @@ impl Editor {
     pub fn single_click(
         &self,
         pointer_event: &PointerInputEvent,
-        common_data: &CommonData
+        common_data: &CommonData,
     ) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (new_offset, _is_inside, cursor_affinity) =
@@ -388,7 +402,7 @@ impl Editor {
                 Err(err) => {
                     error!("{err:?}");
                     return;
-                }
+                },
             };
         log::info!(
             "offset_of_point single_click {:?} {new_offset} {_is_inside} \
@@ -400,7 +414,7 @@ impl Editor {
                 new_offset,
                 pointer_event.modifiers.shift(),
                 pointer_event.modifiers.alt(),
-                Some(cursor_affinity)
+                Some(cursor_affinity),
             );
             cursor.affinity = cursor_affinity;
         });
@@ -419,15 +433,21 @@ impl Editor {
                 Err(err) => {
                     error!("{err:?}");
                     return;
-                }
+                },
             };
         let (start, end) = self.select_word(mouse_offset);
         let start_affi = self.screen_lines.with_untracked(|x| {
             let Some(text) = x.visual_line_for_buffer_offset(start) else {
                 return None;
             };
-            let Ok(text) = text.folded_line.text_of_origin_merge_col(start - text.folded_line.origin_interval.start) else {
-                error!("start {start}, folded {}-{}", text.folded_line.origin_line_start, text.folded_line.origin_line_end);
+            let Ok(text) = text.folded_line.text_of_origin_merge_col(
+                start - text.folded_line.origin_interval.start,
+            ) else {
+                error!(
+                    "start {start}, folded {}-{}",
+                    text.folded_line.origin_line_start,
+                    text.folded_line.origin_line_end
+                );
                 return None;
             };
             if let Text::Phantom { .. } = text {
@@ -447,7 +467,8 @@ impl Editor {
                 start,
                 end,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt(), start_affi
+                pointer_event.modifiers.alt(),
+                start_affi,
             );
         });
     }
@@ -461,7 +482,7 @@ impl Editor {
                 Err(err) => {
                     error!("{err:?}");
                     return;
-                }
+                },
             };
         let origin_interval = match self.doc().lines.with_untracked(|x| {
             let rs = x
@@ -476,7 +497,7 @@ impl Editor {
             Err(err) => {
                 error!("{}", err);
                 return;
-            }
+            },
         };
         // let vline = self
         //     .visual_line_of_offset(mouse_offset, CursorAffinity::Backward)
@@ -487,7 +508,8 @@ impl Editor {
                 origin_interval.start,
                 origin_interval.end,
                 pointer_event.modifiers.shift(),
-                pointer_event.modifiers.alt(), None
+                pointer_event.modifiers.alt(),
+                None,
             )
         });
     }
@@ -524,7 +546,7 @@ impl Editor {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
 
         let viewport_center = viewport.height() / 2.0;
@@ -549,7 +571,7 @@ impl Editor {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
 
         let desired_top = (line.saturating_sub(scroll_off)) as f64 * line_height;
@@ -569,7 +591,7 @@ impl Editor {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
 
         let desired_bottom =
@@ -593,7 +615,7 @@ impl Editor {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
         let top = viewport.y0 + diff + top_shift;
         let bottom = viewport.y0 + diff + viewport.height();
@@ -613,7 +635,7 @@ impl Editor {
         let res = match new_line.cmp(&line) {
             Ordering::Greater => Some((MoveCommand::Down, new_line - line)),
             Ordering::Less => Some((MoveCommand::Up, line - new_line)),
-            _ => None
+            _ => None,
         };
 
         if let Some((cmd, count)) = res {
@@ -933,7 +955,7 @@ impl Editor {
     pub fn line_point_of_offset(
         &self,
         offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<Point> {
         let (line, col) = self.offset_to_line_col(offset)?;
         self.line_point_of_visual_line_col(line, col, affinity, false)
@@ -947,14 +969,14 @@ impl Editor {
         visual_line: usize,
         col: usize,
         affinity: CursorAffinity,
-        _force_affinity: bool
+        _force_affinity: bool,
     ) -> Result<Point> {
         self.doc().lines.with_untracked(|x| {
             x.line_point_of_visual_line_col(
                 visual_line,
                 col,
                 affinity,
-                _force_affinity
+                _force_affinity,
             )
         })
     }
@@ -971,7 +993,7 @@ impl Editor {
                     Err(err) => {
                         error!("{}", err.to_string());
                         None
-                    }
+                    },
                 }
             })
         else {
@@ -991,7 +1013,7 @@ impl Editor {
     pub fn offset_of_point(
         &self,
         mode: &CursorMode,
-        point: Point
+        point: Point,
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
         let viewport = self.viewport_untracked();
         // log::info!("point={point:?}, viewport={viewport:?}");
@@ -1142,7 +1164,7 @@ impl Editor {
         &self,
         offset: usize,
         mode: Mode,
-        count: usize
+        count: usize,
     ) -> Result<usize> {
         self.rope_text().move_right(offset, mode, count)
     }
@@ -1222,7 +1244,7 @@ pub fn do_motion_mode(
     action: &dyn CommonAction,
     cursor: &mut Cursor,
     motion_mode: MotionMode,
-    register: &mut Register
+    register: &mut Register,
 ) {
     if let Some(cached_motion_mode) = cursor.motion_mode.take() {
         // If it's the same MotionMode discriminant, continue, count is cached in the
@@ -1237,7 +1259,7 @@ pub fn do_motion_mode(
                 cached_motion_mode,
                 offset..offset,
                 true,
-                register
+                register,
             );
         }
     } else {
@@ -1256,7 +1278,7 @@ pub trait CommonAction {
         motion_mode: MotionMode,
         range: Range<usize>,
         is_vertical: bool,
-        register: &mut Register
+        register: &mut Register,
     );
 
     // TODO: should we have a more general cursor state structure?
@@ -1272,7 +1294,7 @@ pub trait CommonAction {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool
+        smart_tab: bool,
     ) -> bool;
 }
 
@@ -1286,7 +1308,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
         CursorMode::Visual {
             start: _start,
             end: _end,
-            mode: VisualMode::Normal
+            mode: VisualMode::Normal,
         } => {
             error!("todo implement");
             // let start_offset = start.min(end);
@@ -1311,7 +1333,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
         CursorMode::Visual {
             start: _start,
             end: _end,
-            mode: VisualMode::Linewise
+            mode: VisualMode::Linewise,
         } => {
             error!("todo implement paint_linewise_selection");
             // if let Err(err) = paint_linewise_selection(
@@ -1329,7 +1351,7 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
         CursorMode::Visual {
             start: _start,
             end: _end,
-            mode: VisualMode::Blockwise
+            mode: VisualMode::Blockwise,
         } => {
             error!("todo implement paint_blockwise_selection");
             // if let Err(err) = paint_blockwise_selection(
@@ -1363,12 +1385,12 @@ pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLine
                     end,
                     _screen_lines,
                     start_affinity,
-                    end_affinity
+                    end_affinity,
                 ) {
                     error!("{err:?}");
                 }
             }
-        }
+        },
     });
 }
 //
@@ -1487,13 +1509,13 @@ fn paint_normal_selection(
     end_offset: usize,
     screen_lines: &ScreenLines,
     start_affinity: Option<CursorAffinity>,
-    end_affinity: Option<CursorAffinity>
+    end_affinity: Option<CursorAffinity>,
 ) -> Result<()> {
     let rs = screen_lines.normal_selection(
         start_offset,
         end_offset,
         start_affinity,
-        end_affinity
+        end_affinity,
     )?;
     // log::info!(
     //     "normal_selection {start_offset}-{end_offset} \
@@ -1517,7 +1539,8 @@ pub fn paint_text(
     font_size: f32,
     cursor_points: Vec<Point>,
     line_height: f64,
-    dim_color: Color, diff_color: Color,
+    dim_color: Color,
+    diff_color: Color,
 ) -> Result<()> {
     if is_active && !hide_cursor {
         paint_cursor_caret(cx, lines, cursor_points, line_height);
@@ -1526,30 +1549,33 @@ pub fn paint_text(
     while let Some(line_info) = lines.next() {
         let y = line_info.paint_point(screen_lines.base).y;
         match line_info {
-            VisualLineInfo::OriginText { text: mut line_info, ..} => {
+            VisualLineInfo::OriginText {
+                text: mut line_info,
+                ..
+            } => {
                 if line_info.is_diff {
                     cx.fill(
                         &Rect::ZERO
-                            .with_size(Size::new(
-                                viewport.width(),
-                                line_height
-                            ))
-                            .with_origin(Point::new(
-                                viewport.x0,
-                                y
-                            )),
+                            .with_size(Size::new(viewport.width(), line_height))
+                            .with_origin(Point::new(viewport.x0, y)),
                         diff_color.multiply_alpha(0.2),
-                        0.0
+                        0.0,
                     );
                 }
-                paint_extra_style(cx, line_info.folded_line.extra_style(), y, viewport);
+                paint_extra_style(
+                    cx,
+                    line_info.folded_line.extra_style(),
+                    y,
+                    viewport,
+                );
                 if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
                     let attrs = Attrs::new()
                         .color(visible_whitespace)
                         .family(&font_family)
                         .font_size(font_size);
                     let attrs_list = AttrsList::new(attrs);
-                    let space_text = TextLayout::new_with_text("·", attrs_list.clone());
+                    let space_text =
+                        TextLayout::new_with_text("·", attrs_list.clone());
                     let tab_text = TextLayout::new_with_text("→", attrs_list);
 
                     for (c, (x0, _x1)) in whitespaces.iter() {
@@ -1557,34 +1583,39 @@ pub fn paint_text(
                             '\t' => {
                                 cx.draw_text_with_layout(
                                     tab_text.layout_runs(),
-                                    Point::new(*x0, y)
+                                    Point::new(*x0, y),
                                 );
                             },
                             ' ' => {
                                 cx.draw_text_with_layout(
                                     space_text.layout_runs(),
-                                    Point::new(*x0, y)
+                                    Point::new(*x0, y),
                                 );
                             },
-                            _ => {}
+                            _ => {},
                         }
                     }
                 }
 
                 cx.draw_text_with_layout(
                     line_info.folded_line.borrow_text().layout_runs(),
-                    Point::new(0.0, y)
+                    Point::new(0.0, y),
                 );
-            }
+            },
             VisualLineInfo::DiffDelete { folded_line_y } => {
                 let mut count = 1.0f64;
-                while let Some(VisualLineInfo::DiffDelete {..}) = lines.peek() {
+                while let Some(VisualLineInfo::DiffDelete { .. }) = lines.peek() {
                     count += 1.0;
                     lines.next();
                 }
-                paint_diff_no_code(cx, viewport, folded_line_y, dim_color, count * line_height);
-
-            }
+                paint_diff_no_code(
+                    cx,
+                    viewport,
+                    folded_line_y,
+                    dim_color,
+                    count * line_height,
+                );
+            },
         }
     }
     Ok(())
@@ -1594,7 +1625,8 @@ fn paint_diff_no_code(
     cx: &mut PaintCx,
     viewport: Rect,
     y: f64,
-    color: Color, section_height: f64,
+    color: Color,
+    section_height: f64,
 ) {
     let y_end = y + section_height;
 
@@ -1609,7 +1641,8 @@ fn paint_diff_no_code(
     let start_x = viewport.x0.floor() as usize;
     let start_x = start_x - start_x % 8;
 
-    for x in (start_x..viewport.x1.ceil() as usize + 1 + section_height.ceil() as usize)
+    for x in (start_x
+        ..viewport.x1.ceil() as usize + 1 + section_height.ceil() as usize)
         .step_by(8)
     {
         let p0 = if x as f64 > viewport.x1.ceil() {
@@ -1625,11 +1658,7 @@ fn paint_diff_no_code(
         };
         if height > 0.0 {
             let p1 = Point::new(x as f64 - height, y + height);
-            cx.stroke(
-                &Line::new(p0, p1),
-                color,
-                &Stroke::new(1.0)
-            );
+            cx.stroke(&Line::new(p0, p1), color, &Stroke::new(1.0));
         }
     }
 }
@@ -1638,7 +1667,7 @@ pub fn paint_extra_style(
     cx: &mut PaintCx,
     extra_styles: &[LineExtraStyle],
     y: f64,
-    viewport: Rect
+    viewport: Rect,
 ) {
     for style in extra_styles {
         let height = style.height - 2.0;
@@ -1658,7 +1687,7 @@ pub fn paint_extra_style(
                     .with_origin(Point::new(x, y))
                     .to_rounded_rect(2.0),
                 bg,
-                0.0
+                0.0,
             );
         }
 
@@ -1674,7 +1703,7 @@ pub fn paint_extra_style(
             cx.stroke(
                 &Line::new(Point::new(x, y), Point::new(x + width, y)),
                 color,
-                &Stroke::new(1.0)
+                &Stroke::new(1.0),
             );
         }
 
@@ -1710,7 +1739,7 @@ fn paint_cursor_caret(
     cx: &mut PaintCx,
     lines: DocLinesManager,
     cursor_points: Vec<Point>,
-    line_height: f64
+    line_height: f64,
 ) {
     let caret_color = lines.with_untracked(|es| es.ed_caret());
     cursor_points.into_iter().for_each(|point| {

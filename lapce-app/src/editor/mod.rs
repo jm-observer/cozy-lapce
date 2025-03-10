@@ -183,12 +183,12 @@ impl EditorData {
         }
     }
 
-    pub fn kind(&self) -> ReadSignal<EditorViewKind> {
-        self.doc().kind.read_only()
+    pub fn kind_read(&self) -> ReadSignal<EditorViewKind> {
+        self.editor.kind.read_only()
     }
 
     pub fn kind_rw(&self) -> RwSignal<EditorViewKind> {
-        self.doc().kind
+        self.editor.kind
     }
 
     /// Create a new local editor.
@@ -214,7 +214,7 @@ impl EditorData {
     ) -> Self {
         let cx = cx.create_child();
         let doc = Rc::new(Doc::new_local(cx, editors, common.clone(), name));
-        let editor = doc.create_editor(cx, true);
+        let editor = doc.create_editor(cx, true, EditorViewKind::Normal);
         Self::new(cx, editor, None, None, common)
     }
 
@@ -226,9 +226,9 @@ impl EditorData {
         doc: Rc<Doc>,
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
-        common: Rc<CommonData>
+        common: Rc<CommonData>, view_kind: EditorViewKind,
     ) -> Self {
-        let editor = doc.create_editor(cx, false);
+        let editor = doc.create_editor(cx, false, view_kind);
         Self::new(cx, editor, editor_tab_id, diff_editor_id, common)
     }
 
@@ -251,7 +251,7 @@ impl EditorData {
             self.doc(),
             editor_tab_id,
             diff_editor_id,
-            self.common.clone()
+            self.common.clone(), self.editor.kind.get_untracked()
         );
         editor.editor.cursor.set(self.editor.cursor.get_untracked());
         // editor
@@ -3291,7 +3291,7 @@ impl EditorData {
     }
 
     pub fn visual_line(&self, line: usize) -> usize {
-        self.kind().with_untracked(|kind| match kind {
+        self.kind_read().with_untracked(|kind| match kind {
             EditorViewKind::Normal => line,
             EditorViewKind::Diff(diff) => {
                 let is_right = diff.is_right;
@@ -3375,7 +3375,7 @@ impl EditorData {
     }
 
     pub fn actual_line(&self, visual_line: usize, bottom_affinity: bool) -> usize {
-        self.kind().with_untracked(|kind| match kind {
+        self.kind_read().with_untracked(|kind| match kind {
             EditorViewKind::Normal => visual_line,
             EditorViewKind::Diff(diff) => {
                 let is_right = diff.is_right;

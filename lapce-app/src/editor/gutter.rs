@@ -171,7 +171,7 @@ impl View for EditorGutterView {
         });
 
         let kind_is_normal =
-            self.editor.kind().with_untracked(|kind| kind.is_normal());
+            self.editor.kind_read().with_untracked(|kind| kind.is_normal());
         let (offset, is_insert) =
             cursor.with_untracked(|c| (c.offset(), c.is_insert()));
 
