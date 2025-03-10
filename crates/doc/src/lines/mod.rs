@@ -1362,7 +1362,7 @@ impl DocLines {
                         if size_width > self.max_width {
                             self.max_width = size_width;
                         }
-                        let folded_line_y = i * line_height;
+                        let folded_line_y = (start + i) * line_height;
                         let visual_line_info = VisualLineInfo::OriginText {
                             text: VisualOriginText {
                                 folded_line_y: folded_line_y as f64 - y0,
@@ -2980,7 +2980,7 @@ impl Debug for EditBuffer<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             EditBuffer::Init(val) => {
-                write!(f, "EditBuffer::Init {:?}", val)
+                write!(f, "EditBuffer::Init")
             },
             EditBuffer::SetLineEnding(val) => {
                 write!(f, "EditBuffer::SetLineEnding {:?}", val)
@@ -3000,8 +3000,7 @@ impl Debug for EditBuffer<'_> {
             } => {
                 write!(
                     f,
-                    "EditBuffer::Reload set_pristine {set_pristine:?} \
-                     content={content:?}"
+                    "EditBuffer::Reload set_pristine {set_pristine:?}"
                 )
             },
             EditBuffer::ExecuteMotionMode {

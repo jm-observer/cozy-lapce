@@ -910,8 +910,9 @@ impl View for EditorView {
         &mut self,
         cx: &mut floem::context::ComputeLayoutCx
     ) -> Option<Rect> {
-        let viewport = cx.current_viewport();
-        self.editor.editor.viewport.set(viewport);
+        // 会与diff的同步滚动冲突。观察后续的影响
+        // let viewport = cx.current_viewport();
+        // self.editor.editor.viewport.set(viewport);
         // self.editor.doc().lines.update(|x| {
         //     if let Err(err) = x.update_viewport_size(viewport) {
         //         error!("{err:?}");
@@ -1876,7 +1877,10 @@ fn editor_content(
         e_data.common.hover.active.set(false);
         current_scroll.set(rect);
     })
-    .scroll_to(move || scroll_to.get().map(|s| s.to_point()))
+    .scroll_to(move || scroll_to.get().map(|s| {
+        log::info!("scroll_to {:?}", s);
+        s.to_point()
+    }))
     .scroll_delta(move || scroll_delta.get())
     .ensure_visible(move || {
         let e_data = e_data.get_untracked();

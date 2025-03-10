@@ -1315,16 +1315,18 @@ fn editor_tab_content(
                     let right_viewport = diff_editor_data.right.editor.viewport;
                     let right_scroll_to = diff_editor_data.right.scroll_to();
                     // keep scroll common
-                    // create_effect(move |_| {
-                    //     let left_viewport = left_viewport.get();
-                    //     if right_viewport.get_untracked() != left_viewport {
-                    //         right_scroll_to
-                    //             .set(Some(left_viewport.origin().to_vec2()));
-                    //     }
-                    // });
+                    create_effect(move |_| {
+                        let left_viewport = left_viewport.get();
+                        if right_viewport.get_untracked() != left_viewport {
+                            // log::info!("right_scroll_to {:?}", left_viewport);
+                            right_scroll_to
+                                .set(Some(left_viewport.origin().to_vec2()));
+                        }
+                    });
                     create_effect(move |_| {
                         let right_viewport = right_viewport.get();
                         if left_viewport.get_untracked() != right_viewport {
+                            // log::info!("left_scroll_to {:?}", right_viewport);
                             left_scroll_to
                                 .set(Some(right_viewport.origin().to_vec2()));
                         }
