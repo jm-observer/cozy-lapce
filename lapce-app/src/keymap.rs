@@ -51,7 +51,7 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
     // common.clone()); let doc = text_input_view.doc_signal();
     let (read_order, write_order) = create_signal(KeyMapOrder::default());
 
-    let query_str = create_rw_signal(String::new());
+    let query_str = window_tab_data.keymap_query;
     let key_map_items = move || {
         let pattern = query_str.get().to_lowercase();
         let keypress = keypress.get();

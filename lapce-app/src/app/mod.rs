@@ -1405,10 +1405,10 @@ fn editor_tab_content(
                 }
             },
             EditorTabChildId::Settings(_) => {
-                settings_view(plugin.installed, common).into_any()
+                settings_view(plugin.installed, common, window_tab_data.clone()).into_any()
             },
             EditorTabChildId::ThemeColorSettings(_) => {
-                theme_color_settings_view(common).into_any()
+                theme_color_settings_view(common, window_tab_data.clone()).into_any()
             },
             EditorTabChildId::Keymap(_) => keymap_view(common, window_tab_data.clone()).into_any(),
             EditorTabChildId::Volt(_, id) => {

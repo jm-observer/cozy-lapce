@@ -264,7 +264,11 @@ pub struct WindowWorkspaceData {
     pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
     pub build_data:                TreePanelData,
-    pub cursor_blink:              CursorBlink
+    pub cursor_blink:              CursorBlink,
+    pub keymap_query:        RwSignal<String>,
+    pub setting_query: RwSignal<String>,
+    pub theme_query: RwSignal<String>,
+
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -668,7 +672,10 @@ impl WindowWorkspaceData {
             common,
             document_symbol_scroll_to: cx.create_rw_signal(None),
             build_data,
-            cursor_blink
+            cursor_blink,
+            keymap_query: cx.create_rw_signal(String::new()),
+            setting_query: cx.create_rw_signal(String::new()),
+            theme_query: cx.create_rw_signal(String::new()),
         };
 
         {

@@ -42,6 +42,7 @@ use crate::{
     svg,
     window_workspace::CommonData
 };
+use crate::window_workspace::WindowWorkspaceData;
 
 #[derive(Debug, Clone)]
 pub enum SettingsValue {
@@ -327,7 +328,7 @@ impl SettingsData {
 
 pub fn settings_view(
     installed_plugins: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
-    common: Rc<CommonData>
+    common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
 ) -> impl View {
     let config = common.config;
 
@@ -336,7 +337,7 @@ pub fn settings_view(
     let view_settings_data = settings_data.clone();
     let plugin_kinds = settings_data.plugin_kinds;
 
-    let query_str = create_rw_signal(String::new());
+    let query_str = window_tab_data.setting_query;
 
     let items = settings_data.items;
     let kinds = settings_data.kinds;
@@ -484,7 +485,7 @@ pub fn settings_view(
             container({
                 text_input(query_str)
                     .placeholder("Search Settings")
-                    .keyboard_navigable()
+                    .keyboard_navigable().debug_name("Settings Input")
                     .style(move |s| {
                         s.width_pct(100.0)
                             .border_radius(2.0)
@@ -839,9 +840,14 @@ fn color_section_list(
                     // 保存新值
                     create_effect(move |_| {
                         let value = query_str.get();
-                        let Ok(_) = Color::from_str(&value) else {
-                            return;
-                        };
+                        if value.starts_with("#") {
+                            let Ok(_) = Color::from_str(&value) else {
+                                log::info!("Color::from_str error {}", value);
+                                return;
+                            };
+                        } else if !value.starts_with("$") {
+                            // todo!() talk to user?
+                        }
                         let kind = kind.clone();
                         let field = field.clone();
                         let common = common.clone();
@@ -1014,7 +1020,7 @@ fn color_section_list(
     .style(|s| s.flex_col())
 }
 
-pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
+pub fn theme_color_settings_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData) -> impl View {
     let config = common.config;
 
     let text_height = create_memo(move |_| {
@@ -1059,12 +1065,13 @@ pub fn theme_color_settings_view(common: Rc<CommonData>) -> impl View {
         })
     });
 
-    let query_str = common.scope.create_rw_signal(String::new());
+    let query_str = window_tab_data.theme_query;
 
     v_stack((
         container({
             text_input(query_str)
                 .placeholder("Search Settings")
+                .debug_name("Theme Input")
                 .keyboard_navigable()
                 .style(move |s| {
                     s.width_pct(100.0)
