@@ -4,7 +4,7 @@ use alacritty_terminal::{
     grid::Dimensions,
     index::Side,
     selection::{Selection, SelectionType},
-    term::{RenderableContent, cell::Flags, test::TermSize}
+    term::{RenderableContent, cell::Flags, test::TermSize},
 };
 use doc::lines::{mode::Mode, register::Clipboard, text::SystemClipboard};
 use floem::{
@@ -13,17 +13,17 @@ use floem::{
     event::{Event, EventPropagation},
     peniko::{
         Color,
-        kurbo::{Point, Rect, Size}
+        kurbo::{Point, Rect, Size},
     },
     pointer::PointerInputEvent,
     prelude::SignalUpdate,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith, create_effect
+        ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith, create_effect,
     },
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight}
+    text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
 };
 use lapce_core::{
-    debug::RunDebugProcess, panel::PanelKind, workspace::LapceWorkspace
+    debug::RunDebugProcess, panel::PanelKind, workspace::LapceWorkspace,
 };
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 use lsp_types::Position;
@@ -37,7 +37,7 @@ use crate::{
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     terminal::data::TerminalData,
-    window_workspace::Focus
+    window_workspace::Focus,
 };
 
 /// Threshold used for double_click/triple_click.
@@ -46,34 +46,34 @@ const CLICK_THRESHOLD: u128 = 400;
 enum TerminalViewState {
     Config,
     Focus(bool),
-    Raw(Arc<RwLock<RawTerminal>>)
+    Raw(Arc<RwLock<RawTerminal>>),
 }
 
 struct TerminalLineContent<'a> {
-    y:         f64,
-    bg:        Vec<(usize, usize, Color)>,
+    y: f64,
+    bg: Vec<(usize, usize, Color)>,
     underline: Vec<(usize, usize, Color, f64)>,
-    chars:     Vec<(char, Attrs<'a>, f64, f64)>,
-    cursor:    Option<(char, f64)>
+    chars: Vec<(char, Attrs<'a>, f64, f64)>,
+    cursor: Option<(char, f64)>,
 }
 
 pub struct TerminalView {
-    id:                    ViewId,
-    term_id:               TermId,
-    raw:                   Arc<RwLock<RawTerminal>>,
-    mode:                  ReadSignal<Mode>,
-    size:                  Size,
-    is_focused:            bool,
-    config:                WithLapceConfig,
-    run_config:            ReadSignal<Option<RunDebugProcess>>,
-    proxy:                 ProxyRpcHandler,
-    launch_error:          RwSignal<Option<String>>,
-    internal_command:      Listener<InternalCommand>,
-    workspace:             LapceWorkspace,
-    hyper_regs:            Vec<Regex>,
+    id: ViewId,
+    term_id: TermId,
+    raw: Arc<RwLock<RawTerminal>>,
+    mode: ReadSignal<Mode>,
+    size: Size,
+    is_focused: bool,
+    config: WithLapceConfig,
+    run_config: ReadSignal<Option<RunDebugProcess>>,
+    proxy: ProxyRpcHandler,
+    launch_error: RwSignal<Option<String>>,
+    internal_command: Listener<InternalCommand>,
+    workspace: LapceWorkspace,
+    hyper_regs: Vec<Regex>,
     previous_mouse_action: MouseAction,
-    current_mouse_action:  MouseAction,
-    terminal_data:         TerminalData
+    current_mouse_action: MouseAction,
+    terminal_data: TerminalData,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -86,7 +86,7 @@ pub fn terminal_view(
     launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
     workspace: LapceWorkspace,
-    terminal: TerminalData
+    terminal: TerminalData,
 ) -> TerminalView {
     let id = ViewId::new();
 
@@ -115,8 +115,7 @@ pub fn terminal_view(
         let mut is_focused = false;
         if let Focus::Panel(PanelKind::Terminal) = focus {
             let tab = terminal_panel_data.active_tab(true);
-            if let Some(tab) = tab {
-                let terminal = tab.active_terminal(true);
+            if let Some(terminal) = tab {
                 is_focused = terminal.term_id == term_id;
             }
         }
@@ -148,7 +147,7 @@ pub fn terminal_view(
         workspace,
         hyper_regs: vec![reg],
         previous_mouse_action: Default::default(),
-        current_mouse_action: Default::default()
+        current_mouse_action: Default::default(),
     }
 }
 
@@ -157,7 +156,7 @@ impl TerminalView {
         let (font_family, font_size) = self.config.with_untracked(|config| {
             (
                 config.terminal_font_family().to_string(),
-                config.terminal_font_size()
+                config.terminal_font_size(),
             )
         });
         let family: Vec<FamilyOwned> =
@@ -208,17 +207,15 @@ impl TerminalView {
                     }
                     self.internal_command.send(InternalCommand::JumpToLocation {
                         location: EditorLocation {
-                            path:               file,
-                            position:           Some(EditorPosition::Position(
-                                Position::new(
-                                    line.saturating_sub(1),
-                                    col.saturating_sub(1)
-                                )
-                            )),
-                            scroll_offset:      None,
+                            path: file,
+                            position: Some(EditorPosition::Position(Position::new(
+                                line.saturating_sub(1),
+                                col.saturating_sub(1),
+                            ))),
+                            scroll_offset: None,
                             ignore_unconfirmed: false,
-                            same_editor_tab:    false
-                        }
+                            same_editor_tab: false,
+                        },
                     });
                 }
                 return Some(());
@@ -246,7 +243,7 @@ impl TerminalView {
                 match (
                     mouse.button.is_primary(),
                     mouse.pos == pos,
-                    during_mills < CLICK_THRESHOLD
+                    during_mills < CLICK_THRESHOLD,
                 ) {
                     (true, true, true) => {
                         next_action = MouseAction::LeftOnceAndDown { pos, time };
@@ -254,12 +251,12 @@ impl TerminalView {
                     (true, _, _) => {
                         next_action = MouseAction::LeftDown { pos: mouse.pos };
                     },
-                    _ => {}
+                    _ => {},
                 }
             },
             MouseAction::LeftOnceAndDown { .. }
             | MouseAction::LeftDown { .. }
-            | MouseAction::RightDown { .. } => {}
+            | MouseAction::RightDown { .. } => {},
         }
         self.current_mouse_action = next_action;
     }
@@ -273,16 +270,16 @@ impl TerminalView {
                     (true, true) => {
                         next_action = MouseAction::LeftOnce {
                             pos,
-                            time: SystemTime::now()
+                            time: SystemTime::now(),
                         }
                     },
                     (true, false) => {
                         next_action = MouseAction::LeftSelect {
                             start_pos: pos,
-                            end_pos:   mouse.pos
+                            end_pos: mouse.pos,
                         };
                     },
-                    _ => {}
+                    _ => {},
                 }
             },
             MouseAction::LeftOnce { .. } => {},
@@ -293,24 +290,24 @@ impl TerminalView {
                 match (
                     mouse.button.is_primary(),
                     mouse.pos == pos,
-                    during_mills < CLICK_THRESHOLD
+                    during_mills < CLICK_THRESHOLD,
                 ) {
                     (true, true, true) => {
                         next_action = MouseAction::LeftDouble { pos };
                     },
                     (true, true, false) => {
                         next_action = MouseAction::LeftOnce {
-                            pos:  mouse.pos,
-                            time: SystemTime::now()
+                            pos: mouse.pos,
+                            time: SystemTime::now(),
                         };
                     },
                     (true, false, _) => {
                         next_action = MouseAction::LeftSelect {
                             start_pos: pos,
-                            end_pos:   mouse.pos
+                            end_pos: mouse.pos,
                         };
                     },
-                    _ => {}
+                    _ => {},
                 }
             },
             MouseAction::LeftDouble { .. } => {},
@@ -319,7 +316,7 @@ impl TerminalView {
                     next_action = MouseAction::RightOnce { pos };
                 }
             },
-            MouseAction::RightOnce { .. } => {}
+            MouseAction::RightOnce { .. } => {},
         }
         self.previous_mouse_action = self.current_mouse_action;
         self.current_mouse_action = next_action;
@@ -335,7 +332,7 @@ impl TerminalView {
             - raw.term.grid().display_offset() as i32;
         alacritty_terminal::index::Point::new(
             alacritty_terminal::index::Line(line_no),
-            alacritty_terminal::index::Column(col)
+            alacritty_terminal::index::Column(col),
         )
     }
 
@@ -352,7 +349,7 @@ impl TerminalView {
         caret: Color,
         terminal_font_family: &str,
         terminal_font_size: usize,
-        terminal_bg: Color
+        terminal_bg: Color,
     ) {
         let family: Vec<FamilyOwned> =
             FamilyOwned::parse_list(terminal_font_family).collect();
@@ -365,11 +362,11 @@ impl TerminalView {
         let cursor_point = &content.cursor.point;
 
         let mut line_content = TerminalLineContent {
-            y:         0.0,
-            bg:        Vec::new(),
+            y: 0.0,
+            bg: Vec::new(),
             underline: Vec::new(),
-            chars:     Vec::new(),
-            cursor:    None
+            chars: Vec::new(),
+            cursor: None,
         };
         for item in content.display_iter {
             let point = item.point;
@@ -388,7 +385,7 @@ impl TerminalView {
                     char_width,
                     cursor,
                     error,
-                    caret
+                    caret,
                 );
                 line_content.y = y;
                 line_content.bg.clear();
@@ -450,7 +447,7 @@ impl TerminalView {
             char_width,
             cursor,
             error,
-            caret
+            caret,
         );
     }
 
@@ -463,12 +460,12 @@ impl TerminalView {
         char_width: f64,
         cursor: Color,
         error: Color,
-        caret: Color
+        caret: Color,
     ) {
         for (start, end, bg) in &line_content.bg {
             let rect = Size::new(
                 char_width * (end.saturating_sub(*start) as f64),
-                line_height
+                line_height,
             )
             .to_rect()
             .with_origin(Point::new(*start as f64 * char_width, line_content.y));
@@ -530,7 +527,7 @@ impl View for TerminalView {
     fn event_before_children(
         &mut self,
         _cx: &mut EventCx,
-        event: &Event
+        event: &Event,
     ) -> EventPropagation {
         match event {
             Event::PointerDown(e) => {
@@ -550,7 +547,7 @@ impl View for TerminalView {
                         let mut selection = Selection::new(
                             SelectionType::Simple,
                             self.get_terminal_point(start_pos),
-                            Side::Left
+                            Side::Left,
                         );
                         selection
                             .update(self.get_terminal_point(end_pos), Side::Right);
@@ -567,7 +564,7 @@ impl View for TerminalView {
                         let mut selection = Selection::new(
                             SelectionType::Simple,
                             start_point,
-                            Side::Left
+                            Side::Left,
                         );
                         selection.update(end_point, Side::Right);
                         selection.include_all();
@@ -587,7 +584,7 @@ impl View for TerminalView {
                                 let mut clipboard = SystemClipboard::new();
                                 let content = raw.term.bounds_to_string(
                                     selection.start,
-                                    selection.end
+                                    selection.end,
                                 );
                                 if !content.is_empty() {
                                     clipboard.put_string(content);
@@ -598,14 +595,14 @@ impl View for TerminalView {
                     },
                     _ => {
                         clear_selection = true;
-                    }
+                    },
                 }
                 if clear_selection {
                     self.raw.write().term.selection = None;
                     _cx.app_state_mut().request_paint(self.id);
                 }
             },
-            _ => {}
+            _ => {},
         }
         EventPropagation::Continue
     }
@@ -613,7 +610,7 @@ impl View for TerminalView {
     fn update(
         &mut self,
         cx: &mut floem::context::UpdateCx,
-        state: Box<dyn std::any::Any>
+        state: Box<dyn std::any::Any>,
     ) {
         if let Ok(state) = state.downcast() {
             match *state {
@@ -623,7 +620,7 @@ impl View for TerminalView {
                 },
                 TerminalViewState::Raw(raw) => {
                     self.raw = raw;
-                }
+                },
             }
             cx.app_state_mut().request_paint(self.id);
         }
@@ -631,14 +628,14 @@ impl View for TerminalView {
 
     fn layout(
         &mut self,
-        cx: &mut floem::context::LayoutCx
+        cx: &mut floem::context::LayoutCx,
     ) -> floem::taffy::prelude::NodeId {
         cx.layout_node(self.id, false, |_cx| Vec::new())
     }
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx
+        _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<Rect> {
         let layout = self.id.get_layout().unwrap_or_default();
         let size = layout.size;
@@ -674,12 +671,12 @@ impl View for TerminalView {
             let text_layout = TextLayout::new_with_text(
                 &format!("Terminal failed to launch. Error: {error}"),
                 AttrsList::new(
-                    attrs.color(config.color(LapceColor::EDITOR_FOREGROUND))
-                )
+                    attrs.color(config.color(LapceColor::EDITOR_FOREGROUND)),
+                ),
             );
             cx.draw_text_with_layout(
                 text_layout.layout_runs(),
-                Point::new(6.0, 0.0 + (line_height - char_size.height) / 2.0)
+                Point::new(6.0, 0.0 + (line_height - char_size.height) / 2.0),
             );
             return;
         }
@@ -723,7 +720,7 @@ impl View for TerminalView {
                 cx.fill(
                     &Rect::new(x0, y0, x1, y1),
                     config.color(LapceColor::EDITOR_SELECTION),
-                    0.0
+                    0.0,
                 );
             }
         } else if mode != Mode::Terminal {
@@ -733,7 +730,7 @@ impl View for TerminalView {
             cx.fill(
                 &Rect::new(0.0, y, self.size.width, y + line_height),
                 config.color(LapceColor::EDITOR_CURRENT_LINE),
-                0.0
+                0.0,
             );
         }
 
@@ -743,14 +740,14 @@ impl View for TerminalView {
             caret,
             terminal_font_family,
             terminal_font_size,
-            terminal_bg
+            terminal_bg,
         ) = (
             config.color(LapceColor::EDITOR_CARET),
             config.color(LapceColor::TERMINAL_CURSOR),
             config.color(LapceColor::LAPCE_ERROR),
             config.terminal_font_family(),
             config.terminal_font_size(),
-            config.color(LapceColor::TERMINAL_BACKGROUND)
+            config.color(LapceColor::TERMINAL_BACKGROUND),
         );
 
         self.paint_content(
@@ -764,7 +761,7 @@ impl View for TerminalView {
             caret,
             terminal_font_family,
             terminal_font_size,
-            terminal_bg
+            terminal_bg,
         );
     }
 }
@@ -774,27 +771,27 @@ enum MouseAction {
     #[default]
     None,
     LeftDown {
-        pos: Point
+        pos: Point,
     },
     LeftOnce {
-        pos:  Point,
-        time: SystemTime
+        pos: Point,
+        time: SystemTime,
     },
     LeftSelect {
         start_pos: Point,
-        end_pos:   Point
+        end_pos: Point,
     },
     LeftOnceAndDown {
-        pos:  Point,
-        time: SystemTime
+        pos: Point,
+        time: SystemTime,
     },
     LeftDouble {
-        pos: Point
+        pos: Point,
     },
     RightDown {
-        pos: Point
+        pos: Point,
     },
     RightOnce {
-        pos: Point
-    }
+        pos: Point,
+    },
 }

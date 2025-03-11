@@ -4,49 +4,49 @@ use anyhow::{Result, anyhow};
 use doc::lines::mode::Mode;
 use floem::{
     ext_event::create_ext_action,
-    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
 };
 use lapce_core::{
     debug::{RunDebugConfigs, RunDebugMode, RunDebugProcess, ScopeOrVar},
     doc::DocContent,
     id::TerminalTabId,
     panel::PanelKind,
-    workspace::LapceWorkspace
+    workspace::LapceWorkspace,
 };
 use lapce_rpc::{
     dap_types::{
-        self, DapId, RunDebugConfig, StackFrame, Stopped, ThreadId, Variable
+        self, DapId, RunDebugConfig, StackFrame, Stopped, ThreadId, Variable,
     },
     proxy::ProxyResponse,
-    terminal::{TermId, TerminalProfile}
+    terminal::{TermId, TerminalProfile},
 };
 use log::{debug, error};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use super::{data::TerminalData, tab::TerminalTabData};
+use crate::common::Tabs;
+use crate::panel::implementation_view::ReferencesRoot;
 use crate::{
     debug::{DapData, DapVariable, RunDebugData},
     keypress::{EventRef, KeyPressData, KeyPressFocus, KeyPressHandle},
     main_split::MainSplitData,
     terminal::{event::TermEvent, raw::RawTerminal},
-    window_workspace::{CommonData, Focus}
+    window_workspace::{CommonData, Focus},
 };
-use crate::common::Tabs;
-use crate::panel::implementation_view::ReferencesRoot;
 
 pub struct TerminalTabInfo {
     pub active: Option<TerminalTabId>,
-    pub tabs:   im::Vector<TerminalTabData>
+    pub tabs: im::Vector<TerminalData>,
 }
 
 impl TerminalTabInfo {
-    pub fn active_tab(&self) -> Option<(usize, &TerminalTabData)> {
+    pub fn active_tab(&self) -> Option<(usize, &TerminalData)> {
         self.active.and_then(|active| {
             self.tabs
                 .iter()
                 .enumerate()
-                .find(|(_index, tab)| tab.terminal_tab_id == active)
+                .find(|(_index, tab)| tab.term_id == active)
         })
     }
 
@@ -57,7 +57,7 @@ impl TerminalTabInfo {
         } else {
             active_index += 1;
         }
-        self.active = self.tabs.get(active_index).map(|x| x.terminal_tab_id);
+        self.active = self.tabs.get(active_index).map(|x| x.term_id);
     }
 
     pub fn previous_tab(&mut self) {
@@ -67,20 +67,20 @@ impl TerminalTabInfo {
         } else {
             active_index -= 1;
         }
-        self.active = self.tabs.get(active_index).map(|x| x.terminal_tab_id);
+        self.active = self.tabs.get(active_index).map(|x| x.term_id);
     }
 }
 
 #[derive(Clone)]
 pub struct TerminalPanelData {
-    pub cx:         Scope,
-    pub workspace:  LapceWorkspace,
-    pub tab_infos:  RwSignal<TerminalTabInfo>,
+    pub cx: Scope,
+    pub workspace: LapceWorkspace,
+    pub tab_infos: RwSignal<TerminalTabInfo>,
     // pub tabs:       Tabs<TerminalData>,
-    pub debug:      RunDebugData,
-    pub breakline:  Memo<Option<(usize, PathBuf)>>,
-    pub common:     Rc<CommonData>,
-    pub main_split: MainSplitData
+    pub debug: RunDebugData,
+    pub breakline: Memo<Option<(usize, PathBuf)>>,
+    pub common: Rc<CommonData>,
+    pub main_split: MainSplitData,
 }
 
 impl TerminalPanelData {
@@ -88,14 +88,22 @@ impl TerminalPanelData {
         workspace: LapceWorkspace,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-        main_split: MainSplitData
+        main_split: MainSplitData,
     ) -> Self {
-        let terminal_tab =
-            TerminalTabData::new(workspace.clone(), profile, common.clone());
+        // let terminal_tab =
+        //     TerminalTabData::new(workspace.clone(), profile, common.clone());
 
+        let cx = common.scope.create_child();
+        let terminal_data = TerminalData::new_run_debug(
+            cx,
+            workspace.clone(),
+            None,
+            profile,
+            common.clone(),
+        );
         let cx = common.scope;
-        let active = Some(terminal_tab.terminal_tab_id);
-        let tabs = im::vector![terminal_tab];
+        let active = Some(terminal_data.term_id);
+        let tabs = im::vector![terminal_data];
         let tab_info = TerminalTabInfo { active, tabs };
         let tab_info = cx.create_rw_signal(tab_info);
 
@@ -108,27 +116,20 @@ impl TerminalPanelData {
                 let active_term = active_term.get();
                 let active_term = match active_term {
                     Some(active_term) => active_term,
-                    None => return None
+                    None => return None,
                 };
 
                 let term = tab_info.with_untracked(|info| {
-                    for tab in &info.tabs {
-                        let terminal = tab.terminal.with_untracked(|terminals| {
-                            if terminals.term_id == active_term {
-                                Some(terminals.clone())
-                            } else {
-                                None
-                            }
-                        });
-                        if let Some(terminal) = terminal {
-                            return Some(terminal);
+                    for terminal in &info.tabs {
+                        if terminal.term_id == active_term {
+                            return Some(terminal.clone());
                         }
                     }
                     None
                 });
                 let term = match term {
                     Some(term) => term,
-                    None => return None
+                    None => return None,
                 };
                 let stopped = term
                     .run_debug
@@ -151,11 +152,11 @@ impl TerminalPanelData {
             debug,
             breakline,
             common,
-            main_split
+            main_split,
         }
     }
 
-    pub fn active_tab(&self, tracked: bool) -> Option<TerminalTabData> {
+    pub fn active_tab(&self, tracked: bool) -> Option<TerminalData> {
         if tracked {
             self.tab_infos.with(|info| {
                 info.active_tab().map(|x| x.1.clone())
@@ -174,14 +175,13 @@ impl TerminalPanelData {
     pub fn key_down<'a>(
         &self,
         event: impl Into<EventRef<'a>> + Copy,
-        keypress: &KeyPressData
+        keypress: &KeyPressData,
     ) -> Option<KeyPressHandle> {
         if self.tab_infos.with_untracked(|info| info.tabs.is_empty()) {
             self.new_tab(None);
         }
 
-        let tab = self.active_tab(false);
-        let terminal = tab.map(|tab| tab.active_terminal(false));
+        let terminal = self.active_tab(false);
         if let Some(terminal) = terminal {
             let handle = keypress.key_down(event, &terminal);
             let mode = terminal.get_mode();
@@ -190,9 +190,9 @@ impl TerminalPanelData {
                 if let EventRef::Keyboard(key_event) = event.into() {
                     if terminal.send_keypress(key_event) {
                         return Some(KeyPressHandle {
-                            handled:  true,
+                            handled: true,
                             keymatch: handle.keymatch,
-                            keypress: handle.keypress
+                            keypress: handle.keypress,
                         });
                     }
                 }
@@ -212,22 +212,23 @@ impl TerminalPanelData {
     pub fn new_tab_run_debug(
         &self,
         run_debug: Option<RunDebugProcess>,
-        profile: Option<TerminalProfile>
-    ) -> TerminalTabData {
-        let terminal_tab = TerminalTabData::new_run_debug(
+        profile: Option<TerminalProfile>,
+    ) -> TerminalData {
+        let terminal = TerminalData::new_run_debug(
+            self.common.scope.create_child(),
             self.workspace.clone(),
             run_debug,
             profile,
-            self.common.clone()
+            self.common.clone(),
         );
-        let tab_id = terminal_tab.terminal_tab_id;
-        let update_terminal = terminal_tab.clone();
+        let tab_id = terminal.term_id;
+        let update_terminal = terminal.clone();
         self.tab_infos.update(|info| {
             info.tabs.push_back(update_terminal);
             info.active = Some(tab_id);
         });
 
-        terminal_tab
+        terminal
     }
 
     pub fn next_tab(&self) {
@@ -253,15 +254,14 @@ impl TerminalPanelData {
                 if let Some(terminal_tab_id) = terminal_tab_id {
                     if let Some(index) =
                         info.tabs.iter().enumerate().find_map(|(index, t)| {
-                            if t.terminal_tab_id == terminal_tab_id {
+                            if t.term_id == terminal_tab_id {
                                 Some(index)
                             } else {
                                 None
                             }
                         })
                     {
-                        close_tab =
-                            Some(info.tabs.remove(index).terminal.get_untracked());
+                        close_tab = Some(info.tabs.remove(index));
                     }
                     // } else {
                     //     let mut active_index =
@@ -291,10 +291,10 @@ impl TerminalPanelData {
         }
     }
 
-    pub fn get_tab_terminal(&self, term_id: TermId) -> Option<TerminalTabData> {
+    pub fn get_terminal(&self, term_id: TermId) -> Option<TerminalData> {
         self.tab_infos.with_untracked(|info| {
             for tab in &info.tabs {
-                if tab.terminal_tab_id == term_id {
+                if tab.term_id == term_id {
                     return Some(tab.clone());
                 }
             }
@@ -302,26 +302,11 @@ impl TerminalPanelData {
         })
     }
 
-    pub fn get_terminal(&self, term_id: TermId) -> Option<TerminalData> {
-        let tab = self.get_tab_terminal(term_id)?;
-        Some(tab.terminal.get_untracked())
-    }
-
-    fn get_terminal_in_tab(
-        &self,
-        term_id: &TermId
-    ) -> Option<(TerminalTabData, TerminalData)> {
+    fn get_terminal_in_tab(&self, term_id: &TermId) -> Option<TerminalData> {
         self.tab_infos.with_untracked(|info| {
             for tab in info.tabs.iter() {
-                let result = tab.terminal.with_untracked(|terminals| {
-                    if terminals.term_id == *term_id {
-                        Some(terminals.clone())
-                    } else {
-                        None
-                    }
-                });
-                if let Some(terminal) = result {
-                    return Some((tab.clone(), terminal));
+                if tab.term_id == *term_id {
+                    return Some(tab.clone());
                 }
             }
             None
@@ -378,8 +363,8 @@ impl TerminalPanelData {
 
     pub fn close_terminal(&self, term_id: &TermId) {
         // todo close tab directly
-        if let Some((tab, _terminal_data)) = self.get_terminal_in_tab(term_id) {
-            self.close_tab(Some(tab.terminal_tab_id));
+        if let Some(_terminal_data) = self.get_terminal_in_tab(term_id) {
+            self.close_tab(Some(_terminal_data.term_id));
         }
     }
 
@@ -429,11 +414,11 @@ impl TerminalPanelData {
                         if run_debug.mode == RunDebugMode::Debug {
                             update_executable(
                                 &mut run_debug,
-                                terminal.raw.get_untracked().clone()
+                                terminal.raw.get_untracked().clone(),
                             );
                             self.common.proxy.dap_start(
                                 run_debug.config,
-                                self.debug.source_breakpoints()
+                                self.debug.source_breakpoints(),
                             )
                         } else {
                             terminal.new_process(Some(run_debug));
@@ -450,33 +435,26 @@ impl TerminalPanelData {
     pub fn get_stopped_run_debug_terminal(
         &self,
         mode: &RunDebugMode,
-        config: &RunDebugConfig
+        config: &RunDebugConfig,
     ) -> Option<TerminalData> {
         self.tab_infos.with_untracked(|info| {
-            for tab in &info.tabs {
-                let terminal = tab.terminal.with_untracked(|terminal| {
-                    if let Some(run_debug) =
-                        terminal.run_debug.get_untracked().as_ref()
-                    {
-                        if run_debug.stopped && &run_debug.mode == mode {
-                            match run_debug.mode {
-                                RunDebugMode::Run => {
-                                    if run_debug.config.name == config.name {
-                                        return Some(terminal.clone());
-                                    }
-                                },
-                                RunDebugMode::Debug => {
-                                    if run_debug.config.dap_id == config.dap_id {
-                                        return Some(terminal.clone());
-                                    }
+            for terminal in &info.tabs {
+                if let Some(run_debug) = terminal.run_debug.get_untracked().as_ref()
+                {
+                    if run_debug.stopped && &run_debug.mode == mode {
+                        match run_debug.mode {
+                            RunDebugMode::Run => {
+                                if run_debug.config.name == config.name {
+                                    return Some(terminal.clone());
                                 }
-                            }
+                            },
+                            RunDebugMode::Debug => {
+                                if run_debug.config.dap_id == config.dap_id {
+                                    return Some(terminal.clone());
+                                }
+                            },
                         }
                     }
-                    None
-                });
-                if let Some(terminal) = terminal {
-                    return Some(terminal);
                 }
             }
             None
@@ -485,7 +463,7 @@ impl TerminalPanelData {
 
     /// Return whether it is in debug mode.
     pub fn restart_run_debug(&self, term_id: TermId) -> Option<bool> {
-        let (terminal_tab, terminal) = self.get_terminal_in_tab(&term_id)?;
+        let terminal = self.get_terminal_in_tab(&term_id)?;
         let mut run_debug = terminal.run_debug.get_untracked()?;
         if run_debug.config.config_source.from_palette() {
             match self.get_run_config_by_name(&run_debug.config.name) {
@@ -495,7 +473,7 @@ impl TerminalPanelData {
                 Ok(None) => {},
                 Err(err) => {
                     error!("{err}");
-                }
+                },
             }
         }
         let mut is_debug = false;
@@ -508,16 +486,18 @@ impl TerminalPanelData {
                 run_debug.stopped = false;
                 run_debug.is_prelaunch = true;
                 let new_terminal = TerminalData::new_run_debug(
-                    terminal_tab.scope,
+                    terminal.scope,
                     self.workspace.clone(),
                     Some(run_debug),
                     None,
-                    self.common.clone()
+                    self.common.clone(),
                 );
                 let new_term_id = new_terminal.term_id;
-                terminal_tab.terminal.update(|terminals| {
-                    *terminals = new_terminal;
-                });
+                panic!();
+                // todo ??
+                // terminal_tab.terminal.update(|terminals| {
+                //     *terminals = new_terminal;
+                // });
                 self.debug.active_term.set(Some(new_term_id));
                 new_term_id
             },
@@ -529,7 +509,7 @@ impl TerminalPanelData {
                     .proxy
                     .dap_restart(config, self.debug.source_breakpoints());
                 term_id
-            }
+            },
         };
 
         self.focus_terminal(new_term_id);
@@ -546,9 +526,9 @@ impl TerminalPanelData {
                 None,
                 false,
                 DocContent::File {
-                    path:      run_toml.clone(),
-                    read_only: true
-                }
+                    path: run_toml.clone(),
+                    read_only: true,
+                },
             );
             if !new_doc {
                 let content = doc.lines.with_untracked(|x| x.buffer().to_string());
@@ -569,8 +549,8 @@ impl TerminalPanelData {
     }
 
     pub fn update_debug_active_term(&self) {
-        let tab = self.active_tab(false);
-        let terminal = tab.map(|tab| tab.active_terminal(false));
+        let terminal = self.active_tab(false);
+        // let terminal = tab.map(|tab| tab.active_terminal(false));
         if let Some(terminal) = terminal {
             let term_id = terminal.term_id;
             let is_run_debug =
@@ -598,7 +578,7 @@ impl TerminalPanelData {
 
     fn _manual_stop_run_debug(
         &self,
-        terminal_id: TerminalTabId
+        terminal_id: TerminalTabId,
     ) -> anyhow::Result<()> {
         let terminal = self
             .get_terminal(terminal_id)
@@ -644,7 +624,7 @@ impl TerminalPanelData {
                 // self.common
                 //     .term_tx
                 //     .send((terminal.term_id, TermEvent::CloseTerminal))?;
-            }
+            },
         }
         self.focus_terminal(terminal_id);
         Ok(())
@@ -652,27 +632,23 @@ impl TerminalPanelData {
 
     pub fn run_debug_process(
         &self,
-        tracked: bool
+        tracked: bool,
     ) -> Vec<(TermId, RunDebugProcess)> {
         let mut processes = Vec::new();
         if tracked {
             self.tab_infos.with(|info| {
                 for tab in &info.tabs {
-                    tab.terminal.with(|terminal| {
-                        if let Some(run_debug) = terminal.run_debug.get() {
-                            processes.push((terminal.term_id, run_debug));
-                        }
-                    })
+                    if let Some(run_debug) = tab.run_debug.get() {
+                        processes.push((tab.term_id, run_debug));
+                    }
                 }
             });
         } else {
             self.tab_infos.with_untracked(|info| {
                 for tab in &info.tabs {
-                    tab.terminal.with_untracked(|terminal| {
-                        if let Some(run_debug) = terminal.run_debug.get() {
-                            processes.push((terminal.term_id, run_debug));
-                        }
-                    })
+                    if let Some(run_debug) = tab.run_debug.get() {
+                        processes.push((tab.term_id, run_debug));
+                    }
                 }
             });
         }
@@ -711,7 +687,7 @@ impl TerminalPanelData {
         dap_id: &DapId,
         stopped: &Stopped,
         stack_frames: &HashMap<ThreadId, Vec<StackFrame>>,
-        variables: &[(dap_types::Scope, Vec<Variable>)]
+        variables: &[(dap_types::Scope, Vec<Variable>)],
     ) {
         let dap = self
             .debug
@@ -811,7 +787,7 @@ impl TerminalPanelData {
     pub fn get_dap(
         &self,
         terminal_tab_id: TerminalTabId,
-        tracked: bool
+        tracked: bool,
     ) -> Option<DapData> {
         let terminal = self.get_terminal(terminal_tab_id)?;
         let dap_id = if tracked {
@@ -843,32 +819,26 @@ impl TerminalPanelData {
                             .iter()
                             .enumerate()
                             .map(|(i, (scope, vars))| DapVariable {
-                                item:                    ScopeOrVar::Scope(
-                                    scope.to_owned()
-                                ),
-                                parent:                  Vec::new(),
-                                expanded:                i == 0,
-                                read:                    i == 0,
-                                children:                vars
+                                item: ScopeOrVar::Scope(scope.to_owned()),
+                                parent: Vec::new(),
+                                expanded: i == 0,
+                                read: i == 0,
+                                children: vars
                                     .iter()
                                     .map(|var| DapVariable {
-                                        item:                    ScopeOrVar::Var(
-                                            var.to_owned()
-                                        ),
-                                        parent:                  vec![
-                                            scope.variables_reference,
-                                        ],
-                                        expanded:                false,
-                                        read:                    false,
-                                        children:                Vec::new(),
-                                        children_expanded_count: 0
+                                        item: ScopeOrVar::Var(var.to_owned()),
+                                        parent: vec![scope.variables_reference],
+                                        expanded: false,
+                                        read: false,
+                                        children: Vec::new(),
+                                        children_expanded_count: 0,
                                     })
                                     .collect(),
                                 children_expanded_count: if i == 0 {
                                     vars.len()
                                 } else {
                                     0
-                                }
+                                },
                             })
                             .collect();
                         dap_var.children_expanded_count = dap_var
@@ -885,7 +855,7 @@ impl TerminalPanelData {
                 frame_id,
                 move |(_, result)| {
                     send(result);
-                }
+                },
             );
         }
     }
@@ -893,7 +863,7 @@ impl TerminalPanelData {
 
 fn update_executable(
     run_debug: &mut RunDebugProcess,
-    raw: Arc<RwLock<RawTerminal>>
+    raw: Arc<RwLock<RawTerminal>>,
 ) {
     if run_debug.config.config_source.from_rust_code_lens() {
         let lines = raw.write_arc().output(5);
@@ -912,21 +882,21 @@ fn update_executable(
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Profile {
-    pub test: bool
+    pub test: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Target {
-    pub kind:        Vec<String>,
-    pub crate_types: Vec<String>
+    pub kind: Vec<String>,
+    pub crate_types: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct RustArtifact {
-    pub reason:     String,
-    pub target:     Target,
-    pub profile:    Profile,
-    pub executable: String
+    pub reason: String,
+    pub target: Target,
+    pub profile: Profile,
+    pub executable: String,
 }
 
 impl RustArtifact {
