@@ -773,18 +773,15 @@ impl EditorView {
                 return Ok(None);
             };
 
-            let Some(bracket_offsets_start) =
-                screen_lines.char_rect_in_viewport(bracket_offsets_start)?
-            else {
-                return Ok(None);
+            if let Some(bracket_offsets_start) =
+                screen_lines.char_rect_in_viewport(bracket_offsets_start)? {
+                cx.fill(&bracket_offsets_start, editor_bracket_color, 0.0);
             };
-            let Some(bracket_offsets_end) =
-                screen_lines.char_rect_in_viewport(bracket_offsets_end)?
-            else {
-                return Ok(None);
+            if let Some(bracket_offsets_end) =
+                screen_lines.char_rect_in_viewport(bracket_offsets_end)?  {
+                cx.fill(&bracket_offsets_end, editor_bracket_color, 0.0);
             };
-            cx.fill(&bracket_offsets_start, editor_bracket_color, 0.0);
-            cx.fill(&bracket_offsets_end, editor_bracket_color, 0.0);
+
             // todo
             // if config.editor.highlight_scope_lines {
             //     self.paint_scope_lines(
