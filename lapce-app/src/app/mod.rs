@@ -1645,7 +1645,7 @@ fn split_resize_border(
                     let editor_tab_data =
                         editor_tabs.with(|tabs| tabs.get(editor_tab_id).cloned());
                     if let Some(editor_tab_data) = editor_tab_data {
-                        editor_tab_data.with(|editor_tab| editor_tab.layout_rect)
+                        editor_tab_data.with(|editor_tab| editor_tab.layout_rect.get())
                     } else {
                         Rect::ZERO
                     }
@@ -1667,7 +1667,7 @@ fn split_resize_border(
                         .with_untracked(|tabs| tabs.get(editor_tab_id).cloned());
                     if let Some(editor_tab_data) = editor_tab_data {
                         editor_tab_data
-                            .with_untracked(|editor_tab| editor_tab.layout_rect)
+                            .with_untracked(|editor_tab| editor_tab.layout_rect.get_untracked())
                     } else {
                         Rect::ZERO
                     }
@@ -1847,7 +1847,7 @@ fn split_border(
                         let editor_tab_data = editor_tabs
                             .with(|tabs| tabs.get(editor_tab_id).cloned());
                         if let Some(editor_tab_data) = editor_tab_data {
-                            editor_tab_data.with(|editor_tab| editor_tab.layout_rect)
+                            editor_tab_data.with(|editor_tab| editor_tab.layout_rect.get())
                         } else {
                             Rect::ZERO
                         }
@@ -1904,7 +1904,9 @@ fn split_list(
     let split_id = split.with_untracked(|split| split.split_id);
 
     let direction = move || split.with(|split| split.direction);
-    let items = move || split.get().children.into_iter().enumerate();
+    let items = move || {
+        split.get().children.into_iter().enumerate()
+    };
     let key = |(_index, (_, content)): &(usize, (RwSignal<f64>, SplitContent))| {
         content.id()
     };

@@ -430,8 +430,8 @@ pub struct EditorTabManageData {
     pub editor_tab_manage_id: EditorTabManageId,
     pub active:               usize,
     pub children:             Vec<EditorTabChildSimple>,
-    pub window_origin:        Point,
-    pub layout_rect:          Rect,
+    pub window_origin:        RwSignal<Point>,
+    pub layout_rect:          RwSignal<Rect>,
     pub locations:            RwSignal<im::Vector<EditorLocation>>,
     pub current_location:     RwSignal<usize>
 }
