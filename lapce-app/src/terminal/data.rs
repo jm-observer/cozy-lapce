@@ -47,22 +47,26 @@ pub struct TerminalData {
     pub scope:        Scope,
     pub term_id:      TermId,
     pub workspace:    LapceWorkspace,
-    pub raw_id:       RwSignal<u64>,
-    pub title:        RwSignal<String>,
-    pub launch_error: RwSignal<Option<String>>,
-    pub mode:         RwSignal<Mode>,
-    pub visual_mode:  RwSignal<VisualMode>,
-    pub raw:          RwSignal<Arc<RwLock<RawTerminal>>>,
-    pub run_debug:    RwSignal<Option<RunDebugProcess>>,
     pub common:       Rc<CommonData>,
-    pub view_id:      RwSignal<Option<ViewId>>
+    pub data: RwSignal<TerminalSignalData>,
+}
+
+#[derive(Clone)]
+pub struct TerminalSignalData {
+    pub raw_id:       u64,
+    pub title:        String,
+    pub launch_error: Option<String>,
+    pub mode:         Mode,
+    pub visual_mode:  VisualMode,
+    pub raw:          Arc<RwLock<RawTerminal>>,
+    pub run_debug:    Option<RunDebugProcess>,
+    pub view_id:      Option<ViewId>
 }
 
 impl TerminalData {
     pub fn icon(&self) -> &'static str {
-        let run_debug = self.run_debug;
-        if let Some((mode, stopped)) = run_debug.with(|run_debug| {
-            run_debug.as_ref().map(|r| (r.mode, r.stopped))
+        if let Some((mode, stopped)) = self.data.with(|x| {
+            x.run_debug.as_ref().map(|r| (r.mode, r.stopped))
         }) {
             let svg = match (mode, stopped) {
                 (RunDebugMode::Run, false) => LapceIcons::START,
@@ -78,19 +82,18 @@ impl TerminalData {
     }
 
     pub fn content_tip(&self) -> (String, String) {
-        let run_debug = self.run_debug;
-        if let Some(name) = run_debug.with(|run_debug| {
-            run_debug.as_ref().map(|r| r.config.name.clone())
-        }) {
+        let (name, title) = self.data.with(|x| {
+            (x.run_debug.as_ref().map(|r| r.config.name.clone()), x.title.clone())});
+        if let Some(name) = name {
             return (name, "tip".to_owned());
         }
-        (self.title.get(), "tip".to_owned())
+        (title, "tip".to_owned())
     }
 }
 
 impl KeyPressFocus for TerminalData {
     fn get_mode(&self) -> Mode {
-        self.mode.get_untracked()
+        self.data.with_untracked(|x| x.mode.clone())
     }
 
     fn check_condition(&self, condition: Condition) -> bool {
@@ -107,7 +110,7 @@ impl KeyPressFocus for TerminalData {
         match &command.kind {
             CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);
-                let raw = self.raw.get_untracked();
+                let raw = self.data.with_untracked(|x| x.raw.clone());
                 let mut raw = raw.write();
                 let term = &mut raw.term;
                 match movement {
@@ -167,14 +170,15 @@ impl KeyPressFocus for TerminalData {
                     {
                         return CommandExecuted::Yes;
                     }
-                    self.mode.set(Mode::Normal);
-                    let raw = self.raw.get_untracked();
-                    let mut raw = raw.write();
-                    let term = &mut raw.term;
-                    if !term.mode().contains(TermMode::VI) {
-                        term.toggle_vi_mode();
-                    }
-                    term.selection = None;
+                    self.data.update(|x| {
+                        x.mode = Mode::Normal;
+                        let mut raw = x.raw.write();
+                        let term = &mut raw.term;
+                        if !term.mode().contains(TermMode::VI) {
+                            term.toggle_vi_mode();
+                        }
+                        term.selection = None;
+                    });
                 },
                 EditCommand::ToggleVisualMode => {
                     self.toggle_visual(VisualMode::Normal);
@@ -182,48 +186,54 @@ impl KeyPressFocus for TerminalData {
                 EditCommand::ToggleLinewiseVisualMode => {
                     self.toggle_visual(VisualMode::Linewise);
                 },
+                EditCommand::InsertMode => {
+                    self.data.update(|x| {
+                        x.mode = Mode::Terminal;
+                        let mut raw = x.raw.write();
+                        let term = &mut raw.term;
+                        if !term.mode().contains(TermMode::VI) {
+                            term.toggle_vi_mode();
+                        }
+                        let scroll = alacritty_terminal::grid::Scroll::Bottom;
+                        term.scroll_display(scroll);
+                        term.selection = None;
+                    });
+                },
                 EditCommand::ToggleBlockwiseVisualMode => {
                     self.toggle_visual(VisualMode::Blockwise);
                 },
-                EditCommand::InsertMode => {
-                    self.mode.set(Mode::Terminal);
-                    let raw = self.raw.get_untracked();
-                    let mut raw = raw.write();
-                    let term = &mut raw.term;
-                    if term.mode().contains(TermMode::VI) {
-                        term.toggle_vi_mode();
-                    }
-                    let scroll = alacritty_terminal::grid::Scroll::Bottom;
-                    term.scroll_display(scroll);
-                    term.selection = None;
-                },
                 EditCommand::ClipboardCopy => {
                     let mut clipboard = SystemClipboard::new();
-                    if matches!(self.mode.get_untracked(), Mode::Visual(_)) {
-                        self.mode.set(Mode::Normal);
-                    }
-                    let raw = self.raw.get_untracked();
-                    let mut raw = raw.write();
-                    let term = &mut raw.term;
-                    if let Some(content) = term.selection_to_string() {
-                        clipboard.put_string(content);
-                    }
-                    if self.mode.get_untracked() != Mode::Terminal {
-                        term.selection = None;
-                    }
+
+                    self.data.update(|x| {
+                        if matches!(x.mode, Mode::Visual(_)) {
+                            x.mode=Mode::Normal;
+                        }
+                        let mut raw = x.raw.write();
+                        let term = &mut raw.term;
+                        if let Some(content) = term.selection_to_string() {
+                            clipboard.put_string(content);
+                        }
+                        if x.mode != Mode::Terminal {
+                            term.selection = None;
+                        }
+                    });
+
+
                 },
                 EditCommand::ClipboardPaste => {
                     let mut clipboard = SystemClipboard::new();
                     let mut check_bracketed_paste: bool = false;
-                    if self.mode.get_untracked() == Mode::Terminal {
-                        let raw = self.raw.get_untracked();
-                        let mut raw = raw.write();
-                        let term = &mut raw.term;
-                        term.selection = None;
-                        if term.mode().contains(TermMode::BRACKETED_PASTE) {
-                            check_bracketed_paste = true;
+                    self.data.with_untracked(|x| {
+                        if x.mode == Mode::Terminal {
+                            let mut raw = x.raw.write();
+                            let term = &mut raw.term;
+                            term.selection = None;
+                            if term.mode().contains(TermMode::BRACKETED_PASTE) {
+                                check_bracketed_paste = true;
+                            }
                         }
-                    }
+                    });
                     if let Some(s) = clipboard.get_string() {
                         if check_bracketed_paste {
                             self.receive_char("\x1b[200~");
@@ -238,28 +248,31 @@ impl KeyPressFocus for TerminalData {
             },
             CommandKind::Scroll(cmd) => match cmd {
                 ScrollCommand::PageUp => {
-                    let raw = self.raw.get_untracked();
-                    let mut raw = raw.write();
-                    let term = &mut raw.term;
-                    let scroll_lines = term.screen_lines() as i32 / 2;
-                    term.vi_mode_cursor =
-                        term.vi_mode_cursor.scroll(term, scroll_lines);
+                    self.data.with_untracked(|x| {
+                            let mut raw = x.raw.write();
+                            let term = &mut raw.term;
+                        let scroll_lines = term.screen_lines() as i32 / 2;
+                        term.vi_mode_cursor =
+                            term.vi_mode_cursor.scroll(term, scroll_lines);
 
-                    term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines
-                    ));
+                        term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
+                            scroll_lines
+                        ));
+                    });
+
                 },
                 ScrollCommand::PageDown => {
-                    let raw = self.raw.get_untracked();
-                    let mut raw = raw.write();
-                    let term = &mut raw.term;
-                    let scroll_lines = -(term.screen_lines() as i32 / 2);
-                    term.vi_mode_cursor =
-                        term.vi_mode_cursor.scroll(term, scroll_lines);
+                    self.data.with_untracked(|x| {
+                        let mut raw = x.raw.write();
+                        let term = &mut raw.term;
+                        let scroll_lines = -(term.screen_lines() as i32 / 2);
+                        term.vi_mode_cursor =
+                            term.vi_mode_cursor.scroll(term, scroll_lines);
 
-                    term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                        scroll_lines
-                    ));
+                        term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
+                            scroll_lines
+                        ));
+                    });
                 },
                 _ => return CommandExecuted::No
             },
@@ -301,18 +314,20 @@ impl KeyPressFocus for TerminalData {
     }
 
     fn receive_char(&self, c: &str) {
-        if self.mode.get_untracked() == Mode::Terminal {
-            self.common.proxy.terminal_write(
-                self.term_id,
-                self.raw_id(),
-                c.to_string()
-            );
-            self.raw
-                .get_untracked()
-                .write()
-                .term
-                .scroll_display(Scroll::Bottom);
-        }
+        self.data.with_untracked(|x| {
+            if x.mode == Mode::Terminal {
+                self.common.proxy.terminal_write(
+                    self.term_id,
+                    x.raw_id,
+                    c.to_string()
+                );
+                x.raw
+                    .write()
+                    .term
+                    .scroll_display(Scroll::Bottom);
+            }
+        })
+
     }
 }
 
@@ -337,40 +352,38 @@ impl TerminalData {
         let term_id = TermId::next();
 
         let title = if let Some(profile) = &profile {
-            cx.create_rw_signal(profile.name.to_owned())
+            profile.name.to_owned()
         } else {
-            cx.create_rw_signal(String::from("Default"))
+            String::from("Default")
         };
 
-        let launch_error = cx.create_rw_signal(None);
-
-        let (raw, raw_id) = Self::new_raw_terminal(
+        let (raw, raw_id, launch_error) = Self::new_raw_terminal(
             &workspace,
             term_id,
             run_debug.as_ref(),
             profile,
             common.clone(),
-            launch_error
         );
 
-        let run_debug = cx.create_rw_signal(run_debug);
-        let mode = cx.create_rw_signal(Mode::Terminal);
-        let visual_mode = cx.create_rw_signal(VisualMode::Normal);
-        let raw = cx.create_rw_signal(raw);
-        let raw_id = cx.create_rw_signal(raw_id);
+        let mode = Mode::Terminal;
+        let visual_mode = VisualMode::Normal;
+        let data = TerminalSignalData {
+            raw_id,
+            title,
+            launch_error,
+            mode,
+            visual_mode,
+            raw,
+            run_debug,
+            view_id: None,
+        };
+
         Self {
             scope: cx,
             term_id,
-            raw_id,
+            data: cx.create_rw_signal(data),
             workspace,
-            raw,
-            title,
-            run_debug,
-            mode,
-            visual_mode,
             common,
-            launch_error,
-            view_id: cx.create_rw_signal(None)
         }
     }
 
@@ -380,8 +393,8 @@ impl TerminalData {
         run_debug: Option<&RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-        launch_error: RwSignal<Option<String>>
-    ) -> (Arc<RwLock<RawTerminal>>, u64) {
+    ) -> (Arc<RwLock<RawTerminal>>, u64, Option<String>) {
+        let mut launch_error = None;
         log::debug!("term_id={term_id:?} new_raw_terminal");
         let raw_id = TermId::next().to_raw();
         let raw = Arc::new(RwLock::new(RawTerminal::new(
@@ -415,9 +428,9 @@ impl TerminalData {
                 .as_ref()
                 .map(|r| r.config.name.as_str())
                 .unwrap_or("Unknown");
-            launch_error.set(Some(format!(
+            launch_error=Some(format!(
                 "Failed to expand variables in run debug definition {r_name}: {e}"
-            )));
+            ));
             None
         });
 
@@ -442,7 +455,7 @@ impl TerminalData {
             common.proxy.new_terminal(term_id, raw_id, profile);
         }
 
-        (raw, raw_id)
+        (raw, raw_id, launch_error)
     }
 
     pub fn send_keypress(&self, key: &KeyEvent) -> bool {
@@ -465,10 +478,6 @@ impl TerminalData {
         } else {
             false
         }
-    }
-
-    pub fn raw_id(&self) -> u64 {
-        self.raw_id.get_untracked()
     }
 
     pub fn resolve_key_event(key: &KeyEvent) -> Option<&str> {
@@ -659,15 +668,16 @@ impl TerminalData {
             .common
             .config
             .with_untracked(|config| config.terminal_line_height() as f64);
-        let raw = self.raw.get_untracked();
-        let mut raw = raw.write();
-        raw.scroll_delta -= delta;
-        let delta = (raw.scroll_delta / step) as i32;
-        raw.scroll_delta -= delta as f64 * step;
-        if delta != 0 {
-            let scroll = alacritty_terminal::grid::Scroll::Delta(delta);
-            raw.term.scroll_display(scroll);
-        }
+        self.data.with_untracked(|x| {
+            let mut raw = x.raw.write();
+            raw.scroll_delta -= delta;
+            let delta = (raw.scroll_delta / step) as i32;
+            raw.scroll_delta -= delta as f64 * step;
+            if delta != 0 {
+                let scroll = alacritty_terminal::grid::Scroll::Delta(delta);
+                raw.term.scroll_display(scroll);
+            }
+        })
     }
 
     fn toggle_visual(&self, visual_mode: VisualMode) {
@@ -679,22 +689,23 @@ impl TerminalData {
             return;
         }
 
-        match self.mode.get_untracked() {
-            Mode::Normal => {
-                self.mode.set(Mode::Visual(visual_mode));
-                self.visual_mode.set(visual_mode);
-            },
-            Mode::Visual(_) => {
-                if self.visual_mode.get_untracked() == visual_mode {
-                    self.mode.set(Mode::Normal);
-                } else {
-                    self.visual_mode.set(visual_mode);
-                }
-            },
-            _ => ()
-        }
-
-        let raw = self.raw.get_untracked();
+        let raw = self.data.try_update(|x| {
+            match x.mode {
+                Mode::Normal => {
+                    x.mode = Mode::Visual(visual_mode);
+                    x.visual_mode = visual_mode;
+                },
+                Mode::Visual(_) => {
+                    if x.visual_mode == visual_mode {
+                        x.mode=Mode::Normal;
+                    } else {
+                        x.visual_mode =visual_mode;
+                    }
+                },
+                _ => ()
+            }
+            x.raw.clone()
+        }).unwrap();
         let mut raw = raw.write();
         let term = &mut raw.term;
         if !term.mode().contains(TermMode::VI) {
@@ -746,28 +757,31 @@ impl TerminalData {
     }
 
     pub fn new_process(&self, run_debug: Option<RunDebugProcess>) {
-        let (width, height) = {
-            let raw = self.raw.get_untracked();
-            let raw = raw.read();
+
+        let (width, height) =self.data.with_untracked(|x| {
+            let raw = x.raw.read();
             let width = raw.term.columns();
             let height = raw.term.screen_lines();
             (width, height)
-        };
+        });
 
-        let (raw, raw_id) = Self::new_raw_terminal(
+        let (raw, raw_id, launch_error) = Self::new_raw_terminal(
             &self.workspace,
             self.term_id,
             run_debug.as_ref(),
             None,
             self.common.clone(),
-            self.launch_error
         );
+
         let term_size = TermSize::new(width, height);
         raw.write().term.resize(term_size);
 
-        self.raw.set(raw);
-        self.raw_id.set(raw_id);
-        self.run_debug.set(run_debug);
+        self.data.update(|x| {
+            x.raw = raw;
+            x.raw_id = raw_id;
+            x.run_debug = run_debug;
+            x.launch_error = launch_error;
+        });
 
         self.common
             .proxy
@@ -775,19 +789,20 @@ impl TerminalData {
     }
 
     pub fn stop(&self) {
-        if let Some(dap_id) = self.run_debug.with_untracked(|x| {
-            if let Some(process) = x {
+        let (dap_id, raw_id) = self.data.with_untracked(|x| {
+            if let Some(process) = &x.run_debug {
                 if !process.is_prelaunch && process.mode == RunDebugMode::Debug {
-                    return Some(process.config.dap_id);
+                    return (Some(process.config.dap_id), x.raw_id);
                 }
             }
-            None
-        }) {
+            (None, x.raw_id)
+        });
+        if let Some(dap_id) = dap_id {
             self.common.proxy.dap_stop(dap_id);
         }
         self.common
             .proxy
-            .terminal_close(self.term_id, self.raw_id());
+            .terminal_close(self.term_id, raw_id);
     }
 }
 

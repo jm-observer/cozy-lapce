@@ -10,7 +10,6 @@ use floem::{
     views::{scroll::VerticalScrollAsHorizontal, *},
     *
 };
-use lapce_core::debug::RunDebugMode;
 use lapce_core::icon::LapceIcons;
 
 use crate::{

@@ -2180,7 +2180,7 @@ impl WindowWorkspaceData {
                 match self.common.focus.get_untracked() {
                     Focus::Panel(PanelKind::Terminal) => {
                         if let Some(tab) = self.terminal.active_tab(false) {
-                            if let Some(id) = tab.view_id.get_untracked() {
+                            if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
                                 // log::info!("BlinkCursor Terminal {:?}", id.data().as_ffi());
                                 id.request_paint();
                             }
@@ -2237,7 +2237,7 @@ impl WindowWorkspaceData {
                     );
                     return;
                 };
-                let raw = tab.raw.get_untracked();
+                let raw = tab.data.with_untracked(|x| x.raw.clone());
                 raw.write().term.reset_state();
                 view_id.request_paint();
             },
@@ -2417,8 +2417,8 @@ impl WindowWorkspaceData {
                     };
                     if let Some(terminal) = self.terminal.get_terminal(term_id) {
                         let Some(origin_config) =
-                            terminal.run_debug.with_untracked(|x| {
-                                x.as_ref().map(|x| x.origin_config.clone())
+                            terminal.data.with_untracked(|x| {
+                                x.run_debug.as_ref().map(|x| x.origin_config.clone())
                             })
                         else {
                             error!("no found terminal {term_id:?}");
@@ -3031,9 +3031,7 @@ impl WindowWorkspaceData {
             .get_terminal(terminal_id)
             .ok_or(anyhow!("not found tab(terminal_id={terminal_id:?})"))?;
         // let terminal = tab.get_terminal();
-        let mut run_debug = terminal
-            .run_debug
-            .get_untracked()
+        let mut run_debug = terminal.data.with_untracked(|x| x.run_debug.clone())
             .ok_or(anyhow!("run_debug is none(terminal_id={terminal_id:?})"))?;
 
         log::info!("restart_run_program_in_terminal {run_debug:?}");

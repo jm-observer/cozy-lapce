@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc, time::SystemTime};
+use std::{path::PathBuf, time::SystemTime};
 
 use alacritty_terminal::{
     grid::Dimensions,
@@ -18,19 +18,18 @@ use floem::{
     pointer::PointerInputEvent,
     prelude::SignalUpdate,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalTrack, SignalWith, create_effect,
+        SignalGet, SignalTrack, SignalWith, create_effect,
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
 };
 use lapce_core::{
-    debug::RunDebugProcess, panel::PanelKind, workspace::LapceWorkspace,
+    panel::PanelKind, workspace::LapceWorkspace,
 };
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 use lsp_types::Position;
-use parking_lot::RwLock;
 use regex::Regex;
 
-use super::{panel::TerminalPanelData, raw::RawTerminal};
+use super::{panel::TerminalPanelData};
 use crate::{
     command::InternalCommand,
     config::{LapceConfig, WithLapceConfig, color::LapceColor},
@@ -46,7 +45,7 @@ const CLICK_THRESHOLD: u128 = 400;
 enum TerminalViewState {
     Config,
     Focus(bool),
-    Raw(Arc<RwLock<RawTerminal>>),
+    // Raw(Arc<RwLock<RawTerminal>>),
 }
 
 struct TerminalLineContent<'a> {
@@ -60,14 +59,13 @@ struct TerminalLineContent<'a> {
 pub struct TerminalView {
     id: ViewId,
     term_id: TermId,
-    raw: Arc<RwLock<RawTerminal>>,
-    mode: ReadSignal<Mode>,
+    // mode: ReadSignal<Mode>,
     size: Size,
     is_focused: bool,
     config: WithLapceConfig,
-    run_config: ReadSignal<Option<RunDebugProcess>>,
+    // run_config: ReadSignal<Option<RunDebugProcess>>,
     proxy: ProxyRpcHandler,
-    launch_error: RwSignal<Option<String>>,
+    // launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
     workspace: LapceWorkspace,
     hyper_regs: Vec<Regex>,
@@ -79,25 +77,26 @@ pub struct TerminalView {
 #[allow(clippy::too_many_arguments)]
 pub fn terminal_view(
     term_id: TermId,
-    raw: ReadSignal<Arc<RwLock<RawTerminal>>>,
-    mode: ReadSignal<Mode>,
-    run_config: ReadSignal<Option<RunDebugProcess>>,
+    // data: RwSignal<TerminalSignalData>,
+    // mode: ReadSignal<Mode>,
+    // run_config: ReadSignal<Option<RunDebugProcess>>,
     terminal_panel_data: TerminalPanelData,
-    launch_error: RwSignal<Option<String>>,
+    // launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
     workspace: LapceWorkspace,
     terminal: TerminalData,
 ) -> TerminalView {
     let id = ViewId::new();
+    terminal.data.update(|x| x.view_id = Some(id));
+    // let raw_data = terminal.data;
+    // create_effect(move |_| {
+    //     let raw = raw_data.with(|x| x.raw.clone());
+    //     id.update_state(TerminalViewState::Raw(raw));
+    // });
+    let launch_error_data = terminal.data;
 
-    terminal.view_id.set(Some(id));
     create_effect(move |_| {
-        let raw = raw.get();
-        id.update_state(TerminalViewState::Raw(raw));
-    });
-
-    create_effect(move |_| {
-        launch_error.track();
+        launch_error_data.track();
         id.request_paint();
     });
 
@@ -130,19 +129,16 @@ pub fn terminal_view(
     // for rust
     let reg =
         regex::Regex::new(r"([:\.\w\\/-]+\.(rs|toml)?):(\d+)(:(\d+))?").unwrap();
+    // let raw = raw_data.with_untracked(|x| x.raw.clone());
 
     TerminalView {
         terminal_data: terminal,
         id,
         term_id,
-        raw: raw.get_untracked(),
-        mode,
         config,
         proxy,
-        run_config,
         size: Size::ZERO,
         is_focused: false,
-        launch_error,
         internal_command,
         workspace,
         hyper_regs: vec![reg],
@@ -178,7 +174,8 @@ impl TerminalView {
     }
 
     fn click(&self, pos: Point) -> Option<()> {
-        let raw = self.raw.read();
+        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
+        let raw = raw.read();
         let position = self.get_terminal_point(pos);
         let start_point = raw.term.semantic_search_left(position);
         let end_point = raw.term.semantic_search_right(position);
@@ -323,7 +320,8 @@ impl TerminalView {
     }
 
     fn get_terminal_point(&self, pos: Point) -> alacritty_terminal::index::Point {
-        let raw = self.raw.read();
+        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
+        let raw = raw.read();
         let col = (pos.x / self.char_size().width) as usize;
         let line_no = pos.y as i32
             / (self
@@ -484,11 +482,12 @@ impl TerminalView {
             let rect = Size::new(2.0, line_height)
                 .to_rect()
                 .with_origin(Point::new(x, line_content.y));
-            let mode = self.mode.get_untracked();
+
+            let (mode, stopped) = self.terminal_data.data.with_untracked(|x| {
+                (x.mode.clone(), x.run_debug.as_ref().map(|r| r.stopped).unwrap_or(false))
+            });
             let cursor_color = if mode == Mode::Terminal {
-                if self.run_config.with_untracked(|run_config| {
-                    run_config.as_ref().map(|r| r.stopped).unwrap_or(false)
-                }) {
+                if stopped {
                     error
                 } else {
                     cursor
@@ -529,6 +528,7 @@ impl View for TerminalView {
         _cx: &mut EventCx,
         event: &Event,
     ) -> EventPropagation {
+        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
         match event {
             Event::PointerDown(e) => {
                 self.update_mouse_action_by_down(e);
@@ -552,12 +552,12 @@ impl View for TerminalView {
                         selection
                             .update(self.get_terminal_point(end_pos), Side::Right);
                         selection.include_all();
-                        self.raw.write().term.selection = Some(selection);
+                        raw.write().term.selection = Some(selection);
                         _cx.app_state_mut().request_paint(self.id);
                     },
                     MouseAction::LeftDouble { pos } => {
                         let position = self.get_terminal_point(pos);
-                        let mut raw = self.raw.write();
+                        let mut raw = raw.write();
                         let start_point = raw.term.semantic_search_left(position);
                         let end_point = raw.term.semantic_search_right(position);
 
@@ -573,7 +573,7 @@ impl View for TerminalView {
                     },
                     MouseAction::RightOnce { pos } => {
                         let position = self.get_terminal_point(pos);
-                        let raw = self.raw.read();
+                        let raw = raw.read();
                         if let Some(selection) = &raw
                             .term
                             .selection
@@ -598,7 +598,7 @@ impl View for TerminalView {
                     },
                 }
                 if clear_selection {
-                    self.raw.write().term.selection = None;
+                    raw.write().term.selection = None;
                     _cx.app_state_mut().request_paint(self.id);
                 }
             },
@@ -618,9 +618,9 @@ impl View for TerminalView {
                 TerminalViewState::Focus(is_focused) => {
                     self.is_focused = is_focused;
                 },
-                TerminalViewState::Raw(raw) => {
-                    self.raw = raw;
-                },
+                // TerminalViewState::Raw(raw) => {
+                //     self.raw = raw;
+                // },
             }
             cx.app_state_mut().request_paint(self.id);
         }
@@ -637,6 +637,7 @@ impl View for TerminalView {
         &mut self,
         _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<Rect> {
+        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
         let layout = self.id.get_layout().unwrap_or_default();
         let size = layout.size;
         let size = Size::new(size.width as f64, size.height as f64);
@@ -647,7 +648,7 @@ impl View for TerminalView {
             self.size = size;
             let (width, height) = self.terminal_size();
             let term_size = TermSize::new(width, height);
-            self.raw.write().term.resize(term_size);
+            raw.write().term.resize(term_size);
             self.proxy.terminal_resize(self.term_id, width, height);
         }
 
@@ -656,7 +657,10 @@ impl View for TerminalView {
 
     fn paint(&mut self, cx: &mut floem::context::PaintCx) {
         let config = self.config.get();
-        let mode = self.mode.get_untracked();
+
+        let (mode,launch_error, raw) = self.terminal_data.data.with_untracked(|x| {
+            (x.mode.clone(), x.launch_error.clone(), x.raw.clone())
+        });
         let line_height = config.terminal_line_height() as f64;
         let font_family = config.terminal_font_family();
         let font_size = config.terminal_font_size();
@@ -667,7 +671,7 @@ impl View for TerminalView {
             FamilyOwned::parse_list(font_family).collect();
         let attrs = Attrs::new().family(&family).font_size(font_size as f32);
 
-        if let Some(error) = self.launch_error.get() {
+        if let Some(error) = launch_error {
             let text_layout = TextLayout::new_with_text(
                 &format!("Terminal failed to launch. Error: {error}"),
                 AttrsList::new(
@@ -681,7 +685,7 @@ impl View for TerminalView {
             return;
         }
 
-        let raw = self.raw.read();
+        let raw = raw.read();
         let term = &raw.term;
         let content = term.renderable_content();
 

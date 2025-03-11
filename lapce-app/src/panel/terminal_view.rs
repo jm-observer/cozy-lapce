@@ -13,7 +13,7 @@ use floem::{
     },
 };
 use lapce_core::{
-    debug::RunDebugMode, icon::LapceIcons, id::TerminalTabId, panel::PanelKind,
+    icon::LapceIcons, id::TerminalTabId, panel::PanelKind,
 };
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
     listener::Listener,
     svg,
     terminal::{
-        panel::TerminalPanelData, tab::TerminalTabData, view::terminal_view,
+        panel::TerminalPanelData, view::terminal_view,
     },
     window_workspace::{Focus, WindowWorkspaceData},
 };
@@ -232,17 +232,13 @@ fn terminal_tab_split(
         let terminal_id = terminal.term_id;
         let terminal_view = terminal_view(
             terminal.term_id,
-            terminal.raw.read_only(),
-            terminal.mode.read_only(),
-            terminal.run_debug.read_only(),
             terminal_panel_data,
-            terminal.launch_error,
             internal_command,
             workspace.clone(),
             terminal.clone(),
         );
         let view_id = terminal_view.id();
-        let have_task = terminal.run_debug.get_untracked().is_some();
+        let have_task = terminal.data.with_untracked(|x| x.run_debug.is_some());
         terminal_view
             .on_secondary_click_stop(move |_| {
                 if have_task {

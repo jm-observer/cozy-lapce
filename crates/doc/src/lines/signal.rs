@@ -5,7 +5,6 @@ use floem::{
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
-use log::info;
 use crate::lines::{buffer::Buffer, style::EditorStyle};
 
 #[derive(Clone)]
