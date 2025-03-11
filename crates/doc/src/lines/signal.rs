@@ -15,7 +15,8 @@ pub struct Signals {
     pub(crate) pristine:          SignalManager<bool>,
     // start from 1, (line num, paint width)
     pub(crate) last_line:         SignalManager<(usize, f64)>,
-    pub paint_content:            SignalManager<usize>
+    pub paint_content:            SignalManager<usize>,
+    pub max_width: SignalManager<f64>
 }
 
 impl Signals {
@@ -36,13 +37,16 @@ impl Signals {
         let last_line = SignalManager::new(cx, last_line);
         let pristine = SignalManager::new(cx, pristine);
         let paint_context = SignalManager::new(cx, 0usize);
+        let max_width = SignalManager::new(cx, 0.0);
+
         Self {
             show_indent_guide,
             buffer_rev,
             buffer,
             last_line,
             pristine,
-            paint_content: paint_context
+            paint_content: paint_context,
+            max_width
         }
     }
 
@@ -63,6 +67,7 @@ impl Signals {
             self.last_line.trigger();
             self.pristine.trigger();
             self.paint_content.trigger();
+            self.max_width.trigger();
         });
     }
 
@@ -72,7 +77,8 @@ impl Signals {
             self.buffer_rev.trigger_force();
             self.buffer.trigger_force();
             self.last_line.trigger_force();
-            self.paint_content.trigger();
+            self.paint_content.trigger_force();
+            self.max_width.trigger_force();
         });
     }
 

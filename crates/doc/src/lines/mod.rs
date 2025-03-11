@@ -184,7 +184,7 @@ pub struct DocLines {
     // font_size_cache_id: FontSizeCacheId,
     // wrap: ResolvedWrap,
     // pub layout_event: Listener<LayoutEvent>,
-    max_width:               f64,
+    // max_width:               f64,
 
     // editor: Editor
     pub inlay_hints:     Option<Spans<InlayHint>>,
@@ -249,7 +249,7 @@ impl DocLines {
             origin_lines: vec![],
             origin_folded_lines: vec![],
             // visual_lines: vec![],
-            max_width: 0.0,
+            // max_width: 0.0,
 
             inlay_hints: None,
             completion_pos: (0, 0),
@@ -286,7 +286,6 @@ impl DocLines {
     // }
 
     fn clear(&mut self) {
-        self.max_width = 0.0;
         self.line_height = 0;
     }
 
@@ -855,10 +854,6 @@ impl DocLines {
     //     )
     // }
 
-    pub fn max_width(&self) -> f64 {
-        self.max_width
-    }
-
     // /// ~~视觉~~行的text_layout信息
     // fn _text_layout_of_visual_line(&self, line: usize) -> Option<&TextLayoutLine>
     // {     Some(
@@ -1327,9 +1322,9 @@ impl DocLines {
         y0: f64,
         base: Rect
     ) -> ScreenLines {
+        let mut max_width = 0.0;
         match view_kind {
             EditorViewKind::Normal => {
-                self.max_width = 0.0;
                 let start = start.min(self.origin_folded_lines.len() - 1);
                 let end = end.min(self.origin_folded_lines.len() - 1);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
@@ -1338,8 +1333,8 @@ impl DocLines {
                     line.init_layout();
                     line.extra_style();
                     let size_width = line.size_width().width;
-                    if size_width > self.max_width {
-                        self.max_width = size_width;
+                    if size_width > max_width {
+                        max_width = size_width;
                     }
                     let folded_line_y = line.line_index * line_height;
                     let visual_line_info = VisualLineInfo::OriginText {
@@ -1351,6 +1346,7 @@ impl DocLines {
                     };
                     visual_lines.push(visual_line_info);
                 }
+                self.signals.max_width.update_if_not_equal(max_width);
                 ScreenLines {
                     visual_lines,
                     diff_sections: None,
@@ -1360,7 +1356,6 @@ impl DocLines {
                 }
             },
             EditorViewKind::Diff(diff) => {
-                self.max_width = 0.0;
                 let changes = diff.changes();
 
                 let mut empty_lines = changes
@@ -1397,8 +1392,8 @@ impl DocLines {
                         line.init_layout();
                         line.extra_style();
                         let size_width = line.size_width().width;
-                        if size_width > self.max_width {
-                            self.max_width = size_width;
+                        if size_width > max_width {
+                            max_width = size_width;
                         }
                         let folded_line_y = folded_line_index * line_height;
                         let visual_line_info = VisualLineInfo::OriginText {
@@ -1413,6 +1408,7 @@ impl DocLines {
                         break;
                     }
                 }
+                self.signals.max_width.update_if_not_equal(max_width);
                 ScreenLines {
                     visual_lines,
                     diff_sections: None,
@@ -2028,15 +2024,8 @@ impl DocLines {
         let max_val = (y1 / line_height as f64).floor() as usize;
         let screen_lines =
             self.visual_lines(min_val, max_val, view_kind, line_height, y0, base);
-        // let screen_lines = util::compute_screen_lines(
-        //     view_kind,
-        //     base,
-        //     vline_infos,
-        //     line_height,
-        //     y0,
-        //     self.buffer().len()
-        // );
         let display_items = self.folding_ranges.to_display_items(&screen_lines);
+        self.signals.trigger();
         (screen_lines, display_items)
     }
 
@@ -2941,12 +2930,12 @@ impl LinesOnUpdate {
     }
 
     fn on_update_lines(&mut self) {
-        self.max_width = 0.0;
-        self.origin_folded_lines.iter().for_each(|x| {
-            if x.size_width().width > self.max_width {
-                self.max_width = x.size_width().width;
-            }
-        });
+        // self.max_width = 0.0;
+        // self.origin_folded_lines.iter().for_each(|x| {
+        //     if x.size_width().width > self.max_width {
+        //         self.max_width = x.size_width().width;
+        //     }
+        // });
 
         self.signals
             .last_line
@@ -3239,7 +3228,7 @@ impl PubUpdateLines {
             .update_if_not_equal(self.buffer().rev());
         self.on_update_buffer()?;
         self.update_lines_new(line_delta)?;
-        self.on_update_lines();
+        // self.on_update_lines();
         self.signals.update_paint_text();
 
         self.trigger_signals();
@@ -3696,6 +3685,10 @@ impl LinesSignals {
 
     pub fn signal_paint_content(&self) -> ReadSignal<usize> {
         self.signals.paint_content.signal()
+    }
+
+    pub fn signal_max_width(&self) -> ReadSignal<f64> {
+        self.signals.max_width.signal()
     }
 }
 

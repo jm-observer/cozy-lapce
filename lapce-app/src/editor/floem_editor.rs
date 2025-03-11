@@ -954,7 +954,7 @@ impl Editor {
     // ==== Points of locations ====
 
     pub fn max_line_width(&self) -> f64 {
-        self.doc().lines.with_untracked(|x| x.max_width())
+        self.doc().lines.with_untracked(|x| x.signal_max_width().get_untracked())
     }
 
     /// Returns the point into the text layout of the line at the given offset.

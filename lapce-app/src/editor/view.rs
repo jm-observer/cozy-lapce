@@ -178,8 +178,9 @@ pub fn editor_view(
     // let lines = doc.with_untracked(|x| x.lines);
     let view_kind = e_data.kind_read();
     create_effect(move |_| {
-        doc.track();
+        doc.with(|x| x.lines.with_untracked(|x| x.signal_max_width())).get();
         view_kind.track();
+        // log::info!("signal_max_width={signal_max_width}");
         id.request_layout();
     });
 
@@ -873,34 +874,26 @@ impl View for EditorView {
                 .with_untracked(|config| config.editor.line_height())
                 as f64;
 
-            let is_local = e_data.doc().content.with_untracked(|c| c.is_local());
+            // let is_local = e_data.doc().content.with_untracked(|c| c.is_local());
 
-            let width = editor.max_line_width() + 10.0;
-            let width = if !is_local {
-                width.max(viewport_size.width)
-            } else {
-                width
-            };
+            let width = (editor.max_line_width() + 10.0).max(viewport_size.width);
+            // let width = if !is_local {
+            //     width;
+            // } else {
+            //     width
+            // };
 
-            let (visual_line_len, scroll_beyond_last_line) =
+            let visual_line_len =
                 e_data.doc().lines.with_untracked(|x| {
-                    (x.origin_folded_lines.len(), x.scroll_beyond_last_line())
+                    x.origin_folded_lines.len()
                 });
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
             let last_line_height = line_height * visual_line_len as f64;
-            let height = last_line_height.max(line_height);
-            let height = if !is_local {
-                height.max(viewport_size.height)
-            } else {
-                height
-            };
-
-            let margin_bottom = if !is_local && scroll_beyond_last_line {
-                viewport_size.height.min(last_line_height) - line_height
-            } else {
-                0.0
-            };
+            let height = last_line_height.max(line_height).max(viewport_size.height);
+            // log::info!("height={height} width={width} {}", editor.max_line_width());
+            let margin_bottom =
+                viewport_size.height.min(last_line_height) - line_height;
 
             let style = Style::new()
                 .width(width)
