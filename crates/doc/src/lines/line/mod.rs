@@ -3,9 +3,7 @@ pub mod update_lines;
 use std::{
     cell::RefMut,
     fmt::{Debug, Formatter},
-    ops::AddAssign
 };
-
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
     text::{HitPoint, HitPosition}
@@ -207,11 +205,11 @@ impl OriginFoldedLine {
     ) -> Rect {
         let mut hit0 = self.text_layout.text.borrow_mut().hit_position(start_col);
         let hit1 = self.text_layout.text.borrow_mut().hit_position(end_col);
-        hit0.point.y = y;
-        hit0.point.add_assign(base);
+        let width = hit1.point.x - hit0.point.x;
+        hit0.point.y = y + base.y;
         Rect::from_origin_size(
             hit0.point,
-            Size::new(hit1.point.x - hit0.point.x, line_height)
+            Size::new(width, line_height)
         )
     }
 
