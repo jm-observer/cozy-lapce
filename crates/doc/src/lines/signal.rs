@@ -1,10 +1,11 @@
+use std::fmt::{Debug, Formatter};
 use std::ops::AddAssign;
 
 use floem::{
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
-
+use log::info;
 use crate::lines::{buffer::Buffer, style::EditorStyle};
 
 #[derive(Clone)]
@@ -84,6 +85,7 @@ impl Signals {
 
     pub fn update_paint_text(&mut self) {
         self.paint_content.val_mut().add_assign(1);
+        // info!("update_paint_text {}", self.paint_content.val());
     }
 }
 
@@ -94,6 +96,18 @@ pub struct SignalManager<V: Clone + 'static> {
     dirty:  bool
 }
 
+impl<V: Clone + 'static + Debug> Debug for SignalManager<V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "SignalManager signal={:?} dirty={} \
+             v={:?} ",
+            self.signal.id(),
+            self.dirty,
+            self.v,
+        )
+    }
+}
 impl<V: Clone + 'static> SignalManager<V> {
     pub fn new(cx: Scope, v: V) -> Self {
         Self {

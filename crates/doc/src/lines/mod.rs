@@ -2009,7 +2009,7 @@ impl DocLines {
         base: Rect,
         view_kind: EditorViewKind
     ) -> (ScreenLines, Vec<FoldingDisplayItem>) {
-        // debug!("_compute_screen_lines");
+        info!("_compute_screen_lines");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
         // doc.doc_lines.get_untracked();

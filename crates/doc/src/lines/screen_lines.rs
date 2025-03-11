@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use floem::kurbo::{Point, Rect};
 use log::info;
 
@@ -548,12 +548,10 @@ impl ScreenLines {
                             )));
                         }
                     },
-                    Text::EmptyLine { .. } => unreachable!()
+                    Text::EmptyLine { .. } => break,
                 }
             }
-            // error!("path {:?}, point={:?}, index={}", self.path, point,
-            // hit_point.index);
-            unreachable!();
+            bail!("origin_line_start {}, point={:?}, visual_char_offset={} {:?}", info.origin_line_start, point, visual_char_offset, info.text());
         } else {
             let Some(text) = info.text().last() else {
                 unreachable!()

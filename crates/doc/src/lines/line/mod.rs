@@ -30,7 +30,7 @@ use crate::{
 //     pub fg_styles: Vec<(usize, usize, Color)>
 // }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OriginLine {
     pub line_index:        usize,
     /// [start_offset...end_offset)
@@ -39,6 +39,19 @@ pub struct OriginLine {
     pub phantom:           PhantomTextLine,
     pub semantic_styles:   Vec<NewLineStyle>,
     pub diagnostic_styles: Vec<NewLineStyle>
+}
+
+impl Debug for OriginLine {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "OriginLine line_index={} start_offset={} \
+             phantom_text={:?} ",
+            self.line_index,
+            self.start_offset,
+            self.phantom,
+        )
+    }
 }
 
 impl OriginLine {

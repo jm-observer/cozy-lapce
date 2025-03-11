@@ -124,8 +124,7 @@ impl<T: Debug + Clone + 'static> SignalManager<T> {
 
     pub fn set(&self, signal: T) {
         if self.1 {
-            log::info!("set {:?} to {:?} ", self.0.get_untracked(), signal);
-            // panic!("ad");
+            log::debug!("set {:?} to {:?} ", self.0.get_untracked(), signal);
         }
         self.0.set(signal);
     }

@@ -41,7 +41,7 @@ use floem::{
 };
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
-use log::{error, info};
+use log::{debug, error, info};
 
 use crate::{
     command::InternalCommand, doc::Doc, editor::view::StickyHeaderInfo,
@@ -165,23 +165,23 @@ impl Editor {
             let lines = doc.with(|x| x.lines);
             let base = viewport_memo.get();
             let kind = kind.get();
+            let signal_paint_content = lines.with_untracked(|x| x.signal_paint_content());
+            let val = signal_paint_content.get();
             let Some((
                 screen_lines_val,
                 folding_display_item_val,
-                signal_paint_content
             )) = lines.try_update(|x| {
                 let (screen_lines_val, folding_display_item_val) =
                     x._compute_screen_lines(base, kind);
                 (
                     screen_lines_val,
                     folding_display_item_val,
-                    x.signal_paint_content()
                 )
             })
             else {
                 unreachable!()
             };
-            signal_paint_content.get();
+            debug!("create_effect _compute_screen_lines {val} base={base:?} {:?}", floem::prelude::SignalGet::id(&signal_paint_content));
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);
         });
