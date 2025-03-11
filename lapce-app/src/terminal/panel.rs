@@ -32,6 +32,8 @@ use crate::{
     terminal::{event::TermEvent, raw::RawTerminal},
     window_workspace::{CommonData, Focus}
 };
+use crate::common::Tabs;
+use crate::panel::implementation_view::ReferencesRoot;
 
 pub struct TerminalTabInfo {
     pub active: Option<TerminalTabId>,
@@ -74,6 +76,7 @@ pub struct TerminalPanelData {
     pub cx:         Scope,
     pub workspace:  LapceWorkspace,
     pub tab_infos:  RwSignal<TerminalTabInfo>,
+    // pub tabs:       Tabs<TerminalData>,
     pub debug:      RunDebugData,
     pub breakline:  Memo<Option<(usize, PathBuf)>>,
     pub common:     Rc<CommonData>,

@@ -18,6 +18,7 @@ use crate::{
     command::InternalCommand, common::common_tab_header, config::color::LapceColor,
     editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData,
 };
+use crate::common::TabHead;
 
 pub fn implementation_panel(
     window_tab_data: WindowWorkspaceData,
@@ -250,6 +251,10 @@ pub fn init_implementation_root(
 #[derive(Clone, Default)]
 pub struct ReferencesRoot {
     pub(crate) children: Vec<Reference>,
+}
+
+impl TabHead for ReferencesRoot {
+
 }
 
 impl ReferencesRoot {

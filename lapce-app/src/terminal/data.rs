@@ -31,7 +31,7 @@ use lapce_rpc::{
 };
 use parking_lot::RwLock;
 use url::Url;
-
+use lapce_core::icon::LapceIcons;
 use super::{
     event::TermEvent,
     raw::{EventProxy, RawTerminal}
@@ -56,6 +56,36 @@ pub struct TerminalData {
     pub run_debug:    RwSignal<Option<RunDebugProcess>>,
     pub common:       Rc<CommonData>,
     pub view_id:      RwSignal<Option<ViewId>>
+}
+
+impl TerminalData {
+    pub fn icon(&self) -> &'static str {
+        let run_debug = self.run_debug;
+        if let Some((mode, stopped)) = run_debug.with(|run_debug| {
+            run_debug.as_ref().map(|r| (r.mode, r.stopped))
+        }) {
+            let svg = match (mode, stopped) {
+                (RunDebugMode::Run, false) => LapceIcons::START,
+                (RunDebugMode::Run, true) => LapceIcons::RUN_ERRORS,
+                (RunDebugMode::Debug, false) => LapceIcons::DEBUG,
+                (RunDebugMode::Debug, true) => {
+                    LapceIcons::DEBUG_DISCONNECT
+                },
+            };
+            return svg;
+        }
+        LapceIcons::TERMINAL
+    }
+
+    pub fn content_tip(&self) -> (String, String) {
+        let run_debug = self.run_debug;
+        if let Some(name) = run_debug.with(|run_debug| {
+            run_debug.as_ref().map(|r| r.config.name.clone())
+        }) {
+            return (name, "tip".to_owned());
+        }
+        (self.title.get(), "tip".to_owned())
+    }
 }
 
 impl KeyPressFocus for TerminalData {

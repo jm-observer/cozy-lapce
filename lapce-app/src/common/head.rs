@@ -10,6 +10,7 @@ use floem::{
     views::{scroll::VerticalScrollAsHorizontal, *},
     *
 };
+use lapce_core::debug::RunDebugMode;
 use lapce_core::icon::LapceIcons;
 
 use crate::{
@@ -22,10 +23,11 @@ use crate::{
     svg,
     window_workspace::WindowWorkspaceData
 };
+use crate::common::TabHead;
 
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
-pub fn common_tab_header<T: Clone + 'static>(
+pub fn common_tab_header<T: Clone + TabHead+ 'static>(
     window_tab_data: WindowWorkspaceData,
     tabs: Tabs<T>
 ) -> impl View {
@@ -129,7 +131,7 @@ fn tooltip_tip<V: View + 'static>(
 }
 
 #[derive(Clone)]
-pub struct Tabs<T: Clone + 'static> {
+pub struct Tabs<T: Clone + TabHead+ 'static> {
     pub config:        WithLapceConfig,
     pub close_manager: CloseManager<T>,
     pub active:        RwSignal<Option<ViewId>>,
@@ -138,11 +140,11 @@ pub struct Tabs<T: Clone + 'static> {
 }
 
 #[derive(Clone, Copy)]
-pub struct CloseManager<T: Clone + 'static> {
+pub struct CloseManager<T: Clone + TabHead+ 'static> {
     pub tabs: RwSignal<Vec<Tab<T>>>
 }
 
-impl<T: Clone + 'static> CloseManager<T> {
+impl<T: Clone + TabHead+ 'static> CloseManager<T> {
     fn close(&self, id: ViewId) {
         self.tabs.update(|x| {
             let Some(index) = x
@@ -158,7 +160,7 @@ impl<T: Clone + 'static> CloseManager<T> {
 }
 
 #[derive(Clone)]
-pub struct Tab<T: Clone + 'static> {
+pub struct Tab<T: Clone + TabHead+ 'static> {
     pub id:         ViewId,
     pub content:    String,
     pub active:     RwSignal<Option<ViewId>>,
@@ -167,7 +169,7 @@ pub struct Tab<T: Clone + 'static> {
     pub references: RwSignal<T>
 }
 
-impl<T: Clone + 'static> Tab<T> {
+impl<T: Clone + TabHead+ 'static> Tab<T> {
     fn view_tab_close_button(
         &self,
         close_manager: CloseManager<T>
@@ -226,8 +228,9 @@ impl<T: Clone + 'static> Tab<T> {
 
     fn tab_icon(&self) -> impl View + 'static {
         let config = self.config();
+        let references = self.references;
         container({
-            svg(move || config.with_ui_svg(LapceIcons::FILE)).style(move |s| {
+            svg(move || config.with_ui_svg(references.with(|x| x.icon()))).style(move |s| {
                 let size = config.with_icon_size() as f32;
                 s.size(size, size)
             })
@@ -320,7 +323,7 @@ impl<T: Clone + 'static> Tab<T> {
     }
 }
 
-impl<T: Clone + 'static> Tabs<T> {
+impl<T: Clone + TabHead+ 'static> Tabs<T> {
     pub fn new(config: WithLapceConfig, cx: Scope) -> Self {
         let active = cx.create_rw_signal(None);
         let tabs = cx.create_rw_signal(Vec::new());
@@ -514,7 +517,3 @@ impl<T: Clone + 'static> Tabs<T> {
         .style(move |s| s.items_center())
     }
 }
-
-// trait TabsData<I>: 'static {
-//     fn tabs(&self) -> impl IntoIterator<Item = I> + 'static;
-// }
