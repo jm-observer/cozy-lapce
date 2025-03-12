@@ -1,15 +1,22 @@
+use core::slice;
 use std::collections::HashMap;
+use std::path::Path;
+use std::sync::Arc;
 use floem::peniko::Color;
 use floem::prelude::{palette, SignalWith};
 use floem::reactive::{batch, ReadSignal, Scope};
 use floem::text::FamilyOwned;
 use log::error;
 use lsp_types::{CompletionItemKind, SymbolKind};
+use parking_lot::RwLock;
 use doc::lines::signal::SignalManager;
 use doc::lines::text::RenderWhitespace;
-use crate::config::{LapceConfig};
+use lapce_core::icon::LapceIcons;
+use crate::config::{LapceConfig, DEFAULT_ICON_THEME_ICON_CONFIG};
+use crate::config::color::LapceColor;
 use crate::config::editor::{ClickMode, EditorConfig, WrapStyle};
 use crate::config::icon_theme::IconThemeConfig;
+use crate::config::svg::SvgStore;
 use crate::config::ui::{TabCloseButton, TabSeparatorHeight, UIConfig};
 
 #[derive(Debug, Clone, Default)]
@@ -331,6 +338,93 @@ impl UiConfigSignal {
     }
 }
 
+
+#[derive(Clone)]
+pub struct IconThemeConfigSignal {
+    pub icon_theme: IconThemeConfig,
+    pub svg_store:        Arc<RwLock<SvgStore>>,
+    pub icon_active_color: Color,
+}
+
+impl PartialEq for IconThemeConfigSignal {
+    fn eq(&self, other: &Self) -> bool {
+        self.icon_theme == other.icon_theme && self.icon_active_color == other.icon_active_color
+    }
+}
+impl Eq for IconThemeConfigSignal {
+}
+
+impl IconThemeConfigSignal {
+
+    pub fn ui_svg(&self, icon: &'static str) -> String {
+        let svg = self.icon_theme.ui.get(icon).and_then(|path| {
+            let path = self.icon_theme.path.join(path);
+            self.svg_store.write().get_svg_on_disk(&path)
+        });
+
+        svg.unwrap_or_else(|| {
+            let name = DEFAULT_ICON_THEME_ICON_CONFIG.ui.get(icon).unwrap();
+            self.svg_store.write().get_default_svg(name)
+        })
+    }
+
+    pub fn files_svg(&self, paths: &[&Path]) -> (String, Option<Color>) {
+        let svg = self
+            .icon_theme
+            .resolve_path_to_icon(paths)
+            .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
+
+        if let Some(svg) = svg {
+            let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
+                Some(self.icon_active_color)
+            } else {
+                None
+            };
+            (svg, color)
+        } else {
+            (
+                self.ui_svg(LapceIcons::FILE),
+                Some(self.icon_active_color)
+            )
+        }
+    }
+
+    pub fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
+        self.files_svg(slice::from_ref(&path))
+    }
+
+    pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {
+        let kind_str = match *kind {
+            SymbolKind::ARRAY => LapceIcons::SYMBOL_KIND_ARRAY,
+            SymbolKind::BOOLEAN => LapceIcons::SYMBOL_KIND_BOOLEAN,
+            SymbolKind::CLASS => LapceIcons::SYMBOL_KIND_CLASS,
+            SymbolKind::CONSTANT => LapceIcons::SYMBOL_KIND_CONSTANT,
+            SymbolKind::ENUM_MEMBER => LapceIcons::SYMBOL_KIND_ENUM_MEMBER,
+            SymbolKind::ENUM => LapceIcons::SYMBOL_KIND_ENUM,
+            SymbolKind::EVENT => LapceIcons::SYMBOL_KIND_EVENT,
+            SymbolKind::FIELD => LapceIcons::SYMBOL_KIND_FIELD,
+            SymbolKind::FILE => LapceIcons::SYMBOL_KIND_FILE,
+            SymbolKind::INTERFACE => LapceIcons::SYMBOL_KIND_INTERFACE,
+            SymbolKind::KEY => LapceIcons::SYMBOL_KIND_KEY,
+            SymbolKind::FUNCTION => LapceIcons::SYMBOL_KIND_FUNCTION,
+            SymbolKind::METHOD => LapceIcons::SYMBOL_KIND_METHOD,
+            SymbolKind::OBJECT => LapceIcons::SYMBOL_KIND_OBJECT,
+            SymbolKind::NAMESPACE => LapceIcons::SYMBOL_KIND_NAMESPACE,
+            SymbolKind::NUMBER => LapceIcons::SYMBOL_KIND_NUMBER,
+            SymbolKind::OPERATOR => LapceIcons::SYMBOL_KIND_OPERATOR,
+            SymbolKind::TYPE_PARAMETER => LapceIcons::SYMBOL_KIND_TYPE_PARAMETER,
+            SymbolKind::PROPERTY => LapceIcons::SYMBOL_KIND_PROPERTY,
+            SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
+            SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
+            SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
+            _ => return None
+        };
+
+        Some(self.ui_svg(kind_str))
+    }
+}
+
+
 #[derive(Clone)]
 pub struct LapceConfigSignal {
     pub cx: Scope,
@@ -338,7 +432,8 @@ pub struct LapceConfigSignal {
     pub default_color: SignalManager<Color>,
     pub ui: UiConfigSignal,
     pub editor: EditorConfigSignal,
-    pub icon_theme:             SignalManager<IconThemeConfig>,
+    pub icon_theme:             SignalManager<IconThemeConfigSignal>,
+    pub svg_store:        Arc<RwLock<SvgStore>>,
 }
 
 impl LapceConfigSignal {
@@ -347,20 +442,36 @@ impl LapceConfigSignal {
         let color = crate::config::signal::ThemeColorSignal::init(cx, config);
         let default_color = SignalManager::new(cx, palette::css::HOT_PINK);
         let ui = UiConfigSignal::init(cx, &config.ui);
+
+
         let editor = EditorConfigSignal::init(cx, &config.editor);
-        let icon_theme = SignalManager::new(cx, config.icon_theme.clone());
+        let svg_store = Arc::new(RwLock::new(SvgStore::default()));
+        let icon_active_color = config.color(LapceColor::LAPCE_ICON_ACTIVE);
+        let icon_theme = crate::config::signal::IconThemeConfigSignal {
+            icon_theme: config.icon_theme.clone(),
+            svg_store: svg_store.clone(),
+            icon_active_color,
+        };
+        let icon_theme = SignalManager::new(cx, icon_theme);
         Self {
             cx,
-            color, default_color, ui, editor, icon_theme
+            color, default_color, ui, editor, svg_store, icon_theme
         }
     }
 
     pub fn update(&mut self, config: &LapceConfig) {
+        let icon_active_color = config.color(LapceColor::LAPCE_ICON_ACTIVE);
+        let icon_theme = IconThemeConfigSignal {
+            icon_theme: config.icon_theme.clone(),
+            svg_store: self.svg_store.clone(),
+            icon_active_color,
+        };
+
         batch(|| {
             self.color.update(config);
             self.ui.update(&config.ui);
             self.editor.update(&config.editor);
-            self.icon_theme.update_and_trigger_if_not_equal(config.icon_theme.clone());
+            self.icon_theme.update_and_trigger_if_not_equal(icon_theme);
         });
     }
 
@@ -454,7 +565,7 @@ impl LapceConfigSignal {
 
 pub struct UiSvgSignal {
     key: &'static str,
-    signal: ReadSignal<IconThemeConfig>
+    signal: ReadSignal<IconThemeConfigSignal>
 }
 impl UiSvgSignal {
     pub fn get(&self) -> String {

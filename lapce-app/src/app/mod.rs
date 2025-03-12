@@ -2353,7 +2353,7 @@ fn palette_item(
             let style_path = path.clone();
             container(
                 stack((
-                    svg(move || config.with_file_svg(&path)).style(move |s| {
+                    svg(move || config.with_file_svg(&path).0).style(move |s| {
                         let (size, color) = config.with(|config| {
                             (
                                 config.ui.icon_size() as f32,

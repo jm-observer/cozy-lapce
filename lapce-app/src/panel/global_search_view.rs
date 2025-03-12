@@ -244,7 +244,7 @@ fn result_fold(
                 .min_size(size, size)
                 .color(border_color.get())
         }),
-        svg(move || config.with_file_svg(&path)).style(move |s| {
+        svg(move || config.with_file_svg(&path).0).style(move |s| {
             let (color, size) = config.with(|config| {
                 (config.file_svg(&style_path).1, config.ui.icon_size() as f32)
             });

@@ -388,7 +388,7 @@ fn file_explorer_view(
                                 };
                                 config.with_ui_svg(svg_str)
                             } else if let Some(path) = kind.path() {
-                                config.with_file_svg(path)
+                                config.with_file_svg(path).0
                             } else {
                                 config.with_ui_svg(LapceIcons::FILE)
                             }

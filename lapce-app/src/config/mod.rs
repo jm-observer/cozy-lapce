@@ -42,7 +42,7 @@ use crate::{
     command::InternalCommand, config::ui::TabCloseButton,
     window_workspace::CommonData
 };
-use crate::config::signal::LapceConfigSignal;
+use crate::config::signal::{LapceConfigSignal, UiSvgSignal};
 
 pub mod color;
 pub mod color_theme;
@@ -150,12 +150,17 @@ impl WithLapceConfig {
         self.config.with(f)
     }
 
+    pub fn signal_ui_svg(&self, svg: &'static str) -> UiSvgSignal {
+        // self.with(|config| config.ui_svg(svg))
+        self.signal(|x| x.ui_svg(svg))
+    }
+
     pub fn with_ui_svg(&self, svg: &'static str) -> String {
         // self.with(|config| config.ui_svg(svg))
         self.signal(|x| x.icon_theme.signal()).with(|x| x.ui_svg(svg))
     }
 
-    pub fn with_file_svg(&self, path: &Path) -> String {
+    pub fn with_file_svg(&self, path: &Path) -> (String, Option<Color>) {
         self.signal(|x| x.icon_theme.signal()).with(|x| x.file_svg(path))
         // self.with(|config| config.file_svg(path))
     }
