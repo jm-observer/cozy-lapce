@@ -648,18 +648,18 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
             } else if item.header {
                 label(move || item.kind.clone())
                     .style(move |s| {
-                        let (cbg, font_size) = config.with(|config| {
+                        let (cbg, font_size) = config.signal(|config| {
                             (
                                 config.color(LapceColor::PANEL_BACKGROUND),
-                                config.ui.font_size() as f32
+                                config.ui.font_size.signal()
                             )
                         });
                         s.line_height(2.0)
                             .font_bold()
                             .width_pct(100.0)
                             .padding_horiz(10.0)
-                            .font_size(font_size + 2.0)
-                            .background(cbg)
+                            .font_size(font_size.get() as f32 + 2.0)
+                            .background(cbg.get())
                     })
                     .into_any()
             } else {
@@ -761,13 +761,14 @@ pub fn checkbox(
     let svg_str = move || if checked() { CHECKBOX_SVG } else { "" }.to_string();
 
     svg(svg_str).style(move |s| {
-        let (color, size) = config.with(|config| {
+        let (color, size) = config.signal(|config| {
             (
                 config.color(LapceColor::EDITOR_FOREGROUND),
-                config.ui.font_size() as f32
+                config.ui.font_size.signal()
             )
         });
-
+        let color = color.get();
+        let size = size.get() as f32;
         s.min_width(size)
             .size(size, size)
             .color(color)
@@ -1024,12 +1025,11 @@ pub fn theme_color_settings_view(common: Rc<CommonData>, window_tab_data: Window
     let config = common.config;
 
     let text_height = create_memo(move |_| {
-        let (font_family, font_size) = config.with(|config| {
-            (config.ui.font_family.clone(), config.ui.font_size() as f32)
+        let (font_family, font_size) = config.signal(|config| {
+            (config.ui.font_family.signal(), config.ui.font_size.signal())
         });
-        let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&font_family).collect();
-        let attrs = Attrs::new().family(&family).font_size(font_size);
+        let font_family = font_family.get().0;
+        let attrs = Attrs::new().family(&font_family).font_size(font_size.get() as f32);
         let attrs_list = AttrsList::new(attrs);
         let text_layout = TextLayout::new_with_text("W", attrs_list);
         text_layout.size().height
@@ -1223,13 +1223,14 @@ fn dropdown_view(
                 }
             })
             .style(move |s| {
-                let (caret_color, size) = config.with(|config| {
+                let (caret_color, size) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                        config.ui.icon_size() as f32
+                        config.ui.icon_size.signal()
                     )
                 });
-                s.size(size, size).color(caret_color)
+                let size = size.get() as f32;
+                s.size(size, size).color(caret_color.get())
             })
         )
         .style(|s| s.padding_right(4.0))
@@ -1367,29 +1368,29 @@ fn dropdown_scroll(
         };
 
         let (fg, bg, bar, border, shadow, font_size, font_family) =
-            config.with(|config| {
+            config.signal(|config| {
                 (
                     config.color(LapceColor::EDITOR_FOREGROUND),
                     config.color(LapceColor::EDITOR_BACKGROUND),
                     config.color(LapceColor::LAPCE_SCROLL_BAR),
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
-                    config.ui.font_size() as f32,
-                    config.ui.font_family.clone()
+                    config.ui.font_size.signal(),
+                    config.ui.font_family.signal()
                 )
             });
         s.width(250.0)
             .line_height(1.8)
-            .font_size(font_size)
-            .font_family(font_family)
-            .color(fg)
-            .background(bg)
-            .class(floem::views::scroll::Handle, |s| s.background(bar))
+            .font_size(font_size.get() as f32)
+            .font_family(font_family.get().1)
+            .color(fg.get())
+            .background(bg.get())
+            .class(floem::views::scroll::Handle, |s| s.background(bar.get()))
             .border(1)
             .border_radius(6.0)
-            .border_color(border)
+            .border_color(border.get())
             .box_shadow_blur(3.0)
-            .box_shadow_color(shadow)
+            .box_shadow_color(shadow.get())
             .inset_left(x)
             .inset_top(y)
     })

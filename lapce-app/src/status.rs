@@ -121,13 +121,14 @@ pub fn status(
             }),
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::SCM)).style(move |s| {
-                    let (icon_size, bg) = config.with(|config| {
+                    let (icon_size, bg) = config.signal(|config| {
                         (
-                            config.ui.icon_size() as f32,
+                            config.ui.icon_size.signal(),
                             config.color(LapceColor::LAPCE_ICON_ACTIVE)
                         )
                     });
-                    s.size(icon_size, icon_size).color(bg)
+                    let icon_size = icon_size.get() as f32;
+                    s.size(icon_size, icon_size).color(bg.get())
                 }),
                 label(branch).style(move |s| {
                     s.margin_left(10.0)
@@ -169,13 +170,14 @@ pub fn status(
                 stack((
                     svg(move || config.with_ui_svg(LapceIcons::ERROR)).style(
                         move |s| {
-                            let (size, bg) = config.with(|config| {
+                            let (size, bg) = config.signal(|config| {
                                 (
-                                    config.ui.icon_size() as f32,
+                                    config.ui.icon_size.signal(),
                                     config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                 )
                             });
-                            s.size(size, size).color(bg)
+                            let size = size.get() as f32;
+                            s.size(size, size).color(bg.get())
                         }
                     ),
                     label(move || diagnostic_count.get().0.to_string()).style(
@@ -189,13 +191,14 @@ pub fn status(
                     ),
                     svg(move || config.with_ui_svg(LapceIcons::WARNING)).style(
                         move |s| {
-                            let (size, bg) = config.with(|config| {
+                            let (icon_size, bg) = config.signal(|config| {
                                 (
-                                    config.ui.icon_size() as f32,
+                                    config.ui.icon_size.signal(),
                                     config.color(LapceColor::LAPCE_ICON_ACTIVE)
                                 )
                             });
-                            s.size(size, size).margin_left(5.0).color(bg)
+                            let icon_size = icon_size.get() as f32;
+                            s.size(icon_size, icon_size).margin_left(5.0).color(bg.get())
                         }
                     ),
                     label(move || diagnostic_count.get().1.to_string()).style(
@@ -402,17 +405,17 @@ pub fn status(
         }
     })
     .style(move |s| {
-        let (caret_color, bg, status_height) = config.with(|config| {
+        let (caret_color, bg, status_height) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::STATUS_BACKGROUND),
-                config.ui.status_height() as f32
+                config.ui.status_height.signal()
             )
         });
         s.border_top(1.0)
-            .border_color(caret_color)
-            .background(bg)
-            .flex_basis(status_height)
+            .border_color(caret_color.get())
+            .background(bg.get())
+            .flex_basis(status_height.get() as f32)
             .flex_grow(0.0)
             .flex_shrink(0.0)
             .items_center()

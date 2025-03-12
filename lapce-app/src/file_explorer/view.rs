@@ -87,7 +87,7 @@ pub fn file_explorer_panel(
             window_tab_data.panel.section_open(PanelSection::OpenEditor),
             move |s| {
                 s.apply_if(
-                    !config.with_untracked(|x| x.ui.open_editors_visible),
+                    !config.signal(|x| x.ui.open_editors_visible.signal()).get(),
                     |s| s.hide()
                 )
             }

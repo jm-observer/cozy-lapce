@@ -211,7 +211,7 @@ pub struct LapceConfig {
     #[serde(skip)]
     pub id:                     u64,
     pub core:                   CoreConfig,
-    ui:                     UIConfig,
+    pub ui:                     UIConfig,
     pub editor:                 EditorConfig,
     pub terminal:               TerminalConfig,
     #[serde(default)]

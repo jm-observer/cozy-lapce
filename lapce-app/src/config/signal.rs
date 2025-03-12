@@ -284,6 +284,8 @@ pub struct UiConfigSignal {
     pub tab_close_button: SignalManager<TabCloseButton>,
     pub tab_separator_height: SignalManager<TabSeparatorHeight>,
     pub trim_search_results_whitespace: SignalManager<bool>,
+    pub open_editors_visible: SignalManager<bool>,
+
 }
 
 impl UiConfigSignal {
@@ -298,6 +300,7 @@ impl UiConfigSignal {
         let tab_close_button = SignalManager::new(cx,  config.tab_close_button);
         let tab_separator_height = SignalManager::new(cx,  config.tab_separator_height);
         let trim_search_results_whitespace = SignalManager::new(cx,  config.trim_search_results_whitespace);
+        let open_editors_visible = SignalManager::new(cx,  config.open_editors_visible);
 
         Self {
             scale,
@@ -307,7 +310,7 @@ impl UiConfigSignal {
             icon_size,
             status_height,
             palette_width,
-            tab_close_button, tab_separator_height, trim_search_results_whitespace
+            tab_close_button, tab_separator_height, trim_search_results_whitespace, open_editors_visible
         }
     }
 
@@ -322,6 +325,8 @@ impl UiConfigSignal {
         self.tab_close_button.update_and_trigger_if_not_equal(config.tab_close_button);
         self.tab_separator_height.update_and_trigger_if_not_equal(config.tab_separator_height);
         self.trim_search_results_whitespace.update_and_trigger_if_not_equal(config.trim_search_results_whitespace);
+        self.open_editors_visible.update_and_trigger_if_not_equal(config.open_editors_visible);
+
     }
 }
 
