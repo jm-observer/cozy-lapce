@@ -103,7 +103,7 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
 
     exclusive_popup(window_tab_data, about_data.visible, move || {
         stack((
-            svg(move || config.with(|config| config.logo_svg())).style(move |s| {
+            svg(move || config.signal(|config| config.logo_svg())).style(move |s| {
                 s.size(logo_size, logo_size)
                     .color(config.with_color(LapceColor::EDITOR_FOREGROUND))
             }),
@@ -173,7 +173,7 @@ fn exclusive_popup<V: View + 'static>(
         container(
             container(content())
                 .style(move |s| {
-                    let (border_color, bg) = config.with(|config| {
+                    let (border_color, bg) = config.signal(|config| {
                         (
                             config.color(LapceColor::LAPCE_BORDER)
                             , config.color(LapceColor::PANEL_BACKGROUND)
@@ -184,8 +184,8 @@ fn exclusive_popup<V: View + 'static>(
                         .padding_horiz(100.0)
                         .border(1.0)
                         .border_radius(6.0)
-                        .border_color(border_color)
-                        .background(bg)
+                        .border_color(border_color.get())
+                        .background(bg.get())
                 })
                 .on_event_stop(EventListener::PointerDown, move |_| {}),
         )

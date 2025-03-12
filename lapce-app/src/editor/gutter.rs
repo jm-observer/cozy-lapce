@@ -6,7 +6,7 @@ use floem::{
     peniko::kurbo::{Point, Rect, Size},
     prelude::Color,
     reactive::{Memo, SignalGet, SignalWith},
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout}
+    text::{Attrs, AttrsList, TextLayout}
 };
 use log::{debug, error};
 
@@ -154,23 +154,53 @@ impl View for EditorGutterView {
             modified,
             added,
             sticky_header
-        ) = self.editor.common.config.with(|config| {
+        ) = self.editor.common.config.signal(|config| {
             (
-                config.editor.line_height() as f64,
-                config.editor.font_family.clone(),
+                config.editor.line_height.signal(),
+                config.editor.font_family.signal(),
                 config.color(LapceColor::EDITOR_DIM),
-                config.editor.font_size() as f32,
+                config.editor.font_size.signal(),
                 config.color(LapceColor::EDITOR_FOREGROUND),
-                config.core.modal,
-                config.editor.modal_mode_relative_line_numbers,
+                config.core.modal.signal(),
+                config.editor.modal_mode_relative_line_numbers.signal(),
                 config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
                 config.color(LapceColor::EDITOR_STICKY_HEADER_BACKGROUND),
                 config.color(LapceColor::SOURCE_CONTROL_REMOVED),
                 config.color(LapceColor::SOURCE_CONTROL_MODIFIED),
                 config.color(LapceColor::SOURCE_CONTROL_ADDED),
-                config.editor.sticky_header
+                config.editor.sticky_header.signal()
             )
         });
+
+        let (
+            line_height,
+            font_family,
+            dim,
+            font_size,
+            fg,
+            modal,
+            modal_mode_relative_line_numbers,
+            shadow,
+            header_bg,
+            removed,
+            modified,
+            added,
+            sticky_header
+        ) = (
+            line_height.get() as f64,
+            font_family.get(),
+            dim.get(),
+            font_size.get() as f32,
+            fg.get(),
+            modal.get(),
+            modal_mode_relative_line_numbers.get(),
+            shadow.get(),
+            header_bg.get(),
+            removed.get(),
+            modified.get(),
+            added.get(),
+            sticky_header.get()
+        );
 
         let kind_is_normal = self
             .editor
@@ -196,9 +226,7 @@ impl View for EditorGutterView {
                 }
             };
 
-        let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(&font_family).collect();
-        let attrs = Attrs::new().family(&family).color(dim).font_size(font_size);
+        let attrs = Attrs::new().family(&font_family.0).color(dim).font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
         let current_line_attrs_list = AttrsList::new(attrs.color(fg));
         let show_relative = modal

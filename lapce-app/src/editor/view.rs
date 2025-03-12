@@ -81,7 +81,6 @@ fn editor_wrap(wrap_style: WrapStyle, wrap_with: usize) -> WrapMethod {
 
 pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style {
     let (
-        config,
         scroll_beyond_last_line,
         show_indent_guide,
         modal,
@@ -90,59 +89,63 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
         cursor_surrounding_lines,
         render_whitespace,
         wrap_style,
-        wrap_with
-    ) = config.with(|config| {
+        wrap_with, caret_color, selection_color, cl_color, vw, ig, fore, dim
+    ) = config.signal(|config| {
         (
-            config.ui_color(),
-            config.editor.scroll_beyond_last_line,
-            config.editor.show_indent_guide,
-            config.core.modal,
-            config.editor.modal_mode_relative_line_numbers,
-            config.editor.smart_tab,
-            config.editor.cursor_surrounding_lines,
-            config.editor.render_whitespace,
-            config.editor.wrap_style,
-            config.editor.wrap_width
+            config.editor.scroll_beyond_last_line.signal(),
+            config.editor.show_indent_guide.signal(),
+            config.core.modal.signal(),
+            config.editor.modal_mode_relative_line_numbers.signal(),
+            config.editor.smart_tab.signal(),
+            config.editor.cursor_surrounding_lines.signal(),
+            config.editor.render_whitespace.signal(),
+            config.editor.wrap_style.signal(),
+            config.editor.wrap_width.signal(),
+            config.color(LapceColor::EDITOR_CARET),
+            config.color(LapceColor::EDITOR_SELECTION),
+            config.color(LapceColor::EDITOR_CURRENT_LINE),
+            config.color(LapceColor::EDITOR_VISIBLE_WHITESPACE),
+            config.color(LapceColor::EDITOR_INDENT_GUIDE),
+            config.color(LapceColor::EDITOR_FOREGROUND),
+            config.color(LapceColor::EDITOR_DIM),
         )
     });
 
     let doc = doc.get();
-
+    let fore = fore.get();
+    let dim = dim.get();
     s.set(
         IndentStyleProp,
         doc.lines
             .with_untracked(|x| Buffer::indent_style(x.buffer()))
     )
-    .set(CursorColor, config.get(LapceColor::EDITOR_CARET))
-    .set(SelectionColor, config.get(LapceColor::EDITOR_SELECTION))
+    .set(CursorColor, caret_color.get())
+    .set(SelectionColor, selection_color.get())
     .set(
         CurrentLineColor,
-        config.get(LapceColor::EDITOR_CURRENT_LINE)
+        cl_color.get()
     )
     .set(
-        VisibleWhitespaceColor,
-        config.get(LapceColor::EDITOR_VISIBLE_WHITESPACE)
+        VisibleWhitespaceColor, vw.get()
     )
     .set(
-        IndentGuideColor,
-        config.get(LapceColor::EDITOR_INDENT_GUIDE)
+        IndentGuideColor, ig.get()
     )
-    .set(ScrollBeyondLastLine, scroll_beyond_last_line)
-    .color(config.get(LapceColor::EDITOR_FOREGROUND))
-    .set(TextColor, config.get(LapceColor::EDITOR_FOREGROUND))
-    .set(PhantomColor, config.get(LapceColor::EDITOR_DIM))
-    .set(PlaceholderColor, config.get(LapceColor::EDITOR_DIM))
+    .set(ScrollBeyondLastLine, scroll_beyond_last_line.get())
+    .color(fore)
+    .set(TextColor, fore)
+    .set(PhantomColor, dim)
+    .set(PlaceholderColor, dim)
     .set(
-        PreeditUnderlineColor,
-        config.get(LapceColor::EDITOR_FOREGROUND)
+        PreeditUnderlineColor, fore
     )
-    .set(ShowIndentGuide, show_indent_guide)
-    .set(Modal, modal)
-    .set(ModalRelativeLine, modal_mode_relative_line_numbers)
-    .set(SmartTab, smart_tab)
-    .set(WrapProp, editor_wrap(wrap_style, wrap_with))
-    .set(CursorSurroundingLines, cursor_surrounding_lines)
-    .set(RenderWhitespaceProp, render_whitespace)
+    .set(ShowIndentGuide, show_indent_guide.get())
+    .set(Modal, modal.get())
+    .set(ModalRelativeLine, modal_mode_relative_line_numbers.get())
+    .set(SmartTab, smart_tab.get())
+    .set(WrapProp, editor_wrap(wrap_style.get(), wrap_with.get()))
+    .set(CursorSurroundingLines, cursor_surrounding_lines.get())
+    .set(RenderWhitespaceProp, render_whitespace.get())
 }
 
 #[allow(dead_code)]
@@ -207,13 +210,13 @@ pub fn editor_view(
     let sticky_header_height_signal = e_data.editor.sticky_header_height;
     let editor2 = e_data.clone();
     create_effect(move |last_rev| {
-        let (line_height, sticky_header) = config.with(|config| {
+        let (line_height, sticky_header) = config.signal(|config| {
             (
-                config.editor.line_height() as f64,
-                config.editor.sticky_header
+                config.editor.line_height.signal(),
+                config.editor.sticky_header.signal()
             )
         });
-        if !sticky_header {
+        if !sticky_header.get() {
             return (DocContent::Local, 0, 0, Rect::ZERO, 0, None);
         }
 
@@ -244,7 +247,7 @@ pub fn editor_view(
             rect,
             sticky_header_height_signal,
             &screen_lines,
-            line_height
+            line_height.get() as f64
         );
 
         id.update_state(sticky_header_info);
@@ -1232,7 +1235,7 @@ pub fn editor_container_view(
             editor_content(editor, debug_breakline, is_active),
             empty().style(move |s| {
                 let sticky_header =
-                    config.with(|config| config.editor.sticky_header);
+                    config.signal(|config| config.editor.sticky_header.signal()).get();
                 let (sticky_header_height, editor_view) =
                     editor.with(|x| (x.editor.sticky_header_height, x.kind_read()));
                 let sticky_header_height = sticky_header_height.get() as f32;
@@ -1763,14 +1766,14 @@ fn editor_breadcrumbs(
         })
     )
     .style(move |s| {
-        let (show_bread_crumbs, line_height) = config.with(|config| {
-            (config.editor.show_bread_crumbs, config.editor.line_height())
+        let (show_bread_crumbs, line_height) = config.signal(|config| {
+            (config.editor.show_bread_crumbs.signal(), config.editor.line_height.signal())
         });
         s.items_center()
             .width_pct(100.0)
-            .height(line_height as f32)
+            .height(line_height.get() as f32)
             .apply_if(doc_path.get().is_none(), |s| s.hide())
-            .apply_if(!show_bread_crumbs, |s| s.hide())
+            .apply_if(!show_bread_crumbs.get(), |s| s.hide())
     })
     .debug_name("Editor BreadCrumbs")
 }
@@ -1891,7 +1894,7 @@ fn editor_content(
             .try_update(|x| x.take())
             .flatten();
         let line_height =
-            e_data.common.config.with(|x| x.editor.line_height() as f64);
+            e_data.common.config.signal(|x| x.editor.line_height.signal()).get() as f64;
         e_data.doc_signal().track();
         e_data.kind_read().track();
 
@@ -2024,7 +2027,7 @@ fn search_editor_view(
         .style(|s| s.padding_horiz(6.0))
     ))
     .style(move |s| {
-        let (border_color, bg) = config.with(|config| {
+        let (border_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::EDITOR_BACKGROUND)
@@ -2034,8 +2037,8 @@ fn search_editor_view(
             .items_center()
             .border(1.0)
             .border_radius(6.0)
-            .border_color(border_color)
-            .background(bg)
+            .border_color(border_color.get())
+            .background(bg.get())
     })
 }
 
@@ -2077,7 +2080,7 @@ fn replace_editor_view(
         })
     ))
     .style(move |s| {
-        let (border_color, bg) = config.with(|config| {
+        let (border_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::EDITOR_BACKGROUND)
@@ -2087,8 +2090,8 @@ fn replace_editor_view(
             .items_center()
             .border(1.0)
             .border_radius(6.0)
-            .border_color(border_color)
-            .background(bg)
+            .border_color(border_color.get())
+            .background(bg.get())
     })
 }
 
@@ -2241,17 +2244,17 @@ fn find_view(
             })
         ))
         .style(move |s| {
-            let (border_color, bg) = config.with(|config| {
+            let (border_color, bg) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::PANEL_BACKGROUND)
                 )
             });
             s.margin_right(50.0)
-                .background(bg)
+                .background(bg.get())
                 .border_radius(6.0)
                 .border(1.0)
-                .border_color(border_color)
+                .border_color(border_color.get())
                 .padding_vert(4.0)
                 .cursor(CursorStyle::Default)
                 .flex_col()

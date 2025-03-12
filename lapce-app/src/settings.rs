@@ -412,7 +412,7 @@ pub fn settings_view(
             }
         })
         .style(move |s| {
-            let (cbg, hbg, abg) = config.with(|config| {
+            let (cbg, hbg, abg) = config.signal(|config| {
                 (
                     config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                     config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
@@ -421,9 +421,9 @@ pub fn settings_view(
             });
             s.padding_horiz(20.0)
                 .width_pct(100.0)
-                .apply_if(kind == current_kind.get(), |s| s.background(cbg))
-                .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg))
-                .active(|s| s.background(abg))
+                .apply_if(kind == current_kind.get(), |s| s.background(cbg.get()))
+                .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg.get()))
+                .active(|s| s.background(abg.get()))
         })
     };
 
@@ -946,7 +946,7 @@ fn color_section_list(
                     }),
                     empty().style(move |s| {
                         let size = text_height.get() + 12.0;
-                        let (caret_color, bg) = config.with(|config| {
+                        let (caret_color, bg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_FOREGROUND)
                             )
@@ -957,8 +957,8 @@ fn color_section_list(
                             .border_radius(6)
                             .size(size, size)
                             .margin_left(10)
-                            .border_color(caret_color)
-                            .background(color.unwrap_or(bg))
+                            .border_color(caret_color.get())
+                            .background(color.unwrap_or(bg.get()))
                     }),
                     {
                         let kind = kind.clone();
@@ -976,7 +976,7 @@ fn color_section_list(
                             })
                             .style(move |s| {
                                 let content = query_str.get();
-                                let (caret_color, bg, same) = config.with(|config| {
+                                let (caret_color, bg, same) = config.signal(|config| {
                                     (
                                         config.color(LapceColor::LAPCE_BORDER),
                                         config.color(LapceColor::PANEL_BACKGROUND),
@@ -1003,11 +1003,11 @@ fn color_section_list(
                                     .cursor(CursorStyle::Pointer)
                                     .border(1)
                                     .border_radius(6)
-                                    .border_color(caret_color
+                                    .border_color(caret_color.get()
                                     )
                                     .apply_if(same, |s| s.hide())
                                     .active(|s| {
-                                        s.background(bg
+                                        s.background(bg.get()
                                         )
                                     })
                             })

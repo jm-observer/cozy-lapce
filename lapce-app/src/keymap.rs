@@ -39,7 +39,7 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
     let keypress = common.keypress;
     let ui_line_height_memo = common.ui_line_height;
     let ui_line_height = move || ui_line_height_memo.get() * 1.2;
-    let modal = create_memo(move |_| config.with(|x| x.core.modal));
+    let modal = create_memo(move |_| config.signal(|x| x.core.modal.signal()).get());
     let picker = KeymapPicker {
         cmd:    create_rw_signal(None),
         keymap: create_rw_signal(None),
@@ -293,7 +293,7 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
                 });
             })
             .style(move |s| {
-                let (bg, border_color) = config.with(|config| {
+                let (bg, border_color) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_CURRENT_LINE),
                         config.color(LapceColor::LAPCE_BORDER)
@@ -302,9 +302,9 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
                 s.items_center()
                     .height(ui_line_height() as f32)
                     .width_pct(100.0)
-                    .apply_if(i % 2 > 0, |s| s.background(bg))
+                    .apply_if(i % 2 > 0, |s| s.background(bg.get()))
                     .border_bottom(1.0)
-                    .border_color(border_color)
+                    .border_color(border_color.get())
             })
         };
 
@@ -374,7 +374,7 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
             })
         ))
         .style(move |s| {
-            let (bg, border_color) = config.with(|config| {
+            let (bg, border_color) = config.signal(|config| {
                 (
                     config.color(LapceColor::EDITOR_CURRENT_LINE),
                     config.color(LapceColor::LAPCE_BORDER)
@@ -385,8 +385,8 @@ pub fn keymap_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
                 .width_pct(100.0)
                 .border_top(1.0)
                 .border_bottom(1.0)
-                .border_color(border_color)
-                .background(bg)
+                .border_color(border_color.get())
+                .background(bg.get())
         }),
         container(
             scroll(
@@ -466,7 +466,7 @@ fn keyboard_picker_view(
                 }
             )
             .style(move |s| {
-                let (bg, border_color) = config.with(|config| {
+                let (bg, border_color) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_CURRENT_LINE),
                         config.color(LapceColor::LAPCE_BORDER)
@@ -479,13 +479,13 @@ fn keyboard_picker_view(
                     .height((ui_line_height.get() as f32) * 1.2)
                     .border(1.0)
                     .border_radius(6.0)
-                    .border_color(border_color)
-                    .background(bg)
+                    .border_color(border_color.get())
+                    .background(bg.get())
             }),
             stack((
                 text("Save")
                     .style(move |s| {
-                        let (lb, hbg, abg) = config.with(|config| {
+                        let (lb, hbg, abg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
@@ -499,11 +499,11 @@ fn keyboard_picker_view(
                             .padding_vert(8.0)
                             .border(1.0)
                             .border_radius(6.0)
-                            .border_color(lb)
+                            .border_color(lb.get())
                             .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(hbg)
+                                s.cursor(CursorStyle::Pointer).background(hbg.get())
                             })
-                            .active(|s| s.background(abg))
+                            .active(|s| s.background(abg.get()))
                     })
                     .on_click_stop(move |_| {
                         let keymap = picker.keymap.get_untracked();
@@ -522,7 +522,7 @@ fn keyboard_picker_view(
                     }),
                 text("Cancel")
                     .style(move |s| {
-                        let (lb, hbg, abg) = config.with(|config| {
+                        let (lb, hbg, abg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
@@ -537,11 +537,11 @@ fn keyboard_picker_view(
                             .padding_vert(8.0)
                             .border(1.0)
                             .border_radius(6.0)
-                            .border_color(lb)
+                            .border_color(lb.get())
                             .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(hbg)
+                                s.cursor(CursorStyle::Pointer).background(hbg.get())
                             })
-                            .active(|s| s.background(abg))
+                            .active(|s| s.background(abg.get()))
                     })
                     .on_click_stop(move |_| {
                         picker.keymap.set(None);
@@ -557,7 +557,7 @@ fn keyboard_picker_view(
         ))
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
-            let (lb, hbg) = config.with(|config| {
+            let (lb, hbg) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::PANEL_BACKGROUND)
@@ -569,8 +569,8 @@ fn keyboard_picker_view(
                 .width(400.0)
                 .border(1.0)
                 .border_radius(6.0)
-                .border_color(lb)
-                .background(hbg)
+                .border_color(lb.get())
+                .background(hbg.get())
         })
     )
     .keyboard_navigable()

@@ -106,15 +106,15 @@ pub fn status(
                         LapceColor::STATUS_MODAL_TERMINAL_FOREGROUND
                     )
                 };
-                let (modal, bg, fg) = config.with(|config| {
-                    (config.core.modal, config.color(bg), config.color(fg))
+                let (modal, bg, fg) = config.signal(|config| {
+                    (config.core.modal.signal(), config.color(bg), config.color(fg))
                 });
-                let display = if modal { Display::Flex } else { Display::None };
+                let display = if modal.get() { Display::Flex } else { Display::None };
 
                 s.display(display)
                     .padding_horiz(10.0)
-                    .color(fg)
-                    .background(bg)
+                    .color(fg.get())
+                    .background(bg.get())
                     .height_pct(100.0)
                     .align_items(Some(AlignItems::Center))
                     .selectable(false)
@@ -471,7 +471,7 @@ fn status_text<S: std::fmt::Display + 'static>(
         } else {
             Display::None
         };
-        let (caret_color, bg) = config.with(|config| {
+        let (caret_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::STATUS_FOREGROUND),
                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
@@ -481,8 +481,8 @@ fn status_text<S: std::fmt::Display + 'static>(
             .height_full()
             .padding_horiz(10.0)
             .items_center()
-            .color(caret_color)
-            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg))
+            .color(caret_color.get())
+            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg.get()))
             .selectable(false)
     })
 }

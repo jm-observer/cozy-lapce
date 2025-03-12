@@ -292,7 +292,7 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                 text_input_view,
                 label(move || err.clone()).style(move |s| {
                     let (error_background_color, error_fg, editor_background_color) =
-                        config.with(|config| {
+                        config.signal(|config| {
                             (
                                 config
                                     .color(LapceColor::ERROR_LENS_ERROR_BACKGROUND),
@@ -303,14 +303,14 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                         });
 
                     let background_color = blend_colors(
-                        editor_background_color,
-                        error_background_color
+                        editor_background_color.get(),
+                        error_background_color.get()
                     );
 
                     s.position(Position::Absolute)
                         .inset_top(ui_line_height.get())
                         .width_full()
-                        .color(error_fg)
+                        .color(error_fg.get())
                         .background(background_color)
                         .z_index(100)
                 })
@@ -575,7 +575,7 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
             })
         ))
         .style(move |s| {
-            let (hbg, cbg) = config.with(|config| {
+            let (hbg, cbg) = config.signal(|config| {
                 (
                     config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
@@ -587,9 +587,9 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     active_editor_tab.get() == Some(editor_tab_id)
                         && editor_tab.with(|editor_tab| editor_tab.active)
                             == child_index.get(),
-                    |s| s.background(cbg)
+                    |s| s.background(cbg.get())
                 )
-                .hover(|s| s.background(hbg))
+                .hover(|s| s.background(hbg.get()))
         })
         .on_event_cont(EventListener::PointerDown, move |_| {
             editor_tab.update(|editor_tab| {

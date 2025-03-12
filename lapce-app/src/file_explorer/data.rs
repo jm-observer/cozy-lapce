@@ -209,7 +209,7 @@ impl FileExplorerData {
                         // Retain only items that are not excluded from view by the
                         // configuration
                         match Glob::new(
-                            &config.with(|x| x.editor.files_exclude.clone())
+                            &config.signal(|x| x.editor.files_exclude.signal()).get_untracked()
                         ) {
                             Ok(glob) => {
                                 let matcher = glob.compile_matcher();

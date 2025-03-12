@@ -12,8 +12,10 @@ use parking_lot::RwLock;
 use doc::lines::signal::SignalManager;
 use doc::lines::text::RenderWhitespace;
 use lapce_core::icon::LapceIcons;
-use crate::config::{LapceConfig, DEFAULT_ICON_THEME_ICON_CONFIG};
+use crate::config::{LapceConfig, DEFAULT_DARK_THEME_COLOR_CONFIG, DEFAULT_ICON_THEME_ICON_CONFIG};
 use crate::config::color::LapceColor;
+use crate::config::color_theme::ColorThemeConfig;
+use crate::config::core::CoreConfig;
 use crate::config::editor::{ClickMode, EditorConfig, WrapStyle};
 use crate::config::icon_theme::IconThemeConfig;
 use crate::config::svg::SvgStore;
@@ -424,6 +426,39 @@ impl IconThemeConfigSignal {
     }
 }
 
+#[derive(Clone)]
+pub struct CoreConfigSignal {
+    pub modal: SignalManager<bool>,
+    pub color_theme: SignalManager<String>,
+    pub icon_theme: SignalManager<String>,
+    pub custom_titlebar: SignalManager<bool>,
+    pub file_explorer_double_click: SignalManager<bool>,
+    pub auto_reload_plugin: SignalManager<bool>,
+}
+
+impl CoreConfigSignal {
+    pub fn init(cx: Scope, config: &CoreConfig) -> Self {
+        Self {
+            modal: SignalManager::new(cx, config.modal),
+            color_theme: SignalManager::new(cx, config.color_theme.clone()),
+            icon_theme: SignalManager::new(cx, config.icon_theme.clone()),
+            custom_titlebar: SignalManager::new(cx, config.custom_titlebar),
+            file_explorer_double_click: SignalManager::new(cx, config.file_explorer_double_click),
+            auto_reload_plugin: SignalManager::new(cx, config.auto_reload_plugin),
+        }
+    }
+
+    pub fn update(&mut self, config: &CoreConfig) {
+        self.modal.update_and_trigger_if_not_equal(config.modal);
+        self.color_theme.update_and_trigger_if_not_equal(config.color_theme.clone());
+        self.icon_theme.update_and_trigger_if_not_equal(config.icon_theme.clone());
+        self.custom_titlebar.update_and_trigger_if_not_equal(config.custom_titlebar);
+        self.file_explorer_double_click.update_and_trigger_if_not_equal(config.file_explorer_double_click);
+        self.auto_reload_plugin.update_and_trigger_if_not_equal(config.auto_reload_plugin);
+    }
+}
+
+
 
 #[derive(Clone)]
 pub struct LapceConfigSignal {
@@ -434,6 +469,7 @@ pub struct LapceConfigSignal {
     pub editor: EditorConfigSignal,
     pub icon_theme:             SignalManager<IconThemeConfigSignal>,
     pub svg_store:        Arc<RwLock<SvgStore>>,
+    pub core: CoreConfigSignal
 }
 
 impl LapceConfigSignal {
@@ -453,9 +489,10 @@ impl LapceConfigSignal {
             icon_active_color,
         };
         let icon_theme = SignalManager::new(cx, icon_theme);
+        let core = CoreConfigSignal::init(cx, &config.core);
         Self {
             cx,
-            color, default_color, ui, editor, svg_store, icon_theme
+            color, default_color, ui, editor, svg_store, icon_theme, core
         }
     }
 
@@ -472,6 +509,7 @@ impl LapceConfigSignal {
             self.ui.update(&config.ui);
             self.editor.update(&config.editor);
             self.icon_theme.update_and_trigger_if_not_equal(icon_theme);
+            self.core.update(&config.core);
         });
     }
 
@@ -591,6 +629,13 @@ impl LapceConfigSignal {
         Some(self.ui_svg(kind_str))
     }
 
+    pub fn logo_svg(&self) -> String {
+        self.svg_store.read().logo_svg()
+    }
+
+    pub fn default_color_theme(&self) -> &ColorThemeConfig {
+        &DEFAULT_DARK_THEME_COLOR_CONFIG
+    }
 }
 
 pub struct UiSvgSignal {

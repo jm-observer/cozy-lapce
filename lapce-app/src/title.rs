@@ -112,7 +112,7 @@ fn left(
         })
         .style(move |s| {
             let (connected, connecting, disconnected, bg, abg) =
-                config.with(|config| {
+                config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_REMOTE_CONNECTED),
                         config.color(LapceColor::LAPCE_REMOTE_CONNECTING),
@@ -125,9 +125,9 @@ fn left(
                 Color::TRANSPARENT
             } else {
                 match proxy_status.get() {
-                    Some(ProxyStatus::Connected) => connected,
-                    Some(ProxyStatus::Connecting) => connecting,
-                    Some(ProxyStatus::Disconnected) => disconnected,
+                    Some(ProxyStatus::Connected) => connected.get(),
+                    Some(ProxyStatus::Connecting) => connecting.get(),
+                    Some(ProxyStatus::Disconnected) => disconnected.get(),
                     None => Color::TRANSPARENT
                 }
             };
@@ -135,8 +135,8 @@ fn left(
                 .padding_horiz(10.0)
                 .items_center()
                 .background(color)
-                .hover(|s| s.cursor(CursorStyle::Pointer).background(bg))
-                .active(|s| s.cursor(CursorStyle::Pointer).background(abg))
+                .hover(|s| s.cursor(CursorStyle::Pointer).background(bg.get()))
+                .active(|s| s.cursor(CursorStyle::Pointer).background(abg.get()))
         }),
         drag_window_area(empty())
             .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0))
@@ -257,7 +257,7 @@ fn middle(
             }
         })
         .style(move |s| {
-            let (caret_color, bg) = config.with(|config| {
+            let (caret_color, bg) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::EDITOR_BACKGROUND)
@@ -271,9 +271,9 @@ fn middle(
                 .justify_content(Some(JustifyContent::Center))
                 .align_items(Some(AlignItems::Center))
                 .border(1.0)
-                .border_color(caret_color)
+                .border_color(caret_color.get())
                 .border_radius(6.0)
-                .background(bg)
+                .background(bg.get())
         }),
         stack((
             tooltip_label(
@@ -389,18 +389,18 @@ fn right(
                     }))
             }),
             container(label(|| "1".to_string()).style(move |s| {
-                let (caret_color, bg) = config.with(|config| {
+                let (caret_color, bg) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_CARET),
                         config.color(LapceColor::EDITOR_BACKGROUND)
                     )
                 });
                 s.font_size(10.0)
-                    .color(bg)
+                    .color(bg.get())
                     .border_radius(100.0)
                     .margin_left(5.0)
                     .margin_top(10.0)
-                    .background(caret_color)
+                    .background(caret_color.get())
             }))
             .style(move |s| {
                 let has_update = has_update();
@@ -464,7 +464,7 @@ pub fn title(window_tab_data: WindowWorkspaceData) -> impl View {
         }
     })
     .style(move |s| {
-        let (caret_color, bg) = config.with(|config| {
+        let (caret_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::PANEL_BACKGROUND)
@@ -473,9 +473,9 @@ pub fn title(window_tab_data: WindowWorkspaceData) -> impl View {
         s.width_pct(100.0)
             .height(37.0)
             .items_center()
-            .background(bg)
+            .background(bg.get())
             .border_bottom(1.0)
-            .border_color(caret_color)
+            .border_color(caret_color.get())
     })
     .debug_name("Title / Top Bar")
 }

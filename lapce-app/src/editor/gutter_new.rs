@@ -37,15 +37,15 @@ pub fn gutter_data(
     let screen_lines = e_data.editor.screen_lines.read_only();
 
     let (fg, dim, style_font_size, font_family) =
-        window_tab_data.common.config.with(|config| {
+        window_tab_data.common.config.signal(|config| {
             (
                 config.color(LapceColor::EDITOR_FOREGROUND),
                 config.color(LapceColor::EDITOR_DIM),
-                config.editor.font_size(),
-                config.editor.font_family.clone()
+                config.editor.font_size.signal(),
+                config.editor.font_family.signal()
             )
         });
-
+    let  (fg, dim, style_font_size, font_family) =  (fg.get(), dim.get(), style_font_size.get(), font_family.get());
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines
@@ -71,7 +71,7 @@ pub fn gutter_data(
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.clone()
+                                style_font_family: font_family.1.clone()
                             }
                         } else if breakpoints
                             .contains_key(&text.folded_line.origin_line_start)
@@ -85,7 +85,7 @@ pub fn gutter_data(
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.clone()
+                                style_font_family: font_family.1.clone()
                             }
                         } else {
                             GutterData {
@@ -97,7 +97,7 @@ pub fn gutter_data(
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.clone()
+                                style_font_family: font_family.1.clone()
                             }
                         }
                     },
@@ -110,7 +110,7 @@ pub fn gutter_data(
                             style_color: dim,
                             style_width: width,
                             style_font_size,
-                            style_font_family: font_family.clone()
+                            style_font_family: font_family.1.clone()
                         }
                     }
                 }

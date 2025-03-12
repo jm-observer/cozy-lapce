@@ -2839,7 +2839,7 @@ impl WindowWorkspaceData {
 
     /// Get the mode for the current editor or terminal
     pub fn mode(&self) -> Mode {
-        if self.common.config.with(|x| x.core.modal) {
+        if self.common.config.signal(|x| x.core.modal.signal()).get() {
             let mode = if self.common.focus.get() == Focus::Workbench {
                 self.main_split
                     .active_editor

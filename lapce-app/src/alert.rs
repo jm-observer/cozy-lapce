@@ -149,7 +149,7 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
         })
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
-            let (border_color, fr, br) = config.with(|config| {
+            let (border_color, fr, br) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::EDITOR_FOREGROUND),
@@ -160,9 +160,9 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                 .width(250.0)
                 .border(1.0)
                 .border_radius(6.0)
-                .border_color(border_color)
-                .color(fr)
-                .background(br)
+                .border_color(border_color.get())
+                .color(fr.get())
+                .background(br.get())
         })
     })
     .on_event_stop(EventListener::PointerDown, move |_| {})

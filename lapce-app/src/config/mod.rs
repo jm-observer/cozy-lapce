@@ -5,7 +5,6 @@ use std::{
     sync::Arc
 };
 
-use ::core::slice;
 use floem::{
     peniko::Color,
     prelude::{SignalGet, SignalWith, palette},
@@ -15,13 +14,12 @@ use floem::reactive::Scope;
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
-    icon::LapceIcons,
     workspace::{LapceWorkspace, LapceWorkspaceType}
 };
 use lapce_proxy::plugin::wasi::sync_find_all_volts;
 use lapce_rpc::plugin::VoltID;
 use log::error;
-use lsp_types::{CompletionItemKind, SymbolKind};
+use lsp_types::{CompletionItemKind};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
@@ -762,102 +760,102 @@ impl LapceConfig {
         Some(path)
     }
 
-    fn ui_svg(&self, icon: &'static str) -> String {
-        let svg = self.icon_theme.ui.get(icon).and_then(|path| {
-            let path = self.icon_theme.path.join(path);
-            self.svg_store.write().get_svg_on_disk(&path)
-        });
+    // fn ui_svg(&self, icon: &'static str) -> String {
+    //     let svg = self.icon_theme.ui.get(icon).and_then(|path| {
+    //         let path = self.icon_theme.path.join(path);
+    //         self.svg_store.write().get_svg_on_disk(&path)
+    //     });
+    //
+    //     svg.unwrap_or_else(|| {
+    //         let name = DEFAULT_ICON_THEME_ICON_CONFIG.ui.get(icon).unwrap();
+    //         self.svg_store.write().get_default_svg(name)
+    //     })
+    // }
 
-        svg.unwrap_or_else(|| {
-            let name = DEFAULT_ICON_THEME_ICON_CONFIG.ui.get(icon).unwrap();
-            self.svg_store.write().get_default_svg(name)
-        })
-    }
+    // fn files_svg(&self, paths: &[&Path]) -> (String, Option<Color>) {
+    //     let svg = self
+    //         .icon_theme
+    //         .resolve_path_to_icon(paths)
+    //         .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
+    //
+    //     if let Some(svg) = svg {
+    //         let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
+    //             Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
+    //         } else {
+    //             None
+    //         };
+    //         (svg, color)
+    //     } else {
+    //         (
+    //             self.ui_svg(LapceIcons::FILE),
+    //             Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
+    //         )
+    //     }
+    // }
+    //
+    // fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
+    //     self.files_svg(slice::from_ref(&path))
+    // }
 
-    fn files_svg(&self, paths: &[&Path]) -> (String, Option<Color>) {
-        let svg = self
-            .icon_theme
-            .resolve_path_to_icon(paths)
-            .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
+    // pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {
+    //     let kind_str = match *kind {
+    //         SymbolKind::ARRAY => LapceIcons::SYMBOL_KIND_ARRAY,
+    //         SymbolKind::BOOLEAN => LapceIcons::SYMBOL_KIND_BOOLEAN,
+    //         SymbolKind::CLASS => LapceIcons::SYMBOL_KIND_CLASS,
+    //         SymbolKind::CONSTANT => LapceIcons::SYMBOL_KIND_CONSTANT,
+    //         SymbolKind::ENUM_MEMBER => LapceIcons::SYMBOL_KIND_ENUM_MEMBER,
+    //         SymbolKind::ENUM => LapceIcons::SYMBOL_KIND_ENUM,
+    //         SymbolKind::EVENT => LapceIcons::SYMBOL_KIND_EVENT,
+    //         SymbolKind::FIELD => LapceIcons::SYMBOL_KIND_FIELD,
+    //         SymbolKind::FILE => LapceIcons::SYMBOL_KIND_FILE,
+    //         SymbolKind::INTERFACE => LapceIcons::SYMBOL_KIND_INTERFACE,
+    //         SymbolKind::KEY => LapceIcons::SYMBOL_KIND_KEY,
+    //         SymbolKind::FUNCTION => LapceIcons::SYMBOL_KIND_FUNCTION,
+    //         SymbolKind::METHOD => LapceIcons::SYMBOL_KIND_METHOD,
+    //         SymbolKind::OBJECT => LapceIcons::SYMBOL_KIND_OBJECT,
+    //         SymbolKind::NAMESPACE => LapceIcons::SYMBOL_KIND_NAMESPACE,
+    //         SymbolKind::NUMBER => LapceIcons::SYMBOL_KIND_NUMBER,
+    //         SymbolKind::OPERATOR => LapceIcons::SYMBOL_KIND_OPERATOR,
+    //         SymbolKind::TYPE_PARAMETER => LapceIcons::SYMBOL_KIND_TYPE_PARAMETER,
+    //         SymbolKind::PROPERTY => LapceIcons::SYMBOL_KIND_PROPERTY,
+    //         SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
+    //         SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
+    //         SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
+    //         _ => return None
+    //     };
+    //
+    //     Some(self.ui_svg(kind_str))
+    // }
 
-        if let Some(svg) = svg {
-            let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
-                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
-            } else {
-                None
-            };
-            (svg, color)
-        } else {
-            (
-                self.ui_svg(LapceIcons::FILE),
-                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
-            )
-        }
-    }
-
-    fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
-        self.files_svg(slice::from_ref(&path))
-    }
-
-    pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {
-        let kind_str = match *kind {
-            SymbolKind::ARRAY => LapceIcons::SYMBOL_KIND_ARRAY,
-            SymbolKind::BOOLEAN => LapceIcons::SYMBOL_KIND_BOOLEAN,
-            SymbolKind::CLASS => LapceIcons::SYMBOL_KIND_CLASS,
-            SymbolKind::CONSTANT => LapceIcons::SYMBOL_KIND_CONSTANT,
-            SymbolKind::ENUM_MEMBER => LapceIcons::SYMBOL_KIND_ENUM_MEMBER,
-            SymbolKind::ENUM => LapceIcons::SYMBOL_KIND_ENUM,
-            SymbolKind::EVENT => LapceIcons::SYMBOL_KIND_EVENT,
-            SymbolKind::FIELD => LapceIcons::SYMBOL_KIND_FIELD,
-            SymbolKind::FILE => LapceIcons::SYMBOL_KIND_FILE,
-            SymbolKind::INTERFACE => LapceIcons::SYMBOL_KIND_INTERFACE,
-            SymbolKind::KEY => LapceIcons::SYMBOL_KIND_KEY,
-            SymbolKind::FUNCTION => LapceIcons::SYMBOL_KIND_FUNCTION,
-            SymbolKind::METHOD => LapceIcons::SYMBOL_KIND_METHOD,
-            SymbolKind::OBJECT => LapceIcons::SYMBOL_KIND_OBJECT,
-            SymbolKind::NAMESPACE => LapceIcons::SYMBOL_KIND_NAMESPACE,
-            SymbolKind::NUMBER => LapceIcons::SYMBOL_KIND_NUMBER,
-            SymbolKind::OPERATOR => LapceIcons::SYMBOL_KIND_OPERATOR,
-            SymbolKind::TYPE_PARAMETER => LapceIcons::SYMBOL_KIND_TYPE_PARAMETER,
-            SymbolKind::PROPERTY => LapceIcons::SYMBOL_KIND_PROPERTY,
-            SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
-            SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
-            SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
-            _ => return None
-        };
-
-        Some(self.ui_svg(kind_str))
-    }
-
-    pub fn symbol_color(&self, kind: &SymbolKind) -> Option<Color> {
-        let theme_str = match *kind {
-            SymbolKind::METHOD => "method",
-            SymbolKind::FUNCTION => "method",
-            SymbolKind::ENUM => "enum",
-            SymbolKind::ENUM_MEMBER => "enum-member",
-            SymbolKind::CLASS => "class",
-            SymbolKind::VARIABLE => "field",
-            SymbolKind::STRUCT => "structure",
-            SymbolKind::CONSTANT => "constant",
-            SymbolKind::PROPERTY => "property",
-            SymbolKind::FIELD => "field",
-            SymbolKind::INTERFACE => "interface",
-            SymbolKind::ARRAY => "",
-            SymbolKind::BOOLEAN => "",
-            SymbolKind::EVENT => "",
-            SymbolKind::FILE => "",
-            SymbolKind::KEY => "",
-            SymbolKind::OBJECT => "",
-            SymbolKind::NAMESPACE => "",
-            SymbolKind::NUMBER => "number",
-            SymbolKind::OPERATOR => "",
-            SymbolKind::TYPE_PARAMETER => "",
-            SymbolKind::STRING => "string",
-            _ => return None
-        };
-
-        self.style_color(theme_str)
-    }
+    // pub fn symbol_color(&self, kind: &SymbolKind) -> Option<Color> {
+    //     let theme_str = match *kind {
+    //         SymbolKind::METHOD => "method",
+    //         SymbolKind::FUNCTION => "method",
+    //         SymbolKind::ENUM => "enum",
+    //         SymbolKind::ENUM_MEMBER => "enum-member",
+    //         SymbolKind::CLASS => "class",
+    //         SymbolKind::VARIABLE => "field",
+    //         SymbolKind::STRUCT => "structure",
+    //         SymbolKind::CONSTANT => "constant",
+    //         SymbolKind::PROPERTY => "property",
+    //         SymbolKind::FIELD => "field",
+    //         SymbolKind::INTERFACE => "interface",
+    //         SymbolKind::ARRAY => "",
+    //         SymbolKind::BOOLEAN => "",
+    //         SymbolKind::EVENT => "",
+    //         SymbolKind::FILE => "",
+    //         SymbolKind::KEY => "",
+    //         SymbolKind::OBJECT => "",
+    //         SymbolKind::NAMESPACE => "",
+    //         SymbolKind::NUMBER => "number",
+    //         SymbolKind::OPERATOR => "",
+    //         SymbolKind::TYPE_PARAMETER => "",
+    //         SymbolKind::STRING => "string",
+    //         _ => return None
+    //     };
+    //
+    //     self.style_color(theme_str)
+    // }
 
     pub fn logo_svg(&self) -> String {
         self.svg_store.read().logo_svg()

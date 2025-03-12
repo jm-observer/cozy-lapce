@@ -551,7 +551,7 @@ fn debug_stack_frames(
                     });
                 })
                 .style(move |s| {
-                    let (ed, hbg) = config.with(|config| {
+                    let (ed, hbg) = config.signal(|config| {
                         (
                             config.color(LapceColor::EDITOR_DIM),
                             config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
@@ -560,9 +560,9 @@ fn debug_stack_frames(
                     s.padding_left(20.0)
                         .padding_right(10.0)
                         .min_width_pct(100.0)
-                        .apply_if(!has_source, |s| s.color(ed))
+                        .apply_if(!has_source, |s| s.color(ed.get()))
                         .hover(|s| {
-                            s.background(hbg).apply_if(has_source, |s| {
+                            s.background(hbg.get()).apply_if(has_source, |s| {
                                 s.cursor(CursorStyle::Pointer)
                             })
                         })

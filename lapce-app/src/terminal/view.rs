@@ -43,7 +43,7 @@ use crate::{
 const CLICK_THRESHOLD: u128 = 400;
 
 enum TerminalViewState {
-    Config,
+    // Config,
     Focus(bool),
     // Raw(Arc<RwLock<RawTerminal>>),
 }
@@ -101,10 +101,10 @@ pub fn terminal_view(
     });
 
     let config = terminal_panel_data.common.config;
-    create_effect(move |_| {
-        config.with(|_c| {});
-        id.update_state(TerminalViewState::Config);
-    });
+    // create_effect(move |_| {
+    //     config.with(|_c| {});
+    //     id.update_state(TerminalViewState::Config);
+    // });
 
     let proxy = terminal_panel_data.common.proxy.clone();
 
@@ -614,7 +614,7 @@ impl View for TerminalView {
     ) {
         if let Ok(state) = state.downcast() {
             match *state {
-                TerminalViewState::Config => {},
+                // TerminalViewState::Config => {},
                 TerminalViewState::Focus(is_focused) => {
                     self.is_focused = is_focused;
                 },

@@ -724,7 +724,7 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
             ),
             label(move || control(local_version_info.clone()))
                 .style(move |s| {
-                    let (fg, bg, dim) = config.with(|config| {
+                    let (fg, bg, dim) = config.signal(|config| {
                         (
                             config
                                 .color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
@@ -733,17 +733,18 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             config.color(LapceColor::EDITOR_DIM)
                         )
                     });
+                    let bg = bg.get();
                     s.margin_left(10)
                         .padding_horiz(10)
                         .border_radius(6.0)
-                        .color(fg)
+                        .color(fg.get())
                         .background(bg)
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer)
                                 .background(bg.multiply_alpha(0.8))
                         })
                         .active(|s| s.background(bg.multiply_alpha(0.6)))
-                        .disabled(|s| s.background(dim))
+                        .disabled(|s| s.background(dim.get()))
                         .selectable(false)
                 })
                 .disabled(move || installing.map(|i| i.get()).unwrap_or(false))
