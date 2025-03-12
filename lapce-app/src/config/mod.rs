@@ -762,7 +762,7 @@ impl LapceConfig {
         Some(path)
     }
 
-    pub fn ui_svg(&self, icon: &'static str) -> String {
+    fn ui_svg(&self, icon: &'static str) -> String {
         let svg = self.icon_theme.ui.get(icon).and_then(|path| {
             let path = self.icon_theme.path.join(path);
             self.svg_store.write().get_svg_on_disk(&path)
@@ -774,7 +774,7 @@ impl LapceConfig {
         })
     }
 
-    pub fn files_svg(&self, paths: &[&Path]) -> (String, Option<Color>) {
+    fn files_svg(&self, paths: &[&Path]) -> (String, Option<Color>) {
         let svg = self
             .icon_theme
             .resolve_path_to_icon(paths)
@@ -795,7 +795,7 @@ impl LapceConfig {
         }
     }
 
-    pub fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
+    fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
         self.files_svg(slice::from_ref(&path))
     }
 

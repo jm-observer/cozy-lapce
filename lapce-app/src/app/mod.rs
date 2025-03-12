@@ -2354,12 +2354,15 @@ fn palette_item(
             container(
                 stack((
                     svg(move || config.with_file_svg(&path).0).style(move |s| {
-                        let (size, color) = config.with(|config| {
+                        let (size, icon_theme) = config.signal(|config| {
                             (
-                                config.ui.icon_size() as f32,
-                                config.file_svg(&style_path).1
+                                config.ui.icon_size.signal(), config.icon_theme.signal()
                             )
                         });
+                        let color = icon_theme.with(|config| {
+                            config.file_svg(&style_path).1
+                        });
+                        let size = size.get() as f32;
                         s.min_width(size)
                             .size(size, size)
                             .margin_right(5.0)
@@ -2418,11 +2421,14 @@ fn palette_item(
             container(
                 stack((
                     svg(move || {
-                        config.with(|config| {
-                            config
-                                .symbol_svg(&kind)
-                                .unwrap_or_else(|| config.ui_svg(LapceIcons::FILE))
-                        })
+                        let (symbol_svg, file_svg) = config.signal(|config| {
+                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
+                        });
+                        if let Some(svg) = symbol_svg {
+                            svg.get()
+                        } else {
+                            file_svg.get()
+                        }
                     })
                     .style(move |s| {
                         let (size, bg) = config.with(|config| {
@@ -2502,11 +2508,14 @@ fn palette_item(
             container(
                 stack((
                     svg(move || {
-                        config.with(|config| {
-                            config
-                                .symbol_svg(&kind)
-                                .unwrap_or(config.ui_svg(LapceIcons::FILE))
-                        })
+                        let (symbol_svg, file_svg) = config.signal(|config| {
+                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
+                        });
+                        if let Some(svg) = symbol_svg {
+                            svg.get()
+                        } else {
+                            file_svg.get()
+                        }
                     })
                     .style(move |s| {
                         let (caret_color, size) = config.with(|config| {

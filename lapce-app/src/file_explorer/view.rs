@@ -394,20 +394,21 @@ fn file_explorer_view(
                             }
                         })
                         .style(move |s| {
-                            let (size, color, file_svg) = config.with(|config| {
+                            let (size, color, file_svg) = config.signal(|config| {
                                 (
-                                    config.ui.icon_size() as f32,
+                                    config.ui.icon_size.signal(),
                                     config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                                    kind_for_style
-                                        .path()
-                                        .and_then(|p| config.file_svg(p).1)
+                                    config.icon_theme.signal()
                                 )
                             });
-
+                            let file_svg = kind_for_style
+                                .path()
+                                .and_then(|p| file_svg.with(|x| x.file_svg(p).1));
+                            let size = size.get() as f32;
                             s.size(size, size)
                                 .flex_shrink(0.0)
                                 .margin_horiz(6.0)
-                                .apply_if(is_dir, |s| s.color(color))
+                                .apply_if(is_dir, |s| s.color(color.get()))
                                 .apply_if(!is_dir, |s| {
                                     s.apply_opt(file_svg, Style::color)
                                 })

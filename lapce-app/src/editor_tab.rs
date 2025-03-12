@@ -141,8 +141,13 @@ impl EditorTabChildId {
 
                 let (icon, color, name, is_pristine) = match path {
                     Some((ref path, is_pritine)) => {
-                        let (svg, color) =
-                            config.with(|config| config.file_svg(path));
+                        let icon_theme = config.signal(|config| {
+                                config.icon_theme.signal()
+                        });
+                        let (svg, color) = icon_theme.with(|x| x.file_svg(&path));
+
+                        // let (svg, color) =
+                        //     config.with(|config| config.file_svg(path));
                         (
                             svg,
                             color,
@@ -154,13 +159,13 @@ impl EditorTabChildId {
                         )
                     },
                     None => {
-                        let (svg, color) = config.with(|config| {
+                        let (svg, color) = config.signal(|config| {
                             (
                                 config.ui_svg(LapceIcons::FILE),
                                 config.color(LapceColor::LAPCE_ICON_ACTIVE)
                             )
                         });
-                        (svg, Some(color), "local".to_string(), true)
+                        (svg.get(), Some(color.get()), "local".to_string(), true)
                     }
                 };
                 EditorTabChildViewInfo {
@@ -211,17 +216,24 @@ impl EditorTabChildId {
                             "{} (Diff)",
                             path.file_name().unwrap_or_default().to_string_lossy()
                         );
-                        let (svg, color) =
-                            config.with(|config| config.file_svg(&path));
+                        // let (svg, color) =
+                        //     config.with(|config| config.file_svg(&path));
+                        let icon_theme = config.signal(|config| {
+                            config.icon_theme.signal()
+                        });
+                        let (svg, color) = icon_theme.with(|x| x.file_svg(&path));
+
+
                         (svg, color, file_name, is_pristine)
                     },
                     [
                         Some((left_path, left_is_pristine)),
                         Some((right_path, right_is_pristine))
                     ] => {
-                        let (svg, color) = config.with(|config| {
-                            config.files_svg(&[&left_path, &right_path])
+                        let icon_theme = config.signal(|config| {
+                            config.icon_theme.signal()
                         });
+                        let (svg, color) = icon_theme.with(|x| x.files_svg(&[&left_path, &right_path]));
 
                         let [left_file_name, right_file_name] =
                             [&left_path, &right_path].map(|path| {
@@ -237,13 +249,13 @@ impl EditorTabChildId {
                         )
                     },
                     [None, None] => {
-                        let (svg, color) = config.with(|config| {
+                        let (svg, color) = config.signal(|config| {
                             (
                                 config.ui_svg(LapceIcons::FILE),
                                 config.color(LapceColor::LAPCE_ICON_ACTIVE)
                             )
                         });
-                        (svg, Some(color), "local".to_string(), true)
+                        (svg.get(), Some(color.get()), "local".to_string(), true)
                     }
                 };
                 EditorTabChildViewInfo {
@@ -256,15 +268,15 @@ impl EditorTabChildId {
                 }
             }),
             EditorTabChildId::Settings(_) => create_memo(move |_| {
-                let (caret_color, ui_svg) = config.with(|config| {
+                let (caret_color, ui_svg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_ACTIVE),
                         config.ui_svg(LapceIcons::SETTINGS)
                     )
                 });
                 EditorTabChildViewInfo {
-                    icon: ui_svg,
-                    color: Some(caret_color),
+                    icon: ui_svg.get(),
+                    color: Some(caret_color.get()),
                     name: "Settings".to_string(),
                     path: None,
                     confirmed,
@@ -272,15 +284,15 @@ impl EditorTabChildId {
                 }
             }),
             EditorTabChildId::ThemeColorSettings(_) => create_memo(move |_| {
-                let (caret_color, ui_svg) = config.with(|config| {
+                let (caret_color, ui_svg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_ACTIVE),
                         config.ui_svg(LapceIcons::SYMBOL_COLOR)
                     )
                 });
                 EditorTabChildViewInfo {
-                    icon: ui_svg,
-                    color: Some(caret_color),
+                    icon: ui_svg.get(),
+                    color: Some(caret_color.get()),
                     name: "Theme Colors".to_string(),
                     path: None,
                     confirmed,
@@ -288,15 +300,15 @@ impl EditorTabChildId {
                 }
             }),
             EditorTabChildId::Keymap(_) => create_memo(move |_| {
-                let (caret_color, ui_svg) = config.with(|config| {
+                let (caret_color, ui_svg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_ACTIVE),
                         config.ui_svg(LapceIcons::KEYBOARD)
                     )
                 });
                 EditorTabChildViewInfo {
-                    icon: ui_svg,
-                    color: Some(caret_color),
+                    icon: ui_svg.get(),
+                    color: Some(caret_color.get()),
                     name: "Keyboard Shortcuts".to_string(),
                     path: None,
                     confirmed,
@@ -317,15 +329,15 @@ impl EditorTabChildId {
                         })
                     })
                     .unwrap_or_else(|| id.name.clone());
-                let (caret_color, ui_svg) = config.with(|config| {
+                let (caret_color, ui_svg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_ACTIVE),
                         config.ui_svg(LapceIcons::EXTENSIONS)
                     )
                 });
                 EditorTabChildViewInfo {
-                    icon: ui_svg,
-                    color: Some(caret_color),
+                    icon: ui_svg.get(),
+                    color: Some(caret_color.get()),
                     name: display_name,
                     path: None,
                     confirmed,

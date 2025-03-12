@@ -345,13 +345,14 @@ pub fn symbol_panel(
                             }
                         }),
                     svg(move || {
-                        let (symbol_svg, bg) = config.with(|config| {
-                            (
-                                config.symbol_svg(&kind), config.ui_svg(LapceIcons::FILE)
-                            )
+                        let (symbol_svg, file_svg) = config.signal(|config| {
+                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
                         });
-                        symbol_svg
-                            .unwrap_or(bg)
+                        if let Some(svg) = symbol_svg {
+                            svg.get()
+                        } else {
+                            file_svg.get()
+                        }
                     }).style(move |s| {
                         let (caret_color, size, symbol_color) = config.signal(|config| {
                             (

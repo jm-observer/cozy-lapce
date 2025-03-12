@@ -84,11 +84,14 @@ pub fn common_reference_panel(
                             }
                         }),
                         svg(move || {
-                            config.with(|config| {
-                                config
-                                    .symbol_svg(&SymbolKind::FILE)
-                                    .unwrap_or(config.ui_svg(LapceIcons::FILE))
-                            })
+                            let (symbol_svg, file_svg) = config.signal(|config| {
+                                (config.symbol_svg(SymbolKind::FILE), config.ui_svg(LapceIcons::FILE))
+                            });
+                            if let Some(svg) = symbol_svg {
+                                svg.get()
+                            } else {
+                                file_svg.get()
+                            }
                         })
                         .style(move |s| {
                             let (size, color) = config.signal(|config| {

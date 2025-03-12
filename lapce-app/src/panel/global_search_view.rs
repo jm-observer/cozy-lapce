@@ -10,6 +10,7 @@ use floem::{
         Decorators, container, label, scroll, stack, text_input, virtual_stack
     }
 };
+use floem::prelude::SignalWith;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind}
@@ -245,9 +246,14 @@ fn result_fold(
                 .color(border_color.get())
         }),
         svg(move || config.with_file_svg(&path).0).style(move |s| {
-            let (color, size) = config.with(|config| {
-                (config.file_svg(&style_path).1, config.ui.icon_size() as f32)
+            let (size, file_svg) = config.signal(|config| {
+                (
+                    config.ui.icon_size.signal(),
+                    config.icon_theme.signal()
+                )
             });
+            let color = file_svg.with(|x| x.file_svg(&style_path).1);
+            let size = size.get() as f32;
             // let size = config.ui.icon_size() as f32;
             // let color = config.file_svg(&style_path).1;
             s.margin_right(6.0)
