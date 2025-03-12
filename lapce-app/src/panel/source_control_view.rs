@@ -69,16 +69,16 @@ pub fn source_control_panel(
                         )
                         .style(|x| x.width_pct(100.0).min_width(100.0)),
                         label(|| "Commit Message".to_string()).style(move |s| {
-                            let (caret_color, line_height) = config.with(|config| {
+                            let (caret_color, line_height) = config.signal(|config| {
                                 (
                                     config.color(LapceColor::EDITOR_DIM),
-                                    config.editor.line_height() as f32
+                                    config.editor.line_height.signal()
                                 )
                             });
                             s.absolute()
                                 .items_center()
-                                .height(line_height)
-                                .color(caret_color)
+                                .height(line_height.get() as f32)
+                                .color(caret_color.get())
                                 .apply_if(!is_empty.get(), |s| s.hide())
                                 .selectable(false)
                         })
@@ -184,7 +184,7 @@ pub fn source_control_panel(
                 .style(|s| s.absolute().size_pct(100.0, 100.0))
             })
             .style(move |s| {
-                let (caret_color, bg) = config.with(|config| {
+                let (caret_color, bg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_BORDER),
                         config.color(LapceColor::EDITOR_BACKGROUND)
@@ -195,8 +195,8 @@ pub fn source_control_panel(
                     .border(1.0)
                     .padding(-1.0)
                     .border_radius(6.0)
-                    .border_color(caret_color)
-                    .background(bg)
+                    .border_color(caret_color.get())
+                    .background(bg.get())
             }),
             {
                 let source_control = source_control.clone();
@@ -205,7 +205,7 @@ pub fn source_control_panel(
                         source_control.commit();
                     })
                     .style(move |s| {
-                        let (caret_color, bg, abg) = config.with(|config| {
+                        let (caret_color, bg, abg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
@@ -220,9 +220,9 @@ pub fn source_control_panel(
                             .justify_center()
                             .border(1.0)
                             .border_radius(6.0)
-                            .border_color(caret_color)
-                            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg))
-                            .active(|s| s.background(abg))
+                            .border_color(caret_color.get())
+                            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg.get()))
+                            .active(|s| s.background(abg.get()))
                             .selectable(false)
                     })
             }
@@ -288,7 +288,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                         }
                     });
                 }),
-            svg(move || config.with_file_svg(&path).0).style(move |s| {
+            svg(move || config.with_file_svg(&path)).style(move |s| {
                 let (size, color) = config.with(|config| {
                     (config.ui.icon_size() as f32, config.file_svg(&style_path).1)
                 });

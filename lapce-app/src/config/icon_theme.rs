@@ -1,10 +1,16 @@
+use core::slice;
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf}
 };
-
+use std::sync::Arc;
 use indexmap::IndexMap;
+use lsp_types::SymbolKind;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use lapce_core::icon::LapceIcons;
+use crate::config::DEFAULT_ICON_THEME_ICON_CONFIG;
+use crate::config::svg::SvgStore;
 
 /// Returns the first item yielded from `items` if at least one item is yielded,
 /// all yielded items are `Some`, and all yielded items compare equal, else
@@ -30,7 +36,20 @@ pub struct IconThemeConfig {
     pub ui:               IndexMap<String, String>,
     pub foldername:       IndexMap<String, String>,
     pub filename:         IndexMap<String, String>,
-    pub extension:        IndexMap<String, String>
+    pub extension:        IndexMap<String, String>,
+    #[serde(skip)]
+    pub svg_store:        Arc<RwLock<SvgStore>>,
+}
+
+impl PartialEq for IconThemeConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path && self.name == other.name && self.use_editor_color == other.use_editor_color
+            && self.ui == other.ui && self.foldername == other.foldername && self.filename == other.filename
+        && self.extension == other.extension
+    }
+}
+impl Eq for IconThemeConfig {
+    
 }
 
 impl IconThemeConfig {
@@ -54,6 +73,74 @@ impl IconThemeConfig {
                     .and_then(|extension| self.extension.get(extension))
             })
             .map(|icon| self.path.join(icon))
+    }
+
+    pub fn ui_svg(&self, icon: &'static str) -> String {
+        let svg = self.ui.get(icon).and_then(|path| {
+            let path = self.path.join(path);
+            self.svg_store.write().get_svg_on_disk(&path)
+        });
+
+        svg.unwrap_or_else(|| {
+            let name = DEFAULT_ICON_THEME_ICON_CONFIG.ui.get(icon).unwrap();
+            self.svg_store.write().get_default_svg(name)
+        })
+    }
+
+    pub fn files_svg(&self, paths: &[&Path]) -> String {
+        let svg = self
+            .resolve_path_to_icon(paths)
+            .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
+
+        if let Some(svg) = svg {
+            // let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
+            //     Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
+            // } else {
+            //     None
+            // };
+            // (svg, color)
+            svg
+        } else {
+            // (
+            //     self.ui_svg(LapceIcons::FILE),
+            //     Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
+            // )
+            self.ui_svg(LapceIcons::FILE)
+        }
+    }
+
+    pub fn file_svg(&self, path: &Path) -> String {
+        self.files_svg(slice::from_ref(&path))
+    }
+
+    pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {
+        let kind_str = match *kind {
+            SymbolKind::ARRAY => LapceIcons::SYMBOL_KIND_ARRAY,
+            SymbolKind::BOOLEAN => LapceIcons::SYMBOL_KIND_BOOLEAN,
+            SymbolKind::CLASS => LapceIcons::SYMBOL_KIND_CLASS,
+            SymbolKind::CONSTANT => LapceIcons::SYMBOL_KIND_CONSTANT,
+            SymbolKind::ENUM_MEMBER => LapceIcons::SYMBOL_KIND_ENUM_MEMBER,
+            SymbolKind::ENUM => LapceIcons::SYMBOL_KIND_ENUM,
+            SymbolKind::EVENT => LapceIcons::SYMBOL_KIND_EVENT,
+            SymbolKind::FIELD => LapceIcons::SYMBOL_KIND_FIELD,
+            SymbolKind::FILE => LapceIcons::SYMBOL_KIND_FILE,
+            SymbolKind::INTERFACE => LapceIcons::SYMBOL_KIND_INTERFACE,
+            SymbolKind::KEY => LapceIcons::SYMBOL_KIND_KEY,
+            SymbolKind::FUNCTION => LapceIcons::SYMBOL_KIND_FUNCTION,
+            SymbolKind::METHOD => LapceIcons::SYMBOL_KIND_METHOD,
+            SymbolKind::OBJECT => LapceIcons::SYMBOL_KIND_OBJECT,
+            SymbolKind::NAMESPACE => LapceIcons::SYMBOL_KIND_NAMESPACE,
+            SymbolKind::NUMBER => LapceIcons::SYMBOL_KIND_NUMBER,
+            SymbolKind::OPERATOR => LapceIcons::SYMBOL_KIND_OPERATOR,
+            SymbolKind::TYPE_PARAMETER => LapceIcons::SYMBOL_KIND_TYPE_PARAMETER,
+            SymbolKind::PROPERTY => LapceIcons::SYMBOL_KIND_PROPERTY,
+            SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
+            SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
+            SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
+            _ => return None
+        };
+
+        Some(self.ui_svg(kind_str))
     }
 }
 

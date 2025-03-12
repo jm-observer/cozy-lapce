@@ -484,12 +484,14 @@ fn drag_line(
     })
     .style(move |s| {
         let is_dragging = drag_start.get().is_some();
-        let (caret_color, bg) = config.with(|config| {
+        let (caret_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::EDITOR_CARET),
                 config.color(LapceColor::PANEL_BACKGROUND)
             )
         });
+        let bg = bg.get();
+        let caret_color = caret_color.get();
         s.background(bg)
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0).height(4.0)
@@ -574,7 +576,7 @@ pub(crate) fn new_panel_picker(
                     dragging.set(None);
                 })
                 .dragging_style(move |s| {
-                    let (caret_color, bg) = config.with(|config| {
+                    let (caret_color, bg) = config.signal(|config| {
                         (
                             config.color(LapceColor::LAPCE_BORDER),
                             config.color(LapceColor::PANEL_BACKGROUND)
@@ -582,9 +584,9 @@ pub(crate) fn new_panel_picker(
                     });
                     s.border(1.0)
                         .border_radius(6.0)
-                        .border_color(caret_color)
+                        .border_color(caret_color.get())
                         .padding(6.0)
-                        .background(bg.multiply_alpha(0.7))
+                        .background(bg.get().multiply_alpha(0.7))
                 })
                 .style(|s| s.padding(1.0)),
                 label(|| "".to_string()).style(move |s| {

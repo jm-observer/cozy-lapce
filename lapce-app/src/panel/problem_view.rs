@@ -217,7 +217,7 @@ fn file_view(
                     let size = icon_size.get() as f32;
                     s.margin_right(6.0).size(size, size).color(border_color.get())
                 }),
-                svg(move || config.with_file_svg(&path).0).style(move |s| {
+                svg(move || config.with_file_svg(&path)).style(move |s| {
                     let (color, icon_size) = config.with(|config| {
                         (config.file_svg(&style_path).1, config.ui.icon_size())
                     });

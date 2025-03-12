@@ -151,11 +151,13 @@ impl WithLapceConfig {
     }
 
     pub fn with_ui_svg(&self, svg: &'static str) -> String {
-        self.with(|config| config.ui_svg(svg))
+        // self.with(|config| config.ui_svg(svg))
+        self.signal(|x| x.icon_theme.signal()).with(|x| x.ui_svg(svg))
     }
 
-    pub fn with_file_svg(&self, path: &Path) -> (String, Option<Color>) {
-        self.with(|config| config.file_svg(path))
+    pub fn with_file_svg(&self, path: &Path) -> String {
+        self.signal(|x| x.icon_theme.signal()).with(|x| x.file_svg(path))
+        // self.with(|config| config.file_svg(path))
     }
 
     pub fn signal<O>(&self, f: impl FnOnce(&LapceConfigSignal) -> O) -> O {
@@ -164,6 +166,10 @@ impl WithLapceConfig {
 
     pub fn with_color(&self, color: &str) -> Color {
         self.config_signal.with_untracked(|x| x.color(color)).get()
+    }
+
+    pub fn with_style_color(&self, color: &str) -> Option<Color> {
+        self.config_signal.with_untracked(|x| x.style_color(color)).map(|x|x.get())
     }
 
     pub fn with_font_size(&self) -> usize  {

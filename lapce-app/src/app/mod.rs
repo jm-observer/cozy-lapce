@@ -2120,7 +2120,7 @@ pub fn clickable_icon_base_with_color(
     )
     .disabled(disabled_fn)
     .style(move |s| {
-        let (caret, hbg, abg) = config.with(|config| {
+        let (caret, hbg, abg) = config.signal(|config| {
             (
                 config.color(LapceColor::EDITOR_CARET),
                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
@@ -2131,9 +2131,9 @@ pub fn clickable_icon_base_with_color(
             .border_radius(6.0)
             .border(1.0)
             .border_color(Color::TRANSPARENT)
-            .apply_if(active_fn(), |s| s.border_color(caret))
-            .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg))
-            .active(|s| s.background(abg))
+            .apply_if(active_fn(), |s| s.border_color(caret.get()))
+            .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg.get()))
+            .active(|s| s.background(abg.get()))
     });
 
     if let Some(on_click) = on_click {
@@ -2353,7 +2353,7 @@ fn palette_item(
             let style_path = path.clone();
             container(
                 stack((
-                    svg(move || config.with_file_svg(&path).0).style(move |s| {
+                    svg(move || config.with_file_svg(&path)).style(move |s| {
                         let (size, color) = config.with(|config| {
                             (
                                 config.ui.icon_size() as f32,
@@ -3213,26 +3213,28 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                         })
                     )
                     .style(move |s| {
-                        let (width, completion_color) = config.with(|config| {
+                        let (width, completion_color) = config.signal(|config| {
                             (
-                                config.editor.line_height() as f32,
+                                config.editor.line_height.signal(),
                                 config.completion_color(item.item.kind)
                             )
                         });
+                        let width = width.get() as f32;
                         s.width(width)
                             .min_width(width)
                             .height_full()
                             .align_items(Some(AlignItems::Center))
                             .font_weight(Weight::BOLD)
                             .apply_opt(completion_color, |s, c| {
+                                let c = c.get();
                                 s.color(c).background(c.multiply_alpha(0.3))
                             })
                     }),
                     focus_text(
                         move || {
-                            if config.with(|config| {
-                                config.editor.completion_item_show_detail
-                            }) {
+                            if config.signal(|config| {
+                                config.editor.completion_item_show_detail.signal()
+                            }).get() {
                                 item.item
                                     .detail
                                     .clone()
@@ -3252,7 +3254,7 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                     })
                     .on_event_stop(EventListener::PointerDown, |_| {})
                     .style(move |s| {
-                        let (caret_color, bg) = config.with(|config| {
+                        let (caret_color, bg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::COMPLETION_CURRENT),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
@@ -3264,9 +3266,9 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                             .size_full()
                             .cursor(CursorStyle::Pointer)
                             .apply_if(active.get() == i, |s| {
-                                s.background(caret_color)
+                                s.background(caret_color.get())
                             })
-                            .hover(move |s| s.background(bg))
+                            .hover(move |s| s.background(bg.get()))
                     })
                 ))
                 .style(move |s| {
@@ -3303,22 +3305,22 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                 return s;
             }
         };
-        let (bg, completion_width, font_family, font_size) = config.with(|config| {
+        let (bg, completion_width, font_family, font_size) = config.signal(|config| {
             (
                 config.color(LapceColor::COMPLETION_BACKGROUND),
-                config.editor.completion_width as i32,
-                config.editor.font_family.clone(),
-                config.editor.font_size() as f32
+                config.editor.completion_width.signal(),
+                config.editor.font_family.signal(),
+                config.editor.font_size.signal()
             )
         });
         s.position(Position::Absolute)
-            .width(completion_width)
+            .width(completion_width.get() as i32)
             .max_height(400.0)
             .margin_left(origin.x as f32)
             .margin_top(origin.y as f32)
-            .background(bg)
-            .font_family(font_family)
-            .font_size(font_size)
+            .background(bg.get())
+            .font_family(font_family.get().1)
+            .font_size(font_size.get() as f32)
             .border_radius(6.0)
     })
     .debug_name("Completion Layer")
@@ -3354,7 +3356,7 @@ fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
                     })
                     .on_event_stop(EventListener::PointerDown, |_| {})
                     .style(move |s| {
-                        let (caret_color, bg) = config.with(|config| {
+                        let (caret_color, bg) = config.signal(|config| {
                             (
                                 config.color(LapceColor::COMPLETION_CURRENT),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
@@ -3368,9 +3370,9 @@ fn code_action(window_tab_data: WindowWorkspaceData) -> impl View {
                             .border_radius(6.0)
                             .cursor(CursorStyle::Pointer)
                             .apply_if(active.get() == i, |s| {
-                                s.background(caret_color)
+                                s.background(caret_color.get())
                             })
-                            .hover(move |s| s.background(bg))
+                            .hover(move |s| s.background(bg.get()))
                     })
                 }
             )

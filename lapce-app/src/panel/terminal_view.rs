@@ -207,7 +207,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
         EventPropagation::Stop
     })
     .style(move |s| {
-        let (caret_color, bg) = config.with(|config| {
+        let (caret_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::PANEL_BACKGROUND),
@@ -216,8 +216,8 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
         s.width_pct(100.0)
             .items_center()
             .border_bottom(1.0)
-            .border_color(caret_color)
-            .background(bg)
+            .border_color(caret_color.get())
+            .background(bg.get())
     })
 }
 

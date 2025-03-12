@@ -309,7 +309,7 @@ fn debug_processes(
                     is_hovered.set(false);
                 })
                 .style(move |s| {
-                    let (cbg, hbg) = config.with(|config| {
+                    let (cbg, hbg) = config.signal(|config| {
                         (
                             config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                             config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
@@ -318,10 +318,10 @@ fn debug_processes(
                     s.padding_vert(6.0)
                         .width_pct(100.0)
                         .items_center()
-                        .apply_if(is_active(), |s| s.background(cbg))
+                        .apply_if(is_active(), |s| s.background(cbg.get()))
                         .hover(|s| {
                             s.cursor(CursorStyle::Pointer)
-                                .background(hbg.multiply_alpha(0.3))
+                                .background(hbg.get().multiply_alpha(0.3))
                         })
                 })
             }
@@ -407,7 +407,7 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             s.apply_if(!type_exists || reference == 0, |s| s.hide())
                         }),
                         text(node.item.ty().unwrap_or("")).style(move |s| {
-                            s.color(config.with(|x| x.style_color("type").unwrap()))
+                            s.color(config.with_style_color("type").unwrap())
                                 .apply_if(!type_exists || reference == 0, |s| {
                                     s.hide()
                                 })

@@ -3266,7 +3266,7 @@ impl EditorData {
                 let content = parse_hover_resp(
                     hover,
                     &directory,
-                    &font_family,
+                    &font_family.0,
                     editor_fg,
                     &style_colors,
                     font_size,

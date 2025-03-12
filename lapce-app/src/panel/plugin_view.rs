@@ -242,14 +242,15 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 plugin.install_volt(info.get_untracked());
             })
             .style(move |s| {
-                let (fg, bg, dim) = config.with(|config| {
+                let (fg, bg, dim) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
                         config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
                         config.color(LapceColor::EDITOR_DIM)
                     )
                 });
-                s.color(fg)
+                let bg = bg.get();
+                s.color(fg.get())
                     .background(bg)
                     .margin_left(6.0)
                     .padding_horiz(6.0)
@@ -259,7 +260,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                             .background(bg.multiply_alpha(0.8))
                     })
                     .active(|s| s.background(bg.multiply_alpha(0.6)))
-                    .disabled(|s| s.background(dim))
+                    .disabled(|s| s.background(dim.get()))
             })
         };
 
@@ -356,7 +357,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             })
             .scroll_style(|s| s.hide_bars(true))
             .style(move |s| {
-                let (caret_color, bg) = config.with(|config| {
+                let (caret_color, bg) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_BACKGROUND),
                         config.color(LapceColor::LAPCE_BORDER)
@@ -365,10 +366,10 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 s.width_pct(100.0)
                     .cursor(CursorStyle::Text)
                     .items_center()
-                    .background(caret_color)
+                    .background(caret_color.get())
                     .border(1.0)
                     .border_radius(6.0)
-                    .border_color(bg)
+                    .border_color(bg.get())
             })
         })
         .style(|s| s.padding(10.0).width_pct(100.0)),

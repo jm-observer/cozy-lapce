@@ -916,11 +916,12 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                                         )
                                     });
                                     let style_colors = config.with(|x| x.style_colors());
+                                    let font_family = font_family.get();
                                     readme.get().unwrap_or_else(|| {
                                         parse_markdown(
                                             "Loading README",
                                             2.0,
-                                            &directory, &font_family.get(), editor_fg.get(), &style_colors, font_size.get() as f32, markdown_blockquote.get(), editor_link.get()
+                                            &directory, &font_family.0, editor_fg.get(), &style_colors, font_size.get() as f32, markdown_blockquote.get(), editor_link.get()
                                         )
                                     })
                                 },

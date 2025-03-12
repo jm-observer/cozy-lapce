@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use floem::peniko::Color;
-use floem::prelude::palette;
+use floem::prelude::{palette, SignalWith};
 use floem::reactive::{batch, ReadSignal, Scope};
 use floem::text::FamilyOwned;
 use log::error;
-use lsp_types::SymbolKind;
+use lsp_types::{CompletionItemKind, SymbolKind};
 use doc::lines::signal::SignalManager;
 use doc::lines::text::RenderWhitespace;
 use crate::config::{LapceConfig};
 use crate::config::editor::{ClickMode, EditorConfig, WrapStyle};
+use crate::config::icon_theme::IconThemeConfig;
 use crate::config::ui::{TabCloseButton, TabSeparatorHeight, UIConfig};
 
 #[derive(Debug, Clone, Default)]
@@ -45,7 +46,7 @@ impl ThemeColorSignal {
 #[derive(Clone)]
 
 pub struct EditorConfigSignal {
-    pub font_family: SignalManager<Vec<FamilyOwned>>,
+    pub font_family: SignalManager<(Vec<FamilyOwned>, String)>,
     pub font_size: SignalManager<usize>,
     pub code_glance_font_size: SignalManager<usize>,
     pub line_height: SignalManager<usize>,
@@ -102,7 +103,7 @@ pub struct EditorConfigSignal {
 
 impl EditorConfigSignal {
     pub fn init(cx: Scope, config: &EditorConfig) -> Self {
-        let font_family = SignalManager::new(cx, FamilyOwned::parse_list(&config.font_family).collect());
+        let font_family = SignalManager::new(cx, (FamilyOwned::parse_list(&config.font_family).collect(), config.font_family.clone()));
         let font_size = SignalManager::new(cx, config.font_size());
         let code_glance_font_size = SignalManager::new(cx, config.code_glance_font_size);
         let line_height = SignalManager::new(cx, config.line_height());
@@ -214,7 +215,7 @@ impl EditorConfigSignal {
     }
 
     pub fn update(&mut self, config: &EditorConfig) {
-        self.font_family.update_and_trigger_if_not_equal(FamilyOwned::parse_list(&config.font_family).collect());
+        self.font_family.update_and_trigger_if_not_equal((FamilyOwned::parse_list(&config.font_family).collect(), config.font_family.clone()));
         self.font_size.update_and_trigger_if_not_equal(config.font_size());
         self.code_glance_font_size.update_and_trigger_if_not_equal(config.code_glance_font_size);
         self.line_height.update_and_trigger_if_not_equal(config.line_height());
@@ -337,6 +338,7 @@ pub struct LapceConfigSignal {
     pub default_color: SignalManager<Color>,
     pub ui: UiConfigSignal,
     pub editor: EditorConfigSignal,
+    pub icon_theme:             SignalManager<IconThemeConfig>,
 }
 
 impl LapceConfigSignal {
@@ -346,9 +348,10 @@ impl LapceConfigSignal {
         let default_color = SignalManager::new(cx, palette::css::HOT_PINK);
         let ui = UiConfigSignal::init(cx, &config.ui);
         let editor = EditorConfigSignal::init(cx, &config.editor);
+        let icon_theme = SignalManager::new(cx, config.icon_theme.clone());
         Self {
             cx,
-            color, default_color, ui, editor
+            color, default_color, ui, editor, icon_theme
         }
     }
 
@@ -357,6 +360,7 @@ impl LapceConfigSignal {
             self.color.update(config);
             self.ui.update(&config.ui);
             self.editor.update(&config.editor);
+            self.icon_theme.update_and_trigger_if_not_equal(config.icon_theme.clone());
         });
     }
 
@@ -411,5 +415,49 @@ impl LapceConfigSignal {
         };
 
         self.style_color(theme_str)
+    }
+
+    pub fn completion_color(
+        &self,
+        kind: Option<CompletionItemKind>
+    ) -> Option<ReadSignal<Color>> {
+        let kind = kind?;
+        let theme_str = match kind {
+            CompletionItemKind::METHOD => "method",
+            CompletionItemKind::FUNCTION => "method",
+            CompletionItemKind::ENUM => "enum",
+            CompletionItemKind::ENUM_MEMBER => "enum-member",
+            CompletionItemKind::CLASS => "class",
+            CompletionItemKind::VARIABLE => "field",
+            CompletionItemKind::STRUCT => "structure",
+            CompletionItemKind::KEYWORD => "keyword",
+            CompletionItemKind::CONSTANT => "constant",
+            CompletionItemKind::PROPERTY => "property",
+            CompletionItemKind::FIELD => "field",
+            CompletionItemKind::INTERFACE => "interface",
+            CompletionItemKind::SNIPPET => "snippet",
+            CompletionItemKind::MODULE => "builtinType",
+            _ => "string"
+        };
+
+        self.style_color(theme_str)
+    }
+
+    pub fn ui_svg(&self, key: &'static str) -> UiSvgSignal {
+        UiSvgSignal {
+            key,
+            signal:self.icon_theme.signal(),
+        }
+    }
+
+}
+
+pub struct UiSvgSignal {
+    key: &'static str,
+    signal: ReadSignal<IconThemeConfig>
+}
+impl UiSvgSignal {
+    pub fn get(&self) -> String {
+        self.signal.with(|x| x.ui_svg(self.key))
     }
 }
