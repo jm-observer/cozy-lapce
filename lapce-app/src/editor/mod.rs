@@ -43,6 +43,7 @@ use floem::{
         SignalWith, batch, use_context
     }
 };
+use floem::text::FamilyOwned;
 use lapce_core::{
     directory::Directory,
     doc::DocContent,
@@ -3249,20 +3250,19 @@ impl EditorData {
                 let (
                     font_family,
                     editor_fg,
-                    style_colors,
                     font_size,
                     markdown_blockquote,
                     editor_link
-                ) = config.with_untracked(|config| {
+                ) = config.signal(|config| {
                     (
-                        config.editor.font_family.clone(),
-                        config.color(LapceColor::EDITOR_FOREGROUND),
-                        config.style_colors(),
-                        config.ui.font_size() as f32,
-                        config.color(LapceColor::MARKDOWN_BLOCKQUOTE),
-                        config.color(LapceColor::EDITOR_LINK)
+                        config.editor.font_family.val().clone(),
+                        config.color_val(LapceColor::EDITOR_FOREGROUND),
+                        *config.ui.font_size.val() as f32,
+                        config.color_val(LapceColor::MARKDOWN_BLOCKQUOTE),
+                        config.color_val(LapceColor::EDITOR_LINK)
                     )
                 });
+                let style_colors= config.with_untracked(|x| x.style_colors());
                 let content = parse_hover_resp(
                     hover,
                     &directory,
@@ -4049,7 +4049,7 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 fn parse_hover_resp(
     hover: lsp_types::Hover,
     directory: &Directory,
-    font_family: &str,
+    font_family: &Vec<FamilyOwned>,
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,

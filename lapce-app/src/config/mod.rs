@@ -158,6 +158,10 @@ impl WithLapceConfig {
         self.with(|config| config.file_svg(path))
     }
 
+    pub fn signal<O>(&self, f: impl FnOnce(&LapceConfigSignal) -> O) -> O {
+        self.config_signal.with_untracked(f)
+    }
+
     pub fn with_color(&self, color: &str) -> Color {
         self.config_signal.with_untracked(|x| x.color(color)).get()
     }
@@ -207,7 +211,7 @@ pub struct LapceConfig {
     #[serde(skip)]
     pub id:                     u64,
     pub core:                   CoreConfig,
-    pub ui:                     UIConfig,
+    ui:                     UIConfig,
     pub editor:                 EditorConfig,
     pub terminal:               TerminalConfig,
     #[serde(default)]
@@ -217,7 +221,7 @@ pub struct LapceConfig {
     #[serde(flatten)]
     pub plugins:                HashMap<String, HashMap<String, serde_json::Value>>,
     #[serde(skip)]
-    pub color:                  ThemeColor,
+    color:                  ThemeColor,
     #[serde(skip)]
     pub available_color_themes: HashMap<String, (String, config::Config)>,
     #[serde(skip)]

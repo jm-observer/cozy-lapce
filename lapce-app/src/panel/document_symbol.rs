@@ -320,16 +320,17 @@ pub fn symbol_panel(
                             config.with_ui_svg(svg_str)
                         })
                             .style(move |s| {
-                                let (color, size) = config.with(|config| {
+                                let (color, size) = config.signal(|config| {
                                     (
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal()
                                     )
                                 });
                                 let color = if has_child {
-                                    color
+                                    color.get()
                                 } else {
                                     Color::TRANSPARENT
                                 };
+                                let size = size.get() as f32;
                                 s.size(size, size)
                                     .color(color)
                             })
@@ -352,15 +353,16 @@ pub fn symbol_panel(
                         symbol_svg
                             .unwrap_or(bg)
                     }).style(move |s| {
-                        let (caret_color, size, symbol_color) = config.with(|config| {
+                        let (caret_color, size, symbol_color) = config.signal(|config| {
                             (
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32, config.symbol_color(&kind)
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal(), config.symbol_color(&kind)
                             )
                         });
+                        let size = size.get() as f32;
                         s.min_width(size)
                             .size(size, size)
                             .margin_right(5.0)
-                            .color(symbol_color.unwrap_or(caret_color))
+                            .color(symbol_color.unwrap_or(caret_color).get())
                     }),
                     label(move || {
                         data.name.replace('\n', "↵")

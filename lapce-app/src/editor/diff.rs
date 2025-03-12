@@ -314,13 +314,14 @@ pub fn diff_show_more_section_view(
             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
-                    let (caret_color, size) = config.with(|config| {
+                    let (caret_color, size) = config.signal(|config| {
                         (
                             config.color(LapceColor::EDITOR_FOREGROUND),
-                            config.ui.icon_size() as f32
+                            config.ui.icon_size.signal()
                         )
                     });
-                    s.size(size, size).color(caret_color)
+                    let size = size.get() as f32;
+                    s.size(size, size).color(caret_color.get())
                 }),
                 label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
             ))
@@ -357,13 +358,14 @@ pub fn diff_show_more_section_view(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD_UP)).style(
                     move |s| {
-                        let (caret_color, size) = config.with(|config| {
+                        let (caret_color, size) = config.signal(|config| {
                             (
                                 config.color(LapceColor::EDITOR_FOREGROUND),
-                                config.ui.icon_size() as f32
+                                config.ui.icon_size.signal()
                             )
                         });
-                        s.size(size, size).color(caret_color)
+                        let size = size.get() as f32;
+                        s.size(size, size).color(caret_color.get())
                     }
                 ),
                 label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
@@ -401,13 +403,14 @@ pub fn diff_show_more_section_view(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::FOLD_DOWN)).style(
                     move |s| {
-                        let (caret_color, size) = config.with(|config| {
+                        let (caret_color, size) = config.signal(|config| {
                             (
                                 config.color(LapceColor::EDITOR_FOREGROUND),
-                                config.ui.icon_size() as f32
+                                config.ui.icon_size.signal()
                             )
                         });
-                        s.size(size, size).color(caret_color)
+                        let size = size.get() as f32;
+                        s.size(size, size).color(caret_color.get())
                     }
                 ),
                 label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))

@@ -78,11 +78,11 @@ pub fn common_tab_header<T: Clone + TabHead+ 'static>(
         tabs.view_close()
     ))
     .style(move |s| {
-        let (border_color, bg, header_height) = config.with(|config| {
+        let (border_color, bg, header_height) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::PANEL_BACKGROUND),
-                config.ui.header_height()
+                config.ui.header_height.signal()
             )
         });
         s.items_center()
@@ -90,9 +90,9 @@ pub fn common_tab_header<T: Clone + TabHead+ 'static>(
             .width_full()
             .max_width_full()
             .border_bottom(1.0)
-            .border_color(border_color)
-            .background(bg)
-            .height(header_height as i32)
+            .border_color(border_color.get())
+            .background(bg.get())
+            .height(header_height.get() as i32)
     })
     .debug_name("Tab Header")
 }
@@ -103,27 +103,27 @@ fn tooltip_tip<V: View + 'static>(
 ) -> impl IntoView {
     container(child).style(move |s| {
         let (border, shadow, fg, bg, font_size, font_family) =
-            config.with(|config| {
+            config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
                     config.color(LapceColor::TOOLTIP_FOREGROUND),
                     config.color(LapceColor::TOOLTIP_BACKGROUND),
-                    config.ui.font_size(),
-                    config.ui.font_family.clone()
+                    config.ui.font_size.signal(),
+                    config.ui.font_family.signal()
                 )
             });
         s.padding_horiz(10.0)
             .padding_vert(5.0)
-            .font_size(font_size as f32)
-            .font_family(font_family)
-            .color(fg)
-            .background(bg)
+            .font_size(font_size.get() as f32)
+            .font_family(font_family.get().1)
+            .color(fg.get())
+            .background(bg.get())
             .border(1)
             .border_radius(6)
-            .border_color(border)
+            .border_color(border.get())
             .box_shadow_blur(3.0)
-            .box_shadow_color(shadow)
+            .box_shadow_color(shadow.get())
             .margin_left(0.0)
             .margin_top(4.0)
     })
@@ -268,7 +268,7 @@ impl<T: Clone + TabHead+ 'static> Tab<T> {
                     .grid()
                     .grid_template_columns(vec![auto(), fr(1.), auto()])
                     .apply_if(
-                        config.with(|x| x.ui.tab_separator_height) == TabSeparatorHeight::Full
+                        config.signal(|x| x.ui.tab_separator_height.signal()).get() == TabSeparatorHeight::Full
                             ,
                         |s| s.height_full(),
                     )

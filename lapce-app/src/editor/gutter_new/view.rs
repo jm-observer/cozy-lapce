@@ -30,14 +30,14 @@ fn gutter_marker_none_svg_view(config: WithLapceConfig) -> Svg {
 
 fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
     svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT)).style(move |s| {
-        let (icon_size, color) = config.with(|config| {
+        let (icon_size, color) = config.signal(|config| {
             (
-                config.ui.icon_size(),
+                config.ui.icon_size.signal(),
                 config.color(LapceColor::DEBUG_BREAKPOINT_HOVER)
             )
         });
-        let size = icon_size as f64;
-        s.size(size, size).color(color)
+        let size = icon_size.get() as f64;
+        s.size(size, size).color(color.get())
     })
 }
 

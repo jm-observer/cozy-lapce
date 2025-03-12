@@ -66,13 +66,13 @@ pub fn common_reference_panel(
                                 config.with_ui_svg(svg_str)
                             })
                             .style(move |s| {
-                                let (caret_color, size) = config.with(|config| {
+                                let (caret_color, size) = config.signal(|config| {
                                     (
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal()
                                     )
                                 });
-                                s.size(size, size).color(caret_color
-                                )
+                                let size = size.get() as f32;
+                                s.size(size, size).color(caret_color.get())
                             }),
                         )
                         .style(|s| s.padding(4.0).margin_left(6.0).margin_right(2.0))
@@ -91,9 +91,9 @@ pub fn common_reference_panel(
                             })
                         })
                         .style(move |s| {
-                            let (size, color) = config.with(|config| {
+                            let (size, color) = config.signal(|config| {
                                 (
-                                    config.ui.icon_size() as f32, config
+                                    config.ui.icon_size.signal(), config
                                     .symbol_color(&SymbolKind::FILE)
                                     .unwrap_or(
                                         config
@@ -101,10 +101,11 @@ pub fn common_reference_panel(
                                     )
                                 )
                             });
+                            let size = size.get() as f32;
                             s.min_width(size)
                                 .size(size, size)
                                 .margin_right(5.0)
-                                .color(color
+                                .color(color.get()
                                 )
                         }),
                         label(move || format!("{:?}", path))

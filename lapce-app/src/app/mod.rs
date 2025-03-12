@@ -737,19 +737,20 @@ fn editor_tab_header(
 
             let tab_icon = container({
                 svg(move || info.with(|info| info.icon.clone())).style(move |s| {
-                    let (size, tab_close_button, abg) = config.with(|config| {
+                    let (size, tab_close_button, abg) = config.signal(|config| {
                         (
-                            config.ui.icon_size() as f32,
-                            config.ui.tab_close_button,
+                            config.ui.icon_size.signal(),
+                            config.ui.tab_close_button.signal(),
                             config.color(LapceColor::LAPCE_WARN)
                         )
                     });
+                    let size = size.get() as f32;
                     s.size(size, size)
                         .apply_opt(info.with(|info| info.color), |s, c| s.color(c))
                         .apply_if(
                             !info.with(|info| info.is_pristine)
-                                && tab_close_button == TabCloseButton::Off,
-                            |s| s.color(abg)
+                                && tab_close_button.get() == TabCloseButton::Off,
+                            |s| s.color(abg.get())
                         )
                 })
             })
@@ -848,7 +849,7 @@ fn editor_tab_header(
                     .grid()
                     .grid_template_columns(vec![auto(), fr(1.), auto()])
                     .apply_if(
-                        config.with(|config| config.ui.tab_separator_height)
+                        config.signal(|config| config.ui.tab_separator_height.signal()).get()
                             == TabSeparatorHeight::Full,
                         |s| s.height_full()
                     )
@@ -1205,19 +1206,19 @@ fn editor_tab_header(
         })
     ))
     .style(move |s| {
-        let (caret_color, bg, header_height) = config.with(|config| {
+        let (caret_color, bg, header_height) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::PANEL_BACKGROUND),
-                config.ui.header_height()
+                config.ui.header_height.signal()
             )
         });
         s.items_center()
             .max_width_full()
             .border_bottom(1.0)
-            .border_color(caret_color)
-            .background(bg)
-            .height(header_height as i32)
+            .border_color(caret_color.get())
+            .background(bg.get())
+            .height(header_height.get() as i32)
     })
     .debug_name("Editor Tab Header")
 }
@@ -2104,15 +2105,16 @@ pub fn clickable_icon_base_with_color(
     let view = container(
         svg(move || config.with_ui_svg(icon()))
             .style(move |s| {
-                let (caret_color, size) = config.with(|config| {
+                let (caret_color, size) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_ICON_INACTIVE),
-                        config.ui.icon_size() as f32
+                        config.ui.icon_size.signal()
                     )
                 });
+                let size = size.get() as f32;
                 s.size(size, size)
-                    .disabled(|s| s.color(caret_color).cursor(CursorStyle::Default))
-                    .color(color.unwrap_or(caret_color))
+                    .disabled(|s| s.color(caret_color.get()).cursor(CursorStyle::Default))
+                    .color(color.unwrap_or(caret_color.get()))
             })
             .disabled(disabled_fn)
     )
@@ -2182,27 +2184,27 @@ fn tooltip_tip<V: View + 'static>(
 ) -> impl IntoView {
     container(child).style(move |s| {
         let (fg, bg, border, shadow, font_family, font_size) =
-            config.with(|config| {
+            config.signal(|config| {
                 (
                     config.color(LapceColor::TOOLTIP_FOREGROUND),
                     config.color(LapceColor::TOOLTIP_BACKGROUND),
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::LAPCE_DROPDOWN_SHADOW),
-                    config.ui.font_family.clone(),
-                    config.ui.font_size() as f32
+                    config.ui.font_family.signal(),
+                    config.ui.font_size.signal()
                 )
             });
         s.padding_horiz(10.0)
             .padding_vert(5.0)
-            .font_size(font_size)
-            .font_family(font_family)
-            .color(fg)
-            .background(bg)
+            .font_size(font_size.get() as f32)
+            .font_family(font_family.get().1)
+            .color(fg.get())
+            .background(bg.get())
             .border(1)
             .border_radius(6)
-            .border_color(border)
+            .border_color(border.get())
             .box_shadow_blur(3.0)
-            .box_shadow_color(shadow)
+            .box_shadow_color(shadow.get())
             .margin_left(0.0)
             .margin_top(4.0)
     })
@@ -2916,14 +2918,14 @@ fn palette(window_tab_data: WindowWorkspaceData) -> impl View {
         ))
         .on_event_stop(EventListener::PointerDown, move |_| {})
         .style(move |s| {
-            let (caret_color, bg, palette_width) = config.with(|config| {
+            let (caret_color, bg, palette_width) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::PALETTE_BACKGROUND),
-                    config.ui.palette_width() as f64
+                    config.ui.palette_width.signal()
                 )
             });
-            s.width(palette_width)
+            s.width(palette_width.get() as f64)
                 .max_width_full()
                 .max_height(if has_preview.get() {
                     PxPctAuto::Auto
@@ -2938,9 +2940,9 @@ fn palette(window_tab_data: WindowWorkspaceData) -> impl View {
                 .margin_top(4.0)
                 .border(1.0)
                 .border_radius(6.0)
-                .border_color(caret_color)
+                .border_color(caret_color.get())
                 .flex_col()
-                .background(bg)
+                .background(bg.get())
         })
     )
     .style(move |s| {
@@ -2972,9 +2974,9 @@ fn window_message_view(
                     }
                 })
                 .style(move |s| {
-                    let (size, color) = config.with(|config| {
+                    let (size, color) = config.signal(|config| {
                         (
-                            config.ui.icon_size() as f32,
+                            config.ui.icon_size.signal(),
                             if let MessageType::ERROR = message.typ {
                                 config.color(LapceColor::LAPCE_ERROR)
                             } else {
@@ -2982,11 +2984,12 @@ fn window_message_view(
                             }
                         )
                     });
+                    let size = size.get() as f32;
                     s.min_width(size)
                         .size(size, size)
                         .margin_right(10.0)
                         .margin_top(4.0)
-                        .color(color)
+                        .color(color.get())
                 }),
                 stack((
                     text(title.clone()).style(|s| {
@@ -3440,20 +3443,20 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
                 })
         )
         .style(move |s| {
-            let (fg, bg, font_family, font_size) = config.with(|config| {
+            let (fg, bg, font_family, font_size) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
                     config.color(LapceColor::EDITOR_BACKGROUND),
-                    config.ui.font_family.clone(),
-                    config.ui.font_size() as f32
+                    config.ui.font_family.signal(),
+                    config.ui.font_size.signal()
                 )
             });
-            s.font_family(font_family)
-                .font_size(font_size)
+            s.font_family(font_family.get().1)
+                .font_size(font_size.get() as f32)
                 .border(1.0)
                 .border_radius(6.0)
-                .border_color(fg)
-                .background(bg)
+                .border_color(fg.get())
+                .background(bg.get())
         })
     )
     .on_resize(move |rect| {
@@ -3528,22 +3531,23 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
         }
     })
     .style(move |s| {
-        let (fg, bg, border, font_family, font_size) = config.with(|config| {
+        let (fg, bg, border, font_family, font_size) = config.signal(|config| {
             (
                 config.color(LapceColor::EDITOR_FOREGROUND), config.color(LapceColor::EDITOR_BACKGROUND),
                 config.color(LapceColor::LAPCE_SCROLL_BAR),
-                config.ui.font_family.clone(), config.ui.font_size() as f32
+                config.ui.font_family.signal(), config.ui.font_size.signal()
             )
         });
+        let font_family = font_family.get().1;
         s.size_full()
-            .color(fg)
-            .background(bg)
-            .font_size(font_size)
+            .color(fg.get())
+            .background(bg.get())
+            .font_size(font_size.get() as f32)
             .apply_if(!font_family.is_empty(), |s| {
                 s.font_family(font_family)
             })
             .class(floem::views::scroll::Handle, |s| {
-                s.background(border)
+                s.background(border.get())
             })
     })
     .debug_name("Window Tab");

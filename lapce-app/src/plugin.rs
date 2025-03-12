@@ -907,20 +907,20 @@ pub fn plugin_info_view(plugin: PluginData, volt: VoltID) -> impl View {
                             dyn_stack(
                                 move || {
                                     // todo improve "Loading README"
-                                    let (font_family, editor_fg, style_colors, font_size, markdown_blockquote, editor_link) = config.with(|config| {
+                                    let (font_family, editor_fg, font_size, markdown_blockquote, editor_link) = config.signal(|config| {
                                         (
-                                            config.editor.font_family.clone(),
+                                            config.editor.font_family.signal(),
                                             config.color(LapceColor::EDITOR_FOREGROUND),
-                                            config.style_colors(),
-                                            config.ui.font_size() as f32,
+                                            config.ui.font_size.signal(),
                                             config.color(LapceColor::MARKDOWN_BLOCKQUOTE), config.color(LapceColor::EDITOR_LINK)
                                         )
                                     });
+                                    let style_colors = config.with(|x| x.style_colors());
                                     readme.get().unwrap_or_else(|| {
                                         parse_markdown(
                                             "Loading README",
                                             2.0,
-                                            &directory, &font_family, editor_fg, &style_colors, font_size, markdown_blockquote, editor_link
+                                            &directory, &font_family.get(), editor_fg.get(), &style_colors, font_size.get() as f32, markdown_blockquote.get(), editor_link.get()
                                         )
                                     })
                                 },

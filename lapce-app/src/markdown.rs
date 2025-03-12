@@ -26,7 +26,7 @@ pub fn parse_markdown(
     text: &str,
     line_height: f64,
     directory: &Directory,
-    font_family: &str,
+    code_font_family: &Vec<FamilyOwned>,
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,
@@ -35,8 +35,8 @@ pub fn parse_markdown(
 ) -> Vec<MarkdownContent> {
     let mut res = Vec::new();
     let mut current_text = String::new();
-    let code_font_family: Vec<FamilyOwned> =
-        FamilyOwned::parse_list(font_family).collect();
+    // let code_font_family: Vec<FamilyOwned> =
+    //     FamilyOwned::parse_list(font_family).collect();
 
     let default_attrs = Attrs::new()
         .color(editor_fg)
@@ -333,7 +333,7 @@ pub fn highlight_as_code(
 pub fn from_marked_string(
     text: MarkedString,
     directory: &Directory,
-    font_family: &str,
+    font_family: &Vec<FamilyOwned>,
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,

@@ -387,16 +387,19 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             config.with_ui_svg(svg_str)
                         })
                         .style(move |s| {
-                            let (color, size) = config.with(|config| {
+                            let (color, size) = config.signal(|config| {
                                 (
-                                    if reference > 0 {
                                         config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                                    } else {
-                                        Color::TRANSPARENT
-                                    },
-                                    config.ui.icon_size() as f32
+                                    ,
+                                    config.ui.icon_size.signal()
                                 )
                             });
+                            let color = if reference > 0 {
+                                color.get()
+                            } else {
+                                Color::TRANSPARENT
+                            };
+                            let size = size.get() as f32;
                             s.size(size, size).margin_left(10.0).color(color)
                         }),
                         text(name),

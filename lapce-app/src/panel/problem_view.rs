@@ -185,18 +185,18 @@ fn file_view(
                 collpased.update(|collpased| *collpased = !*collpased);
             })
             .style(move |s| {
-                let (border_color, icon_size) = config.with(|config| {
+                let (border_color, icon_size) = config.signal(|config| {
                     (
                         config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                        config.ui.icon_size()
+                        config.ui.icon_size.signal()
                     )
                 });
                 s.width_pct(100.0)
                     .min_width(0.0)
-                    .padding_left(10.0 + (icon_size as f32 + 6.0) * 2.0)
+                    .padding_left(10.0 + (icon_size.get() as f32 + 6.0) * 2.0)
                     .padding_right(10.0)
                     .hover(|s| {
-                        s.cursor(CursorStyle::Pointer).background(border_color)
+                        s.cursor(CursorStyle::Pointer).background(border_color.get())
                     })
             }),
             stack((
@@ -208,14 +208,14 @@ fn file_view(
                     })
                 })
                 .style(move |s| {
-                    let (border_color, icon_size) = config.with(|config| {
+                    let (border_color, icon_size) = config.signal(|config| {
                         (
                             config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                            config.ui.icon_size()
+                            config.ui.icon_size.signal()
                         )
                     });
-                    let size = icon_size as f32;
-                    s.margin_right(6.0).size(size, size).color(border_color)
+                    let size = icon_size.get() as f32;
+                    s.margin_right(6.0).size(size, size).color(border_color.get())
                 }),
                 svg(move || config.with_file_svg(&path).0).style(move |s| {
                     let (color, icon_size) = config.with(|config| {
@@ -369,30 +369,31 @@ fn related_view(
                     });
                 })
                 .style(move |s| {
-                    let (icon_size, color) = config.with(|config| {
+                    let (icon_size, color) = config.signal(|config| {
                         (
-                            config.ui.icon_size() as f32,
+                            config.ui.icon_size.signal(),
                             config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                         )
                     });
-                    s.padding_left(10.0 + (icon_size + 6.0) * 4.0)
+                    s.padding_left(10.0 + (icon_size.get() as f32 + 6.0) * 4.0)
                         .padding_right(10.0)
                         .width_pct(100.0)
                         .min_width(0.0)
-                        .hover(|s| s.cursor(CursorStyle::Pointer).background(color))
+                        .hover(|s| s.cursor(CursorStyle::Pointer).background(color.get()))
                 })
             }
         )
         .style(|s| s.width_pct(100.0).min_width(0.0).flex_col()),
         stack((
             svg(move || config.with_ui_svg(LapceIcons::LINK)).style(move |s| {
-                let (size, color) = config.with(|config| {
+                let (size, color) = config.signal(|config| {
                     (
-                        config.ui.icon_size() as f32,
+                        config.ui.icon_size.signal(),
                         config.color(LapceColor::EDITOR_DIM)
                     )
                 });
-                s.size(size, size).color(color)
+                let size = size.get() as f32;
+                s.size(size, size).color(color.get())
             }),
             label(|| " ".to_string()).style(move |s| s.selectable(false))
         ))

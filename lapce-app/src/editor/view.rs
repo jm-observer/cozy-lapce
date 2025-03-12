@@ -1549,14 +1549,14 @@ fn editor_gutter_folding_view(
             config.with_ui_svg(icon_str)
         })
         .style(move |s| {
-            let (active, icon_size) = config.with(|config| {
+            let (active, icon_size) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                    config.ui.icon_size()
+                    config.ui.icon_size.signal()
                 )
             });
 
-            let size = icon_size as f32;
+            let size = icon_size.get() as f32;
             s.size(size, size)
                 .set_style_value(
                     SvgColor,
@@ -1568,7 +1568,7 @@ fn editor_gutter_folding_view(
                             SvgColor,
                             (Some(Brush::Solid(Color::BLACK))).into()
                         )
-                        .color(active)
+                        .color(active.get())
                 })
         })
     )
@@ -1646,7 +1646,7 @@ fn editor_gutter_folding_range(
         }
     )
     .style(move |s| {
-        let icon_size = config.with(|config| config.ui.icon_size());
+        let icon_size = config.signal(|config| config.ui.icon_size.signal()).get();
         let width = icon_size as f32;
         s.width(width).height_full().margin_left(width / -2.0)
     })
@@ -1708,19 +1708,19 @@ fn editor_breadcrumbs(
                                 })
                                 .style(move |s| {
                                     let (active, icon_size) =
-                                        config.with(|config| {
+                                        config.signal(|config| {
                                             (
                                                 config.color(
                                                     LapceColor::LAPCE_ICON_ACTIVE
                                                 ),
-                                                config.ui.icon_size()
+                                                config.ui.icon_size.signal()
                                             )
                                         });
 
-                                    let size = icon_size as f32;
+                                    let size = icon_size.get() as f32;
                                     s.apply_if(i == 0, |s| s.hide())
                                         .size(size, size)
-                                        .color(active)
+                                        .color(active.get())
                                 }),
                                 label(move || section.clone())
                                     .style(move |s| s.selectable(false))

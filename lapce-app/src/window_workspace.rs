@@ -433,12 +433,13 @@ impl WindowWorkspaceData {
         let find = Find::new(cx);
 
         let ui_line_height = cx.create_memo(move |_| {
-            let (font_family, font_size) = config.with(|config| {
-                (config.ui.font_family.clone(), config.ui.font_size() as f32)
+            let (font_family, font_size) = config.signal(|config| {
+                (config.ui.font_family.signal(), config.ui.font_size.signal())
             });
 
             let family: Vec<FamilyOwned> =
-                FamilyOwned::parse_list(&font_family).collect();
+                font_family.get().0;
+            let font_size = font_size.get() as f32;
             let attrs = Attrs::new()
                 .family(&family)
                 .font_size(font_size)
@@ -636,7 +637,7 @@ impl WindowWorkspaceData {
         let cursor_blink_clone = cursor_blink.clone();
         cx.create_effect(move |_| {
             let blink_interval =
-                config.with(|config| config.editor.blink_interval());
+                config.signal(|config| config.editor.blink_interval.signal()).get();
             // log::info!("update blink_interval {}", blink_interval);
             cursor_blink_clone.blink_interval.set(blink_interval);
             cursor_blink_clone.blink(None);

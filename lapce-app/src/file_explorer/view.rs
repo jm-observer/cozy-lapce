@@ -362,14 +362,14 @@ fn file_explorer_view(
                         config.with_ui_svg(svg_str)
                     })
                     .style(move |s| {
-                        let (size, color) = config.with(|config| {
+                        let (size, color) = config.signal(|config| {
                             (
-                                config.ui.icon_size() as f32,
+                                config.ui.icon_size.signal(),
                                 config.color(LapceColor::LAPCE_ICON_ACTIVE)
                             )
                         });
-
-                        let color = if is_dir { color } else { Color::TRANSPARENT };
+                        let size = size.get() as f32;
+                        let color = if is_dir { color.get() } else { Color::TRANSPARENT };
                         s.size(size, size)
                             .flex_shrink(0.0)
                             .margin_left(10.0)

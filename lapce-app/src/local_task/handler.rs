@@ -7,6 +7,7 @@ use std::{
 use anyhow::Result;
 use crossbeam_channel::Receiver;
 use floem::prelude::Color;
+use floem::text::FamilyOwned;
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{async_volt_icon, download_volt, wasi::find_all_volts};
 use lapce_rpc::{RequestId, plugin::VoltInfo, style::SemanticStyles};
@@ -131,13 +132,14 @@ impl LocalTaskHandler {
                     markdown_blockquote,
                     editor_link
                 ) = (
-                    self.config.editor.font_family.clone(),
+                    FamilyOwned::parse_list(&self.config.editor.font_family).collect(),
                     self.config.color(LapceColor::EDITOR_FOREGROUND),
                     self.config.style_colors(),
                     self.config.ui.font_size() as f32,
                     self.config.color(LapceColor::MARKDOWN_BLOCKQUOTE),
                     self.config.color(LapceColor::EDITOR_LINK)
                 );
+
                 let dir = self.directory.clone();
                 tokio::spawn(async move {
                     let rs = handle_download_readme(
@@ -184,7 +186,7 @@ async fn handle_find_grammar(
 async fn handle_download_readme(
     volt: &VoltInfo,
     directory: &Directory,
-    font_family: &str,
+    font_family: &Vec<FamilyOwned>,
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,

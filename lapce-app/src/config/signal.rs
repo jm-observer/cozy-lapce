@@ -4,11 +4,12 @@ use floem::prelude::palette;
 use floem::reactive::{batch, ReadSignal, Scope};
 use floem::text::FamilyOwned;
 use log::error;
+use lsp_types::SymbolKind;
 use doc::lines::signal::SignalManager;
 use doc::lines::text::RenderWhitespace;
 use crate::config::{LapceConfig};
 use crate::config::editor::{ClickMode, EditorConfig, WrapStyle};
-use crate::config::ui::{TabCloseButton, UIConfig};
+use crate::config::ui::{TabCloseButton, TabSeparatorHeight, UIConfig};
 
 #[derive(Debug, Clone, Default)]
 pub struct ThemeColorSignal {
@@ -44,7 +45,7 @@ impl ThemeColorSignal {
 #[derive(Clone)]
 
 pub struct EditorConfigSignal {
-    pub font_family: SignalManager<String>,
+    pub font_family: SignalManager<Vec<FamilyOwned>>,
     pub font_size: SignalManager<usize>,
     pub code_glance_font_size: SignalManager<usize>,
     pub line_height: SignalManager<usize>,
@@ -101,7 +102,7 @@ pub struct EditorConfigSignal {
 
 impl EditorConfigSignal {
     pub fn init(cx: Scope, config: &EditorConfig) -> Self {
-        let font_family = SignalManager::new(cx, config.font_family.clone());
+        let font_family = SignalManager::new(cx, FamilyOwned::parse_list(&config.font_family).collect());
         let font_size = SignalManager::new(cx, config.font_size());
         let code_glance_font_size = SignalManager::new(cx, config.code_glance_font_size);
         let line_height = SignalManager::new(cx, config.line_height());
@@ -213,7 +214,7 @@ impl EditorConfigSignal {
     }
 
     pub fn update(&mut self, config: &EditorConfig) {
-        self.font_family.update_and_trigger_if_not_equal(config.font_family.clone());
+        self.font_family.update_and_trigger_if_not_equal(FamilyOwned::parse_list(&config.font_family).collect());
         self.font_size.update_and_trigger_if_not_equal(config.font_size());
         self.code_glance_font_size.update_and_trigger_if_not_equal(config.code_glance_font_size);
         self.line_height.update_and_trigger_if_not_equal(config.line_height());
@@ -275,24 +276,29 @@ impl EditorConfigSignal {
 pub struct UiConfigSignal {
     pub scale: SignalManager<f64>,
     pub font_size: SignalManager<usize>,
-    pub font_family: SignalManager<Vec<FamilyOwned>>,
+    pub font_family: SignalManager<(Vec<FamilyOwned>, String)>,
     pub header_height: SignalManager<usize>,
     pub icon_size: SignalManager<usize>,
     pub status_height: SignalManager<usize>,
     pub palette_width: SignalManager<usize>,
-    pub tab_close_button: SignalManager<TabCloseButton>
+    pub tab_close_button: SignalManager<TabCloseButton>,
+    pub tab_separator_height: SignalManager<TabSeparatorHeight>,
+    pub trim_search_results_whitespace: SignalManager<bool>,
 }
 
 impl UiConfigSignal {
     pub fn init(cx: Scope, config: &UIConfig) -> Self {
         let scale: SignalManager<f64>= SignalManager::new(cx,  config.scale());
         let font_size: SignalManager<usize>= SignalManager::new(cx,  config.font_size());
-        let font_family: SignalManager<Vec<FamilyOwned>>= SignalManager::new(cx,  config.font_family());
+        let font_family = SignalManager::new(cx,  (config.font_family(), config.font_family.clone()));
         let header_height: SignalManager<usize>= SignalManager::new(cx,  config.header_height());
         let icon_size: SignalManager<usize>= SignalManager::new(cx,  config.icon_size());
         let status_height: SignalManager<usize>= SignalManager::new(cx,  config.status_height());
         let palette_width: SignalManager<usize>= SignalManager::new(cx,  config.palette_width());
         let tab_close_button = SignalManager::new(cx,  config.tab_close_button);
+        let tab_separator_height = SignalManager::new(cx,  config.tab_separator_height);
+        let trim_search_results_whitespace = SignalManager::new(cx,  config.trim_search_results_whitespace);
+
         Self {
             scale,
             font_size,
@@ -301,19 +307,21 @@ impl UiConfigSignal {
             icon_size,
             status_height,
             palette_width,
-            tab_close_button
+            tab_close_button, tab_separator_height, trim_search_results_whitespace
         }
     }
 
     pub fn update(&mut self, config: &UIConfig) {
         self.scale.update_and_trigger_if_not_equal(config.scale());
         self.font_size.update_and_trigger_if_not_equal(config.font_size());
-        self.font_family.update_and_trigger_if_not_equal(config.font_family());
+        self.font_family.update_and_trigger_if_not_equal((config.font_family(), config.font_family.clone()));
         self.header_height.update_and_trigger_if_not_equal(config.header_height());
         self.icon_size.update_and_trigger_if_not_equal(config.icon_size());
         self.status_height.update_and_trigger_if_not_equal(config.status_height());
         self.palette_width.update_and_trigger_if_not_equal(config.palette_width());
         self.tab_close_button.update_and_trigger_if_not_equal(config.tab_close_button);
+        self.tab_separator_height.update_and_trigger_if_not_equal(config.tab_separator_height);
+        self.trim_search_results_whitespace.update_and_trigger_if_not_equal(config.trim_search_results_whitespace);
     }
 }
 
@@ -356,8 +364,47 @@ impl LapceConfigSignal {
             }
         }
     }
+    pub fn color_val(&self, name: &str) -> Color {
+        match self.color.ui.get(name) {
+            Some(c) => c.val().clone(),
+            None => {
+                error!("Failed to find key: {name}");
+                self.default_color.val().clone()
+            }
+        }
+    }
 
     pub fn style_color(&self, name: &str) -> Option<ReadSignal<Color>> {
         self.color.syntax.get(name).map(|x| x.signal())
+    }
+
+    pub fn symbol_color(&self, kind: &SymbolKind) -> Option<ReadSignal<Color>> {
+        let theme_str = match *kind {
+            SymbolKind::METHOD => "method",
+            SymbolKind::FUNCTION => "method",
+            SymbolKind::ENUM => "enum",
+            SymbolKind::ENUM_MEMBER => "enum-member",
+            SymbolKind::CLASS => "class",
+            SymbolKind::VARIABLE => "field",
+            SymbolKind::STRUCT => "structure",
+            SymbolKind::CONSTANT => "constant",
+            SymbolKind::PROPERTY => "property",
+            SymbolKind::FIELD => "field",
+            SymbolKind::INTERFACE => "interface",
+            SymbolKind::ARRAY => "",
+            SymbolKind::BOOLEAN => "",
+            SymbolKind::EVENT => "",
+            SymbolKind::FILE => "",
+            SymbolKind::KEY => "",
+            SymbolKind::OBJECT => "",
+            SymbolKind::NAMESPACE => "",
+            SymbolKind::NUMBER => "number",
+            SymbolKind::OPERATOR => "",
+            SymbolKind::TYPE_PARAMETER => "",
+            SymbolKind::STRING => "string",
+            _ => return None
+        };
+
+        self.style_color(theme_str)
     }
 }

@@ -340,10 +340,11 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                             LapceColor::SOURCE_CONTROL_MODIFIED
                         },
                     };
-                    let (size, color) = config.with(|config| {
-                        (config.ui.icon_size() as f32, config.color(color))
+                    let (size, color) = config.signal(|config| {
+                        (config.ui.icon_size.signal(), config.color(color))
                     });
-                    s.min_width(size).size(size, size).color(color)
+                    let size = size.get() as f32;
+                    s.min_width(size).size(size, size).color(color.get())
                 })
             })
             .style(|s| {
@@ -380,17 +381,18 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
             }
         })
         .style(move |s| {
-            let (size, color) = config.with(|config| {
+            let (size, color) = config.signal(|config| {
                 (
-                    config.ui.icon_size() as f32,
+                    config.ui.icon_size.signal(),
                     config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
                 )
             });
+            let size = size.get() as f32;
             s.padding_left(10.0)
                 .padding_right(10.0 + size + 6.0)
                 .width_pct(100.0)
                 .items_center()
-                .hover(|s| s.background(color))
+                .hover(|s| s.background(color.get()))
         })
     };
 

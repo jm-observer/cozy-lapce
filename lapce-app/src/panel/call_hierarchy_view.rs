@@ -177,13 +177,14 @@ pub fn _show_hierarchy_panel(
                             config.with_ui_svg(svg_str)
                         })
                         .style(move |s| {
-                            let (caret_color, size) = config.with(|config| {
+                            let (caret_color, size) = config.signal(|config| {
                                 (
-                                    config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal()
                                 )
                             });
+                            let size = size.get() as f32;
                             s.size(size, size)
-                                .color(caret_color)
+                                .color(caret_color.get())
                         })
                     )
                     .style(|s| s.padding(4.0).margin_left(6.0).margin_right(2.0))
@@ -212,17 +213,18 @@ pub fn _show_hierarchy_panel(
                         });
                         symbol_color.unwrap_or(bg)
                     }).style(move |s| {
-                        let (caret_color, size, symbol_color) = config.with(|config| {
+                        let (caret_color, size, symbol_color) = config.signal(|config| {
                             (
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size() as f32, config.symbol_color(&kind)
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal(), config.symbol_color(&kind)
                             )
                         });
+                        let size= size.get() as f32;
                             s.min_width(size)
                                 .size(size, size)
                                 .margin_right(5.0)
                                 .color(symbol_color.unwrap_or(
                                     caret_color
-                                ))
+                                ).get())
                         }),
                     data.item.name.clone().into_view(),
                     if data.item.detail.is_some() {

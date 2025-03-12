@@ -168,7 +168,7 @@ fn result_item(
     focus_text(
         move || {
             let content =
-                if config.with(|config| config.ui.trim_search_results_whitespace) {
+                if config.signal(|config| config.ui.trim_search_results_whitespace.signal()).get() {
                     m.line_content.trim()
                 } else {
                     &m.line_content
@@ -176,9 +176,7 @@ fn result_item(
             format!("{}: {content}", m.line,)
         },
         move || {
-            let mut offset = if config
-                .with(|config| config.ui.trim_search_results_whitespace)
-            {
+            let mut offset = if config.signal(|config| config.ui.trim_search_results_whitespace.signal()).get() {
                 line_content.trim_start().len() as i32 - line_content.len() as i32
             } else {
                 0
@@ -191,15 +189,15 @@ fn result_item(
         move || config.with_color(LapceColor::EDITOR_FOCUS)
     )
     .style(move |s| {
-        let (hbg, icon_size) = config.with(|config| {
+        let (hbg, icon_size) = config.signal(|config| {
             (
                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                config.ui.icon_size()
+                config.ui.icon_size.signal()
             )
         });
-        let icon_size = icon_size as f32;
+        let icon_size = icon_size.get() as f32;
         s.margin_left(10.0 + icon_size + 6.0)
-            .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg))
+            .hover(|s| s.cursor(CursorStyle::Pointer).background(hbg.get()))
     })
     .on_click_stop(move |_| {
         internal_command.send(InternalCommand::JumpToLocation {
@@ -233,17 +231,18 @@ fn result_fold(
             })
         })
         .style(move |s| {
-            let (border_color, size) = config.with(|config| {
+            let (border_color, size) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                    config.ui.icon_size() as f32
+                    config.ui.icon_size.signal()
                 )
             });
+            let size = size.get() as f32;
             s.margin_left(10.0)
                 .margin_right(6.0)
                 .size(size, size)
                 .min_size(size, size)
-                .color(border_color)
+                .color(border_color.get())
         }),
         svg(move || config.with_file_svg(&path).0).style(move |s| {
             let (color, size) = config.with(|config| {

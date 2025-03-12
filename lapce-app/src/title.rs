@@ -61,18 +61,19 @@ fn left(
             config,
             container(svg(move || config.with_ui_svg(LapceIcons::REMOTE)).style(
                 move |s| {
-                    let (size, bg) = config.with(|config| {
+                    let (size, bg) = config.signal(|config| {
                         (
-                            (config.ui.icon_size() as f32 + 2.0).min(30.0),
+                            config.ui.icon_size.signal(),
                             config.color(LapceColor::LAPCE_ICON_ACTIVE)
                         )
                     });
+                    let size = (size.get()  as f32 + 2.0).min(30.0);
                     s.size(size, size).color(if is_local {
-                        bg
+                        bg.get()
                     } else {
                         match proxy_status.get() {
                             Some(_) => Color::WHITE,
-                            None => bg
+                            None => bg.get()
                         }
                     })
                 }
@@ -225,13 +226,14 @@ fn middle(
             stack((
                 svg(move || config.with_ui_svg(LapceIcons::SEARCH)).style(
                     move |s| {
-                        let (caret_color, icon_size) = config.with(|config| {
+                        let (caret_color, icon_size) = config.signal(|config| {
                             (
                                 config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                                config.ui.icon_size() as f32
+                                config.ui.icon_size.signal()
                             )
                         });
-                        s.size(icon_size, icon_size).color(caret_color)
+                        let icon_size = icon_size.get() as f32;
+                        s.size(icon_size, icon_size).color(caret_color.get())
                     }
                 ),
                 label(move || {
