@@ -423,7 +423,7 @@ impl WindowWorkspaceData {
 
         let focus =
             SignalManager::new_with_tracing(cx.create_rw_signal(Focus::Workbench));
-        let config = WithLapceConfig::new(read_config);
+        let config = WithLapceConfig::new(cx, read_config);
         let completion = cx.create_rw_signal(CompletionData::new(cx, config));
         let inline_completion = cx.create_rw_signal(InlineCompletionData::new(cx));
         let hover = HoverData::new(cx);

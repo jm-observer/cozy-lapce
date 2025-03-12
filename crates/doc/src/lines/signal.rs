@@ -157,4 +157,16 @@ impl<V: Clone + PartialEq + 'static> SignalManager<V> {
             false
         }
     }
+
+    pub fn update_and_trigger_if_not_equal(&mut self, nv: V) -> bool {
+        if self.v != nv {
+            self.v = nv;
+            self.dirty = true;
+            self.trigger();
+            true
+        } else {
+            false
+        }
+
+    }
 }

@@ -11,6 +11,7 @@ use floem::{
     prelude::{SignalGet, SignalWith, palette},
     reactive::ReadSignal
 };
+use floem::reactive::Scope;
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -25,6 +26,7 @@ use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
+use floem::prelude::SignalUpdate;
 
 use self::{
     color::LapceColor,
@@ -40,6 +42,7 @@ use crate::{
     command::InternalCommand, config::ui::TabCloseButton,
     window_workspace::CommonData
 };
+use crate::config::signal::LapceConfigSignal;
 
 pub mod color;
 pub mod color_theme;
@@ -51,6 +54,7 @@ pub mod svg;
 pub mod terminal;
 pub mod ui;
 pub mod watcher;
+pub mod signal;
 
 pub const LOGO: &str = include_str!("../../../extra/images/logo.svg");
 const DEFAULT_SETTINGS: &str = include_str!("../../../defaults/settings.toml");
@@ -113,12 +117,21 @@ pub struct DropdownInfo {
 
 #[derive(Clone, Copy)]
 pub struct WithLapceConfig {
-    config: ReadSignal<LapceConfig>
+    config: ReadSignal<LapceConfig>,
+    config_signal: ReadSignal<LapceConfigSignal>,
 }
 
 impl WithLapceConfig {
-    pub fn new(config: ReadSignal<LapceConfig>) -> Self {
-        Self { config }
+    pub fn new(cx: Scope, config: ReadSignal<LapceConfig>) -> Self {
+        let config_signal = cx.create_rw_signal(config.with_untracked(|x| {
+            crate::config::signal::LapceConfigSignal::init(cx, x)
+        }));
+        cx.create_effect(move |_| {
+            config.with(|config| {
+                config_signal.update(|x| x.update(config));
+            });
+        });
+        Self { config, config_signal: config_signal.read_only() }
     }
 
     pub fn get(&self) -> LapceConfig {
@@ -145,24 +158,24 @@ impl WithLapceConfig {
         self.with(|config| config.file_svg(path))
     }
 
-    pub fn with_tab_close_button(&self) -> TabCloseButton {
-        self.with(|config| config.ui.tab_close_button)
-    }
-
     pub fn with_color(&self, color: &str) -> Color {
-        self.with(|config| config.color(color))
+        self.config_signal.with_untracked(|x| x.color(color)).get()
     }
 
-    pub fn with_font_size(&self) -> usize {
-        self.with(|config| config.ui.font_size())
+    pub fn with_font_size(&self) -> usize  {
+        self.config_signal.with_untracked(|x| x.ui.font_size.signal()).get()
+    }
+
+    pub fn with_tab_close_button(&self) -> TabCloseButton {
+        self.config_signal.with_untracked(|x| x.ui.tab_close_button.signal()).get()
     }
 
     pub fn with_icon_size(&self) -> usize {
-        self.with(|config| config.ui.icon_size())
+        self.config_signal.with_untracked(|x| x.ui.icon_size.signal()).get()
     }
 
     pub fn with_line_height(&self) -> usize {
-        self.with(|config| config.editor.line_height())
+        self.config_signal.with_untracked(|x| x.editor.line_height.signal()).get()
     }
 
     // pub fn get(&self) -> LapceConfig{
@@ -185,6 +198,9 @@ impl UiColor {
         }
     }
 }
+
+
+
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct LapceConfig {
@@ -219,7 +235,7 @@ pub struct LapceConfig {
     icon_theme_list:            im::Vector<String>,
     /// The couple names for the wrap style
     #[serde(skip)]
-    wrap_style_list:            im::Vector<String>
+    wrap_style_list:            im::Vector<String>,
 }
 
 impl LapceConfig {

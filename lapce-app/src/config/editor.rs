@@ -4,7 +4,7 @@ use structdesc::FieldNames;
 
 pub const SCALE_OR_SIZE_LIMIT: f64 = 5.0;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Copy, Eq, PartialEq)]
 pub enum ClickMode {
     #[default]
     #[serde(rename = "single")]
