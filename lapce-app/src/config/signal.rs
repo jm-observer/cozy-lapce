@@ -5,7 +5,7 @@ use doc::lines::{signal::SignalManager, text::RenderWhitespace};
 use floem::{
     peniko::Color,
     prelude::{SignalWith, palette},
-    reactive::{ReadSignal, Scope, batch},
+    reactive::{ReadSignal, Scope},
     text::FamilyOwned
 };
 use lapce_core::icon::LapceIcons;
@@ -634,13 +634,12 @@ impl LapceConfigSignal {
             icon_active_color
         };
 
-        batch(|| {
-            self.color.update(config);
-            self.ui.update(&config.ui);
-            self.editor.update(&config.editor);
-            self.icon_theme.update_and_trigger_if_not_equal(icon_theme);
-            self.core.update(&config.core);
-        });
+
+        self.color.update(config);
+        self.ui.update(&config.ui);
+        self.editor.update(&config.editor);
+        self.icon_theme.update_and_trigger_if_not_equal(icon_theme);
+        self.core.update(&config.core);
     }
 
     pub fn color(&self, name: &str) -> ReadSignal<Color> {

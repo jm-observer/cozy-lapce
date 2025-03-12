@@ -10,6 +10,7 @@ use floem::{
     prelude::{SignalGet, SignalUpdate, SignalWith, palette},
     reactive::{ReadSignal, Scope}
 };
+use floem::reactive::batch;
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -122,12 +123,11 @@ pub struct WithLapceConfig {
 
 impl WithLapceConfig {
     pub fn new(cx: Scope, config: ReadSignal<LapceConfig>) -> Self {
-        let config_signal = cx.create_rw_signal(config.with_untracked(|x| {
-            crate::config::signal::LapceConfigSignal::init(cx, x)
-        }));
+        let config_signal = cx.create_rw_signal(LapceConfigSignal::init(cx, &config.get_untracked()));
         cx.create_effect(move |_| {
-            config.with(|config| {
-                config_signal.update(|x| x.update(config));
+            let config = config.get();
+            batch(|| {
+                config_signal.update(|x| x.update(&config));
             });
         });
         Self {
