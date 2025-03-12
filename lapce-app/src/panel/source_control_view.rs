@@ -69,12 +69,13 @@ pub fn source_control_panel(
                         )
                         .style(|x| x.width_pct(100.0).min_width(100.0)),
                         label(|| "Commit Message".to_string()).style(move |s| {
-                            let (caret_color, line_height) = config.signal(|config| {
-                                (
-                                    config.color(LapceColor::EDITOR_DIM),
-                                    config.editor.line_height.signal()
-                                )
-                            });
+                            let (caret_color, line_height) =
+                                config.signal(|config| {
+                                    (
+                                        config.color(LapceColor::EDITOR_DIM),
+                                        config.editor.line_height.signal()
+                                    )
+                                });
                             s.absolute()
                                 .items_center()
                                 .height(line_height.get() as f32)
@@ -221,7 +222,9 @@ pub fn source_control_panel(
                             .border(1.0)
                             .border_radius(6.0)
                             .border_color(caret_color.get())
-                            .hover(|s| s.cursor(CursorStyle::Pointer).background(bg.get()))
+                            .hover(|s| {
+                                s.cursor(CursorStyle::Pointer).background(bg.get())
+                            })
                             .active(|s| s.background(abg.get()))
                             .selectable(false)
                     })
@@ -290,10 +293,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                 }),
             svg(move || config.with_file_svg(&path).0).style(move |s| {
                 let (size, file_svg) = config.signal(|config| {
-                    (
-                        config.ui.icon_size.signal(),
-                        config.icon_theme.signal()
-                    )
+                    (config.ui.icon_size.signal(), config.icon_theme.signal())
                 });
                 let color = file_svg.with(|x| x.file_svg(&style_path).1);
                 let size = size.get() as f32;

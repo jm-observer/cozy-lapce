@@ -41,9 +41,9 @@ use floem::{
     reactive::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
         SignalWith, batch, use_context
-    }
+    },
+    text::FamilyOwned
 };
-use floem::text::FamilyOwned;
 use lapce_core::{
     directory::Directory,
     doc::DocContent,
@@ -3262,7 +3262,7 @@ impl EditorData {
                         config.color_val(LapceColor::EDITOR_LINK)
                     )
                 });
-                let style_colors= config.with_untracked(|x| x.style_colors());
+                let style_colors = config.with_untracked(|x| x.style_colors());
                 let content = parse_hover_resp(
                     hover,
                     &directory,

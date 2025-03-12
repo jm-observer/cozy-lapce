@@ -67,7 +67,7 @@ fn left(
                             config.color(LapceColor::LAPCE_ICON_ACTIVE)
                         )
                     });
-                    let size = (size.get()  as f32 + 2.0).min(30.0);
+                    let size = (size.get() as f32 + 2.0).min(30.0);
                     s.size(size, size).color(if is_local {
                         bg.get()
                     } else {

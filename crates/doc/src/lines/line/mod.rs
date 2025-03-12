@@ -2,8 +2,9 @@ pub mod update_lines;
 
 use std::{
     cell::RefMut,
-    fmt::{Debug, Formatter},
+    fmt::{Debug, Formatter}
 };
+
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
     text::{HitPoint, HitPosition}
@@ -45,11 +46,8 @@ impl Debug for OriginLine {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "OriginLine line_index={} start_offset={} \
-             phantom_text={:?} ",
-            self.line_index,
-            self.start_offset,
-            self.phantom,
+            "OriginLine line_index={} start_offset={} phantom_text={:?} ",
+            self.line_index, self.start_offset, self.phantom,
         )
     }
 }
@@ -220,10 +218,7 @@ impl OriginFoldedLine {
         let hit1 = self.text_layout.text.borrow_mut().hit_position(end_col);
         let width = hit1.point.x - hit0.point.x;
         hit0.point.y = y + base.y;
-        Rect::from_origin_size(
-            hit0.point,
-            Size::new(width, line_height)
-        )
+        Rect::from_origin_size(hit0.point, Size::new(width, line_height))
     }
 
     // 行号

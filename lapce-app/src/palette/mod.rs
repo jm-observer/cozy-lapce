@@ -1252,7 +1252,10 @@ impl PaletteData {
     }
 
     fn get_terminal_profiles(&self, run_id: u64) {
-        let profiles = self.common.config.with_untracked(|x| x.terminal.profiles.clone());
+        let profiles = self
+            .common
+            .config
+            .with_untracked(|x| x.terminal.profiles.clone());
         let mut items: im::Vector<PaletteItem> = im::Vector::new();
 
         for (name, profile) in profiles.into_iter() {

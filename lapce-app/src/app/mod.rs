@@ -849,7 +849,9 @@ fn editor_tab_header(
                     .grid()
                     .grid_template_columns(vec![auto(), fr(1.), auto()])
                     .apply_if(
-                        config.signal(|config| config.ui.tab_separator_height.signal()).get()
+                        config
+                            .signal(|config| config.ui.tab_separator_height.signal())
+                            .get()
                             == TabSeparatorHeight::Full,
                         |s| s.height_full()
                     )
@@ -1406,12 +1408,15 @@ fn editor_tab_content(
                 }
             },
             EditorTabChildId::Settings(_) => {
-                settings_view(plugin.installed, common, window_tab_data.clone()).into_any()
+                settings_view(plugin.installed, common, window_tab_data.clone())
+                    .into_any()
             },
             EditorTabChildId::ThemeColorSettings(_) => {
                 theme_color_settings_view(common, window_tab_data.clone()).into_any()
             },
-            EditorTabChildId::Keymap(_) => keymap_view(common, window_tab_data.clone()).into_any(),
+            EditorTabChildId::Keymap(_) => {
+                keymap_view(common, window_tab_data.clone()).into_any()
+            },
             EditorTabChildId::Volt(_, id) => {
                 plugin_info_view(plugin.clone(), id).into_any()
             },
@@ -1646,7 +1651,8 @@ fn split_resize_border(
                     let editor_tab_data =
                         editor_tabs.with(|tabs| tabs.get(editor_tab_id).cloned());
                     if let Some(editor_tab_data) = editor_tab_data {
-                        editor_tab_data.with(|editor_tab| editor_tab.layout_rect.get())
+                        editor_tab_data
+                            .with(|editor_tab| editor_tab.layout_rect.get())
                     } else {
                         Rect::ZERO
                     }
@@ -1667,8 +1673,9 @@ fn split_resize_border(
                     let editor_tab_data = editor_tabs
                         .with_untracked(|tabs| tabs.get(editor_tab_id).cloned());
                     if let Some(editor_tab_data) = editor_tab_data {
-                        editor_tab_data
-                            .with_untracked(|editor_tab| editor_tab.layout_rect.get_untracked())
+                        editor_tab_data.with_untracked(|editor_tab| {
+                            editor_tab.layout_rect.get_untracked()
+                        })
                     } else {
                         Rect::ZERO
                     }
@@ -1848,7 +1855,8 @@ fn split_border(
                         let editor_tab_data = editor_tabs
                             .with(|tabs| tabs.get(editor_tab_id).cloned());
                         if let Some(editor_tab_data) = editor_tab_data {
-                            editor_tab_data.with(|editor_tab| editor_tab.layout_rect.get())
+                            editor_tab_data
+                                .with(|editor_tab| editor_tab.layout_rect.get())
                         } else {
                             Rect::ZERO
                         }
@@ -1905,9 +1913,7 @@ fn split_list(
     let split_id = split.with_untracked(|split| split.split_id);
 
     let direction = move || split.with(|split| split.direction);
-    let items = move || {
-        split.get().children.into_iter().enumerate()
-    };
+    let items = move || split.get().children.into_iter().enumerate();
     let key = |(_index, (_, content)): &(usize, (RwSignal<f64>, SplitContent))| {
         content.id()
     };
@@ -2113,7 +2119,9 @@ pub fn clickable_icon_base_with_color(
                 });
                 let size = size.get() as f32;
                 s.size(size, size)
-                    .disabled(|s| s.color(caret_color.get()).cursor(CursorStyle::Default))
+                    .disabled(|s| {
+                        s.color(caret_color.get()).cursor(CursorStyle::Default)
+                    })
                     .color(color.unwrap_or(caret_color.get()))
             })
             .disabled(disabled_fn)
@@ -2356,12 +2364,12 @@ fn palette_item(
                     svg(move || config.with_file_svg(&path).0).style(move |s| {
                         let (size, icon_theme) = config.signal(|config| {
                             (
-                                config.ui.icon_size.signal(), config.icon_theme.signal()
+                                config.ui.icon_size.signal(),
+                                config.icon_theme.signal()
                             )
                         });
-                        let color = icon_theme.with(|config| {
-                            config.file_svg(&style_path).1
-                        });
+                        let color =
+                            icon_theme.with(|config| config.file_svg(&style_path).1);
                         let size = size.get() as f32;
                         s.min_width(size)
                             .size(size, size)
@@ -2422,7 +2430,10 @@ fn palette_item(
                 stack((
                     svg(move || {
                         let (symbol_svg, file_svg) = config.signal(|config| {
-                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
+                            (
+                                config.symbol_svg(kind),
+                                config.ui_svg(LapceIcons::FILE)
+                            )
                         });
                         if let Some(svg) = symbol_svg {
                             svg.get()
@@ -2510,7 +2521,10 @@ fn palette_item(
                 stack((
                     svg(move || {
                         let (symbol_svg, file_svg) = config.signal(|config| {
-                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
+                            (
+                                config.symbol_svg(kind),
+                                config.ui_svg(LapceIcons::FILE)
+                            )
                         });
                         if let Some(svg) = symbol_svg {
                             svg.get()
@@ -3243,9 +3257,15 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                     }),
                     focus_text(
                         move || {
-                            if config.signal(|config| {
-                                config.editor.completion_item_show_detail.signal()
-                            }).get() {
+                            if config
+                                .signal(|config| {
+                                    config
+                                        .editor
+                                        .completion_item_show_detail
+                                        .signal()
+                                })
+                                .get()
+                            {
                                 item.item
                                     .detail
                                     .clone()
@@ -3316,14 +3336,15 @@ fn completion(window_tab_data: WindowWorkspaceData) -> impl View {
                 return s;
             }
         };
-        let (bg, completion_width, font_family, font_size) = config.signal(|config| {
-            (
-                config.color(LapceColor::COMPLETION_BACKGROUND),
-                config.editor.completion_width.signal(),
-                config.editor.font_family.signal(),
-                config.editor.font_size.signal()
-            )
-        });
+        let (bg, completion_width, font_family, font_size) =
+            config.signal(|config| {
+                (
+                    config.color(LapceColor::COMPLETION_BACKGROUND),
+                    config.editor.completion_width.signal(),
+                    config.editor.font_family.signal(),
+                    config.editor.font_size.signal()
+                )
+            });
         s.position(Position::Absolute)
             .width(completion_width.get() as i32)
             .max_height(400.0)

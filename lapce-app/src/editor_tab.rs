@@ -141,9 +141,8 @@ impl EditorTabChildId {
 
                 let (icon, color, name, is_pristine) = match path {
                     Some((ref path, is_pritine)) => {
-                        let icon_theme = config.signal(|config| {
-                                config.icon_theme.signal()
-                        });
+                        let icon_theme =
+                            config.signal(|config| config.icon_theme.signal());
                         let (svg, color) = icon_theme.with(|x| x.file_svg(&path));
 
                         // let (svg, color) =
@@ -218,11 +217,9 @@ impl EditorTabChildId {
                         );
                         // let (svg, color) =
                         //     config.with(|config| config.file_svg(&path));
-                        let icon_theme = config.signal(|config| {
-                            config.icon_theme.signal()
-                        });
+                        let icon_theme =
+                            config.signal(|config| config.icon_theme.signal());
                         let (svg, color) = icon_theme.with(|x| x.file_svg(&path));
-
 
                         (svg, color, file_name, is_pristine)
                     },
@@ -230,10 +227,10 @@ impl EditorTabChildId {
                         Some((left_path, left_is_pristine)),
                         Some((right_path, right_is_pristine))
                     ] => {
-                        let icon_theme = config.signal(|config| {
-                            config.icon_theme.signal()
-                        });
-                        let (svg, color) = icon_theme.with(|x| x.files_svg(&[&left_path, &right_path]));
+                        let icon_theme =
+                            config.signal(|config| config.icon_theme.signal());
+                        let (svg, color) = icon_theme
+                            .with(|x| x.files_svg(&[&left_path, &right_path]));
 
                         let [left_file_name, right_file_name] =
                             [&left_path, &right_path].map(|path| {

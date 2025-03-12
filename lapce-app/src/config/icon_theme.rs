@@ -2,6 +2,7 @@ use std::{
     ffi::OsStr,
     path::{Path, PathBuf}
 };
+
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -29,9 +30,8 @@ pub struct IconThemeConfig {
     pub ui:               IndexMap<String, String>,
     pub foldername:       IndexMap<String, String>,
     pub filename:         IndexMap<String, String>,
-    pub extension:        IndexMap<String, String>,
+    pub extension:        IndexMap<String, String>
 }
-
 
 impl IconThemeConfig {
     /// If all paths in `paths` have the same file type (as determined by the

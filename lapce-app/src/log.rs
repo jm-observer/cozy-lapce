@@ -21,7 +21,8 @@ pub fn print_screen_lines(window: &WindowWorkspaceData) {
                 warn!("{:?} {:?}", content, editor.editor.cursor.get_untracked());
                 editor.doc().lines.with_untracked(|x| x.log());
                 warn!("");
-                // let screen_lines = editor.editor.screen_lines.get_untracked();
+                // let screen_lines =
+                // editor.editor.screen_lines.get_untracked();
                 // screen_lines.log();
             },
             _ => {}

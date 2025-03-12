@@ -6,8 +6,7 @@ use std::{
 
 use anyhow::Result;
 use crossbeam_channel::Receiver;
-use floem::prelude::Color;
-use floem::text::FamilyOwned;
+use floem::{prelude::Color, text::FamilyOwned};
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{async_volt_icon, download_volt, wasi::find_all_volts};
 use lapce_rpc::{RequestId, plugin::VoltInfo, style::SemanticStyles};
@@ -132,7 +131,8 @@ impl LocalTaskHandler {
                     markdown_blockquote,
                     editor_link
                 ) = (
-                    FamilyOwned::parse_list(&self.config.editor.font_family).collect(),
+                    FamilyOwned::parse_list(&self.config.editor.font_family)
+                        .collect(),
                     self.config.color(LapceColor::EDITOR_FOREGROUND),
                     self.config.style_colors(),
                     self.config.ui.font_size() as f32,

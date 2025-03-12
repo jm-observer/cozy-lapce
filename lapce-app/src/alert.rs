@@ -60,34 +60,40 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
 
     container({
         container({
-            stack((
-                svg(move || config.with_ui_svg(LapceIcons::WARNING)).style(
-                    move |s| {
-                        s.size(50.0, 50.0)
-                            .color(config.with_color(LapceColor::LAPCE_WARN))
-                    }
-                ),
-                label(move || title.get()).style(move |s| {
-                    s.margin_top(20.0)
-                        .width_pct(100.0)
-                        .font_bold()
-                        .font_size((config.with_font_size() + 1) as f32)
-                }),
-                label(move || msg.get())
-                    .style(move |s| s.width_pct(100.0).margin_top(10.0)),
-                dyn_stack(
-                    move || buttons.get(),
-                    move |_button| {
-                        button_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-                    },
-                    move |button| {
-                        label(move || button.text.clone())
-                            .on_click_stop(move |_| {
-                                (button.action)();
-                            })
-                            .style(move |s| {
-                                let (font_size, border_color, br_color, abr_color) =
-                                    config.signal(|config| {
+            stack(
+                (
+                    svg(move || config.with_ui_svg(LapceIcons::WARNING)).style(
+                        move |s| {
+                            s.size(50.0, 50.0)
+                                .color(config.with_color(LapceColor::LAPCE_WARN))
+                        }
+                    ),
+                    label(move || title.get()).style(move |s| {
+                        s.margin_top(20.0)
+                            .width_pct(100.0)
+                            .font_bold()
+                            .font_size((config.with_font_size() + 1) as f32)
+                    }),
+                    label(move || msg.get())
+                        .style(move |s| s.width_pct(100.0).margin_top(10.0)),
+                    dyn_stack(
+                        move || buttons.get(),
+                        move |_button| {
+                            button_id
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                        },
+                        move |button| {
+                            label(move || button.text.clone())
+                                .on_click_stop(move |_| {
+                                    (button.action)();
+                                })
+                                .style(move |s| {
+                                    let (
+                                        font_size,
+                                        border_color,
+                                        br_color,
+                                        abr_color
+                                    ) = config.signal(|config| {
                                         (config.ui.font_size.signal()
                                     , config.color(LapceColor::LAPCE_BORDER)
                                     ,config.color(
@@ -96,32 +102,42 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                         LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
                                     ))
                                     });
-                                let (font_size, border_color, br_color, abr_color) = (font_size.get(), border_color.get(), br_color.get(), abr_color.get());
-                                s.margin_top(10.0)
-                                    .width_pct(100.0)
-                                    .justify_center()
-                                    .font_size((font_size + 1) as f32)
-                                    .line_height(1.6)
-                                    .border(1.0)
-                                    .border_radius(6.0)
-                                    .border_color(border_color)
-                                    .hover(|s| {
-                                        s.cursor(CursorStyle::Pointer)
-                                            .background(br_color)
-                                    })
-                                    .active(|s| s.background(abr_color))
-                            })
-                    }
-                )
-                .style(|s| s.flex_col().width_pct(100.0).margin_top(10.0)),
-                label(|| "Cancel".to_string())
-                    .on_click_stop(move |_| {
-                        active.set(false);
-                    })
-                    .style(move |s| {
-                        let (font_size, border_color, br_color, abr_color) = config
-                            .signal(|config| {
-                                (
+                                    let (
+                                        font_size,
+                                        border_color,
+                                        br_color,
+                                        abr_color
+                                    ) = (
+                                        font_size.get(),
+                                        border_color.get(),
+                                        br_color.get(),
+                                        abr_color.get()
+                                    );
+                                    s.margin_top(10.0)
+                                        .width_pct(100.0)
+                                        .justify_center()
+                                        .font_size((font_size + 1) as f32)
+                                        .line_height(1.6)
+                                        .border(1.0)
+                                        .border_radius(6.0)
+                                        .border_color(border_color)
+                                        .hover(|s| {
+                                            s.cursor(CursorStyle::Pointer)
+                                                .background(br_color)
+                                        })
+                                        .active(|s| s.background(abr_color))
+                                })
+                        }
+                    )
+                    .style(|s| s.flex_col().width_pct(100.0).margin_top(10.0)),
+                    label(|| "Cancel".to_string())
+                        .on_click_stop(move |_| {
+                            active.set(false);
+                        })
+                        .style(move |s| {
+                            let (font_size, border_color, br_color, abr_color) =
+                                config.signal(|config| {
+                                    (
                                     config.ui.font_size.signal(),
                                     config.color(LapceColor::LAPCE_BORDER),
                                     config
@@ -130,21 +146,23 @@ pub fn alert_box(alert_data: AlertBoxData) -> impl View {
                                         LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
                                     )
                                 )
-                            });
-                        s.margin_top(20.0)
-                            .width_pct(100.0)
-                            .justify_center()
-                            .font_size((font_size.get() + 1) as f32)
-                            .line_height(1.5)
-                            .border(1.0)
-                            .border_radius(6.0)
-                            .border_color(border_color.get())
-                            .hover(|s| {
-                                s.cursor(CursorStyle::Pointer).background(br_color.get())
-                            })
-                            .active(|s| s.background(abr_color.get()))
-                    })
-            ))
+                                });
+                            s.margin_top(20.0)
+                                .width_pct(100.0)
+                                .justify_center()
+                                .font_size((font_size.get() + 1) as f32)
+                                .line_height(1.5)
+                                .border(1.0)
+                                .border_radius(6.0)
+                                .border_color(border_color.get())
+                                .hover(|s| {
+                                    s.cursor(CursorStyle::Pointer)
+                                        .background(br_color.get())
+                                })
+                                .active(|s| s.background(abr_color.get()))
+                        })
+                )
+            )
             .style(|s| s.flex_col().items_center().width_pct(100.0))
         })
         .on_event_stop(EventListener::PointerDown, |_| {})

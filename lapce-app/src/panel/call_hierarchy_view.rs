@@ -13,10 +13,13 @@ use lapce_core::{icon::LapceIcons, panel::PanelContainerPosition};
 use lsp_types::{CallHierarchyItem, Range};
 
 use crate::{
-    command::InternalCommand, common::common_tab_header, config::color::LapceColor,
-    editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData
+    command::InternalCommand,
+    common::{TabHead, common_tab_header},
+    config::color::LapceColor,
+    editor::location::EditorLocation,
+    svg,
+    window_workspace::WindowWorkspaceData
 };
-use crate::common::TabHead;
 
 #[derive(Clone, Debug)]
 pub struct CallHierarchyData {
@@ -26,9 +29,7 @@ pub struct CallHierarchyData {
     pub scroll_to_line: Option<f64>
 }
 
-impl TabHead for CallHierarchyData {
-    
-}
+impl TabHead for CallHierarchyData {}
 
 #[derive(Debug, Clone)]
 pub struct CallHierarchyItemData {

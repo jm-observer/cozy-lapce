@@ -3,14 +3,13 @@ use std::path::PathBuf;
 use floem::{
     View,
     event::{Event, EventListener},
-    prelude::RwSignal,
+    prelude::{RwSignal, SignalWith},
     reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
         Decorators, container, label, scroll, stack, text_input, virtual_stack
     }
 };
-use floem::prelude::SignalWith;
 use lapce_core::{
     icon::LapceIcons,
     panel::{PanelContainerPosition, PanelKind}
@@ -168,16 +167,21 @@ fn result_item(
 
     focus_text(
         move || {
-            let content =
-                if config.signal(|config| config.ui.trim_search_results_whitespace.signal()).get() {
-                    m.line_content.trim()
-                } else {
-                    &m.line_content
-                };
+            let content = if config
+                .signal(|config| config.ui.trim_search_results_whitespace.signal())
+                .get()
+            {
+                m.line_content.trim()
+            } else {
+                &m.line_content
+            };
             format!("{}: {content}", m.line,)
         },
         move || {
-            let mut offset = if config.signal(|config| config.ui.trim_search_results_whitespace.signal()).get() {
+            let mut offset = if config
+                .signal(|config| config.ui.trim_search_results_whitespace.signal())
+                .get()
+            {
                 line_content.trim_start().len() as i32 - line_content.len() as i32
             } else {
                 0
@@ -247,10 +251,7 @@ fn result_fold(
         }),
         svg(move || config.with_file_svg(&path).0).style(move |s| {
             let (size, file_svg) = config.signal(|config| {
-                (
-                    config.ui.icon_size.signal(),
-                    config.icon_theme.signal()
-                )
+                (config.ui.icon_size.signal(), config.icon_theme.signal())
             });
             let color = file_svg.with(|x| x.file_svg(&style_path).1);
             let size = size.get() as f32;

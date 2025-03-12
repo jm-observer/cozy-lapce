@@ -226,7 +226,10 @@ impl View for EditorGutterView {
                 }
             };
 
-        let attrs = Attrs::new().family(&font_family.0).color(dim).font_size(font_size);
+        let attrs = Attrs::new()
+            .family(&font_family.0)
+            .color(dim)
+            .font_size(font_size);
         let attrs_list = AttrsList::new(attrs);
         let current_line_attrs_list = AttrsList::new(attrs.color(fg));
         let show_relative = modal

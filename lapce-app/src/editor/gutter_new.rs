@@ -45,7 +45,12 @@ pub fn gutter_data(
                 config.editor.font_family.signal()
             )
         });
-    let  (fg, dim, style_font_size, font_family) =  (fg.get(), dim.get(), style_font_size.get(), font_family.get());
+    let (fg, dim, style_font_size, font_family) = (
+        fg.get(),
+        dim.get(),
+        style_font_size.get(),
+        font_family.get()
+    );
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines

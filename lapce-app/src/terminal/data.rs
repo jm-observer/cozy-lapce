@@ -23,6 +23,7 @@ use floem::{
 };
 use lapce_core::{
     debug::{RunDebugMode, RunDebugProcess},
+    icon::LapceIcons,
     workspace::LapceWorkspace
 };
 use lapce_rpc::{
@@ -31,7 +32,7 @@ use lapce_rpc::{
 };
 use parking_lot::RwLock;
 use url::Url;
-use lapce_core::icon::LapceIcons;
+
 use super::{
     event::TermEvent,
     raw::{EventProxy, RawTerminal}
@@ -44,11 +45,11 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct TerminalData {
-    pub scope:        Scope,
-    pub term_id:      TermId,
-    pub workspace:    LapceWorkspace,
-    pub common:       Rc<CommonData>,
-    pub data: RwSignal<TerminalSignalData>,
+    pub scope:     Scope,
+    pub term_id:   TermId,
+    pub workspace: LapceWorkspace,
+    pub common:    Rc<CommonData>,
+    pub data:      RwSignal<TerminalSignalData>
 }
 
 #[derive(Clone)]
@@ -65,16 +66,15 @@ pub struct TerminalSignalData {
 
 impl TerminalData {
     pub fn icon(&self) -> &'static str {
-        if let Some((mode, stopped)) = self.data.with(|x| {
-            x.run_debug.as_ref().map(|r| (r.mode, r.stopped))
-        }) {
+        if let Some((mode, stopped)) = self
+            .data
+            .with(|x| x.run_debug.as_ref().map(|r| (r.mode, r.stopped)))
+        {
             let svg = match (mode, stopped) {
                 (RunDebugMode::Run, false) => LapceIcons::START,
                 (RunDebugMode::Run, true) => LapceIcons::RUN_ERRORS,
                 (RunDebugMode::Debug, false) => LapceIcons::DEBUG,
-                (RunDebugMode::Debug, true) => {
-                    LapceIcons::DEBUG_DISCONNECT
-                },
+                (RunDebugMode::Debug, true) => LapceIcons::DEBUG_DISCONNECT
             };
             return svg;
         }
@@ -83,7 +83,11 @@ impl TerminalData {
 
     pub fn content_tip(&self) -> (String, String) {
         let (name, title) = self.data.with(|x| {
-            (x.run_debug.as_ref().map(|r| r.config.name.clone()), x.title.clone())});
+            (
+                x.run_debug.as_ref().map(|r| r.config.name.clone()),
+                x.title.clone()
+            )
+        });
         if let Some(name) = name {
             return (name, "tip".to_owned());
         }
@@ -207,7 +211,7 @@ impl KeyPressFocus for TerminalData {
 
                     self.data.update(|x| {
                         if matches!(x.mode, Mode::Visual(_)) {
-                            x.mode=Mode::Normal;
+                            x.mode = Mode::Normal;
                         }
                         let mut raw = x.raw.write();
                         let term = &mut raw.term;
@@ -218,8 +222,6 @@ impl KeyPressFocus for TerminalData {
                             term.selection = None;
                         }
                     });
-
-
                 },
                 EditCommand::ClipboardPaste => {
                     let mut clipboard = SystemClipboard::new();
@@ -249,17 +251,16 @@ impl KeyPressFocus for TerminalData {
             CommandKind::Scroll(cmd) => match cmd {
                 ScrollCommand::PageUp => {
                     self.data.with_untracked(|x| {
-                            let mut raw = x.raw.write();
-                            let term = &mut raw.term;
+                        let mut raw = x.raw.write();
+                        let term = &mut raw.term;
                         let scroll_lines = term.screen_lines() as i32 / 2;
                         term.vi_mode_cursor =
                             term.vi_mode_cursor.scroll(term, scroll_lines);
 
-                        term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                            scroll_lines
-                        ));
+                        term.scroll_display(
+                            alacritty_terminal::grid::Scroll::Delta(scroll_lines)
+                        );
                     });
-
                 },
                 ScrollCommand::PageDown => {
                     self.data.with_untracked(|x| {
@@ -269,9 +270,9 @@ impl KeyPressFocus for TerminalData {
                         term.vi_mode_cursor =
                             term.vi_mode_cursor.scroll(term, scroll_lines);
 
-                        term.scroll_display(alacritty_terminal::grid::Scroll::Delta(
-                            scroll_lines
-                        ));
+                        term.scroll_display(
+                            alacritty_terminal::grid::Scroll::Delta(scroll_lines)
+                        );
                     });
                 },
                 _ => return CommandExecuted::No
@@ -321,13 +322,9 @@ impl KeyPressFocus for TerminalData {
                     x.raw_id,
                     c.to_string()
                 );
-                x.raw
-                    .write()
-                    .term
-                    .scroll_display(Scroll::Bottom);
+                x.raw.write().term.scroll_display(Scroll::Bottom);
             }
         })
-
     }
 }
 
@@ -362,7 +359,7 @@ impl TerminalData {
             term_id,
             run_debug.as_ref(),
             profile,
-            common.clone(),
+            common.clone()
         );
 
         let mode = Mode::Terminal;
@@ -375,7 +372,7 @@ impl TerminalData {
             visual_mode,
             raw,
             run_debug,
-            view_id: None,
+            view_id: None
         };
 
         Self {
@@ -383,7 +380,7 @@ impl TerminalData {
             term_id,
             data: cx.create_rw_signal(data),
             workspace,
-            common,
+            common
         }
     }
 
@@ -392,7 +389,7 @@ impl TerminalData {
         term_id: TermId,
         run_debug: Option<&RunDebugProcess>,
         profile: Option<TerminalProfile>,
-        common: Rc<CommonData>,
+        common: Rc<CommonData>
     ) -> (Arc<RwLock<RawTerminal>>, u64, Option<String>) {
         let mut launch_error = None;
         log::debug!("term_id={term_id:?} new_raw_terminal");
@@ -428,7 +425,7 @@ impl TerminalData {
                 .as_ref()
                 .map(|r| r.config.name.as_str())
                 .unwrap_or("Unknown");
-            launch_error=Some(format!(
+            launch_error = Some(format!(
                 "Failed to expand variables in run debug definition {r_name}: {e}"
             ));
             None
@@ -689,23 +686,26 @@ impl TerminalData {
             return;
         }
 
-        let raw = self.data.try_update(|x| {
-            match x.mode {
-                Mode::Normal => {
-                    x.mode = Mode::Visual(visual_mode);
-                    x.visual_mode = visual_mode;
-                },
-                Mode::Visual(_) => {
-                    if x.visual_mode == visual_mode {
-                        x.mode=Mode::Normal;
-                    } else {
-                        x.visual_mode =visual_mode;
-                    }
-                },
-                _ => ()
-            }
-            x.raw.clone()
-        }).unwrap();
+        let raw = self
+            .data
+            .try_update(|x| {
+                match x.mode {
+                    Mode::Normal => {
+                        x.mode = Mode::Visual(visual_mode);
+                        x.visual_mode = visual_mode;
+                    },
+                    Mode::Visual(_) => {
+                        if x.visual_mode == visual_mode {
+                            x.mode = Mode::Normal;
+                        } else {
+                            x.visual_mode = visual_mode;
+                        }
+                    },
+                    _ => ()
+                }
+                x.raw.clone()
+            })
+            .unwrap();
         let mut raw = raw.write();
         let term = &mut raw.term;
         if !term.mode().contains(TermMode::VI) {
@@ -757,8 +757,7 @@ impl TerminalData {
     }
 
     pub fn new_process(&self, run_debug: Option<RunDebugProcess>) {
-
-        let (width, height) =self.data.with_untracked(|x| {
+        let (width, height) = self.data.with_untracked(|x| {
             let raw = x.raw.read();
             let width = raw.term.columns();
             let height = raw.term.screen_lines();
@@ -770,7 +769,7 @@ impl TerminalData {
             self.term_id,
             run_debug.as_ref(),
             None,
-            self.common.clone(),
+            self.common.clone()
         );
 
         let term_size = TermSize::new(width, height);
@@ -800,9 +799,7 @@ impl TerminalData {
         if let Some(dap_id) = dap_id {
             self.common.proxy.dap_stop(dap_id);
         }
-        self.common
-            .proxy
-            .terminal_close(self.term_id, raw_id);
+        self.common.proxy.terminal_close(self.term_id, raw_id);
     }
 }
 

@@ -7,6 +7,7 @@ use std::{
 use floem::{peniko::Color, prelude::palette};
 use log::error;
 use serde::{Deserialize, Serialize};
+
 use super::color::LoadThemeError;
 
 #[derive(Debug, Clone, Default)]
@@ -36,7 +37,6 @@ pub struct ThemeColor {
     pub syntax: HashMap<String, Color>,
     pub ui:     HashMap<String, Color>
 }
-
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct ThemeBaseConfig(pub BTreeMap<String, String>);

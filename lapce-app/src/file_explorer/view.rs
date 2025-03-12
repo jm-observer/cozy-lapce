@@ -369,7 +369,11 @@ fn file_explorer_view(
                             )
                         });
                         let size = size.get() as f32;
-                        let color = if is_dir { color.get() } else { Color::TRANSPARENT };
+                        let color = if is_dir {
+                            color.get()
+                        } else {
+                            Color::TRANSPARENT
+                        };
                         s.size(size, size)
                             .flex_shrink(0.0)
                             .margin_left(10.0)

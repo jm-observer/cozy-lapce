@@ -40,9 +40,8 @@ use crate::{
     keypress::KeyPressFocus,
     plugin::InstalledVoltData,
     svg,
-    window_workspace::CommonData
+    window_workspace::{CommonData, WindowWorkspaceData}
 };
-use crate::window_workspace::WindowWorkspaceData;
 
 #[derive(Debug, Clone)]
 pub enum SettingsValue {
@@ -328,7 +327,8 @@ impl SettingsData {
 
 pub fn settings_view(
     installed_plugins: RwSignal<IndexMap<VoltID, InstalledVoltData>>,
-    common: Rc<CommonData>, window_tab_data: WindowWorkspaceData,
+    common: Rc<CommonData>,
+    window_tab_data: WindowWorkspaceData
 ) -> impl View {
     let config = common.config;
 
@@ -485,7 +485,8 @@ pub fn settings_view(
             container({
                 text_input(query_str)
                     .placeholder("Search Settings")
-                    .keyboard_navigable().debug_name("Settings Input")
+                    .keyboard_navigable()
+                    .debug_name("Settings Input")
                     .style(move |s| {
                         s.width_pct(100.0)
                             .border_radius(2.0)
@@ -1021,7 +1022,10 @@ fn color_section_list(
     .style(|s| s.flex_col())
 }
 
-pub fn theme_color_settings_view(common: Rc<CommonData>, window_tab_data: WindowWorkspaceData) -> impl View {
+pub fn theme_color_settings_view(
+    common: Rc<CommonData>,
+    window_tab_data: WindowWorkspaceData
+) -> impl View {
     let config = common.config;
 
     let text_height = create_memo(move |_| {
@@ -1029,7 +1033,9 @@ pub fn theme_color_settings_view(common: Rc<CommonData>, window_tab_data: Window
             (config.ui.font_family.signal(), config.ui.font_size.signal())
         });
         let font_family = font_family.get().0;
-        let attrs = Attrs::new().family(&font_family).font_size(font_size.get() as f32);
+        let attrs = Attrs::new()
+            .family(&font_family)
+            .font_size(font_size.get() as f32);
         let attrs_list = AttrsList::new(attrs);
         let text_layout = TextLayout::new_with_text("W", attrs_list);
         text_layout.size().height

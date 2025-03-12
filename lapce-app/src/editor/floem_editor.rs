@@ -165,23 +165,22 @@ impl Editor {
             let lines = doc.with(|x| x.lines);
             let base = viewport_memo.get();
             let kind = kind.get();
-            let signal_paint_content = lines.with_untracked(|x| x.signal_paint_content());
+            let signal_paint_content =
+                lines.with_untracked(|x| x.signal_paint_content());
             let val = signal_paint_content.get();
-            let Some((
-                screen_lines_val,
-                folding_display_item_val,
-            )) = lines.try_update(|x| {
-                let (screen_lines_val, folding_display_item_val) =
-                    x._compute_screen_lines(base, kind);
-                (
-                    screen_lines_val,
-                    folding_display_item_val,
-                )
-            })
+            let Some((screen_lines_val, folding_display_item_val)) = lines
+                .try_update(|x| {
+                    let (screen_lines_val, folding_display_item_val) =
+                        x._compute_screen_lines(base, kind);
+                    (screen_lines_val, folding_display_item_val)
+                })
             else {
                 unreachable!()
             };
-            debug!("create_effect _compute_screen_lines {val} base={base:?} {:?}", floem::prelude::SignalGet::id(&signal_paint_content));
+            debug!(
+                "create_effect _compute_screen_lines {val} base={base:?} {:?}",
+                floem::prelude::SignalGet::id(&signal_paint_content)
+            );
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);
         });
@@ -954,7 +953,9 @@ impl Editor {
     // ==== Points of locations ====
 
     pub fn max_line_width(&self) -> f64 {
-        self.doc().lines.with_untracked(|x| x.signal_max_width().get_untracked())
+        self.doc()
+            .lines
+            .with_untracked(|x| x.signal_max_width().get_untracked())
     }
 
     /// Returns the point into the text layout of the line at the given offset.

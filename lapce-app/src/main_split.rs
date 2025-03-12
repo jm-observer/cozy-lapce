@@ -1632,14 +1632,19 @@ impl MainSplitData {
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
 
         let rect = editor_tab.with_untracked(|editor_tab| {
-            editor_tab.layout_rect.get_untracked().with_origin(editor_tab.window_origin.get_untracked())
+            editor_tab
+                .layout_rect
+                .get_untracked()
+                .with_origin(editor_tab.window_origin.get_untracked())
         });
 
         match direction {
             SplitMoveDirection::Up => {
                 for (_, e) in editor_tabs.iter() {
                     let current_rect = e.with_untracked(|e| {
-                        e.layout_rect.get_untracked().with_origin(e.window_origin.get_untracked())
+                        e.layout_rect
+                            .get_untracked()
+                            .with_origin(e.window_origin.get_untracked())
                     });
                     if (current_rect.y1 - rect.y0).abs() < 3.0
                         && current_rect.x0 <= rect.x0
@@ -1655,7 +1660,9 @@ impl MainSplitData {
             SplitMoveDirection::Down => {
                 for (_, e) in editor_tabs.iter() {
                     let current_rect = e.with_untracked(|e| {
-                        e.layout_rect.get_untracked().with_origin(e.window_origin.get_untracked())
+                        e.layout_rect
+                            .get_untracked()
+                            .with_origin(e.window_origin.get_untracked())
                     });
                     if (current_rect.y0 - rect.y1).abs() < 3.0
                         && current_rect.x0 <= rect.x0
@@ -1671,7 +1678,9 @@ impl MainSplitData {
             SplitMoveDirection::Right => {
                 for (_, e) in editor_tabs.iter() {
                     let current_rect = e.with_untracked(|e| {
-                        e.layout_rect.get_untracked().with_origin(e.window_origin.get_untracked())
+                        e.layout_rect
+                            .get_untracked()
+                            .with_origin(e.window_origin.get_untracked())
                     });
                     if (rect.x1 - current_rect.x0).abs() < 3.0
                         && current_rect.y0 <= rect.y0
@@ -1687,7 +1696,9 @@ impl MainSplitData {
             SplitMoveDirection::Left => {
                 for (_, e) in editor_tabs.iter() {
                     let current_rect = e.with_untracked(|e| {
-                        e.layout_rect.get_untracked().with_origin(e.window_origin.get_untracked())
+                        e.layout_rect
+                            .get_untracked()
+                            .with_origin(e.window_origin.get_untracked())
                     });
                     if (current_rect.x1 - rect.x0).abs() < 3.0
                         && current_rect.y0 <= rect.y0
@@ -2195,15 +2206,14 @@ impl MainSplitData {
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(editor_tab_id).copied()?;
-        let (signal_window_origin, signal_layout_rect) = editor_tab.with_untracked(|x| {
-            (x.window_origin, x.layout_rect)
-        });
-            if let Some(window_origin) = window_origin {
-                signal_window_origin.set(window_origin);
-            }
-            if let Some(rect) = rect {
-                signal_layout_rect.set(rect);
-            }
+        let (signal_window_origin, signal_layout_rect) =
+            editor_tab.with_untracked(|x| (x.window_origin, x.layout_rect));
+        if let Some(window_origin) = window_origin {
+            signal_window_origin.set(window_origin);
+        }
+        if let Some(rect) = rect {
+            signal_layout_rect.set(rect);
+        }
         Some(())
     }
 

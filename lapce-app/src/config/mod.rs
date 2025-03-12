@@ -7,10 +7,9 @@ use std::{
 
 use floem::{
     peniko::Color,
-    prelude::{SignalGet, SignalWith, palette},
-    reactive::ReadSignal
+    prelude::{SignalGet, SignalUpdate, SignalWith, palette},
+    reactive::{ReadSignal, Scope}
 };
-use floem::reactive::Scope;
 use itertools::Itertools;
 use lapce_core::{
     directory::Directory,
@@ -19,12 +18,11 @@ use lapce_core::{
 use lapce_proxy::plugin::wasi::sync_find_all_volts;
 use lapce_rpc::plugin::VoltID;
 use log::error;
-use lsp_types::{CompletionItemKind};
+use lsp_types::CompletionItemKind;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
-use floem::prelude::SignalUpdate;
 
 use self::{
     color::LapceColor,
@@ -37,10 +35,13 @@ use self::{
     ui::UIConfig
 };
 use crate::{
-    command::InternalCommand, config::ui::TabCloseButton,
+    command::InternalCommand,
+    config::{
+        signal::{LapceConfigSignal, UiSvgSignal},
+        ui::TabCloseButton
+    },
     window_workspace::CommonData
 };
-use crate::config::signal::{LapceConfigSignal, UiSvgSignal};
 
 pub mod color;
 pub mod color_theme;
@@ -48,11 +49,11 @@ pub mod core;
 pub mod editor;
 pub mod icon;
 pub mod icon_theme;
+pub mod signal;
 pub mod svg;
 pub mod terminal;
 pub mod ui;
 pub mod watcher;
-pub mod signal;
 
 pub const LOGO: &str = include_str!("../../../extra/images/logo.svg");
 const DEFAULT_SETTINGS: &str = include_str!("../../../defaults/settings.toml");
@@ -115,8 +116,8 @@ pub struct DropdownInfo {
 
 #[derive(Clone, Copy)]
 pub struct WithLapceConfig {
-    config: ReadSignal<LapceConfig>,
-    config_signal: ReadSignal<LapceConfigSignal>,
+    config:        ReadSignal<LapceConfig>,
+    config_signal: ReadSignal<LapceConfigSignal>
 }
 
 impl WithLapceConfig {
@@ -129,7 +130,10 @@ impl WithLapceConfig {
                 config_signal.update(|x| x.update(config));
             });
         });
-        Self { config, config_signal: config_signal.read_only() }
+        Self {
+            config,
+            config_signal: config_signal.read_only()
+        }
     }
 
     pub fn get(&self) -> LapceConfig {
@@ -155,11 +159,13 @@ impl WithLapceConfig {
 
     pub fn with_ui_svg(&self, svg: &'static str) -> String {
         // self.with(|config| config.ui_svg(svg))
-        self.signal(|x| x.icon_theme.signal()).with(|x| x.ui_svg(svg))
+        self.signal(|x| x.icon_theme.signal())
+            .with(|x| x.ui_svg(svg))
     }
 
     pub fn with_file_svg(&self, path: &Path) -> (String, Option<Color>) {
-        self.signal(|x| x.icon_theme.signal()).with(|x| x.file_svg(path))
+        self.signal(|x| x.icon_theme.signal())
+            .with(|x| x.file_svg(path))
         // self.with(|config| config.file_svg(path))
     }
 
@@ -172,23 +178,33 @@ impl WithLapceConfig {
     }
 
     pub fn with_style_color(&self, color: &str) -> Option<Color> {
-        self.config_signal.with_untracked(|x| x.style_color(color)).map(|x|x.get())
+        self.config_signal
+            .with_untracked(|x| x.style_color(color))
+            .map(|x| x.get())
     }
 
-    pub fn with_font_size(&self) -> usize  {
-        self.config_signal.with_untracked(|x| x.ui.font_size.signal()).get()
+    pub fn with_font_size(&self) -> usize {
+        self.config_signal
+            .with_untracked(|x| x.ui.font_size.signal())
+            .get()
     }
 
     pub fn with_tab_close_button(&self) -> TabCloseButton {
-        self.config_signal.with_untracked(|x| x.ui.tab_close_button.signal()).get()
+        self.config_signal
+            .with_untracked(|x| x.ui.tab_close_button.signal())
+            .get()
     }
 
     pub fn with_icon_size(&self) -> usize {
-        self.config_signal.with_untracked(|x| x.ui.icon_size.signal()).get()
+        self.config_signal
+            .with_untracked(|x| x.ui.icon_size.signal())
+            .get()
     }
 
     pub fn with_line_height(&self) -> usize {
-        self.config_signal.with_untracked(|x| x.editor.line_height.signal()).get()
+        self.config_signal
+            .with_untracked(|x| x.editor.line_height.signal())
+            .get()
     }
 
     // pub fn get(&self) -> LapceConfig{
@@ -212,25 +228,23 @@ impl UiColor {
     }
 }
 
-
-
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct LapceConfig {
     #[serde(skip)]
-    pub id:                     u64,
-    pub core:                   CoreConfig,
-    pub ui:                     UIConfig,
-    pub editor:                 EditorConfig,
-    pub terminal:               TerminalConfig,
+    pub id: u64,
+    pub core: CoreConfig,
+    pub ui: UIConfig,
+    pub editor: EditorConfig,
+    pub terminal: TerminalConfig,
     #[serde(default)]
-    pub color_theme:            ColorThemeConfig,
+    pub color_theme: ColorThemeConfig,
     #[serde(default)]
-    pub icon_theme:             IconThemeConfig,
+    pub icon_theme: IconThemeConfig,
     #[serde(flatten)]
-    pub plugins:                HashMap<String, HashMap<String, serde_json::Value>>,
+    pub plugins: HashMap<String, HashMap<String, serde_json::Value>>,
     #[serde(skip)]
-    color:                  ThemeColor,
+    color: ThemeColor,
     #[serde(skip)]
     pub available_color_themes: HashMap<String, (String, config::Config)>,
     #[serde(skip)]
@@ -239,16 +253,16 @@ pub struct LapceConfig {
     // #[serde(skip)]
     // tab_layout_info: Arc<RwLock<HashMap<(FontFamily, usize), f64>>>,
     #[serde(skip)]
-    svg_store:                  Arc<RwLock<SvgStore>>,
+    svg_store: Arc<RwLock<SvgStore>>,
     /// A list of the themes that are available. This is primarily for
     /// populating the theme picker, and serves as a cache.
     #[serde(skip)]
-    color_theme_list:           im::Vector<String>,
+    color_theme_list: im::Vector<String>,
     #[serde(skip)]
-    icon_theme_list:            im::Vector<String>,
+    icon_theme_list: im::Vector<String>,
     /// The couple names for the wrap style
     #[serde(skip)]
-    wrap_style_list:            im::Vector<String>,
+    wrap_style_list: im::Vector<String>
 }
 
 impl LapceConfig {

@@ -46,9 +46,9 @@ pub mod web_link;
 pub mod window;
 pub mod window_workspace;
 
+extern crate core;
 #[cfg(windows)]
 extern crate windows_sys as windows;
-extern crate core;
 
 use floem::{View, prelude::Svg, reactive::create_effect};
 

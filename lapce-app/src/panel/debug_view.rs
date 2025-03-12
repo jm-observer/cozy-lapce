@@ -350,8 +350,9 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             .term_id
                             .and_then(|x| {
                                 terminal.get_terminal(x).and_then(|t| {
-                                    t.data
-                                        .with(|r| r.run_debug.as_ref().map(|r| r.stopped))
+                                    t.data.with(|r| {
+                                        r.run_debug.as_ref().map(|r| r.stopped)
+                                    })
                                 })
                             })
                             .unwrap_or(true);
@@ -389,8 +390,7 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                         .style(move |s| {
                             let (color, size) = config.signal(|config| {
                                 (
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE)
-                                    ,
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE),
                                     config.ui.icon_size.signal()
                                 )
                             });
@@ -424,8 +424,11 @@ fn variables_view(window_tab_data: WindowWorkspaceData) -> impl View {
                                     .and_then(|x| {
                                         local_terminal.get_terminal(x).and_then(
                                             |t| {
-                                                t.data
-                                                    .with(|r| r.run_debug.as_ref().map(|r| r.stopped))
+                                                t.data.with(|r| {
+                                                    r.run_debug
+                                                        .as_ref()
+                                                        .map(|r| r.stopped)
+                                                })
                                             }
                                         )
                                     })
@@ -591,8 +594,9 @@ fn debug_stack_traces(
                             .term_id
                             .and_then(|x| {
                                 local_terminal.get_terminal(x).and_then(|t| {
-                                    t.data
-                                        .with(|r| r.run_debug.as_ref().map(|r| r.stopped))
+                                    t.data.with(|r| {
+                                        r.run_debug.as_ref().map(|r| r.stopped)
+                                    })
                                 })
                             })
                             .unwrap_or(true);

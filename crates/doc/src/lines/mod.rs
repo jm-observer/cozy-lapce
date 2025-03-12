@@ -179,6 +179,7 @@ pub struct DocLines {
     // pub origin_lines: Vec<OriginLine>,
     pub origin_lines:        Vec<OriginLine>,
     pub origin_folded_lines: Vec<OriginFoldedLine>,
+
     // pub visual_lines:        Vec<VisualLine>,
     // pub font_sizes: Rc<EditorFontSizes>,
     // font_size_cache_id: FontSizeCacheId,
@@ -250,7 +251,6 @@ impl DocLines {
             origin_folded_lines: vec![],
             // visual_lines: vec![],
             // max_width: 0.0,
-
             inlay_hints: None,
             completion_pos: (0, 0),
             folding_ranges: Default::default(),

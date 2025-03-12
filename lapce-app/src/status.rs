@@ -107,9 +107,17 @@ pub fn status(
                     )
                 };
                 let (modal, bg, fg) = config.signal(|config| {
-                    (config.core.modal.signal(), config.color(bg), config.color(fg))
+                    (
+                        config.core.modal.signal(),
+                        config.color(bg),
+                        config.color(fg)
+                    )
                 });
-                let display = if modal.get() { Display::Flex } else { Display::None };
+                let display = if modal.get() {
+                    Display::Flex
+                } else {
+                    Display::None
+                };
 
                 s.display(display)
                     .padding_horiz(10.0)
@@ -198,7 +206,9 @@ pub fn status(
                                 )
                             });
                             let icon_size = icon_size.get() as f32;
-                            s.size(icon_size, icon_size).margin_left(5.0).color(bg.get())
+                            s.size(icon_size, icon_size)
+                                .margin_left(5.0)
+                                .color(bg.get())
                         }
                     ),
                     label(move || diagnostic_count.get().1.to_string()).style(

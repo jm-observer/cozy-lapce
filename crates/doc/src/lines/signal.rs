@@ -1,10 +1,13 @@
-use std::fmt::{Debug, Formatter};
-use std::ops::AddAssign;
+use std::{
+    fmt::{Debug, Formatter},
+    ops::AddAssign
+};
 
 use floem::{
     peniko::Color,
     reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
 };
+
 use crate::lines::{buffer::Buffer, style::EditorStyle};
 
 #[derive(Clone)]
@@ -16,7 +19,7 @@ pub struct Signals {
     // start from 1, (line num, paint width)
     pub(crate) last_line:         SignalManager<(usize, f64)>,
     pub paint_content:            SignalManager<usize>,
-    pub max_width: SignalManager<f64>
+    pub max_width:                SignalManager<f64>
 }
 
 impl Signals {
@@ -99,8 +102,7 @@ impl<V: Clone + 'static + Debug> Debug for SignalManager<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "SignalManager signal={:?} dirty={} \
-             v={:?} ",
+            "SignalManager signal={:?} dirty={} v={:?} ",
             self.signal.id(),
             self.dirty,
             self.v,
@@ -167,6 +169,5 @@ impl<V: Clone + PartialEq + 'static> SignalManager<V> {
         } else {
             false
         }
-
     }
 }

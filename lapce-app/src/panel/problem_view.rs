@@ -196,7 +196,8 @@ fn file_view(
                     .padding_left(10.0 + (icon_size.get() as f32 + 6.0) * 2.0)
                     .padding_right(10.0)
                     .hover(|s| {
-                        s.cursor(CursorStyle::Pointer).background(border_color.get())
+                        s.cursor(CursorStyle::Pointer)
+                            .background(border_color.get())
                     })
             }),
             stack((
@@ -215,17 +216,16 @@ fn file_view(
                         )
                     });
                     let size = icon_size.get() as f32;
-                    s.margin_right(6.0).size(size, size).color(border_color.get())
+                    s.margin_right(6.0)
+                        .size(size, size)
+                        .color(border_color.get())
                 }),
                 svg(move || config.with_file_svg(&path).0).style(move |s| {
                     // let (color, icon_size) = config.with(|config| {
                     //     (config.file_svg(&style_path).1, config.ui.icon_size())
                     // });
                     let (size, file_svg) = config.signal(|config| {
-                        (
-                            config.ui.icon_size.signal(),
-                            config.icon_theme.signal()
-                        )
+                        (config.ui.icon_size.signal(), config.icon_theme.signal())
                     });
                     let color = file_svg.with(|x| x.file_svg(&style_path).1);
                     let size = size.get() as f32;
@@ -386,7 +386,9 @@ fn related_view(
                         .padding_right(10.0)
                         .width_pct(100.0)
                         .min_width(0.0)
-                        .hover(|s| s.cursor(CursorStyle::Pointer).background(color.get()))
+                        .hover(|s| {
+                            s.cursor(CursorStyle::Pointer).background(color.get())
+                        })
                 })
             }
         )

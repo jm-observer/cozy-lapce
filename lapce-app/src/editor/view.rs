@@ -89,7 +89,14 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
         cursor_surrounding_lines,
         render_whitespace,
         wrap_style,
-        wrap_with, caret_color, selection_color, cl_color, vw, ig, fore, dim
+        wrap_with,
+        caret_color,
+        selection_color,
+        cl_color,
+        vw,
+        ig,
+        fore,
+        dim
     ) = config.signal(|config| {
         (
             config.editor.scroll_beyond_last_line.signal(),
@@ -107,7 +114,7 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
             config.color(LapceColor::EDITOR_VISIBLE_WHITESPACE),
             config.color(LapceColor::EDITOR_INDENT_GUIDE),
             config.color(LapceColor::EDITOR_FOREGROUND),
-            config.color(LapceColor::EDITOR_DIM),
+            config.color(LapceColor::EDITOR_DIM)
         )
     });
 
@@ -121,24 +128,15 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
     )
     .set(CursorColor, caret_color.get())
     .set(SelectionColor, selection_color.get())
-    .set(
-        CurrentLineColor,
-        cl_color.get()
-    )
-    .set(
-        VisibleWhitespaceColor, vw.get()
-    )
-    .set(
-        IndentGuideColor, ig.get()
-    )
+    .set(CurrentLineColor, cl_color.get())
+    .set(VisibleWhitespaceColor, vw.get())
+    .set(IndentGuideColor, ig.get())
     .set(ScrollBeyondLastLine, scroll_beyond_last_line.get())
     .color(fore)
     .set(TextColor, fore)
     .set(PhantomColor, dim)
     .set(PlaceholderColor, dim)
-    .set(
-        PreeditUnderlineColor, fore
-    )
+    .set(PreeditUnderlineColor, fore)
     .set(ShowIndentGuide, show_indent_guide.get())
     .set(Modal, modal.get())
     .set(ModalRelativeLine, modal_mode_relative_line_numbers.get())
@@ -181,7 +179,8 @@ pub fn editor_view(
     // let lines = doc.with_untracked(|x| x.lines);
     let view_kind = e_data.kind_read();
     create_effect(move |_| {
-        doc.with(|x| x.lines.with_untracked(|x| x.signal_max_width())).get();
+        doc.with(|x| x.lines.with_untracked(|x| x.signal_max_width()))
+            .get();
         view_kind.track();
         // log::info!("signal_max_width={signal_max_width}");
         id.request_layout();
@@ -777,11 +776,13 @@ impl EditorView {
             };
 
             if let Some(bracket_offsets_start) =
-                screen_lines.char_rect_in_viewport(bracket_offsets_start)? {
+                screen_lines.char_rect_in_viewport(bracket_offsets_start)?
+            {
                 cx.fill(&bracket_offsets_start, editor_bracket_color, 0.0);
             };
             if let Some(bracket_offsets_end) =
-                screen_lines.char_rect_in_viewport(bracket_offsets_end)?  {
+                screen_lines.char_rect_in_viewport(bracket_offsets_end)?
+            {
                 cx.fill(&bracket_offsets_end, editor_bracket_color, 0.0);
             };
 
@@ -883,15 +884,16 @@ impl View for EditorView {
             //     width
             // };
 
-            let visual_line_len =
-                e_data.doc().lines.with_untracked(|x| {
-                    x.origin_folded_lines.len()
-                });
+            let visual_line_len = e_data
+                .doc()
+                .lines
+                .with_untracked(|x| x.origin_folded_lines.len());
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
             let last_line_height = line_height * visual_line_len as f64;
             let height = last_line_height.max(line_height).max(viewport_size.height);
-            // log::info!("height={height} width={width} {}", editor.max_line_width());
+            // log::info!("height={height} width={width} {}",
+            // editor.max_line_width());
             let margin_bottom =
                 viewport_size.height.min(last_line_height) - line_height;
 
@@ -1234,8 +1236,9 @@ pub fn editor_container_view(
             editor_gutter_folding_range(window_tab_data.clone(), editor),
             editor_content(editor, debug_breakline, is_active),
             empty().style(move |s| {
-                let sticky_header =
-                    config.signal(|config| config.editor.sticky_header.signal()).get();
+                let sticky_header = config
+                    .signal(|config| config.editor.sticky_header.signal())
+                    .get();
                 let (sticky_header_height, editor_view) =
                     editor.with(|x| (x.editor.sticky_header_height, x.kind_read()));
                 let sticky_header_height = sticky_header_height.get() as f32;
@@ -1767,7 +1770,10 @@ fn editor_breadcrumbs(
     )
     .style(move |s| {
         let (show_bread_crumbs, line_height) = config.signal(|config| {
-            (config.editor.show_bread_crumbs.signal(), config.editor.line_height.signal())
+            (
+                config.editor.show_bread_crumbs.signal(),
+                config.editor.line_height.signal()
+            )
         });
         s.items_center()
             .width_pct(100.0)
@@ -1893,8 +1899,11 @@ fn editor_content(
             .offset_line_from_top
             .try_update(|x| x.take())
             .flatten();
-        let line_height =
-            e_data.common.config.signal(|x| x.editor.line_height.signal()).get() as f64;
+        let line_height = e_data
+            .common
+            .config
+            .signal(|x| x.editor.line_height.signal())
+            .get() as f64;
         e_data.doc_signal().track();
         e_data.kind_read().track();
 
