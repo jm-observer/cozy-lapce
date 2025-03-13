@@ -1399,9 +1399,6 @@ fn editor_tab_content(
                         // )
                     ))
                     .style(|s: Style| s.size_full())
-                    .on_cleanup(move || {
-                        diff_editor_scope.dispose();
-                    })
                     .into_any()
                 } else {
                     text("empty diff editor").into_any()
