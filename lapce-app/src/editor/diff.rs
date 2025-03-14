@@ -4,29 +4,24 @@ use doc::{
     EditorViewKind,
     lines::{
         buffer::{
-            diff::{DiffExpand, DiffLines, expand_diff_lines, rope_diff},
+            diff::{DiffLines, rope_diff},
             rope_text::RopeText
         },
         diff::DiffInfo
     }
 };
 use floem::{
-    View,
-    event::EventListener,
     ext_event::create_ext_action,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    style::CursorStyle,
-    views::{Decorators, clip, dyn_stack, empty, label, stack}
 };
 use lapce_core::{
     editor_tab::DiffEditorInfo,
-    icon::LapceIcons,
     id::{DiffEditorId, EditorId, EditorTabManageId}
 };
 
 use super::EditorData;
 use crate::{
-    config::color::LapceColor, doc::Doc, main_split::Editors, svg, wave::wave_box,
+doc::Doc, main_split::Editors,
     window_workspace::CommonData
 };
 
@@ -67,10 +62,7 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 common.clone(),
-                EditorViewKind::Diff(DiffInfo {
-                    is_right: false,
-                    changes:  vec![]
-                })
+                EditorViewKind::Diff(vec![])
             ),
             editors.make_from_doc(
                 cx,
@@ -78,10 +70,7 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 common.clone(),
-                EditorViewKind::Diff(DiffInfo {
-                    is_right: true,
-                    changes:  vec![]
-                })
+                EditorViewKind::Diff(vec![])
             )
         ];
 
@@ -194,15 +183,12 @@ impl DiffEditorData {
                     {
                         return;
                     }
-
-                    left_editor_view.set(EditorViewKind::Diff(DiffInfo {
+                    let diff = DiffInfo {
                         is_right: false,
                         changes:  changes.clone()
-                    }));
-                    right_editor_view.set(EditorViewKind::Diff(DiffInfo {
-                        is_right: true,
-                        changes
-                    }));
+                    };
+                    left_editor_view.set(EditorViewKind::Diff(diff.left_changes()));
+                    right_editor_view.set(EditorViewKind::Diff(diff.right_changes()));
                 })
             };
 
@@ -220,254 +206,254 @@ impl DiffEditorData {
     }
 }
 
-struct DiffShowMoreSection {
-    left_actual_line:  usize,
-    right_actual_line: usize,
-    visual_line:       usize,
-    lines:             usize
-}
+// struct DiffShowMoreSection {
+//     left_actual_line:  usize,
+//     right_actual_line: usize,
+//     visual_line:       usize,
+//     lines:             usize
+// }
 
-pub fn diff_show_more_section_view(
-    left_editor: &EditorData,
-    right_editor: &EditorData
-) -> impl View {
-    let left_editor_view = left_editor.kind_rw();
-    let right_editor_view = right_editor.kind_rw();
-    let viewport = right_editor.editor.viewport;
-    let config = right_editor.common.config;
-    let line_height = right_editor.common.ui_line_height;
-
-    let each_fn = move || {
-        let editor_view = right_editor_view.get();
-        if let EditorViewKind::Diff(diff_info) = editor_view {
-            let viewport = viewport.get();
-            let line_height =
-                config.with_untracked(|config| config.editor.line_height() as f64);
-
-            let min_line = (viewport.y0 / line_height).floor() as usize;
-            let max_line = (viewport.y1 / line_height).ceil() as usize;
-
-            let mut visual_line = 0;
-            let mut last_change: Option<&DiffLines> = None;
-            let mut changes = diff_info.changes.iter().peekable();
-            let mut sections = Vec::new();
-            while let Some(change) = changes.next() {
-                match change {
-                    DiffLines::Left(range) => {
-                        if let Some(DiffLines::Right(_)) = changes.peek() {
-                        } else {
-                            let len = range.len();
-                            visual_line += len;
-                        }
-                    },
-                    DiffLines::Right(range) => {
-                        let len = range.len();
-                        visual_line += len;
-
-                        if let Some(DiffLines::Left(r)) = last_change {
-                            let len = r.len() - r.len().min(range.len());
-                            if len > 0 {
-                                visual_line += len;
-                            }
-                        };
-                    },
-                    DiffLines::Both(info) => {
-                        if let Some(skip) = info.skip.as_ref() {
-                            visual_line += skip.start;
-                            if visual_line + 1 >= min_line {
-                                sections.push(DiffShowMoreSection {
-                                    left_actual_line: info.left.start,
-                                    right_actual_line: info.right.start,
-                                    visual_line,
-                                    lines: skip.len()
-                                });
-                            }
-                            visual_line += 1;
-                            visual_line += info.right.len() - skip.end;
-                        } else {
-                            visual_line += info.right.len();
-                        }
-                    },
-                }
-                if visual_line > max_line {
-                    break;
-                }
-                last_change = Some(change);
-            }
-            sections
-        } else {
-            Vec::new()
-        }
-    };
-
-    let key_fn =
-        move |section: &DiffShowMoreSection| (section.visual_line, section.lines);
-
-    let view_fn = move |section: DiffShowMoreSection| {
-        stack((
-            wave_box().style(move |s| {
-                s.absolute()
-                    .size_pct(100.0, 100.0)
-                    .color(config.with_color(LapceColor::PANEL_BACKGROUND))
-            }),
-            label(move || format!("{} Hidden Lines", section.lines)),
-            label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
-            stack((
-                svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
-                    let (caret_color, size) = config.signal(|config| {
-                        (
-                            config.color(LapceColor::EDITOR_FOREGROUND),
-                            config.ui.icon_size.signal()
-                        )
-                    });
-                    let size = size.get() as f32;
-                    s.size(size, size).color(caret_color.get())
-                }),
-                label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
-            ))
-            .on_event_stop(EventListener::PointerDown, move |_| {})
-            .on_click_stop(move |_event| {
-                left_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.left_actual_line,
-                            DiffExpand::All,
-                            false
-                        );
-                    }
-                });
-                right_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.right_actual_line,
-                            DiffExpand::All,
-                            true
-                        );
-                    }
-                });
-            })
-            .style(|s| {
-                s.margin_left(10.0)
-                    .height_pct(100.0)
-                    .items_center()
-                    .hover(|s| s.cursor(CursorStyle::Pointer))
-            }),
-            label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
-            stack((
-                svg(move || config.with_ui_svg(LapceIcons::FOLD_UP)).style(
-                    move |s| {
-                        let (caret_color, size) = config.signal(|config| {
-                            (
-                                config.color(LapceColor::EDITOR_FOREGROUND),
-                                config.ui.icon_size.signal()
-                            )
-                        });
-                        let size = size.get() as f32;
-                        s.size(size, size).color(caret_color.get())
-                    }
-                ),
-                label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
-            ))
-            .on_event_stop(EventListener::PointerDown, move |_| {})
-            .on_click_stop(move |_event| {
-                left_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.left_actual_line,
-                            DiffExpand::Up(10),
-                            false
-                        );
-                    }
-                });
-                right_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.right_actual_line,
-                            DiffExpand::Up(10),
-                            true
-                        );
-                    }
-                });
-            })
-            .style(move |s| {
-                s.margin_left(10.0)
-                    .height_pct(100.0)
-                    .items_center()
-                    .hover(|s| s.cursor(CursorStyle::Pointer))
-            }),
-            label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
-            stack((
-                svg(move || config.with_ui_svg(LapceIcons::FOLD_DOWN)).style(
-                    move |s| {
-                        let (caret_color, size) = config.signal(|config| {
-                            (
-                                config.color(LapceColor::EDITOR_FOREGROUND),
-                                config.ui.icon_size.signal()
-                            )
-                        });
-                        let size = size.get() as f32;
-                        s.size(size, size).color(caret_color.get())
-                    }
-                ),
-                label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
-            ))
-            .on_event_stop(EventListener::PointerDown, move |_| {})
-            .on_click_stop(move |_event| {
-                left_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.left_actual_line,
-                            DiffExpand::Down(10),
-                            false
-                        );
-                    }
-                });
-                right_editor_view.update(|editor_view| {
-                    if let EditorViewKind::Diff(diff_info) = editor_view {
-                        expand_diff_lines(
-                            &mut diff_info.changes,
-                            section.right_actual_line,
-                            DiffExpand::Down(10),
-                            true
-                        );
-                    }
-                });
-            })
-            .style(move |s| {
-                s.margin_left(10.0)
-                    .height_pct(100.0)
-                    .items_center()
-                    .hover(|s| s.cursor(CursorStyle::Pointer))
-            })
-        ))
-        .style(move |s| {
-            let line_height = line_height.get();
-            s.absolute()
-                .width_pct(100.0)
-                .height(line_height)
-                .justify_center()
-                .items_center()
-                .margin_top(
-                    (section.visual_line as f32) * line_height as f32
-                        - viewport.get().y0 as f32
-                )
-                .hover(|s| s.cursor(CursorStyle::Default))
-        })
-    };
-
-    stack((
-        empty().style(move |s| s.height(line_height.get() as f32 + 1.0)),
-        clip(
-            dyn_stack(each_fn, key_fn, view_fn)
-                .style(|s| s.flex_col().size_pct(100.0, 100.0))
-        )
-        .style(|s| s.size_pct(100.0, 100.0))
-    ))
-    .style(|s| s.absolute().flex_col().size_pct(100.0, 100.0))
-    .debug_name("Diff Show More Section")
-}
+// pub fn diff_show_more_section_view(
+//     left_editor: &EditorData,
+//     right_editor: &EditorData
+// ) -> impl View {
+//     let left_editor_view = left_editor.kind_rw();
+//     let right_editor_view = right_editor.kind_rw();
+//     let viewport = right_editor.editor.viewport;
+//     let config = right_editor.common.config;
+//     let line_height = right_editor.common.ui_line_height;
+//
+//     let each_fn = move || {
+//         let editor_view = right_editor_view.get();
+//         if let EditorViewKind::Diff(diff_info) = editor_view {
+//             let viewport = viewport.get();
+//             let line_height =
+//                 config.with_untracked(|config| config.editor.line_height() as f64);
+//
+//             let min_line = (viewport.y0 / line_height).floor() as usize;
+//             let max_line = (viewport.y1 / line_height).ceil() as usize;
+//
+//             let mut visual_line = 0;
+//             let mut last_change: Option<&DiffLines> = None;
+//             let mut changes = diff_info.changes.iter().peekable();
+//             let mut sections = Vec::new();
+//             while let Some(change) = changes.next() {
+//                 match change {
+//                     DiffLines::Left(range) => {
+//                         if let Some(DiffLines::Right(_)) = changes.peek() {
+//                         } else {
+//                             let len = range.len();
+//                             visual_line += len;
+//                         }
+//                     },
+//                     DiffLines::Right(range) => {
+//                         let len = range.len();
+//                         visual_line += len;
+//
+//                         if let Some(DiffLines::Left(r)) = last_change {
+//                             let len = r.len() - r.len().min(range.len());
+//                             if len > 0 {
+//                                 visual_line += len;
+//                             }
+//                         };
+//                     },
+//                     DiffLines::Both(info) => {
+//                         if let Some(skip) = info.skip.as_ref() {
+//                             visual_line += skip.start;
+//                             if visual_line + 1 >= min_line {
+//                                 sections.push(DiffShowMoreSection {
+//                                     left_actual_line: info.left.start,
+//                                     right_actual_line: info.right.start,
+//                                     visual_line,
+//                                     lines: skip.len()
+//                                 });
+//                             }
+//                             visual_line += 1;
+//                             visual_line += info.right.len() - skip.end;
+//                         } else {
+//                             visual_line += info.right.len();
+//                         }
+//                     },
+//                 }
+//                 if visual_line > max_line {
+//                     break;
+//                 }
+//                 last_change = Some(change);
+//             }
+//             sections
+//         } else {
+//             Vec::new()
+//         }
+//     };
+//
+//     let key_fn =
+//         move |section: &DiffShowMoreSection| (section.visual_line, section.lines);
+//
+//     let view_fn = move |section: DiffShowMoreSection| {
+//         stack((
+//             wave_box().style(move |s| {
+//                 s.absolute()
+//                     .size_pct(100.0, 100.0)
+//                     .color(config.with_color(LapceColor::PANEL_BACKGROUND))
+//             }),
+//             label(move || format!("{} Hidden Lines", section.lines)),
+//             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
+//             stack((
+//                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
+//                     let (caret_color, size) = config.signal(|config| {
+//                         (
+//                             config.color(LapceColor::EDITOR_FOREGROUND),
+//                             config.ui.icon_size.signal()
+//                         )
+//                     });
+//                     let size = size.get() as f32;
+//                     s.size(size, size).color(caret_color.get())
+//                 }),
+//                 label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
+//             ))
+//             .on_event_stop(EventListener::PointerDown, move |_| {})
+//             .on_click_stop(move |_event| {
+//                 left_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.left_actual_line,
+//                             DiffExpand::All,
+//                             false
+//                         );
+//                     }
+//                 });
+//                 right_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.right_actual_line,
+//                             DiffExpand::All,
+//                             true
+//                         );
+//                     }
+//                 });
+//             })
+//             .style(|s| {
+//                 s.margin_left(10.0)
+//                     .height_pct(100.0)
+//                     .items_center()
+//                     .hover(|s| s.cursor(CursorStyle::Pointer))
+//             }),
+//             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
+//             stack((
+//                 svg(move || config.with_ui_svg(LapceIcons::FOLD_UP)).style(
+//                     move |s| {
+//                         let (caret_color, size) = config.signal(|config| {
+//                             (
+//                                 config.color(LapceColor::EDITOR_FOREGROUND),
+//                                 config.ui.icon_size.signal()
+//                             )
+//                         });
+//                         let size = size.get() as f32;
+//                         s.size(size, size).color(caret_color.get())
+//                     }
+//                 ),
+//                 label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
+//             ))
+//             .on_event_stop(EventListener::PointerDown, move |_| {})
+//             .on_click_stop(move |_event| {
+//                 left_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.left_actual_line,
+//                             DiffExpand::Up(10),
+//                             false
+//                         );
+//                     }
+//                 });
+//                 right_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.right_actual_line,
+//                             DiffExpand::Up(10),
+//                             true
+//                         );
+//                     }
+//                 });
+//             })
+//             .style(move |s| {
+//                 s.margin_left(10.0)
+//                     .height_pct(100.0)
+//                     .items_center()
+//                     .hover(|s| s.cursor(CursorStyle::Pointer))
+//             }),
+//             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
+//             stack((
+//                 svg(move || config.with_ui_svg(LapceIcons::FOLD_DOWN)).style(
+//                     move |s| {
+//                         let (caret_color, size) = config.signal(|config| {
+//                             (
+//                                 config.color(LapceColor::EDITOR_FOREGROUND),
+//                                 config.ui.icon_size.signal()
+//                             )
+//                         });
+//                         let size = size.get() as f32;
+//                         s.size(size, size).color(caret_color.get())
+//                     }
+//                 ),
+//                 label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
+//             ))
+//             .on_event_stop(EventListener::PointerDown, move |_| {})
+//             .on_click_stop(move |_event| {
+//                 left_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.left_actual_line,
+//                             DiffExpand::Down(10),
+//                             false
+//                         );
+//                     }
+//                 });
+//                 right_editor_view.update(|editor_view| {
+//                     if let EditorViewKind::Diff(diff_info) = editor_view {
+//                         expand_diff_lines(
+//                             &mut diff_info.changes,
+//                             section.right_actual_line,
+//                             DiffExpand::Down(10),
+//                             true
+//                         );
+//                     }
+//                 });
+//             })
+//             .style(move |s| {
+//                 s.margin_left(10.0)
+//                     .height_pct(100.0)
+//                     .items_center()
+//                     .hover(|s| s.cursor(CursorStyle::Pointer))
+//             })
+//         ))
+//         .style(move |s| {
+//             let line_height = line_height.get();
+//             s.absolute()
+//                 .width_pct(100.0)
+//                 .height(line_height)
+//                 .justify_center()
+//                 .items_center()
+//                 .margin_top(
+//                     (section.visual_line as f32) * line_height as f32
+//                         - viewport.get().y0 as f32
+//                 )
+//                 .hover(|s| s.cursor(CursorStyle::Default))
+//         })
+//     };
+//
+//     stack((
+//         empty().style(move |s| s.height(line_height.get() as f32 + 1.0)),
+//         clip(
+//             dyn_stack(each_fn, key_fn, view_fn)
+//                 .style(|s| s.flex_col().size_pct(100.0, 100.0))
+//         )
+//         .style(|s| s.size_pct(100.0, 100.0))
+//     ))
+//     .style(|s| s.absolute().flex_col().size_pct(100.0, 100.0))
+//     .debug_name("Diff Show More Section")
+// }

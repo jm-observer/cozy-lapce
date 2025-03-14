@@ -6,7 +6,8 @@ use lapce_xi_rope::spans::Spans;
 use lsp_types::Diagnostic;
 use serde::{Deserialize, Serialize};
 
-use crate::lines::{diff::DiffInfo, layout::TextLayout};
+use crate::lines::{layout::TextLayout};
+use crate::lines::diff::DiffResult;
 
 pub mod language;
 pub mod lens;
@@ -25,7 +26,7 @@ pub struct DiagnosticData {
 #[derive(Clone)]
 pub enum EditorViewKind {
     Normal,
-    Diff(DiffInfo)
+    Diff(Vec<DiffResult>)
 }
 
 impl EditorViewKind {

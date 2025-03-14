@@ -13,7 +13,6 @@ use doc::{
         ClickResult, RopeTextPosition,
         buffer::{
             InvalLines,
-            diff::DiffLines,
             rope_text::{RopeText, RopeTextVal}
         },
         command::{
@@ -3294,200 +3293,200 @@ impl EditorData {
             .update(|cursor| cursor.set_offset(0, false, false));
     }
 
-    pub fn visual_line(&self, line: usize) -> usize {
-        self.kind_read().with_untracked(|kind| match kind {
-            EditorViewKind::Normal => line,
-            EditorViewKind::Diff(diff) => {
-                let is_right = diff.is_right;
-                let mut last_change: Option<&DiffLines> = None;
-                let mut visual_line = 0;
-                let mut changes = diff.changes.iter().peekable();
-                while let Some(change) = changes.next() {
-                    match (is_right, change) {
-                        (true, DiffLines::Left(range)) => {
-                            if let Some(DiffLines::Right(_)) = changes.peek() {
-                            } else {
-                                visual_line += range.len();
-                            }
-                        },
-                        (false, DiffLines::Right(range)) => {
-                            let len = if let Some(DiffLines::Left(r)) = last_change {
-                                range.len() - r.len().min(range.len())
-                            } else {
-                                range.len()
-                            };
-                            if len > 0 {
-                                visual_line += len;
-                            }
-                        },
-                        (true, DiffLines::Right(range))
-                        | (false, DiffLines::Left(range)) => {
-                            if line < range.end {
-                                return visual_line + line - range.start;
-                            }
-                            visual_line += range.len();
-                            if is_right {
-                                if let Some(DiffLines::Left(r)) = last_change {
-                                    let len = r.len() - r.len().min(range.len());
-                                    if len > 0 {
-                                        visual_line += len;
-                                    }
-                                }
-                            }
-                        },
-                        (_, DiffLines::Both(info)) => {
-                            let end = if is_right {
-                                info.right.end
-                            } else {
-                                info.left.end
-                            };
-                            if line >= end {
-                                visual_line += info.right.len()
-                                    - info
-                                        .skip
-                                        .as_ref()
-                                        .map(|skip| skip.len().saturating_sub(1))
-                                        .unwrap_or(0);
-                                last_change = Some(change);
-                                continue;
-                            }
+    // pub fn visual_line(&self, line: usize) -> usize {
+    //     self.kind_read().with_untracked(|kind| match kind {
+    //         EditorViewKind::Normal => line,
+    //         EditorViewKind::Diff(changes) => {
+    //             // let is_right = diff.is_right;
+    //             let mut last_change: Option<&DiffLines> = None;
+    //             let mut visual_line = 0;
+    //             let mut changes = changes.iter().peekable();
+    //             while let Some(change) = changes.next() {
+    //                 match (is_right, change) {
+    //                     (true, DiffLines::Left(range)) => {
+    //                         if let Some(DiffLines::Right(_)) = changes.peek() {
+    //                         } else {
+    //                             visual_line += range.len();
+    //                         }
+    //                     },
+    //                     (false, DiffLines::Right(range)) => {
+    //                         let len = if let Some(DiffLines::Left(r)) = last_change {
+    //                             range.len() - r.len().min(range.len())
+    //                         } else {
+    //                             range.len()
+    //                         };
+    //                         if len > 0 {
+    //                             visual_line += len;
+    //                         }
+    //                     },
+    //                     (true, DiffLines::Right(range))
+    //                     | (false, DiffLines::Left(range)) => {
+    //                         if line < range.end {
+    //                             return visual_line + line - range.start;
+    //                         }
+    //                         visual_line += range.len();
+    //                         if is_right {
+    //                             if let Some(DiffLines::Left(r)) = last_change {
+    //                                 let len = r.len() - r.len().min(range.len());
+    //                                 if len > 0 {
+    //                                     visual_line += len;
+    //                                 }
+    //                             }
+    //                         }
+    //                     },
+    //                     (_, DiffLines::Both(info)) => {
+    //                         let end = if is_right {
+    //                             info.right.end
+    //                         } else {
+    //                             info.left.end
+    //                         };
+    //                         if line >= end {
+    //                             visual_line += info.right.len()
+    //                                 - info
+    //                                     .skip
+    //                                     .as_ref()
+    //                                     .map(|skip| skip.len().saturating_sub(1))
+    //                                     .unwrap_or(0);
+    //                             last_change = Some(change);
+    //                             continue;
+    //                         }
+    //
+    //                         let start = if is_right {
+    //                             info.right.start
+    //                         } else {
+    //                             info.left.start
+    //                         };
+    //                         if let Some(skip) = info.skip.as_ref() {
+    //                             if start + skip.start > line {
+    //                                 return visual_line + line - start;
+    //                             } else if start + skip.end > line {
+    //                                 return visual_line + skip.start;
+    //                             } else {
+    //                                 return visual_line
+    //                                     + (line - start - skip.len() + 1);
+    //                             }
+    //                         } else {
+    //                             return visual_line + line - start;
+    //                         }
+    //                     }
+    //                 }
+    //                 last_change = Some(change);
+    //             }
+    //             visual_line
+    //         }
+    //     })
+    // }
 
-                            let start = if is_right {
-                                info.right.start
-                            } else {
-                                info.left.start
-                            };
-                            if let Some(skip) = info.skip.as_ref() {
-                                if start + skip.start > line {
-                                    return visual_line + line - start;
-                                } else if start + skip.end > line {
-                                    return visual_line + skip.start;
-                                } else {
-                                    return visual_line
-                                        + (line - start - skip.len() + 1);
-                                }
-                            } else {
-                                return visual_line + line - start;
-                            }
-                        }
-                    }
-                    last_change = Some(change);
-                }
-                visual_line
-            }
-        })
-    }
-
-    pub fn actual_line(&self, visual_line: usize, bottom_affinity: bool) -> usize {
-        self.kind_read().with_untracked(|kind| match kind {
-            EditorViewKind::Normal => visual_line,
-            EditorViewKind::Diff(diff) => {
-                let is_right = diff.is_right;
-                let mut actual_line: usize = 0;
-                let mut current_visual_line = 0;
-                let mut last_change: Option<&DiffLines> = None;
-                let mut changes = diff.changes.iter().peekable();
-                while let Some(change) = changes.next() {
-                    match (is_right, change) {
-                        (true, DiffLines::Left(range)) => {
-                            if let Some(DiffLines::Right(_)) = changes.peek() {
-                            } else {
-                                current_visual_line += range.len();
-                                if current_visual_line >= visual_line {
-                                    return if bottom_affinity {
-                                        actual_line
-                                    } else {
-                                        actual_line.saturating_sub(1)
-                                    };
-                                }
-                            }
-                        },
-                        (false, DiffLines::Right(range)) => {
-                            let len = if let Some(DiffLines::Left(r)) = last_change {
-                                range.len() - r.len().min(range.len())
-                            } else {
-                                range.len()
-                            };
-                            if len > 0 {
-                                current_visual_line += len;
-                                if current_visual_line >= visual_line {
-                                    return actual_line;
-                                }
-                            }
-                        },
-                        (true, DiffLines::Right(range))
-                        | (false, DiffLines::Left(range)) => {
-                            let len = range.len();
-                            if current_visual_line + len > visual_line {
-                                return range.start
-                                    + (visual_line - current_visual_line);
-                            }
-                            current_visual_line += len;
-                            actual_line += len;
-                            if is_right {
-                                if let Some(DiffLines::Left(r)) = last_change {
-                                    let len = r.len() - r.len().min(range.len());
-                                    if len > 0 {
-                                        current_visual_line += len;
-                                        if current_visual_line > visual_line {
-                                            return if bottom_affinity {
-                                                actual_line
-                                            } else {
-                                                actual_line - range.len()
-                                            };
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        (_, DiffLines::Both(info)) => {
-                            let len = info.right.len();
-                            let start = if is_right {
-                                info.right.start
-                            } else {
-                                info.left.start
-                            };
-
-                            if let Some(skip) = info.skip.as_ref() {
-                                if current_visual_line + skip.start == visual_line {
-                                    return if bottom_affinity {
-                                        actual_line + skip.end
-                                    } else {
-                                        (actual_line + skip.start).saturating_sub(1)
-                                    };
-                                } else if current_visual_line + skip.start + 1
-                                    > visual_line
-                                {
-                                    return actual_line + visual_line
-                                        - current_visual_line;
-                                } else if current_visual_line + len - skip.len() + 1
-                                    >= visual_line
-                                {
-                                    return actual_line
-                                        + skip.end
-                                        + (visual_line
-                                            - current_visual_line
-                                            - skip.start
-                                            - 1);
-                                }
-                                actual_line += len;
-                                current_visual_line += len - skip.len() + 1;
-                            } else {
-                                if current_visual_line + len > visual_line {
-                                    return start
-                                        + (visual_line - current_visual_line);
-                                }
-                                current_visual_line += len;
-                                actual_line += len;
-                            }
-                        }
-                    }
-                    last_change = Some(change);
-                }
-                actual_line
-            }
-        })
-    }
+    // pub fn actual_line(&self, visual_line: usize, bottom_affinity: bool) -> usize {
+    //     self.kind_read().with_untracked(|kind| match kind {
+    //         EditorViewKind::Normal => visual_line,
+    //         EditorViewKind::Diff(diff) => {
+    //             let is_right = diff.is_right;
+    //             let mut actual_line: usize = 0;
+    //             let mut current_visual_line = 0;
+    //             let mut last_change: Option<&DiffLines> = None;
+    //             let mut changes = diff.changes.iter().peekable();
+    //             while let Some(change) = changes.next() {
+    //                 match (is_right, change) {
+    //                     (true, DiffLines::Left(range)) => {
+    //                         if let Some(DiffLines::Right(_)) = changes.peek() {
+    //                         } else {
+    //                             current_visual_line += range.len();
+    //                             if current_visual_line >= visual_line {
+    //                                 return if bottom_affinity {
+    //                                     actual_line
+    //                                 } else {
+    //                                     actual_line.saturating_sub(1)
+    //                                 };
+    //                             }
+    //                         }
+    //                     },
+    //                     (false, DiffLines::Right(range)) => {
+    //                         let len = if let Some(DiffLines::Left(r)) = last_change {
+    //                             range.len() - r.len().min(range.len())
+    //                         } else {
+    //                             range.len()
+    //                         };
+    //                         if len > 0 {
+    //                             current_visual_line += len;
+    //                             if current_visual_line >= visual_line {
+    //                                 return actual_line;
+    //                             }
+    //                         }
+    //                     },
+    //                     (true, DiffLines::Right(range))
+    //                     | (false, DiffLines::Left(range)) => {
+    //                         let len = range.len();
+    //                         if current_visual_line + len > visual_line {
+    //                             return range.start
+    //                                 + (visual_line - current_visual_line);
+    //                         }
+    //                         current_visual_line += len;
+    //                         actual_line += len;
+    //                         if is_right {
+    //                             if let Some(DiffLines::Left(r)) = last_change {
+    //                                 let len = r.len() - r.len().min(range.len());
+    //                                 if len > 0 {
+    //                                     current_visual_line += len;
+    //                                     if current_visual_line > visual_line {
+    //                                         return if bottom_affinity {
+    //                                             actual_line
+    //                                         } else {
+    //                                             actual_line - range.len()
+    //                                         };
+    //                                     }
+    //                                 }
+    //                             }
+    //                         }
+    //                     },
+    //                     (_, DiffLines::Both(info)) => {
+    //                         let len = info.right.len();
+    //                         let start = if is_right {
+    //                             info.right.start
+    //                         } else {
+    //                             info.left.start
+    //                         };
+    //
+    //                         if let Some(skip) = info.skip.as_ref() {
+    //                             if current_visual_line + skip.start == visual_line {
+    //                                 return if bottom_affinity {
+    //                                     actual_line + skip.end
+    //                                 } else {
+    //                                     (actual_line + skip.start).saturating_sub(1)
+    //                                 };
+    //                             } else if current_visual_line + skip.start + 1
+    //                                 > visual_line
+    //                             {
+    //                                 return actual_line + visual_line
+    //                                     - current_visual_line;
+    //                             } else if current_visual_line + len - skip.len() + 1
+    //                                 >= visual_line
+    //                             {
+    //                                 return actual_line
+    //                                     + skip.end
+    //                                     + (visual_line
+    //                                         - current_visual_line
+    //                                         - skip.start
+    //                                         - 1);
+    //                             }
+    //                             actual_line += len;
+    //                             current_visual_line += len - skip.len() + 1;
+    //                         } else {
+    //                             if current_visual_line + len > visual_line {
+    //                                 return start
+    //                                     + (visual_line - current_visual_line);
+    //                             }
+    //                             current_visual_line += len;
+    //                             actual_line += len;
+    //                         }
+    //                     }
+    //                 }
+    //                 last_change = Some(change);
+    //             }
+    //             actual_line
+    //         }
+    //     })
+    // }
 }
 
 impl KeyPressFocus for EditorData {

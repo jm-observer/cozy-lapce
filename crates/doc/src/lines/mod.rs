@@ -1356,9 +1356,9 @@ impl DocLines {
                     buffer_len: self.buffer().len()
                 }
             },
-            EditorViewKind::Diff(diff) => {
-                let changes = diff.changes();
-                info!("{diff:?} {changes:?}");
+            EditorViewKind::Diff(changes) => {
+                // let changes = diff.changes();
+                info!("{changes:?}");
                 let mut empty_lines = changes
                     .iter()
                     .filter(is_empty as fn(&&DiffResult) -> bool)
@@ -2707,6 +2707,23 @@ impl DocLines {
     #[inline]
     fn buffer_mut(&mut self) -> &mut Buffer {
         self.signals.buffer.val_mut()
+    }
+
+    pub fn line_count(&self, kind: EditorViewKind) -> usize {
+        match kind {
+            EditorViewKind::Normal => {
+                self.origin_folded_lines.len()
+            }
+            EditorViewKind::Diff(changes) => {
+                self.origin_folded_lines.len() + changes.iter().fold(0, |acc, line| {
+                    if let DiffResult::Empty {lines} = line {
+                        acc + lines.len()
+                    } else {
+                        acc
+                    }
+                })
+            }
+        }
     }
 }
 

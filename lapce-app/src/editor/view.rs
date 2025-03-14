@@ -39,7 +39,7 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack, text_input, v_stack
+        stack, text_input
     }
 };
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
@@ -888,7 +888,7 @@ impl View for EditorView {
             let visual_line_len = e_data
                 .doc()
                 .lines
-                .with_untracked(|x| x.origin_folded_lines.len());
+                .with_untracked(|x| x.line_count(self.editor.editor.kind.get_untracked()));
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
             let last_line_height = line_height * visual_line_len as f64;
