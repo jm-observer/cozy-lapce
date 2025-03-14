@@ -1,5 +1,5 @@
 use std::{borrow::Cow, path::PathBuf, rc::Rc};
-
+use std::ops::{AddAssign, SubAssign};
 use anyhow::Result;
 use doc::lines::{
     buffer::{Buffer, diff::DiffLines, rope_text::RopeText},
@@ -44,8 +44,9 @@ use floem::{
 };
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
-use log::error;
-
+use log::{error};
+use doc::EditorViewKind;
+use doc::lines::diff::DiffResult;
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
@@ -1785,13 +1786,79 @@ fn editor_breadcrumbs(
     .debug_name("Editor BreadCrumbs")
 }
 
-pub fn editor_diff_header(config: WithLapceConfig) -> impl View {
+fn count_rect(changes: Vec<DiffResult>, index: usize, right_editor: EditorData) {
+    let mut empty_line_count_0 = 0;
+    let empty_line_count_1;
+    for (change_index, change) in changes.iter().enumerate() {
+        if change_index < index {
+            if let DiffResult::Empty{lines} = change {
+                empty_line_count_0 += lines.len();
+            }
+        } else if change_index == index {
+            let change_line = change.line().start;
+            empty_line_count_1 = empty_line_count_0 + change.line().len();
+            let lines = right_editor.editor.doc.with_untracked(|x| x.lines);
+            let (visual_line_count, line_height) = lines.with_untracked(|x| {
+                let mut visual_line = 0;
+
+                for folded in &x.origin_folded_lines {
+                    if folded.origin_line_start <= change_line {
+                        visual_line += 1;
+                    } else {
+                        break;
+                    }
+                }
+                (visual_line, x.line_height)
+            });
+            let y = ((empty_line_count_0 + visual_line_count) * line_height) as f64;
+            let y1 =((empty_line_count_1 + visual_line_count) * line_height) as f64;
+            let rect = Rect::new(0.0, y, 0.0, y1);
+            log::info!("index={index} rect={rect:?} len={}", changes.len());
+            right_editor.ensure_visible.set(rect);
+            return ;
+        }
+    }
+}
+
+pub fn editor_diff_header(config: WithLapceConfig, right_editor: RwSignal<EditorData>) -> impl View {
+    let index = create_rw_signal(0usize);
     let view = h_stack((
         common_svg(config, None, LapceIcons::FOLD_UP)
-            .style(|x| x.padding_horiz(5.0)).on_click_stop(|_| {
-
+            .style(|x| x.padding_horiz(15.0)).on_click_stop(move |_| {
+            let right_editor = right_editor.get_untracked();
+            if let EditorViewKind::Diff {
+                changes, ..
+            } = right_editor.kind_read().get_untracked() {
+                let Some(index) = index.try_update(|x| {
+                    if *x == 0 {
+                        *x = changes.len() - 1;
+                    } else {
+                        x.sub_assign(1);
+                    }
+                    *x
+                }) else {
+                    return
+                };
+                count_rect(changes, index, right_editor);
+            }
         }),
-        common_svg(config, None, LapceIcons::FOLD_DOWN)
+        common_svg(config, None, LapceIcons::FOLD_DOWN).on_click_stop(move |_| {
+            let right_editor = right_editor.get_untracked();
+            if let EditorViewKind::Diff{
+                changes, ..
+            } = right_editor.kind_read().get_untracked() {
+                let Some(index) = index.try_update(|x| {
+                    x.add_assign(1);
+                    if *x >= changes.len() {
+                        *x = 0;
+                    }
+                    *x
+                }) else {
+                    return
+                };
+                count_rect(changes, index, right_editor);
+            }
+        })
     ));
     view.style(|x| x.height(30.))
 }
@@ -1822,6 +1889,70 @@ fn editor_content(
     //     });
     // }
     let current_scroll = create_rw_signal(Rect::ZERO);
+    {
+        //
+        create_effect(move |_| {
+            let e_data = e_data.get_untracked();
+            let cursor = cursor.get();
+            let offset = cursor.offset();
+            let offset_line_from_top = e_data
+                .common
+                .offset_line_from_top
+                .try_update(|x| x.take())
+                .flatten();
+            let line_height = e_data
+                .common
+                .config
+                .signal(|x| x.editor.line_height.signal())
+                .get() as f64;
+            e_data.doc_signal().track();
+            e_data.kind_read().track();
+
+            let Ok(mut origin_point) =
+                e_data.doc_signal().with(|x| x.lines).with_untracked(|x| {
+                    x.cursor_position_of_buffer_offset(offset, cursor.affinity)
+                })
+            else {
+                // log::info!(
+                //     "ensure_visible offset={offset}
+                // offset_line_from_top={offset_line_from_top:?} {:?} empty",
+                // cursor.affinity );
+                e_data.ensure_visible.set(current_scroll.get_untracked());
+                return ;
+            };
+            // log::info!(
+            //         "ensure_visible offset={offset}
+            // offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
+            //     );
+            let ensure_visiable = if let Some(offset_line_from_top) = offset_line_from_top {
+                // from jump
+                let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;
+                let scroll = current_scroll.get_untracked();
+                let backup_point = origin_point;
+                if scroll != Rect::ZERO {
+                    if origin_point.y < scroll.y0 {
+                        origin_point.y -= height
+                    } else if origin_point.y > scroll.y1 {
+                        origin_point.y += (scroll.height() - height).max(0.0)
+                    }
+                } else {
+                    origin_point.y += height
+                }
+                let rect = Rect::from_origin_size(origin_point, (1.0, 0.0));
+                log::info!(
+                "offset_line_from_top {scroll:?} {rect:?} \
+                 backup_point={backup_point:?} offset={offset} \
+                 offset_line_from_top={offset_line_from_top:?} height={height} ",
+                );
+                rect
+            } else {
+                // from click maybe
+                Rect::from_center_size(origin_point, (1.0, line_height * 3.0))
+            };
+            e_data.ensure_visible.set(ensure_visiable);
+        });
+    }
+
     scroll({
         let editor_content_view = editor_view(
             e_data.get_untracked(),
@@ -1903,69 +2034,7 @@ fn editor_content(
     })
     .scroll_delta(move || scroll_delta.get())
     .ensure_visible(move || {
-        let e_data = e_data.get_untracked();
-        let cursor = cursor.get();
-        let offset = cursor.offset();
-        let offset_line_from_top = e_data
-            .common
-            .offset_line_from_top
-            .try_update(|x| x.take())
-            .flatten();
-        let line_height = e_data
-            .common
-            .config
-            .signal(|x| x.editor.line_height.signal())
-            .get() as f64;
-        e_data.doc_signal().track();
-        e_data.kind_read().track();
-
-        let Ok(mut origin_point) =
-            e_data.doc_signal().with(|x| x.lines).with_untracked(|x| {
-                x.cursor_position_of_buffer_offset(offset, cursor.affinity)
-            })
-        else {
-            // log::info!(
-            //     "ensure_visible offset={offset}
-            // offset_line_from_top={offset_line_from_top:?} {:?} empty",
-            // cursor.affinity );
-            return current_scroll.get_untracked();
-        };
-        // log::info!(
-        //         "ensure_visible offset={offset}
-        // offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
-        //     );
-        if let Some(offset_line_from_top) = offset_line_from_top {
-            // from jump
-            let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;
-            let scroll = current_scroll.get_untracked();
-            let backup_point = origin_point;
-            if scroll != Rect::ZERO {
-                if origin_point.y < scroll.y0 {
-                    origin_point.y -= height
-                } else if origin_point.y > scroll.y1 {
-                    origin_point.y += (scroll.height() - height).max(0.0)
-                }
-            } else {
-                origin_point.y += height
-            }
-            let rect = Rect::from_origin_size(origin_point, (1.0, 0.0));
-            log::info!(
-                "offset_line_from_top {scroll:?} {rect:?} \
-                 backup_point={backup_point:?} offset={offset} \
-                 offset_line_from_top={offset_line_from_top:?} height={height} ",
-            );
-            rect
-        } else {
-            // from click maybe
-            Rect::from_center_size(origin_point, (1.0, line_height * 3.0))
-            // let rect = Rect::from_origin_size(origin_point, (line_height,
-            // 0.0)); log::info!(
-            //     "{:?} visual_line_index={visual_line_index} {rect:?} \
-            //      offset={offset}",
-            //     e_data.doc().content.get_untracked().path()
-            // );
-            // rect
-        }
+        e_data.read_only().with(|x| x.ensure_visible).get()
     })
     .style(|s| s.size_full().set(PropagatePointerWheel, false))
     .keyboard_navigable()

@@ -18,7 +18,8 @@ pub enum DiffResult {
     /// 对方新增/已方删除
     Empty { lines: Range<usize> },
     /// 双方修改
-    Changed { lines: Range<usize> }
+    Changed {
+        lines: Range<usize> }
 }
 
 pub fn is_empty(rs: &&DiffResult) -> bool {
@@ -32,7 +33,7 @@ impl DiffResult {
     pub fn line(&self) -> &Range<usize> {
         match self {
             DiffResult::Empty { lines: line } => line,
-            DiffResult::Changed { lines: line } => line
+            DiffResult::Changed { lines: line, .. } => line
         }
     }
 
@@ -46,7 +47,7 @@ impl DiffResult {
     pub fn is_diff(&self, line: &usize) -> bool {
         match self {
             DiffResult::Empty { .. } => false,
-            DiffResult::Changed { lines } => lines.contains(line)
+            DiffResult::Changed { lines, .. } => lines.contains(line)
         }
     }
 }

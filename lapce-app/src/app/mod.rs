@@ -1345,7 +1345,7 @@ fn editor_tab_content(
                         create_rw_signal(diff_editor_data.left.clone());
                     let right_editor =
                         create_rw_signal(diff_editor_data.right.clone());
-                    v_stack((editor_diff_header(config.clone()),
+                    v_stack((editor_diff_header(config.clone(), right_editor),
 
                              stack((
                         container(

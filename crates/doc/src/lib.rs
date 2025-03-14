@@ -23,10 +23,13 @@ pub struct DiagnosticData {
     pub diagnostics_span: RwSignal<Spans<Diagnostic>>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EditorViewKind {
     Normal,
-    Diff(Vec<DiffResult>)
+    Diff {
+        is_right:bool,
+        changes: Vec<DiffResult>
+    }
 }
 
 impl EditorViewKind {

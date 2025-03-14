@@ -62,7 +62,10 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 common.clone(),
-                EditorViewKind::Diff(vec![])
+                EditorViewKind::Diff {
+                    changes: vec![],
+                    is_right: false
+                }
             ),
             editors.make_from_doc(
                 cx,
@@ -70,7 +73,10 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 common.clone(),
-                EditorViewKind::Diff(vec![])
+                EditorViewKind::Diff{
+                    changes: vec![],
+                    is_right: true
+                }
             )
         ];
 
@@ -185,10 +191,16 @@ impl DiffEditorData {
                     }
                     let diff = DiffInfo {
                         is_right: false,
-                        changes:  changes.clone()
+                        changes
                     };
-                    left_editor_view.set(EditorViewKind::Diff(diff.left_changes()));
-                    right_editor_view.set(EditorViewKind::Diff(diff.right_changes()));
+                    left_editor_view.set(EditorViewKind::Diff {
+                        changes: diff.left_changes(),
+                        is_right: false,
+                    });
+                    right_editor_view.set(EditorViewKind::Diff {
+                        changes: diff.right_changes(),
+                        is_right: true,
+                    });
                 })
             };
 

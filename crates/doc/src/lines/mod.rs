@@ -1356,9 +1356,10 @@ impl DocLines {
                     buffer_len: self.buffer().len()
                 }
             },
-            EditorViewKind::Diff(changes) => {
+            EditorViewKind::Diff{
+                changes, ..
+            } => {
                 // let changes = diff.changes();
-                info!("{changes:?}");
                 let mut empty_lines = changes
                     .iter()
                     .filter(is_empty as fn(&&DiffResult) -> bool)
@@ -2010,7 +2011,7 @@ impl DocLines {
         base: Rect,
         view_kind: EditorViewKind
     ) -> (ScreenLines, Vec<FoldingDisplayItem>) {
-        info!("_compute_screen_lines");
+        info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         // TODO: this should probably be a get since we need to depend
         // on line-height let doc_lines =
         // doc.doc_lines.get_untracked();
@@ -2714,7 +2715,9 @@ impl DocLines {
             EditorViewKind::Normal => {
                 self.origin_folded_lines.len()
             }
-            EditorViewKind::Diff(changes) => {
+            EditorViewKind::Diff{
+                changes, ..
+            } => {
                 self.origin_folded_lines.len() + changes.iter().fold(0, |acc, line| {
                     if let DiffResult::Empty {lines} = line {
                         acc + lines.len()

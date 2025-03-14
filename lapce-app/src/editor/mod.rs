@@ -140,8 +140,8 @@ pub struct EditorData {
     pub editor:           Rc<Editor>,
     // pub kind: RwSignal<EditorViewKind>,
     // pub sticky_header_height: RwSignal<f64>,
-    pub common:           Rc<CommonData> /* pub sticky_header_info:
-                                          * RwSignal<StickyHeaderInfo> */
+    pub common:           Rc<CommonData>,
+    pub ensure_visible:   RwSignal<Rect>
 }
 
 impl PartialEq for EditorData {
@@ -178,8 +178,9 @@ impl EditorData {
             editor: Rc::new(editor),
             // kind: cx.create_rw_signal(EditorViewKind::Normal),
             // sticky_header_height: cx.create_rw_signal(0.0),
-            common /* sticky_header_info:
+            common, /* sticky_header_info:
                     * cx.create_rw_signal(StickyHeaderInfo::default()) */
+            ensure_visible: cx.create_rw_signal(Rect::ZERO),
         }
     }
 
