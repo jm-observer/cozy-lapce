@@ -182,21 +182,25 @@ pub fn is_diff(
     }
 }
 
+pub fn advance(
+    changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
+    line_index: usize
+) {
+    if let Some(diff) = changes.peek() {
+        if diff.line().end <= line_index {
+            changes.next();
+        }
+    }
+}
+
 pub fn consume_line(
     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
     line_index: usize
 ) -> bool {
-    loop {
-        if let Some(diff) = changes.peek() {
-            if diff.line().end <= line_index {
-                changes.next();
-                continue;
-            } else {
-                return diff.consume_line(&line_index);
-            }
-        } else {
-            return false;
-        }
+    if let Some(diff) = changes.peek() {
+        diff.consume_line(&line_index)
+    } else {
+        false
     }
 }
 

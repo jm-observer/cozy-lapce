@@ -41,6 +41,7 @@ fn test_all() -> Result<()> {
 
     tests::test_diff::_test_screen()?;
     tests::test_diff::_test_changes()?;
-
+    tests::test_diff::_test_1_screen()?;
+    tests::test_diff::_test_1_changes()?;
     Ok(())
 }

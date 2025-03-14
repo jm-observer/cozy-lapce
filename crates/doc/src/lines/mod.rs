@@ -66,6 +66,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
+use crate::lines::diff::advance;
 
 pub mod action;
 pub mod buffer;
@@ -1357,7 +1358,7 @@ impl DocLines {
             },
             EditorViewKind::Diff(diff) => {
                 let changes = diff.changes();
-
+                info!("{diff:?} {changes:?}");
                 let mut empty_lines = changes
                     .iter()
                     .filter(is_empty as fn(&&DiffResult) -> bool)
@@ -1386,7 +1387,7 @@ impl DocLines {
                     } else if let Some(line) =
                         &mut self.origin_folded_lines.get_mut(origin_line_index)
                     {
-                        let is_diff = is_diff(&mut change_lines, folded_line_index);
+                        let is_diff = is_diff(&mut change_lines, line.origin_line_start);
                         start_line = line.origin_line_end + 1;
                         origin_line_index += 1;
                         line.init_layout();
@@ -1404,8 +1405,8 @@ impl DocLines {
                             }
                         };
                         visual_lines.push(visual_line_info);
-                    } else {
-                        break;
+                        advance(&mut empty_lines, start_line + empty_count);
+                        empty_count = 0;
                     }
                 }
                 self.signals.max_width.update_if_not_equal(max_width);

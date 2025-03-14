@@ -1296,7 +1296,6 @@ fn editor_tab_content(
                 if let Some(diff_editor_data) = diff_editor_data {
                     let focus_right = diff_editor_data.focus_right;
                     let diff_editor_tab_id = diff_editor_data.editor_tab_id;
-                    let diff_editor_scope = diff_editor_data.scope;
                     let is_active = move |tracked: bool| {
                         let focus = if tracked {
                             focus.get()

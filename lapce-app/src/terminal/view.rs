@@ -647,6 +647,7 @@ impl View for TerminalView {
             let term_size = TermSize::new(width, height);
             raw.write().term.resize(term_size);
             self.proxy.terminal_resize(self.term_id, width, height);
+            log::info!("{:?} {}-{}", self.term_id, width, height);
         }
 
         None

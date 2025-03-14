@@ -329,11 +329,50 @@ pub fn init_test_diff() -> Vec<DiffLines> {
     .unwrap()
 }
 
+pub fn init_test_1_diff() -> Vec<DiffLines> {
+    let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
+    let file_new: PathBuf = "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+
+    let code_old = load_code(&file_old);
+    let code = load_code(&file_new);
+    rope_diff(
+        code_old.into(),
+        code.into(),
+        0,
+        Arc::new(AtomicU64::new(0)),
+        None
+    )
+    .unwrap()
+}
+
 pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)> {
     let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
     let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
 
     let diff = init_test_diff();
+    let rs_new = _init_code(file_new);
+    let rs_old = _init_code(file_old);
+
+    // let diff = init_diff()?;
+    let left_kind = EditorViewKind::Diff(DiffInfo {
+        is_right: false,
+        changes:  diff.clone()
+    });
+    let right_kind = EditorViewKind::Diff(DiffInfo {
+        is_right: true,
+        changes:  diff
+    });
+    let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
+    let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
+
+    Ok((left_lines, right_lines, left_kind, right_kind))
+}
+
+pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)> {
+    let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
+    let file_new: PathBuf = "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+
+    let diff = init_test_1_diff();
     let rs_new = _init_code(file_new);
     let rs_old = _init_code(file_old);
 
