@@ -51,6 +51,8 @@ extern crate core;
 extern crate windows_sys as windows;
 
 use floem::{View, prelude::Svg, reactive::create_effect};
+use floem::prelude::{Decorators, SignalGet};
+use crate::config::WithLapceConfig;
 
 pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
     let content = svg_str();
@@ -62,3 +64,33 @@ pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
     });
     svg
 }
+
+pub fn common_svg(config: WithLapceConfig, color: Option<&'static str>, svg_str: &'static str) -> Svg {
+    svg(move || config.with_ui_svg(svg_str)).style(move |s| {
+        if let Some(color) = color {
+            let (color, size) = config.signal(|config| {
+                (
+                    config.color(color),
+                    config.ui.icon_size.signal(),
+                )
+            });
+            let color = color.get();
+            let size = size.get() as f32;
+            s.min_width(size)
+                .size(size, size)
+                .color(color)
+                // .border(1.)
+                // .border_radius(2.)
+        } else {
+            let size = config.signal(|config| {
+                    config.ui.icon_size.signal()
+            });
+            let size = size.get() as f32;
+            s.min_width(size)
+                .size(size, size)
+                // .border(1.)
+                // .border_radius(2.)
+        }
+    })
+}
+

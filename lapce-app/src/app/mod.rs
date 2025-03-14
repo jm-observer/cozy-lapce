@@ -54,6 +54,7 @@ use floem::{
     },
     window::{ResizeDirection, WindowConfig, WindowId}
 };
+use floem::views::v_stack;
 use lapce_core::{
     debug::RunDebugMode,
     directory::Directory,
@@ -119,6 +120,7 @@ use crate::{
     window::{WindowData, WindowInfo},
     window_workspace::{Focus, WindowWorkspaceData}
 };
+use crate::editor::view::editor_diff_header;
 
 pub(crate) mod grammars;
 mod logging;
@@ -1343,7 +1345,9 @@ fn editor_tab_content(
                         create_rw_signal(diff_editor_data.left.clone());
                     let right_editor =
                         create_rw_signal(diff_editor_data.right.clone());
-                    stack((
+                    v_stack((editor_diff_header(config.clone()),
+
+                             stack((
                         container(
                             editor_container_view(
                                 window_tab_data.clone(),
@@ -1398,7 +1402,7 @@ fn editor_tab_content(
                         // )
                     ))
                     .style(|s: Style| s.size_full())
-                    .into_any()
+                    )).into_any()
                 } else {
                     text("empty diff editor").into_any()
                 }

@@ -28,7 +28,7 @@ use floem::{
         Brush, Color,
         kurbo::{Line, Point, Rect, Size}
     },
-    prelude::SvgColor,
+    prelude::{SvgColor, h_stack},
     reactive::{
         Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith,
         create_effect, create_memo, create_rw_signal
@@ -39,7 +39,7 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack, text_input
+        stack, text_input, v_stack
     }
 };
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
@@ -50,6 +50,7 @@ use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
+    common_svg,
     config::{LapceConfig, WithLapceConfig, color::LapceColor, editor::WrapStyle},
     editor::{
         floem_editor::{Editor, paint_selection, paint_text},
@@ -1782,6 +1783,17 @@ fn editor_breadcrumbs(
             .apply_if(!show_bread_crumbs.get(), |s| s.hide())
     })
     .debug_name("Editor BreadCrumbs")
+}
+
+pub fn editor_diff_header(config: WithLapceConfig) -> impl View {
+    let view = h_stack((
+        common_svg(config, None, LapceIcons::FOLD_UP)
+            .style(|x| x.padding_horiz(5.0)).on_click_stop(|_| {
+
+        }),
+        common_svg(config, None, LapceIcons::FOLD_DOWN)
+    ));
+    view.style(|x| x.height(30.))
 }
 
 fn editor_content(
