@@ -1240,16 +1240,21 @@ impl WindowWorkspaceData {
             // ==== Running / Debugging ====
             RunAndDebugRestart => {
                 let active_term = self.terminal.debug.active_term.get_untracked();
-                if let Some(is_debug) = active_term
-                    .and_then(|term_id| self.terminal.restart_run_debug(term_id))
-                {
-                    self.panel.show_panel(&PanelKind::Terminal);
-                    if is_debug {
-                        self.panel.show_panel(&PanelKind::Debug);
+                if let Some(term_id ) = active_term {
+                    if let Err(err) = self.restart_run_program_in_terminal(term_id) {
+                    error!("RestartTerminal {err:?}");
                     }
-                } else {
-                    self.palette.run(PaletteKind::RunAndDebug);
                 }
+                // if let Some(is_debug) = active_term
+                //     .and_then(|term_id| self.terminal.restart_run_debug(term_id))
+                // {
+                //     self.panel.show_panel(&PanelKind::Terminal);
+                //     if is_debug {
+                //         self.panel.show_panel(&PanelKind::Debug);
+                //     }
+                // } else {
+                //     self.palette.run(PaletteKind::RunAndDebug);
+                // }
             }
             RunAndDebugStop => {
                 let active_term = self.terminal.debug.active_term.get_untracked();

@@ -32,7 +32,8 @@ use crate::{
     terminal::{event::TermEvent, raw::RawTerminal},
     window_workspace::{CommonData, Focus}
 };
-
+use alacritty_terminal::grid::Dimensions;
+use alacritty_terminal::term::test::TermSize;
 pub struct TerminalTabInfo {
     pub active: Option<TerminalTabId>,
     pub tabs:   im::Vector<TerminalData>
@@ -468,9 +469,13 @@ impl TerminalPanelData {
     /// Return whether it is in debug mode.
     pub fn restart_run_debug(&self, term_id: TermId) -> Option<bool> {
         let terminal = self.get_terminal_in_tab(&term_id)?;
-        let (run_debug, raw_id) = terminal
+        let (run_debug, raw_id, width, height) = terminal
             .data
-            .with_untracked(|x| (x.run_debug.clone(), x.raw_id));
+            .with_untracked(|x| {
+                let raw = x.raw.read();
+                let width = raw.term.columns();
+                let height = raw.term.screen_lines();
+                (x.run_debug.clone(), x.raw_id, width, height)});
         let mut run_debug = run_debug?;
         if run_debug.config.config_source.from_palette() {
             match self.get_run_config_by_name(&run_debug.config.name) {
@@ -484,6 +489,7 @@ impl TerminalPanelData {
             }
         }
         let mut is_debug = false;
+        let term_size = TermSize::new(width, height);
         let new_term_id = match run_debug.mode {
             RunDebugMode::Run => {
                 self.common.proxy.terminal_close(terminal.term_id, raw_id);
@@ -499,10 +505,15 @@ impl TerminalPanelData {
                 )
                 .data
                 .get_untracked();
+                new_terminal.raw.write().term.resize(term_size);
                 // let new_term_id = new_terminal.term_id;
                 terminal.data.update(|terminals| {
                     *terminals = new_terminal;
                 });
+                self.common
+                    .proxy
+                    .terminal_resize(terminal.term_id, width, height);
+            
                 self.debug.active_term.set(Some(terminal.term_id));
                 term_id
             },
