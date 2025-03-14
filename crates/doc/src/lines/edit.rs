@@ -1240,7 +1240,8 @@ impl Action {
             },
             ClipboardPaste => {
                 if let Some(s) = clipboard.get_string() {
-                    let mode = if s.ends_with('\n') {
+                    // ??
+                    let mode = if s.ends_with('\n') && cursor.is_visual() {
                         VisualMode::Linewise
                     } else {
                         VisualMode::Normal
