@@ -7,14 +7,15 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container, label, scroll, stack, virtual_stack
+        Decorators, VirtualVector, container, h_stack, label, scroll, stack,
+        virtual_stack
     }
 };
 use lapce_core::{icon::LapceIcons, id::Id, panel::PanelContainerPosition};
 use lsp_types::{DocumentSymbol, Position, Range, SymbolKind};
 
 use crate::{
-    command::InternalCommand, config::color::LapceColor,
+    command::InternalCommand, common_svg, config::color::LapceColor,
     editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData
 };
 
@@ -292,167 +293,177 @@ pub fn symbol_panel(
     let ui_line_height = window_tab_data.common.ui_line_height;
     let scroll_rect = window_tab_data.scope.create_rw_signal(Rect::ZERO);
     let window_tab_data_clone = window_tab_data.clone();
-    scroll(
-        virtual_stack(
-            // VirtualDirection::Vertical,
-            // VirtualItemSize::Fixed(Box::new(move || ui_line_height.get())),
-            {
-                let window_tab_data = window_tab_data.clone();
-                move || {
-                    let editor = window_tab_data.main_split.get_active_editor();
-                    editor.map(|x| x.doc().document_symbol_data.virtual_list.get()).unwrap_or_default()
-                }
-            },
-            move |(_, _, _, item)| item.get_untracked().id,
-            move |(_, level, path,  rw_data)| {
-                let data = rw_data.get_untracked();
-                let open = data.open;
-                let has_child = !data.children.is_empty();
-                let kind = data.item.kind;
-                let id = rw_data.get_untracked().id;
-                stack((
-                    container(
+    h_stack((
+        container(common_svg(config, None, LapceIcons::REMOTE)).style(move |x| {
+            let (bg, header_height, caret_color) = config.signal(|config| {
+                (config.color(LapceColor::PANEL_BACKGROUND),
+                 config.ui.header_height.signal(), config.color(LapceColor::LAPCE_BORDER),)
+            });
+            x.width_full().height(header_height.get() as f64).background(bg.get()).items_center().border_bottom(1.0)
+                .border_color(caret_color.get())
+        }),
+        scroll(
+            virtual_stack(
+                {
+                    let window_tab_data = window_tab_data.clone();
+                    move || {
+                        let editor = window_tab_data.main_split.get_active_editor();
+                        editor.map(|x| x.doc().document_symbol_data.virtual_list.get()).unwrap_or_default()
+                    }
+                },
+                move |(_, _, _, item)| item.get_untracked().id,
+                move |(_, level, path,  rw_data)| {
+                    let data = rw_data.get_untracked();
+                    let open = data.open;
+                    let has_child = !data.children.is_empty();
+                    let kind = data.item.kind;
+                    let id = rw_data.get_untracked().id;
+                    stack((
+                        container(
+                            svg(move || {
+                                let svg_str = match open.get() {
+                                    true => LapceIcons::ITEM_OPENED,
+                                    false => LapceIcons::ITEM_CLOSED,
+                                };
+                                config.with_ui_svg(svg_str)
+                            })
+                                .style(move |s| {
+                                    let (color, size) = config.signal(|config| {
+                                        (
+                                            config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal()
+                                        )
+                                    });
+                                    let color = if has_child {
+                                        color.get()
+                                    } else {
+                                        Color::TRANSPARENT
+                                    };
+                                    let size = size.get() as f32;
+                                    s.size(size, size)
+                                        .color(color)
+                                })
+                        ).style(|s| s.padding(4.0).margin_left(6.0).margin_right(2.0))
+                            .on_click_cont({
+                                move |_x| {
+                                    if has_child {
+                                        open.update(|x| {
+                                            *x = !*x;
+                                        });
+                                    }
+                                }
+                            }),
                         svg(move || {
-                            let svg_str = match open.get() {
-                                true => LapceIcons::ITEM_OPENED,
-                                false => LapceIcons::ITEM_CLOSED,
-                            };
-                            config.with_ui_svg(svg_str)
+                            let (symbol_svg, file_svg) = config.signal(|config| {
+                                (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
+                            });
+                            if let Some(svg) = symbol_svg {
+                                svg.get()
+                            } else {
+                                file_svg.get()
+                            }
+                        }).style(move |s| {
+                            let (caret_color, size, symbol_color) = config.signal(|config| {
+                                (
+                                    config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal(), config.symbol_color(&kind)
+                                )
+                            });
+                            let size = size.get() as f32;
+                            s.min_width(size)
+                                .size(size, size)
+                                .margin_right(5.0)
+                                .color(symbol_color.unwrap_or(caret_color).get())
+                        }),
+                        label(move || {
+                            data.name.replace('\n', "↵")
                         })
                             .style(move |s| {
-                                let (color, size) = config.signal(|config| {
-                                    (
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal()
-                                    )
-                                });
-                                let color = if has_child {
-                                    color.get()
-                                } else {
-                                    Color::TRANSPARENT
-                                };
-                                let size = size.get() as f32;
-                                s.size(size, size)
-                                    .color(color)
-                            })
-                    ).style(|s| s.padding(4.0).margin_left(6.0).margin_right(2.0))
-                        .on_click_cont({
-                            move |_x| {
-                                if has_child {
-                                    open.update(|x| {
-                                        *x = !*x;
-                                    });
-                                }
+                                s.selectable(false)
+                            }),
+                        label(move || {
+                            data.detail.clone().unwrap_or_default()
+                        }).style(move |s| s.margin_left(6.0)
+                            .color(config.with_color(LapceColor::EDITOR_DIM))
+                            .selectable(false)
+                            .apply_if(
+                                data.item.detail.clone().is_none(),
+                                |s| s.hide())
+                        ),
+                    ))
+                        .style({
+                            let value = window_tab_data.clone();
+                            move |s| {
+                                s.padding_right(5.0)
+                                    .padding_left((level * 10) as f32)
+                                    .items_center()
+                                    .height(ui_line_height.get())
+                                    .hover(|s| {
+                                        s.background(
+                                            config
+                                                .with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
+                                        )
+                                            .cursor(CursorStyle::Pointer)
+                                    }).apply_if(
+                                    {
+                                        let editor = value.main_split.get_active_editor();
+                                        editor.and_then(|x| x.doc().document_symbol_data.select.get().map(|x| x == id)).unwrap_or_default()
+                                    },
+                                    |x| {
+                                        x.background(
+                                            config.with_color(
+                                                LapceColor::PANEL_CURRENT_BACKGROUND,
+                                            ),
+                                        )
+                                    },
+                                )
                             }
-                        }),
-                    svg(move || {
-                        let (symbol_svg, file_svg) = config.signal(|config| {
-                            (config.symbol_svg(kind), config.ui_svg(LapceIcons::FILE))
-                        });
-                        if let Some(svg) = symbol_svg {
-                            svg.get()
-                        } else {
-                            file_svg.get()
-                        }
-                    }).style(move |s| {
-                        let (caret_color, size, symbol_color) = config.signal(|config| {
-                            (
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE), config.ui.icon_size.signal(), config.symbol_color(&kind)
-                            )
-                        });
-                        let size = size.get() as f32;
-                        s.min_width(size)
-                            .size(size, size)
-                            .margin_right(5.0)
-                            .color(symbol_color.unwrap_or(caret_color).get())
-                    }),
-                    label(move || {
-                        data.name.replace('\n', "↵")
-                    })
-                        .style(move |s| {
-                            s.selectable(false)
-                        }),
-                    label(move || {
-                        data.detail.clone().unwrap_or_default()
-                    }).style(move |s| s.margin_left(6.0)
-                        .color(config.with_color(LapceColor::EDITOR_DIM))
-                        .selectable(false)
-                        .apply_if(
-                            data.item.detail.clone().is_none(),
-                            |s| s.hide())
-                    ),
-                ))
-                    .style({
-                        let value = window_tab_data.clone();
-                        move |s| {
-                            s.padding_right(5.0)
-                                .padding_left((level * 10) as f32)
-                                .items_center()
-                                .height(ui_line_height.get())
-                                .hover(|s| {
-                                    s.background(
-                                        config
-                                            .with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                                    )
-                                        .cursor(CursorStyle::Pointer)
-                                }).apply_if(
-                                {
-                                    let editor = value.main_split.get_active_editor();
-                                    editor.and_then(|x| x.doc().document_symbol_data.select.get().map(|x| x == id)).unwrap_or_default()
-                                },
-                                |x| {
-                                    x.background(
-                                        config.with_color(
-                                            LapceColor::PANEL_CURRENT_BACKGROUND,
-                                        ),
-                                    )
-                                },
-                            )
-                        }
-                    })
-                    .on_click_stop({
-                        let window_tab_data = window_tab_data.clone();
-                        let data = rw_data;
-                        move |_| {
-                            let editor = window_tab_data.main_split.get_active_editor();
-                            if let Some(x) = editor { x.doc().document_symbol_data.select.set(Some(id)) }
-                            let data = data.get_untracked();
-                            window_tab_data
-                                .common
-                                .internal_command
-                                .send(InternalCommand::JumpToLocation { location: EditorLocation {
-                                    path: path.to_path_buf(),
-                                    position: Some(crate::editor::location::EditorPosition::Position(data.item.selection_range.start)),
-                                    scroll_offset: None,
-                                    ignore_unconfirmed: false,
-                                    same_editor_tab: false,
-                                } });
-                        }
-                    })
-            }
-            ,
-        )
-            .style(|s| s.flex_col().absolute().min_width_full()),
-    ).on_resize(move |rect| {
-        scroll_rect.set(rect);
-    })
-        .style(
-            |s| s.absolute().size_full()
-        )
-        .scroll_to({
-            move || {
-                let editor = window_tab_data_clone.main_split.get_active_editor();
-                if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get( )) {
-                    let line_height = ui_line_height.get_untracked();
-                    Some(
-                        (
-                            0.0,
-                            line * line_height - scroll_rect.get_untracked().height() / 2.0,
-                        )
-                            .into(),
-                    )
-                } else {
-                    None
+                        })
+                        .on_click_stop({
+                            let window_tab_data = window_tab_data.clone();
+                            let data = rw_data;
+                            move |_| {
+                                let editor = window_tab_data.main_split.get_active_editor();
+                                if let Some(x) = editor { x.doc().document_symbol_data.select.set(Some(id)) }
+                                let data = data.get_untracked();
+                                window_tab_data
+                                    .common
+                                    .internal_command
+                                    .send(InternalCommand::JumpToLocation { location: EditorLocation {
+                                        path: path.to_path_buf(),
+                                        position: Some(crate::editor::location::EditorPosition::Position(data.item.selection_range.start)),
+                                        scroll_offset: None,
+                                        ignore_unconfirmed: false,
+                                        same_editor_tab: false,
+                                    } });
+                            }
+                        })
                 }
-            }
+                ,
+            )
+                .style(|s| s.flex_col().absolute().min_width_full()),
+        ).on_resize(move |rect| {
+            scroll_rect.set(rect);
         })
+            .style(
+                |s| s.flex_grow(1.)
+            )
+            .scroll_to({
+                move || {
+                    let editor = window_tab_data_clone.main_split.get_active_editor();
+                    if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get( )) {
+                        let line_height = ui_line_height.get_untracked();
+                        Some(
+                            (
+                                0.0,
+                                line * line_height - scroll_rect.get_untracked().height() / 2.0,
+                            )
+                                .into(),
+                        )
+                    } else {
+                        None
+                    }
+                }
+            }).debug_name("symbol_panel")
+        )).style(move |x| {
+        x.width_full().flex_col().height_full().flex_col()
+    })
 }

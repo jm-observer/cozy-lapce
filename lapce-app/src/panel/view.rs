@@ -339,7 +339,7 @@ pub fn new_right_panel_container_view(
             tab(active_fn, panels, |p| *p, {
                 let window_tab_data = window_tab_data.clone();
                 move |kind| {
-                    panel_view_by_kind(kind, window_tab_data.clone(), position)
+                    panel_view_by_kind(kind, window_tab_data.clone(), position).debug_name("panel_view_by_kind")
                 }
             })
             .style(|s| s.flex_grow(1.0).height_pct(100.0)),
