@@ -2989,7 +2989,8 @@ impl EditorData {
     }
 
     fn single_click(&self, pointer_event: &PointerInputEvent) {
-        if let Some(offset) = self.editor.single_click(pointer_event, &self.common) {
+        let offset = self.editor.single_click(pointer_event, &self.common);
+        if let Some(offset) = offset {
             self.sync_document_symbol_by_offset(offset);
         }
     }
@@ -3205,6 +3206,9 @@ impl EditorData {
                     None,
                     Some(CommandKind::Workbench(
                         LapceWorkbenchCommand::PaletteCommand
+                    )),
+                    Some(CommandKind::Workbench(
+                        LapceWorkbenchCommand::InsepectSemanticType
                     )),
                 ]
             }

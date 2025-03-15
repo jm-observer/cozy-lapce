@@ -605,7 +605,11 @@ pub enum LapceWorkbenchCommand {
 
     #[strum(serialize = "fold_the_current_scope_of_the_code")]
     #[strum(message = "Fold The Current Scope Of The Code")]
-    FoldCode
+    FoldCode,
+
+    #[strum(message = "Insepect Semantic Type")]
+    #[strum(serialize = "insepect_semantic_type")]
+    InsepectSemanticType,
 }
 
 #[derive(Clone, Debug)]

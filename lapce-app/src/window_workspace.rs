@@ -287,11 +287,11 @@ impl KeyPressFocus for WindowWorkspaceData {
         match condition {
             Condition::PanelFocus => {
                 matches!(self.common.focus.get_untracked(), Focus::Panel(_))
-            },
+            }
             Condition::SourceControlFocus => {
                 self.common.focus.get_untracked()
                     == Focus::Panel(PanelKind::SourceControl)
-            },
+            }
             _ => false,
         }
     }
@@ -307,47 +307,47 @@ impl KeyPressFocus for WindowWorkspaceData {
                 if let Err(err) = self.run_workbench_command(cmd.clone(), None) {
                     error!("{err:?}");
                 }
-            },
+            }
             CommandKind::Focus(cmd) => {
                 if self.common.focus.get_untracked() == Focus::Workbench {
                     match cmd {
                         FocusCommand::SplitClose => {
                             self.main_split.editor_tab_child_close_active();
-                        },
+                        }
                         FocusCommand::SplitVertical => {
                             self.main_split.split_active(SplitDirection::Vertical);
-                        },
+                        }
                         FocusCommand::SplitHorizontal => {
                             self.main_split.split_active(SplitDirection::Horizontal);
-                        },
+                        }
                         FocusCommand::SplitRight => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Right);
-                        },
+                        }
                         FocusCommand::SplitLeft => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Left);
-                        },
+                        }
                         FocusCommand::SplitUp => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Up);
-                        },
+                        }
                         FocusCommand::SplitDown => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Down);
-                        },
+                        }
                         FocusCommand::SplitExchange => {
                             self.main_split.split_exchange_active();
-                        },
+                        }
                         _ => {
                             return CommandExecuted::No;
-                        },
+                        }
                     }
                 }
-            },
+            }
             _ => {
                 return CommandExecuted::No;
-            },
+            }
         }
 
         CommandExecuted::Yes
@@ -614,10 +614,10 @@ impl WindowWorkspaceData {
                         match notification {
                             TermNotification::SetTitle { term_id, title } => {
                                 terminal.set_title(term_id, title);
-                            },
+                            }
                             TermNotification::RequestPaint => {
                                 view_id.get_untracked().request_paint();
-                            },
+                            }
                         }
                     }
                 });
@@ -807,7 +807,7 @@ impl WindowWorkspaceData {
                 if let Err(err) = self.run_workbench_command(command, cmd.data) {
                     error!("{err:?}");
                 }
-            },
+            }
             CommandKind::Scroll(_)
             | CommandKind::Focus(_)
             | CommandKind::Edit(_)
@@ -821,9 +821,9 @@ impl WindowWorkspaceData {
                 } else {
                     // TODO: dispatch to current focused view?
                 }
-            },
-            CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {},
+            }
+            CommandKind::MotionMode(_) => {}
+            CommandKind::MultiSelection(_) => {}
         }
     }
 
@@ -917,7 +917,7 @@ impl WindowWorkspaceData {
                     } else {
                         None
                     };
-                    let Some(path) = path else { return Ok(())};
+                    let Some(path) = path else { return Ok(()) };
                     let path = path.parent().unwrap_or(&path);
 
                     open_uri(path);
@@ -1004,19 +1004,19 @@ impl WindowWorkspaceData {
                 open_uri(&self.common.directory.logs_directory);
             }
             OpenProxyDirectory => {
-                    open_uri(&self.common.directory.proxy_directory);
+                open_uri(&self.common.directory.proxy_directory);
             }
             OpenThemesDirectory => {
-                    open_uri(&self.common.directory.themes_directory);
+                open_uri(&self.common.directory.themes_directory);
             }
             OpenPluginsDirectory => {
-                    open_uri(&self.common.directory.plugins_directory);
+                open_uri(&self.common.directory.plugins_directory);
             }
             OpenGrammarsDirectory => {
-                    open_uri(&self.common.directory.grammars_directory);
+                open_uri(&self.common.directory.grammars_directory);
             }
             OpenQueriesDirectory => {
-                    open_uri(&self.common.directory.queries_directory);
+                open_uri(&self.common.directory.queries_directory);
             }
 
             InstallTheme => {}
@@ -1139,8 +1139,8 @@ impl WindowWorkspaceData {
                     self.common
                         .config
                         .with_untracked(|x| x
-                        .terminal
-                        .get_default_profile()),
+                            .terminal
+                            .get_default_profile()),
                 );
                 if !self.panel.is_panel_visible(&PanelKind::Terminal) {
                     self.panel.show_panel(&PanelKind::Terminal);
@@ -1242,7 +1242,7 @@ impl WindowWorkspaceData {
             // ==== Running / Debugging ====
             RunAndDebugRestart => {
                 let active_term = self.terminal.debug.active_term.get_untracked();
-                if let Some(term_id ) = active_term {
+                if let Some(term_id) = active_term {
                     if let Err(err) = self.restart_run_program_in_terminal(term_id) {
                         error!("RestartTerminal {err:?}");
                     }
@@ -1278,7 +1278,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(scale), self.common.clone()
+                    toml_edit::Value::from(scale), self.common.clone(),
                 );
             }
             ZoomOut => {
@@ -1293,7 +1293,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(scale), self.common.clone()
+                    toml_edit::Value::from(scale), self.common.clone(),
                 );
             }
             ZoomReset => {
@@ -1302,7 +1302,7 @@ impl WindowWorkspaceData {
                 LapceConfig::update_file(
                     "ui",
                     "scale",
-                    toml_edit::Value::from(1.0), self.common.clone()
+                    toml_edit::Value::from(1.0), self.common.clone(),
                 );
             }
 
@@ -1549,7 +1549,7 @@ impl WindowWorkspaceData {
                         .section_open(PanelSection::FileExplorer).update(|x| {
                         *x = true;
                     });
-                    if let DocContent::File {path, ..} = editor_data.doc().content.get_untracked() {
+                    if let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
                         self.file_explorer.reveal_in_file_tree(path);
                     }
                 }
@@ -1564,12 +1564,12 @@ impl WindowWorkspaceData {
                     let line = match doc.lines.with_untracked(|x| {
                         x.buffer().offset_to_line_col(offset).map(|x| x.0)
                     }) {
-                    Ok(rs) => {rs}
-                    Err(err) => {
-                        error!("{err:?}");
-                        return Ok(());
-                    }
-                };
+                        Ok(rs) => { rs }
+                        Err(err) => {
+                            error!("{err:?}");
+                            return Ok(());
+                        }
+                    };
                     let rs = doc.document_symbol_data.virtual_list.with_untracked(|x| {
                         x.match_line_with_children(line as u32)
                     });
@@ -1585,13 +1585,13 @@ impl WindowWorkspaceData {
                 if let Some(editor_data) =
                     self.main_split.active_editor.get_untracked()
                 {
-                    if let DocContent::File {path, ..} = editor_data.doc().content.get_untracked() {
+                    if let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
                         let offset = editor_data.cursor().with_untracked(|c| c.offset());
                         let line = editor_data.doc()
                             .lines.with_untracked(|x| x.buffer().line_of_offset(offset));
                         self.common.proxy.git_get_remote_file_url(
                             path,
-                            create_ext_action(self.scope, move | (_, result)| {
+                            create_ext_action(self.scope, move |(_, result)| {
                                 if let Ok(ProxyResponse::GitGetRemoteFileUrl {
                                               file_url
                                           }) = result
@@ -1602,7 +1602,6 @@ impl WindowWorkspaceData {
                                 }
                             }),
                         );
-
                     }
                 }
             }
@@ -1610,7 +1609,7 @@ impl WindowWorkspaceData {
                 if let Some(editor_data) =
                     self.main_split.active_editor.get_untracked()
                 {
-                    if let DocContent::File {path, ..} = editor_data.doc().content.get_untracked() {
+                    if let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
                         let path = path.parent().unwrap_or(&path);
                         if !path.exists() {
                             return Ok(());
@@ -1703,13 +1702,15 @@ impl WindowWorkspaceData {
                     let internal_command = self.common.internal_command;
 
                     internal_command.send(InternalCommand::MakeConfirmed);
-                    internal_command.send(InternalCommand::GoToLocation { location: EditorLocation {
-                        path,
-                        position: Some(EditorPosition::Offset(offset)),
-                        scroll_offset: None,
-                        ignore_unconfirmed: false,
-                        same_editor_tab: false,
-                    } });
+                    internal_command.send(InternalCommand::GoToLocation {
+                        location: EditorLocation {
+                            path,
+                            position: Some(EditorPosition::Offset(offset)),
+                            scroll_offset: None,
+                            ignore_unconfirmed: false,
+                            same_editor_tab: false,
+                        }
+                    });
                 }
             }
             AddRunDebugConfig => {
@@ -1726,7 +1727,37 @@ impl WindowWorkspaceData {
                         .send(InternalCommand::OpenFile { path });
                 }
             }
-
+            InsepectSemanticType => {
+                if let Some(editor_data) =
+                    self.main_split.active_editor.get_untracked()
+                {
+                    let offset = editor_data.cursor().with_untracked(|x| x.offset());
+                    let Some((word, semantic)) = editor_data.doc().lines.with_untracked(|x| {
+                        if let Some((_, styles)) = &x.semantic_styles {
+                            let Some(semantic) = styles.iter().find_map(|x| {
+                                if x.0.contains(offset) {
+                                    Some(x.1.clone())
+                                } else {
+                                    None
+                                }
+                            }) else {
+                                return None;
+                            };
+                            let (start, end) = x.buffer().select_word(offset);
+                            Some((x.buffer().slice_to_cow(start..end).to_string(), semantic))
+                        } else {
+                            None
+                        }
+                    }) else {
+                        return Ok(())
+                    };
+                    // log::info!("{word} {semantic}");
+                    self.show_message(&word, &ShowMessageParams {
+                        typ: MessageType::INFO,
+                        message: semantic,
+                    });
+                }
+            }
         }
 
         Ok(())
@@ -1737,28 +1768,29 @@ impl WindowWorkspaceData {
         match cmd {
             InternalCommand::ReloadConfig => {
                 self.reload_config();
-            },
+            }
             InternalCommand::UpdateLogLevel { level } => {
                 // TODO: implement logging panel, runtime log level change
                 debug!("{level}");
-            },
+            }
             InternalCommand::MakeConfirmed => {
                 if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
                     if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
                         if let Some(data) = x.get(&tab_id) {
-                        Some(data.with_untracked(|manage| {
-                            manage.active_child().confirmed_mut()
-                        }))
-                    } else {
-                        None
-                    }}) {
+                            Some(data.with_untracked(|manage| {
+                                manage.active_child().confirmed_mut()
+                            }))
+                        } else {
+                            None
+                        }
+                    }) {
                         confirmed.set(true);
                     }
                 }
                 // if let Some(editor) = self.main_split.active_editor.get_untracked() {
                 //     editor.confirmed.set(true);
                 // }
-            },
+            }
             InternalCommand::OpenFile { path } => {
                 self.main_split.jump_to_location(
                     EditorLocation {
@@ -1766,11 +1798,11 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: false,
-                        same_editor_tab: false
+                        same_editor_tab: false,
                     },
-                    None
+                    None,
                 );
-            },
+            }
             InternalCommand::OpenAndConfirmedFile { path } => {
                 self.main_split.jump_to_location(
                     EditorLocation {
@@ -1778,24 +1810,25 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: false,
-                        same_editor_tab: false
+                        same_editor_tab: false,
                     },
-                    None
+                    None,
                 );
                 if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
                     if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
                         x.get(&tab_id).map(|data| {
-                        data.with_untracked(|manage| {
-                            manage.active_child().confirmed_mut()
+                            data.with_untracked(|manage| {
+                                manage.active_child().confirmed_mut()
+                            })
                         })
-                    })}) {
+                    }) {
                         confirmed.set(true);
                     }
                 }
                 // if let Some(editor) = self.main_split.active_editor.get_untracked() {
                 //     editor.confirmed.set(true);
                 // }
-            },
+            }
             InternalCommand::OpenFileInNewTab { path } => {
                 self.main_split.jump_to_location(
                     EditorLocation {
@@ -1803,17 +1836,17 @@ impl WindowWorkspaceData {
                         position: None,
                         scroll_offset: None,
                         ignore_unconfirmed: true,
-                        same_editor_tab: false
+                        same_editor_tab: false,
                     },
-                    None
+                    None,
                 );
-            },
+            }
             InternalCommand::OpenFileChanges { path } => {
                 self.main_split.open_file_changes(path);
-            },
+            }
             InternalCommand::ReloadFileExplorer => {
                 self.file_explorer.reload();
-            },
+            }
             InternalCommand::TestPathCreation { new_path } => {
                 let naming = self.file_explorer.naming;
 
@@ -1823,16 +1856,16 @@ impl WindowWorkspaceData {
                         match response {
                             Ok(_) => {
                                 naming.update(Naming::set_ok);
-                            },
+                            }
                             Err(err) => {
                                 naming.update(|naming| naming.set_err(err.message));
                             }
                         }
-                    }
+                    },
                 );
 
                 self.common.proxy.test_create_at_path(new_path, send);
-            },
+            }
             InternalCommand::FinishRenamePath {
                 current_path,
                 new_path
@@ -1903,21 +1936,21 @@ impl WindowWorkspaceData {
 
                                 file_explorer.reload();
                                 file_explorer.naming.set(Naming::None);
-                            },
+                            }
                             Err(err) => {
                                 file_explorer
                                     .naming
                                     .update(|naming| naming.set_err(err.message));
                             }
                         }
-                    }
+                    },
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
                 self.common
                     .proxy
                     .rename_path(current_path.clone(), new_path, send);
-            },
+            }
             InternalCommand::FinishNewNode { is_dir, path } => {
                 let file_explorer = self.file_explorer.clone();
                 let internal_command = self.common.internal_command;
@@ -1943,14 +1976,14 @@ impl WindowWorkspaceData {
                                         );
                                     }
                                 }
-                            },
+                            }
                             Err(err) => {
                                 file_explorer
                                     .naming
                                     .update(|naming| naming.set_err(err.message));
                             }
                         }
-                    }
+                    },
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
@@ -1959,7 +1992,7 @@ impl WindowWorkspaceData {
                 } else {
                     self.common.proxy.create_file(path, send);
                 }
-            },
+            }
             InternalCommand::FinishDuplicate { source, path } => {
                 let file_explorer = self.file_explorer.clone();
 
@@ -1977,49 +2010,49 @@ impl WindowWorkspaceData {
                             file_explorer.reload();
                             file_explorer.naming.set(Naming::None);
                         }
-                    }
+                    },
                 );
 
                 self.file_explorer.naming.update(Naming::set_pending);
                 self.common.proxy.duplicate_path(source, path, send);
-            },
+            }
             InternalCommand::GoToLocation { location } => {
                 if let Err(err) = self.main_split.go_to_location(location, None) {
                     error!("{err:?}");
                 }
-            },
+            }
             InternalCommand::JumpToLocation { location } => {
                 self.main_split.jump_to_location(location, None);
-            },
+            }
             InternalCommand::PaletteReferences { references } => {
                 self.palette.references.set(references);
                 self.palette.run(PaletteKind::Reference);
-            },
+            }
             InternalCommand::Split {
                 direction,
                 editor_tab_id
             } => {
                 self.main_split.split(direction, editor_tab_id);
-            },
+            }
             InternalCommand::SplitMove {
                 direction,
                 editor_tab_id
             } => {
                 self.main_split.split_move(direction, editor_tab_id);
-            },
+            }
             InternalCommand::SplitExchange { editor_tab_id } => {
                 self.main_split.split_exchange(editor_tab_id);
-            },
+            }
             InternalCommand::EditorTabClose { editor_tab_id } => {
                 self.main_split.editor_tab_close(editor_tab_id);
-            },
+            }
             InternalCommand::EditorTabChildClose {
                 editor_tab_id,
                 child
             } => {
                 self.main_split
                     .editor_tab_child_close(editor_tab_id, child, false);
-            },
+            }
             InternalCommand::EditorTabCloseByKind {
                 editor_tab_id,
                 child,
@@ -2028,9 +2061,9 @@ impl WindowWorkspaceData {
                 self.main_split.editor_tab_child_close_by_kind(
                     editor_tab_id,
                     child,
-                    kind
+                    kind,
                 );
-            },
+            }
             InternalCommand::ShowCodeActions {
                 offset,
                 mouse_click,
@@ -2040,13 +2073,13 @@ impl WindowWorkspaceData {
                 let mut code_action = self.code_action.get_untracked();
                 code_action.show(plugin_id, code_actions, offset, mouse_click);
                 self.code_action.set(code_action);
-            },
+            }
             InternalCommand::RunCodeAction { plugin_id, action } => {
                 self.main_split.run_code_action(plugin_id, action);
-            },
+            }
             InternalCommand::ApplyWorkspaceEdit { edit } => {
                 self.main_split.apply_workspace_edit(&edit);
-            },
+            }
             InternalCommand::SaveJumpLocation {
                 path,
                 offset,
@@ -2054,7 +2087,7 @@ impl WindowWorkspaceData {
             } => {
                 self.main_split
                     .save_jump_location(path, offset, scroll_offset);
-            },
+            }
             InternalCommand::StartRename {
                 path,
                 placeholder,
@@ -2062,22 +2095,22 @@ impl WindowWorkspaceData {
                 start
             } => {
                 self.rename.start(path, placeholder, start, position);
-            },
+            }
             InternalCommand::Search { pattern } => {
                 self.main_split.set_find_pattern(pattern);
-            },
+            }
             InternalCommand::FindEditorReceiveChar { s } => {
                 error!("FindEditorReceiveChar {s}");
                 // self.main_split.find_editor.receive_char(&s);
                 // self.main_split.find_str.update(|x| {
                 //     x.push_str(&s);
                 // });
-            },
+            }
             InternalCommand::ReplaceEditorReceiveChar { s } => {
                 error!("ReplaceEditorReceiveChar {s}");
                 //
                 // self.main_split.replace_editor.receive_char(&s);
-            },
+            }
             InternalCommand::FindEditorCommand {
                 command, ..
                 // count,
@@ -2087,7 +2120,7 @@ impl WindowWorkspaceData {
                 // self.main_split
                 //     .find_editor
                 //     .run_command(&command, count, mods);
-            },
+            }
             InternalCommand::ReplaceEditorCommand {
                 command, ..
             } => {
@@ -2096,84 +2129,84 @@ impl WindowWorkspaceData {
                 // self.main_split
                 //     .replace_editor
                 //     .run_command(&command, count, mods);
-            },
+            }
             InternalCommand::FocusEditorTab { editor_tab_id } => {
                 self.main_split.active_editor_tab.set(Some(editor_tab_id));
-            },
+            }
             InternalCommand::SetColorTheme { name, save } => {
                 if save {
                     // The config file is watched
                     LapceConfig::update_file(
                         "core",
                         "color-theme",
-                        toml_edit::Value::from(name), self.common.clone()
+                        toml_edit::Value::from(name), self.common.clone(),
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
                     new_config.set_color_theme(&self.workspace, &name, &self.common.directory.config_directory);
                     self.set_config.set(new_config);
                 }
-            },
+            }
             InternalCommand::SetIconTheme { name, save } => {
                 if save {
                     // The config file is watched
                     LapceConfig::update_file(
                         "core",
                         "icon-theme",
-                        toml_edit::Value::from(name), self.common.clone()
+                        toml_edit::Value::from(name), self.common.clone(),
                     );
                 } else {
                     let mut new_config = self.common.config.get_untracked();
                     new_config
-                        .set_icon_theme(&self.workspace, &name , &self.common.directory.config_directory);
+                        .set_icon_theme(&self.workspace, &name, &self.common.directory.config_directory);
                     self.set_config.set(new_config);
                 }
-            },
+            }
             InternalCommand::SetModal { modal } => {
                 LapceConfig::update_file(
                     "core",
                     "modal",
-                    toml_edit::Value::from(modal), self.common.clone()
+                    toml_edit::Value::from(modal), self.common.clone(),
                 );
-            },
+            }
             InternalCommand::OpenWebUri { uri } => {
                 if !uri.is_empty() {
                     match open::that(&uri) {
                         Ok(_) => {
                             trace!("opened web uri: {uri:?}");
-                        },
+                        }
                         Err(e) => {
                             trace!("failed to open web uri: {uri:?}, error: {e}");
                         }
                     }
                 }
-            },
+            }
             InternalCommand::ShowAlert {
                 title,
                 msg,
                 buttons
             } => {
                 self.show_alert(title, msg, buttons);
-            },
+            }
             InternalCommand::HideAlert => {
                 self.alert_data.active.set(false);
-            },
+            }
             InternalCommand::SaveScratchDoc { doc } => {
                 self.main_split.save_scratch_doc(doc);
-            },
+            }
             InternalCommand::SaveScratchDoc2 { doc } => {
                 self.main_split.save_scratch_doc2(doc);
-            },
+            }
             InternalCommand::UpdateProxyStatus { status } => {
                 self.common.proxy_status.set(Some(status));
-            },
+            }
             InternalCommand::DapFrameScopes { dap_id, frame_id } => {
                 self.terminal.dap_frame_scopes(dap_id, frame_id);
-            },
+            }
             InternalCommand::OpenVoltView { volt_id } => {
                 self.main_split.save_current_jump_location();
                 self.main_split.open_volt_view(volt_id);
-            },
+            }
             InternalCommand::ResetBlinkCursor => {
                 // All the editors share the blinking information and logic, so we
                 // can just reset one of them.
@@ -2181,7 +2214,7 @@ impl WindowWorkspaceData {
                 // if let Some(e_data) = self.main_split.active_editor.get_untracked() {
                 //     // e_data.editor.cursor_info.reset();
                 // }
-            },
+            }
             InternalCommand::BlinkCursor => {
                 // All the editors share the blinking information and logic, so we
                 // can just reset one of them.
@@ -2201,11 +2234,9 @@ impl WindowWorkspaceData {
                             }
                         }
                     }
-                    _ => {
-
-                    }
+                    _ => {}
                 }
-            },
+            }
             InternalCommand::OpenDiffFiles {
                 left_path,
                 right_path
@@ -2225,7 +2256,7 @@ impl WindowWorkspaceData {
                         error!("Proces exited with an error: {e}")
                     }
                 };
-            },
+            }
             InternalCommand::ClearTerminalBuffer {
                 view_id,
                 terminal_id
@@ -2248,24 +2279,24 @@ impl WindowWorkspaceData {
                 let raw = tab.data.with_untracked(|x| x.raw.clone());
                 raw.write().term.reset_state();
                 view_id.request_paint();
-            },
+            }
             InternalCommand::StopTerminal { terminal_id } => {
                 self.terminal.manual_stop_run_debug(terminal_id);
-            },
+            }
             InternalCommand::RestartTerminal { terminal_id } => {
                 if let Err(err) = self.restart_run_program_in_terminal(terminal_id) {
                     error!("RestartTerminal {err:?}");
                 }
-            },
+            }
             InternalCommand::NewTerminal { profile } => {
                 self.terminal.new_tab(profile);
-            },
+            }
             InternalCommand::RunAndDebug { mode, mut config } => {
                 if let Some(workspace) = &self.workspace.path {
                     config.update_by_workspace(workspace.to_string_lossy().as_ref());
                 }
                 self.run_and_debug(cx, mode, config);
-            },
+            }
             InternalCommand::CallHierarchyIncoming { item_id, root_id } => {
                 self.call_hierarchy_incoming(root_id, item_id);
             }
@@ -2277,7 +2308,7 @@ impl WindowWorkspaceData {
         match rpc {
             CoreNotification::ProxyStatus { status } => {
                 self.common.proxy_status.set(Some(status.to_owned()));
-            },
+            }
             CoreNotification::DiffInfo { diff } => {
                 self.source_control.branch.set(diff.head.clone());
                 self.source_control
@@ -2304,7 +2335,7 @@ impl WindowWorkspaceData {
                 for (_, doc) in docs {
                     doc.retrieve_head();
                 }
-            },
+            }
             CoreNotification::CompletionResponse {
                 request_id,
                 input,
@@ -2325,7 +2356,7 @@ impl WindowWorkspaceData {
                     completion
                         .update_document_completion(&editor_data, cursor_offset);
                 }
-            },
+            }
             CoreNotification::PublishDiagnostics {
                 diagnostics: diagnostic_params,
             } => {
@@ -2364,7 +2395,7 @@ impl WindowWorkspaceData {
                     // warn!("PublishDiagnostics docs {:?}", path);
                     doc.init_diagnostics();
                 }
-            },
+            }
             CoreNotification::ServerStatus { params } => {
                 if params.is_ok() {
                     // todo filter by language
@@ -2381,7 +2412,7 @@ impl WindowWorkspaceData {
                         }
                     });
                 }
-            },
+            }
             CoreNotification::TerminalProcessStopped { term_id, exit_code } => {
                 info!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
                 if let Err(err) = self
@@ -2402,10 +2433,10 @@ impl WindowWorkspaceData {
                     }
                     self.common.focus.set(Focus::Workbench);
                 }
-            },
+            }
             CoreNotification::TerminalLaunchFailed { term_id, error } => {
                 self.terminal.launch_failed(term_id, error);
-            },
+            }
             CoreNotification::DapRunInTerminal { config } => {
                 let dap_id = config.dap_id;
                 if let Some(dap_data) = self
@@ -2447,13 +2478,13 @@ impl WindowWorkspaceData {
                 } else {
                     error!("no found dap_data {dap_id:?}");
                 }
-            },
+            }
             CoreNotification::TerminalProcessId {
                 term_id,
                 process_id,
             } => {
                 self.terminal.set_process_id(term_id, *process_id);
-            },
+            }
             CoreNotification::DapStopped {
                 dap_id,
                 stopped,
@@ -2463,13 +2494,13 @@ impl WindowWorkspaceData {
                 self.show_panel(PanelKind::Debug);
                 self.terminal
                     .dap_stopped(dap_id, stopped, stack_frames, variables);
-            },
+            }
             CoreNotification::OpenPaths { paths } => {
                 self.open_paths(paths);
-            },
+            }
             CoreNotification::DapContinued { dap_id } => {
                 self.terminal.dap_continued(dap_id);
-            },
+            }
             CoreNotification::DapBreakpointsResp {
                 path, breakpoints, ..
             } => {
@@ -2507,22 +2538,22 @@ impl WindowWorkspaceData {
                         }
                     }
                 });
-            },
+            }
             CoreNotification::OpenFileChanged { path, content } => {
                 self.main_split.open_file_changed(path, content);
-            },
+            }
             CoreNotification::VoltInstalled { volt, icon } => {
                 self.plugin.volt_installed(volt, icon);
-            },
+            }
             CoreNotification::VoltRemoved { volt, .. } => {
                 self.plugin.volt_removed(volt);
-            },
+            }
             CoreNotification::WorkDoneProgress { progress } => {
                 self.update_progress(progress);
-            },
+            }
             CoreNotification::ShowMessage { title, message } => {
                 self.show_message(title, message);
-            },
+            }
             CoreNotification::Log {
                 level,
                 message,
@@ -2536,46 +2567,46 @@ impl WindowWorkspaceData {
                 match level {
                     LogLevel::Trace => {
                         log!(target: &target, Level::Trace, "{}", message);
-                    },
+                    }
                     LogLevel::Debug => {
                         log!(target: &target, Level::Debug, "{}", message);
-                    },
+                    }
                     LogLevel::Info => {
                         log!(target: &target, Level::Info, "{}", message);
-                    },
+                    }
                     LogLevel::Warn => {
                         log!(target: &target, Level::Warn, "{}", message);
-                    },
+                    }
                     LogLevel::Error => {
                         log!(target: &target, Level::Error, "{}", message);
-                    },
+                    }
                 }
-            },
+            }
             CoreNotification::LogMessage { message, target } => {
                 use lsp_types::MessageType;
                 match message.typ {
                     MessageType::ERROR => {
                         error!("{} {}", target, message.message)
-                    },
+                    }
                     MessageType::WARNING => {
                         warn!("{} {}", target, message.message)
-                    },
+                    }
                     MessageType::INFO => {
                         info!("{} {}", target, message.message)
-                    },
+                    }
                     MessageType::DEBUG => {
                         debug!("{} {}", target, message.message)
-                    },
+                    }
                     MessageType::LOG => {
                         trace!("{} {}", target, message.message)
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
-            },
+            }
             CoreNotification::WorkspaceFileChange => {
                 self.file_explorer.reload();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -2592,21 +2623,21 @@ impl WindowWorkspaceData {
             Focus::CodeAction => {
                 let code_action = self.code_action.get_untracked();
                 Some(keypress.key_down(event, &code_action))
-            },
+            }
             Focus::Rename => Some(keypress.key_down(event, &self.rename)),
             Focus::AboutPopup => Some(keypress.key_down(event, &self.about_data)),
             Focus::Panel(PanelKind::Terminal) => {
                 self.terminal.key_down(event, &keypress)
-            },
+            }
             Focus::Panel(PanelKind::Search) => {
                 Some(keypress.key_down(event, &self.global_search))
-            },
+            }
             Focus::Panel(PanelKind::Plugin) => {
                 Some(keypress.key_down(event, &self.plugin))
-            },
+            }
             Focus::Panel(PanelKind::SourceControl) => {
                 Some(keypress.key_down(event, &self.source_control))
-            },
+            }
             _ => None,
         };
 
@@ -2680,9 +2711,9 @@ impl WindowWorkspaceData {
         // top right corner of word
         let mut origin = window_origin
             + Vec2::new(
-                point_below.x - viewport.x0 - offset,
-                (point_above.y - viewport.y0) - hover_size.height + offset,
-            );
+            point_below.x - viewport.x0 - offset,
+            (point_above.y - viewport.y0) - hover_size.height + offset,
+        );
         if origin.y < 0.0 {
             // bottom right corner of word
             origin.y = window_origin.y + point_below.y - viewport.y0 - offset;
@@ -2730,9 +2761,9 @@ impl WindowWorkspaceData {
 
         let mut origin = window_origin
             + Vec2::new(
-                point_below.x - viewport.x0 - line_height - 5.0,
-                point_below.y - viewport.y0,
-            );
+            point_below.x - viewport.x0 - line_height - 5.0,
+            point_below.y - viewport.y0,
+        );
         if origin.y + completion_size.height > tab_size.height {
             origin.y = window_origin.y + (point_above.y - viewport.y0)
                 - completion_size.height;
@@ -2777,13 +2808,13 @@ impl WindowWorkspaceData {
 
         let mut origin = window_origin
             + Vec2::new(
-                if code_action.mouse_click {
-                    0.0
-                } else {
-                    point_below.x - viewport.x0
-                },
-                point_below.y - viewport.y0,
-            );
+            if code_action.mouse_click {
+                0.0
+            } else {
+                point_below.x - viewport.x0
+            },
+            point_below.y - viewport.y0,
+        );
 
         if origin.y + code_action_size.height > tab_size.height {
             origin.y = origin.y - line_height - code_action_size.height;
@@ -2885,10 +2916,10 @@ impl WindowWorkspaceData {
                 // Some panels don't accept focus (yet). Fall back to visibility
                 // check in those cases.
                 self.panel.is_panel_visible(&kind)
-            },
+            }
             PanelKind::Terminal | PanelKind::SourceControl | PanelKind::Search => {
                 self.is_panel_focused(kind)
-            },
+            }
         };
         if should_hide {
             self.hide_panel(kind);
@@ -2927,9 +2958,9 @@ impl WindowWorkspaceData {
     pub fn show_panel(&self, kind: PanelKind) {
         if kind == PanelKind::Terminal
             && self
-                .terminal
-                .tab_infos
-                .with_untracked(|info| info.tabs.is_empty())
+            .terminal
+            .tab_infos
+            .with_untracked(|info| info.tabs.is_empty())
         {
             self.terminal.new_tab(
                 self.common
@@ -2957,7 +2988,7 @@ impl WindowWorkspaceData {
         match mode {
             RunDebugMode::Run => {
                 self.run_program_in_terminal(cx, &mode, &config, false);
-            },
+            }
             RunDebugMode::Debug => {
                 let dap_id = config.dap_id;
                 let dap_data = DapData::new(cx, dap_id, None, self.common.clone());
@@ -2972,7 +3003,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            },
+            }
         }
     }
 
@@ -3055,7 +3086,7 @@ impl WindowWorkspaceData {
                 run_debug.created = Instant::now();
                 run_debug.is_prelaunch = true;
                 terminal.new_process(Some(run_debug));
-            },
+            }
             RunDebugMode::Debug => {
                 let config = run_debug.origin_config.clone();
                 let dap_id = config.dap_id;
@@ -3080,7 +3111,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            },
+            }
         }
         Ok(())
     }
@@ -3147,7 +3178,7 @@ impl WindowWorkspaceData {
                     self.progresses.update(|p| {
                         p.insert(token, progress);
                     });
-                },
+                }
                 lsp_types::WorkDoneProgress::Report(report) => {
                     self.progresses.update(|p| {
                         if let Some(progress) = p.get_mut(&token) {
@@ -3155,12 +3186,12 @@ impl WindowWorkspaceData {
                             progress.percentage = report.percentage;
                         }
                     })
-                },
+                }
                 lsp_types::WorkDoneProgress::End(_) => {
                     self.progresses.update(|p| {
                         p.swap_remove(&token);
                     });
-                },
+                }
             },
         }
     }
@@ -3267,11 +3298,11 @@ impl WindowWorkspaceData {
                             })
                         });
                     }
-                },
+                }
                 Err(err) => {
                     log::error!("{:?}", err);
-                },
-                Ok(_) => {},
+                }
+                Ok(_) => {}
             },
         );
         self.common.proxy.call_hierarchy_incoming(
@@ -3294,7 +3325,7 @@ impl WindowWorkspaceData {
                 SplitContentInfo::EditorTab(
                     editor_tab_data.get_untracked().tab_info(self),
                 )
-            },
+            }
             SplitContent::Split(split_id) => {
                 let split_data = self
                     .main_split
@@ -3304,7 +3335,7 @@ impl WindowWorkspaceData {
                     .cloned()
                     .unwrap();
                 SplitContentInfo::Split(split_data.get_untracked().split_info(self))
-            },
+            }
         }
     }
 }
@@ -3314,9 +3345,9 @@ fn open_uri(path: &Path) {
     match open::that(path) {
         Ok(_) => {
             debug!("opened active file: {path:?}");
-        },
+        }
         Err(e) => {
             error!("failed to open active file: {path:?}, error: {e}");
-        },
+        }
     }
 }
