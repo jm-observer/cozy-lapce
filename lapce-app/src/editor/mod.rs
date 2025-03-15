@@ -87,6 +87,7 @@ use crate::{
     snippet::Snippet,
     window_workspace::{CommonData, Focus, WindowWorkspaceData}
 };
+use crate::panel::document_symbol::MatchDocumentSymbol;
 
 pub mod diff;
 pub mod floem_editor;
@@ -2988,9 +2989,31 @@ impl EditorData {
     }
 
     fn single_click(&self, pointer_event: &PointerInputEvent) {
-        self.editor.single_click(pointer_event, &self.common);
+        if let Some(offset) = self.editor.single_click(pointer_event, &self.common) {
+            self.sync_document_symbol_by_offset(offset);
+        }
     }
 
+    pub fn sync_document_symbol_by_offset(&self, offset: usize) {
+        if self.common.sync_document_symbol.get_untracked() {
+            let doc = self.editor.doc();
+            let line = doc.lines.with_untracked(|x| {
+                let buffer = x.buffer();
+                buffer.line_of_offset(offset)
+            });
+            doc.document_symbol_data.virtual_list.with_untracked(|x| {
+                if let Some(root) = &x.root {
+                    if let MatchDocumentSymbol::MatchSymbol(id, scroll_line) = root.match_line_with_children(line as u32) {
+                        log::info!("MatchDocumentSymbol::MatchSymbol {:?} line={}", id, line);
+                        batch(|| {
+                            doc.document_symbol_data.select.set(Some(id));
+                            doc.document_symbol_data.scroll_to.set(Some(scroll_line as f64))
+                        })
+                    }
+                }
+            });
+        }
+    }
     fn double_click(&self, pointer_event: &PointerInputEvent) {
         self.editor.double_click(pointer_event);
     }

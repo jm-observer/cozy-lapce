@@ -291,8 +291,10 @@ pub fn symbol_panel(
 ) -> impl View {
     let config = window_tab_data.common.config;
     let ui_line_height = window_tab_data.common.ui_line_height;
+    let sync = window_tab_data.common.sync_document_symbol;
     let scroll_rect = window_tab_data.scope.create_rw_signal(Rect::ZERO);
     let window_tab_data_clone = window_tab_data.clone();
+    let window_tab_data_sync = window_tab_data.clone();
     h_stack((
         container(common_svg(config, None, LapceIcons::REMOTE)).style(move |x| {
             let (bg, header_height, caret_color) = config.signal(|config| {
@@ -301,6 +303,18 @@ pub fn symbol_panel(
             });
             x.width_full().height(header_height.get() as f64).background(bg.get()).items_center().border_bottom(1.0)
                 .border_color(caret_color.get())
+        }).on_click_stop(move |_| {
+            let Some(sync) = sync.try_update(|x| {
+                *x = !*x;
+                *x
+            }) else {
+                return
+            };
+            if sync {
+                let Some(editor) = window_tab_data_sync.main_split.get_active_editor() else {return };
+                let offset = editor.cursor().with_untracked(|x| x.offset());
+                editor.sync_document_symbol_by_offset(offset);
+            }
         }),
         scroll(
             virtual_stack(
@@ -449,7 +463,7 @@ pub fn symbol_panel(
             .scroll_to({
                 move || {
                     let editor = window_tab_data_clone.main_split.get_active_editor();
-                    if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get( )) {
+                    if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get()) {
                         let line_height = ui_line_height.get_untracked();
                         Some(
                             (

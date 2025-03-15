@@ -224,6 +224,7 @@ pub struct CommonData {
     pub window_common: Rc<WindowCommonData>,
     pub directory: Directory,
     pub offset_line_from_top: RwSignal<Option<Option<usize>>>,
+    pub sync_document_symbol: RwSignal<bool>,
 }
 
 impl std::fmt::Debug for CommonData {
@@ -477,6 +478,7 @@ impl WindowWorkspaceData {
             window_common: window_common.clone(),
             directory: directory.clone(),
             offset_line_from_top: cx.create_rw_signal(None),
+            sync_document_symbol: cx.create_rw_signal(true),
         });
 
         let main_split = MainSplitData::new(cx, common.clone());

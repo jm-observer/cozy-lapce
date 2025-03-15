@@ -401,15 +401,15 @@ impl Editor {
         &self,
         pointer_event: &PointerInputEvent,
         common_data: &CommonData
-    ) {
+    ) -> Option<usize> {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (new_offset, _is_inside, cursor_affinity) =
             match self.offset_of_point(&mode, pointer_event.pos) {
                 Ok(Some(rs)) => rs,
-                Ok(None) => return,
+                Ok(None) => return None,
                 Err(err) => {
                     error!("{err:?}");
-                    return;
+                    return None;
                 }
             };
         log::info!(
@@ -429,6 +429,7 @@ impl Editor {
         common_data
             .internal_command
             .send(InternalCommand::ResetBlinkCursor);
+        Some(new_offset)
     }
 
     pub fn double_click(&self, pointer_event: &PointerInputEvent) {
