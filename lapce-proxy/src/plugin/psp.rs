@@ -19,35 +19,21 @@ use lapce_rpc::{
     style::{LineStyle, Style}
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::error;
-use lsp_types::{
-    CancelParams, CodeActionProviderCapability, DidChangeTextDocumentParams,
-    DidSaveTextDocumentParams, DocumentSelector, FoldingRangeProviderCapability,
-    HoverProviderCapability, ImplementationProviderCapability, InitializeResult,
-    LogMessageParams, MessageType, OneOf, ProgressParams, PublishDiagnosticsParams,
-    Range, Registration, RegistrationParams, SemanticTokens,
-    SemanticTokensFullOptions, SemanticTokensLegend,
-    SemanticTokensServerCapabilities, ServerCapabilities, ShowMessageParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier,
-    TextDocumentSaveRegistrationOptions, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncSaveOptions,
-    VersionedTextDocumentIdentifier,
-    notification::{
-        Cancel, DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument,
-        Initialized, LogMessage, Notification, Progress, PublishDiagnostics,
-        ShowMessage
-    },
-    request::{
-        CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
-        CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
-        DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition,
-        GotoImplementation, GotoTypeDefinition, HoverRequest, Initialize,
-        InlayHintRequest, InlineCompletionRequest, PrepareRenameRequest, References,
-        RegisterCapability, Rename, ResolveCompletionItem, SelectionRangeRequest,
-        SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
-        SignatureHelpRequest, WorkDoneProgressCreate, WorkspaceSymbolRequest
-    }
-};
+use log::{debug, error};
+use lsp_types::{CancelParams, CodeActionProviderCapability, DidChangeTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, FoldingRangeProviderCapability, HoverProviderCapability, ImplementationProviderCapability, InitializeResult, LogMessageParams, MessageType, OneOf, ProgressParams, PublishDiagnosticsParams, Range, Registration, RegistrationParams, SemanticTokens, SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensServerCapabilities, ServerCapabilities, ShowMessageParams, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentSaveRegistrationOptions, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier, notification::{
+    Cancel, DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument,
+    Initialized, LogMessage, Notification, Progress, PublishDiagnostics,
+    ShowMessage
+}, request::{
+    CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
+    CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
+    DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition,
+    GotoImplementation, GotoTypeDefinition, HoverRequest, Initialize,
+    InlayHintRequest, InlineCompletionRequest, PrepareRenameRequest, References,
+    RegisterCapability, Rename, ResolveCompletionItem, SelectionRangeRequest,
+    SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
+    SignatureHelpRequest, WorkDoneProgressCreate, WorkspaceSymbolRequest, DocumentHighlightRequest
+}};
 use parking_lot::Mutex;
 use psp_types::{
     ExecuteProcess, ExecuteProcessParams, ExecuteProcessResult,
@@ -472,6 +458,7 @@ impl PluginServerRpcHandler {
                     {
                         self.send_server_request(id, &method, params, rh);
                     } else {
+                        debug!("server not capable: {method}");
                         rh.invoke(
                             id,
                             Err(RpcError {
@@ -887,6 +874,9 @@ impl PluginHostHandler {
             },
             CallHierarchyIncomingCalls::METHOD => {
                 self.server_capabilities.call_hierarchy_provider.is_some()
+            },
+            DocumentHighlightRequest::METHOD => {
+                self.server_capabilities.document_highlight_provider.is_some()
             },
             _ => false
         }

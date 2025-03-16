@@ -1419,7 +1419,7 @@ impl EditorData {
 
     pub fn document_highlight(
         &self,
-        window_tab_data: WindowWorkspaceData
+        _window_tab_data: WindowWorkspaceData
     ) -> Result<()> {
         let doc = self.doc();
         let path = match if doc.loaded() {
@@ -1432,28 +1432,30 @@ impl EditorData {
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        let (_start_position, position) = doc.lines.with_untracked(|b| {
-            let start_offset = b.buffer().prev_code_boundary(offset);
-            let start_position = b.buffer().offset_to_position(start_offset);
+        let position = doc.lines.with_untracked(|b| {
+            // let start_offset = b.buffer().prev_code_boundary(offset);
+            // let start_position = b.buffer().offset_to_position(start_offset);
             let position = b.buffer().offset_to_position(offset);
-            (start_position, position)
-        });
-        let (_start_position, position) = (_start_position?, position?);
+            position
+        })?;
+        // let (_start_position, position) = (_start_position?, position?);
 
-        let scope = window_tab_data.scope;
-        let range = Range {
-            start: _start_position,
-            end:   position
-        };
         self.common.proxy.document_highlight(
             path,
             position,
             create_ext_action(self.scope, move |(_, result)| {
-                if let Ok(ProxyResponse::DocumentHighlightResponse {
-                              items, ..
-                          }) = result
-                {
-                    log::info!("{:?}", items);
+                match result {
+                    Ok(ProxyResponse::DocumentHighlightResponse {
+                           items, ..
+                       }) => {
+                        log::info!("{:?}", items);
+                    }
+                    Err(err) => {
+                        log::error!("{err:?}");
+                    }
+                    Ok(_) => {}
+                }
+
                     // if let Some(item) = items.and_then(|x| x.into_iter().next()) {
                     //     let root_id = ViewId::new();
                     //     let name = item.name.clone();
@@ -1490,7 +1492,6 @@ impl EditorData {
                     //         }
                     //     );
                     // }
-                }
             })
         );
         Ok(())
