@@ -28,7 +28,7 @@ use lapce_xi_rope::{
 use layout::{TextLayout, TextLayoutLine};
 use line::OriginFoldedLine;
 use log::{debug, error, info, warn};
-use lsp_types::{DiagnosticSeverity, InlayHint, InlayHintLabel, Location, Position};
+use lsp_types::{DiagnosticSeverity, DocumentHighlight, InlayHint, InlayHintLabel, Location, Position};
 use phantom_text::{
     PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine
 };
@@ -67,6 +67,7 @@ use crate::{
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
 use crate::lines::diff::advance;
+use crate::lines::util::get_document_highlight;
 
 pub mod action;
 pub mod buffer;
@@ -218,7 +219,8 @@ pub struct DocLines {
     style_from_lsp:        bool,
     // folding_items: Vec<FoldingDisplayItem>,
     pub line_height:       usize, // pub screen_lines: ScreenLines,
-    path:                  Option<PathBuf>
+    path:                  Option<PathBuf>,
+    document_highlight: Option<Vec<DocumentHighlight>>
 }
 
 impl DocLines {
@@ -267,7 +269,8 @@ impl DocLines {
             // kind,
             style_from_lsp: false,
             // folding_items: Default::default(),
-            line_height: 0
+            line_height: 0,
+            document_highlight: None,
         };
         lines.update_lines_new(OriginLinesDelta::default())?;
         Ok(lines)
@@ -1324,15 +1327,23 @@ impl DocLines {
         base: Rect
     ) -> ScreenLines {
         let mut max_width = 0.0;
+
+        let mut highlights= self.document_highlight.clone().unwrap_or_default().into_iter().peekable();
+
+        // todo other color
+        let selection_color = self.selection_color();
         match view_kind {
             EditorViewKind::Normal => {
                 let start = start.min(self.origin_folded_lines.len() - 1);
                 let end = end.min(self.origin_folded_lines.len() - 1);
                 let mut visual_lines = Vec::with_capacity(end - start + 1);
+
                 for index in start..=end {
                     let line = &mut self.origin_folded_lines[index];
+                    let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                     line.init_layout();
                     line.extra_style();
+                    line.init_document_highlight(highlight, selection_color);
                     let size_width = line.size_width().width;
                     if size_width > max_width {
                         max_width = size_width;
@@ -1391,8 +1402,11 @@ impl DocLines {
                         let is_diff = is_diff(&mut change_lines, line.origin_line_start);
                         start_line = line.origin_line_end + 1;
                         origin_line_index += 1;
+
+                        let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                         line.init_layout();
                         line.extra_style();
+                        line.init_document_highlight(highlight, selection_color);
                         let size_width = line.size_width().width;
                         if size_width > max_width {
                             max_width = size_width;
@@ -3581,6 +3595,15 @@ impl PubUpdateLines {
 
         self.trigger_signals();
         Ok(())
+    }
+
+    pub fn set_document_highlight(&mut self, document_highlight: Option<Vec<DocumentHighlight>>) {
+        self.document_highlight = document_highlight;
+        // self.update_lines_new(OriginLinesDelta::default())?;
+        // self.on_update_lines();
+        self.signals.update_paint_text();
+
+        self.trigger_signals();
     }
 
     pub fn set_completion_lens(

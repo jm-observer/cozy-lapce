@@ -9,6 +9,7 @@ use floem::{
     peniko::Color,
     text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun}
 };
+use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -37,6 +38,8 @@ pub struct TextLayoutLine {
     /// (x0, x1 or line display end, style)
     /// todo?暂时没有数据，下划线等？
     extra_style: Vec<LineExtraStyle>,
+
+    document_highlight_style: Vec<LineExtraStyle>,
 
     #[serde(skip)]
     // 文本：包含折叠行的文本、幽灵文本，及其所有的样式（背景色等）
@@ -68,6 +71,7 @@ impl TextLayoutLine {
     ) -> Self {
         Self {
             extra_style: vec![],
+            document_highlight_style: vec![],
             text,
             whitespaces,
             indent,
@@ -210,6 +214,10 @@ impl TextLayoutLine {
         &self.extra_style
     }
 
+    pub fn document_highlight_style(&mut self) -> &[LineExtraStyle] {
+        &self.document_highlight_style
+    }
+
     pub fn init(&self) -> bool {
         self.init
     }
@@ -235,6 +243,28 @@ impl TextLayoutLine {
                 self.extra_style.push(style)
             }
         });
+    }
+
+    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color) {
+        let layout = &mut self.text.borrow_mut();
+        let phantom_text = &self.phantom_text;
+        let mut highlight_styles = vec![];
+        for highlight in highlight
+        {
+            if let Some((start, end)) = phantom_text.final_col_of_origin_line_col(highlight.range.start.line as usize, highlight.range.start.character as usize,
+                                                                                  highlight.range.end.line as usize, highlight.range.end.character as usize, ) {
+                let styles = util::extra_styles_for_range(
+                    layout,
+                    start,
+                    end,
+                    Some(fg_color),
+                    None,
+                    None,
+                );
+                highlight_styles.extend(styles);
+            }
+        }
+        self.document_highlight_style = highlight_styles;
     }
 
     fn apply_diagnostic_styles_2(&mut self) {

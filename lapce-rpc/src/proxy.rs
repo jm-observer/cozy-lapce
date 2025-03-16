@@ -959,8 +959,8 @@ impl ProxyRpcHandler {
         path: PathBuf,
         position: Position,
         f: impl ProxyCallback + 'static
-    ) {
-        self.request_async(ProxyRequest::DocumentHighlight { path, position }, f);
+    ) -> u64 {
+        self.request_async(ProxyRequest::DocumentHighlight { path, position }, f)
     }
 
     pub fn call_hierarchy_incoming(

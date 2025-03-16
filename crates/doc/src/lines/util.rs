@@ -1,8 +1,9 @@
 use std::{cell::RefMut, collections::HashMap, str::FromStr};
-
+use std::iter::{Peekable};
+use std::vec::IntoIter;
 use floem::{peniko::Color, reactive::SignalGet};
 use log::error;
-
+use lsp_types::DocumentHighlight;
 use super::{
     layout::{LineExtraStyle, TextLayout},
     phantom_text::{PhantomText, PhantomTextKind}
@@ -60,6 +61,32 @@ pub fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
     rs.push_str(line_content_original);
     // }
 }
+
+pub fn get_document_highlight(
+    changes: &mut Peekable<IntoIter<DocumentHighlight>>,
+    start_line: u32,
+    end_line: u32
+) -> Vec<DocumentHighlight> {
+    let mut highs = Vec::new();
+    loop {
+        if let Some(high) = changes.peek() {
+            if high.range.start.line < start_line {
+                changes.next();
+                continue;
+            } else if start_line <= high.range.start.line && high.range.start.line <= end_line
+                && start_line <= high.range.end.line && high.range.end.line <= end_line{
+                highs.push(changes.next().unwrap());
+                continue;
+            } else if end_line < high.range.start.line {
+                break;
+            }
+        } else {
+            return highs;
+        }
+    }
+    highs
+}
+
 
 pub fn extra_styles_for_range<'a>(
     text_layout: &'a mut RefMut<TextLayout>,

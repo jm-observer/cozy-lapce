@@ -644,36 +644,6 @@ impl PhantomTextMultiLine {
             .unwrap()
     }
 
-    // fn text_of_origin_col(
-    //     &self,
-    //     origin_line: usize,
-    //     origin_col: usize
-    // ) -> Option<&Text> {
-    //     self.text.iter().find(|x| {
-    //         match x {
-    //             Text::Phantom { text } => {
-    //                 if text.line == origin_line
-    //                     && text.col <= origin_col
-    //                     && origin_col < text.next_origin_col()
-    //                 {
-    //                     return true;
-    //                 } else if let Some(next_line) = text.next_line() {
-    //                     if origin_line < next_line {
-    //                         return true;
-    //                     }
-    //                 }
-    //             },
-    //             Text::OriginText { text } => {
-    //                 if text.line == origin_line && text.col.contains(origin_col)
-    // {                     return true;
-    //                 }
-    //             },
-    //             Text::EmptyLine { .. } => return true
-    //         }
-    //         false
-    //     })
-    // }
-
     // fn text_of_origin_line_col(
     //     &self,
     //     origin_line: usize,
@@ -703,6 +673,23 @@ impl PhantomTextMultiLine {
     //         false
     //     })
     // }
+
+    pub(crate) fn final_col_of_origin_line_col(
+        &self,
+        origin_line: usize,
+        origin_col: usize,
+        origin_line_end: usize,
+        origin_col_end: usize
+    ) -> Option<(usize, usize)> {
+        self.text.iter().find_map(|x| {
+            if let Text::OriginText { text } = x {
+                if text.line == origin_line && text.line == origin_line_end && text.col.contains(origin_col) && origin_col_end <= text.col.end() {
+                    return Some((origin_col - text.col.start + text.final_col.start, origin_col_end - text.col.start + text.final_col.start))
+                }
+            }
+            None
+        })
+    }
 
     /// merge col一定会出现在某个text中
     pub fn text_of_origin_merge_col(

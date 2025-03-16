@@ -1578,6 +1578,12 @@ pub fn paint_text(
                     y,
                     viewport
                 );
+                paint_extra_style(
+                    cx,
+                    line_info.folded_line.document_highlight_style(),
+                    y,
+                    viewport
+                );
                 if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
                     let attrs = Attrs::new()
                         .color(visible_whitespace)

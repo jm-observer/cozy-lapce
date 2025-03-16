@@ -1439,61 +1439,36 @@ impl EditorData {
             position
         })?;
         // let (_start_position, position) = (_start_position?, position?);
-
-        self.common.proxy.document_highlight(
+        let common = self.common.clone();
+        let id = self.common.proxy.document_highlight(
             path,
             position,
-            create_ext_action(self.scope, move |(_, result)| {
+            create_ext_action(self.scope, move |(id, result)| {
+                if common.document_highlight_id.get_untracked() != id {
+                    return ;
+                }
                 match result {
                     Ok(ProxyResponse::DocumentHighlightResponse {
                            items, ..
                        }) => {
                         log::info!("{:?}", items);
+                        let hints = if let Some(mut hints) = items {
+                            hints.sort_by(|left, right| left.range.start.line.cmp(&right.range.start.line));
+                            Some(hints)
+                        } else {
+                            None
+                        };
+                        doc.lines.update(|x| {
+                            x.set_document_highlight(hints)
+                        })
                     }
                     Err(err) => {
                         log::error!("{err:?}");
                     }
                     Ok(_) => {}
-                }
-
-                    // if let Some(item) = items.and_then(|x| x.into_iter().next()) {
-                    //     let root_id = ViewId::new();
-                    //     let name = item.name.clone();
-                    //     let root = CallHierarchyItemData {
-                    //         root_id,
-                    //         view_id: root_id,
-                    //         item: Rc::new(item),
-                    //         from_range: range,
-                    //         init: false,
-                    //         open: scope.create_rw_signal(true),
-                    //         children: scope.create_rw_signal(Vec::with_capacity(0))
-                    //     };
-                    //     let root = window_tab_data
-                    //         .main_split
-                    //         .hierarchy
-                    //         .cx
-                    //         .create_rw_signal(root);
-                    //     window_tab_data.main_split.hierarchy.push_tab(
-                    //         name,
-                    //         CallHierarchyData {
-                    //             root,
-                    //             root_id,
-                    //             scroll_to_line: None
-                    //         }
-                    //     );
-                    //     // call_hierarchy_data.root.update(|x| {
-                    //     //     *x = Some(root);
-                    //     // });
-                    //     window_tab_data.show_panel(PanelKind::CallHierarchy);
-                    //     window_tab_data.common.internal_command.send(
-                    //         InternalCommand::CallHierarchyIncoming {
-                    //             item_id: root_id,
-                    //             root_id
-                    //         }
-                    //     );
-                    // }
-            })
+            }})
         );
+        self.common.document_highlight_id.set(id);
         Ok(())
     }
 

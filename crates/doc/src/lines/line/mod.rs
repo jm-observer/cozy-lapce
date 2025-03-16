@@ -9,7 +9,9 @@ use floem::{
     kurbo::{Point, Rect, Size, Vec2},
     text::{HitPoint, HitPosition}
 };
+use floem::peniko::Color;
 use lapce_xi_rope::Interval;
+use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
 
 use super::layout::{LineExtraStyle, TextLayout, TextLayoutLine};
@@ -389,6 +391,10 @@ impl OriginFoldedLine {
         &self.text_layout.extra_style()
     }
 
+    pub fn document_highlight_style(&mut self) -> &[LineExtraStyle] {
+        &self.text_layout.document_highlight_style()
+    }
+
     pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {
         &self.text_layout.whitespaces
     }
@@ -404,6 +410,10 @@ impl OriginFoldedLine {
 
     pub fn init_layout(&self) {
         self.text_layout.text.borrow_mut().init_line();
+    }
+
+    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color) {
+        self.text_layout.init_document_highlight(highlight, fg_color);
     }
 }
 
