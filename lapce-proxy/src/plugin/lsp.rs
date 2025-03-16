@@ -410,6 +410,7 @@ impl LspClient {
             id
         ) {
             Ok(value) => {
+                log::info!("{}", serde_json::to_string(&value).unwrap());
                 let result: InitializeResult =
                     serde_json::from_value(value).unwrap();
                 self.host.server_capabilities = result.capabilities;

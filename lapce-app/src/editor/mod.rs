@@ -1417,6 +1417,85 @@ impl EditorData {
         Ok(())
     }
 
+    pub fn document_highlight(
+        &self,
+        window_tab_data: WindowWorkspaceData
+    ) -> Result<()> {
+        let doc = self.doc();
+        let path = match if doc.loaded() {
+            doc.content.with_untracked(|c| c.path().cloned())
+        } else {
+            None
+        } {
+            Some(path) => path,
+            None => return Ok(())
+        };
+
+        let offset = self.cursor().with_untracked(|c| c.offset());
+        let (_start_position, position) = doc.lines.with_untracked(|b| {
+            let start_offset = b.buffer().prev_code_boundary(offset);
+            let start_position = b.buffer().offset_to_position(start_offset);
+            let position = b.buffer().offset_to_position(offset);
+            (start_position, position)
+        });
+        let (_start_position, position) = (_start_position?, position?);
+
+        let scope = window_tab_data.scope;
+        let range = Range {
+            start: _start_position,
+            end:   position
+        };
+        self.common.proxy.document_highlight(
+            path,
+            position,
+            create_ext_action(self.scope, move |(_, result)| {
+                if let Ok(ProxyResponse::DocumentHighlightResponse {
+                              items, ..
+                          }) = result
+                {
+                    log::info!("{:?}", items);
+                    // if let Some(item) = items.and_then(|x| x.into_iter().next()) {
+                    //     let root_id = ViewId::new();
+                    //     let name = item.name.clone();
+                    //     let root = CallHierarchyItemData {
+                    //         root_id,
+                    //         view_id: root_id,
+                    //         item: Rc::new(item),
+                    //         from_range: range,
+                    //         init: false,
+                    //         open: scope.create_rw_signal(true),
+                    //         children: scope.create_rw_signal(Vec::with_capacity(0))
+                    //     };
+                    //     let root = window_tab_data
+                    //         .main_split
+                    //         .hierarchy
+                    //         .cx
+                    //         .create_rw_signal(root);
+                    //     window_tab_data.main_split.hierarchy.push_tab(
+                    //         name,
+                    //         CallHierarchyData {
+                    //             root,
+                    //             root_id,
+                    //             scroll_to_line: None
+                    //         }
+                    //     );
+                    //     // call_hierarchy_data.root.update(|x| {
+                    //     //     *x = Some(root);
+                    //     // });
+                    //     window_tab_data.show_panel(PanelKind::CallHierarchy);
+                    //     window_tab_data.common.internal_command.send(
+                    //         InternalCommand::CallHierarchyIncoming {
+                    //             item_id: root_id,
+                    //             root_id
+                    //         }
+                    //     );
+                    // }
+                }
+            })
+        );
+        Ok(())
+    }
+
     pub fn fold_code(&self) -> Result<()> {
         let doc = self.doc();
         if !doc.content.get_untracked().is_file() {
@@ -2992,6 +3071,7 @@ impl EditorData {
         let offset = self.editor.single_click(pointer_event, &self.common);
         if let Some(offset) = offset {
             self.sync_document_symbol_by_offset(offset);
+            self.common.internal_command.send(InternalCommand::DocumentHighlight);
         }
     }
 

@@ -2285,7 +2285,7 @@ impl WindowWorkspaceData {
             }
             InternalCommand::RestartTerminal { terminal_id } => {
                 if let Err(err) = self.restart_run_program_in_terminal(terminal_id) {
-                    error!("RestartTerminal {err:?}");
+                    error!("RestartTerminal {err}");
                 }
             }
             InternalCommand::NewTerminal { profile } => {
@@ -2299,6 +2299,13 @@ impl WindowWorkspaceData {
             }
             InternalCommand::CallHierarchyIncoming { item_id, root_id } => {
                 self.call_hierarchy_incoming(root_id, item_id);
+            }
+            InternalCommand::DocumentHighlight => {
+                if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                    if let Err(err) = e_data.document_highlight(self.clone()) {
+                        error!("DocumentHighlight {err}");
+                    }
+                }
             }
         }
     }

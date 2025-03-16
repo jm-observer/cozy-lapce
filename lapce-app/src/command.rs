@@ -807,7 +807,8 @@ pub enum InternalCommand {
     },
     RestartTerminal {
         terminal_id: TerminalTabId
-    }
+    },
+    DocumentHighlight,
 }
 
 #[derive(Clone)]

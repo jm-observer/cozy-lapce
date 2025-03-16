@@ -541,6 +541,20 @@ impl ProxyHandler for Dispatcher {
                     id
                 );
             },
+            DocumentHighlight { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.document_highlight(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|items| {
+                            ProxyResponse::DocumentHighlightResponse { items }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id
+                );
+            },
             CallHierarchyIncoming {
                 path,
                 call_hierarchy_item

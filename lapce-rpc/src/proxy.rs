@@ -10,14 +10,7 @@ use std::{
 use crossbeam_channel::{Receiver, Sender};
 use indexmap::IndexMap;
 use lapce_xi_rope::RopeDelta;
-use lsp_types::{
-    CallHierarchyIncomingCall, CallHierarchyItem, CodeAction, CodeActionResponse,
-    CodeLens, CompletionItem, Diagnostic, DocumentSymbolResponse, FoldingRange,
-    GotoDefinitionResponse, Hover, InlayHint, InlineCompletionResponse,
-    InlineCompletionTriggerKind, Location, Position, PrepareRenameResponse,
-    SelectionRange, SymbolInformation, TextDocumentItem, TextEdit, WorkspaceEdit,
-    request::{GotoImplementationResponse, GotoTypeDefinitionResponse}
-};
+use lsp_types::{CallHierarchyIncomingCall, CallHierarchyItem, CodeAction, CodeActionResponse, CodeLens, CompletionItem, Diagnostic, DocumentSymbolResponse, FoldingRange, GotoDefinitionResponse, Hover, InlayHint, InlineCompletionResponse, InlineCompletionTriggerKind, Location, Position, PrepareRenameResponse, SelectionRange, SymbolInformation, TextDocumentItem, TextEdit, WorkspaceEdit, request::{GotoImplementationResponse, GotoTypeDefinitionResponse}, DocumentHighlight};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
@@ -111,6 +104,10 @@ pub enum ProxyRequest {
         position:   Position
     },
     ShowCallHierarchy {
+        path:     PathBuf,
+        position: Position
+    },
+    DocumentHighlight {
         path:     PathBuf,
         position: Position
     },
@@ -399,6 +396,9 @@ pub enum ProxyResponse {
     },
     ShowCallHierarchyResponse {
         items: Option<Vec<CallHierarchyItem>>
+    },
+    DocumentHighlightResponse {
+        items: Option<Vec<DocumentHighlight>>
     },
     CallHierarchyIncomingResponse {
         items: Option<Vec<CallHierarchyIncomingCall>>
@@ -952,6 +952,15 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static
     ) {
         self.request_async(ProxyRequest::ShowCallHierarchy { path, position }, f);
+    }
+
+    pub fn document_highlight(
+        &self,
+        path: PathBuf,
+        position: Position,
+        f: impl ProxyCallback + 'static
+    ) {
+        self.request_async(ProxyRequest::DocumentHighlight { path, position }, f);
     }
 
     pub fn call_hierarchy_incoming(
