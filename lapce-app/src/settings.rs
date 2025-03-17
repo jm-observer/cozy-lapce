@@ -328,7 +328,7 @@ pub fn settings_view(
     let kinds = settings_data.kinds;
     let filtered_items_signal = settings_data.filtered_items;
     create_effect(move |_| {
-        let pattern = query_str.get();
+        let pattern = query_str.get().to_lowercase();
         let plugin_items = settings_data.plugin_items.get();
         let mut items = items.get();
         if pattern.is_empty() {
@@ -339,12 +339,12 @@ pub fn settings_view(
 
         let mut filtered_items = im::Vector::new();
         for item in &items {
-            if item.header || item.filter_text.contains(&pattern) {
+            if item.header || item.filter_text.to_lowercase().contains(&pattern) {
                 filtered_items.push_back(item.clone());
             }
         }
         for item in plugin_items {
-            if item.header || item.filter_text.contains(&pattern) {
+            if item.header || item.filter_text.to_lowercase().contains(&pattern) {
                 filtered_items.push_back(item);
             }
         }
@@ -479,7 +479,7 @@ pub fn settings_view(
                             .border_color(
                                 config.with_color(LapceColor::LAPCE_BORDER)
                             )
-                    })
+                    }).on_event_stop(EventListener::KeyDown, |_| {})
             })
             .style(|s| s.padding_horiz(50.0).padding_vert(20.0)),
             container({
@@ -817,7 +817,7 @@ fn color_section_list(
             move || BTreeMapVirtualList(list()),
             move |(_key, value)| (_key.to_owned(), value.get()),
             move |(key, value)| {
-                log::info!("init color-theme.{kind} {}", &key);
+                // log::info!("init color-theme.{kind} {}", &key);
                 let query_str = cx.create_rw_signal(value.get());
                 {
                     let timer = create_rw_signal(TimerToken::INVALID);
@@ -1048,7 +1048,7 @@ pub fn theme_color_settings_view(
                         .border_radius(2.0)
                         .border(1.0)
                         .border_color(config.with_color(LapceColor::LAPCE_BORDER))
-                })
+                }).on_event_stop(EventListener::KeyDown , |_| {})
         })
         .style(|s| s.padding_vert(20.0).padding_horiz(20.0).width_full()),
         container(
@@ -1057,11 +1057,11 @@ pub fn theme_color_settings_view(
                     "base",
                     "Base Colors",
                     move || {
-                        let filter = query_str.get();
+                        let filter = query_str.with(|x| x.to_lowercase());
                         base_signal.with_untracked(|x| {
                             x.iter()
                                 .filter_map(|x| {
-                                    if x.0.contains(&filter) {
+                                    if x.0.to_lowercase().contains(&filter) {
                                         Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
@@ -1078,10 +1078,10 @@ pub fn theme_color_settings_view(
                     "syntax",
                     "Syntax Colors",
                     move || {
-                        let filter = query_str.get();
+                        let filter = query_str.with(|x| x.to_lowercase());
                         syntax.iter()
                                 .filter_map(|x| {
-                                    if x.0.contains(&filter) {
+                                    if x.0.to_lowercase().contains(&filter) {
                                         Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
@@ -1097,10 +1097,10 @@ pub fn theme_color_settings_view(
                     "ui",
                     "UI Colors",
                     move || {
-                        let filter = query_str.get();
+                        let filter = query_str.with(|x| x.to_lowercase());
                         ui.iter()
                                 .filter_map(|x| {
-                                    if x.0.contains(&filter) {
+                                    if x.0.to_lowercase().contains(&filter) {
                                         Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
