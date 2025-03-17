@@ -1552,11 +1552,9 @@ pub fn paint_text(
     dim_color: Color,
     diff_color: Color
 ) -> Result<()> {
-    if is_active && !hide_cursor {
-        paint_cursor_caret(cx, lines, cursor_points, line_height);
-    }
-    let mut lines = screen_lines.visual_lines.into_iter().peekable();
-    while let Some(line_info) = lines.next() {
+    
+    let mut visual_lines = screen_lines.visual_lines.into_iter().peekable();
+    while let Some(line_info) = visual_lines.next() {
         let y = line_info.paint_point(screen_lines.base).y;
         match line_info {
             VisualLineInfo::OriginText {
@@ -1620,13 +1618,16 @@ pub fn paint_text(
             },
             VisualLineInfo::DiffDelete { .. } => {
                 let mut count = 1.0f64;
-                while let Some(VisualLineInfo::DiffDelete { .. }) = lines.peek() {
+                while let Some(VisualLineInfo::DiffDelete { .. }) = visual_lines.peek() {
                     count += 1.0;
-                    lines.next();
+                    visual_lines.next();
                 }
                 paint_diff_no_code(cx, viewport, y, dim_color, count * line_height);
             }
         }
+    }
+    if is_active && !hide_cursor {
+        paint_cursor_caret(cx, lines, cursor_points, line_height);
     }
     Ok(())
 }
