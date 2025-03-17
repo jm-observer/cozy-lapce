@@ -94,7 +94,7 @@ pub fn extra_styles_for_range<'a>(
     end: usize,
     bg_color: Option<Color>,
     under_line: Option<Color>,
-    wave_line: Option<Color>
+    wave_line: Option<Color>, line_height: Option<f64>, adjust_y: bool
 ) -> impl Iterator<Item = LineExtraStyle> + 'a {
     let start_hit = text_layout.hit_position(start);
     let end_hit = text_layout.hit_position(end);
@@ -123,8 +123,12 @@ pub fn extra_styles_for_range<'a>(
                 return None;
             }
 
-            let height = (run.max_ascent + run.max_descent) as f64;
-            let y = run.line_y as f64 - run.max_ascent as f64;
+            let height = line_height.unwrap_or((run.max_ascent + run.max_descent) as f64) ;
+            let y = if adjust_y {
+                run.line_y as f64 - run.max_ascent as f64
+            } else {
+                0.0
+            };
 
             Some(LineExtraStyle {
                 x,

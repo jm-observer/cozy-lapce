@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     cell::Cell,
     cmp::Ordering,
-    ops::{Range, Sub},
+    ops::{Range},
     rc::Rc
 };
 
@@ -478,6 +478,8 @@ impl Editor {
                 start_affi
             );
         });
+
+        self.doc().lines.update(|x| x.set_document_highlight(None));
     }
 
     pub fn triple_click(&self, pointer_event: &PointerInputEvent) {
@@ -1027,7 +1029,7 @@ impl Editor {
         let viewport = self.viewport_untracked();
         // point.x += viewport.x0;
         point.y -= viewport.y0;
-        log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
+        // log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
         self.screen_lines.with_untracked(|x| {
             x.buffer_offset_of_click(mode, point)
         })
@@ -1578,7 +1580,7 @@ pub fn paint_text(
                     y,
                     viewport
                 );
-                paint_extra_style(
+                paint_document_highlight_style(
                     cx,
                     line_info.folded_line.document_highlight_style(),
                     y,
@@ -1676,6 +1678,35 @@ fn paint_diff_no_code(
     }
 }
 
+pub fn paint_document_highlight_style(
+    cx: &mut PaintCx,
+    extra_styles: &[LineExtraStyle],
+    y: f64,
+    viewport: Rect
+) {
+    for style in extra_styles {
+        let height = style.height;
+        if let Some(bg) = style.bg_color {
+            let width = style.width.unwrap_or_else(|| viewport.width());
+            let base = if style.width.is_none() {
+                viewport.x0
+            } else {
+                0.0
+            };
+            let x = style.x + base;
+            cx.fill(
+                &Rect::ZERO
+                    .with_size(Size::new(width, height))
+                    .with_origin(Point::new(x, y))
+                    .to_rounded_rect(2.0),
+                bg,
+                0.0
+            );
+        }
+    }
+}
+
+
 pub fn paint_extra_style(
     cx: &mut PaintCx,
     extra_styles: &[LineExtraStyle],
@@ -1685,13 +1716,13 @@ pub fn paint_extra_style(
     for style in extra_styles {
         let height = style.height - 2.0;
         if let Some(bg) = style.bg_color {
-            let width = style.width.unwrap_or_else(|| viewport.width()) - 2.0;
+            let width = style.width.unwrap_or_else(|| viewport.width());
             let base = if style.width.is_none() {
                 viewport.x0
             } else {
                 0.0
             };
-            let x = style.x + base + 1.0;
+            let x = style.x + base;
             let y = y + style.y + 1.0;
 
             cx.fill(
@@ -1756,7 +1787,7 @@ fn paint_cursor_caret(
 ) {
     let caret_color = lines.with_untracked(|es| es.ed_caret());
     cursor_points.into_iter().for_each(|point| {
-        let (x, y, width, line_height) = (point.x - 1.0, point.y, 2.0, line_height);
+        let (x, y, width, line_height) = (point.x - 1.0, point.y + 1.0, 2.0, line_height - 2.0);
         let rect = Rect::from_origin_size((x, y), (width, line_height));
         cx.fill(&rect, &caret_color, 0.0);
     });

@@ -207,11 +207,14 @@ impl TextLayoutLine {
     }
 
     pub fn extra_style(&mut self) -> &[LineExtraStyle] {
+        &self.extra_style
+    }
+    
+    pub fn init_extra_style(&mut self) {
         if !self.init {
             self.apply_diagnostic_styles_2();
             self.apply_layout_styles();
         }
-        &self.extra_style
     }
 
     pub fn document_highlight_style(&mut self) -> &[LineExtraStyle] {
@@ -237,7 +240,7 @@ impl TextLayoutLine {
                 phantom.final_col + phantom.text.len(),
                 phantom.bg,
                 phantom.under_line,
-                None
+                None, None, true
             );
             for style in iter {
                 self.extra_style.push(style)
@@ -245,7 +248,7 @@ impl TextLayoutLine {
         });
     }
 
-    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color) {
+    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color, line_height: usize) {
         let layout = &mut self.text.borrow_mut();
         let phantom_text = &self.phantom_text;
         let mut highlight_styles = vec![];
@@ -259,7 +262,7 @@ impl TextLayoutLine {
                     end,
                     Some(fg_color),
                     None,
-                    None,
+                    None, Some(line_height as f64), false
                 );
                 highlight_styles.extend(styles);
             }
@@ -295,7 +298,7 @@ impl TextLayoutLine {
                         end + 1,
                         None,
                         None,
-                        Some(*fg_color)
+                        Some(*fg_color), None, true
                     );
                     self.extra_style.extend(styles);
                 },

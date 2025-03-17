@@ -1343,7 +1343,7 @@ impl DocLines {
                     let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                     line.init_layout();
                     line.extra_style();
-                    line.init_document_highlight(highlight, document_highlight_color);
+                    line.init_document_highlight(highlight, document_highlight_color, line_height);
                     let size_width = line.size_width().width;
                     if size_width > max_width {
                         max_width = size_width;
@@ -1406,7 +1406,7 @@ impl DocLines {
                         let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                         line.init_layout();
                         line.extra_style();
-                        line.init_document_highlight(highlight, document_highlight_color);
+                        line.init_document_highlight(highlight, document_highlight_color, line_height);
                         let size_width = line.size_width().width;
                         if size_width > max_width {
                             max_width = size_width;

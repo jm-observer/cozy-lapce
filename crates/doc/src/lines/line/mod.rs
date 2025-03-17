@@ -412,8 +412,11 @@ impl OriginFoldedLine {
         self.text_layout.text.borrow_mut().init_line();
     }
 
-    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color) {
-        self.text_layout.init_document_highlight(highlight, fg_color);
+    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color, line_height: usize) {
+        self.text_layout.init_document_highlight(highlight, fg_color, line_height);
+    }
+    pub fn init_extra_style(&mut self) {
+        self.text_layout.init_extra_style()
     }
 }
 
