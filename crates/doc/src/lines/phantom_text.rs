@@ -644,6 +644,20 @@ impl PhantomTextMultiLine {
             .unwrap()
     }
 
+    pub fn last_origin_merge_col(&self) -> Option<usize> {
+        for text in self.text.iter().rev() {
+            match text {
+                Text::OriginText { text } => {
+                    return Some(text.origin_merge_col_end() - 1)
+                },
+                Text::EmptyLine { text } => return Some(text.offset_of_line),
+                _ => continue,
+            }
+        }
+        // will occur?
+        None
+    }
+
     // fn text_of_origin_line_col(
     //     &self,
     //     origin_line: usize,

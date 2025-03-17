@@ -385,14 +385,28 @@ impl ScreenLines {
         &self,
         start_offset: usize,
         end_offset: usize,
-        start_affinity: Option<CursorAffinity>,
-        end_affinity: Option<CursorAffinity>
+        mut start_affinity: Option<CursorAffinity>,
+        mut end_affinity: Option<CursorAffinity>
     ) -> Result<Vec<Rect>> {
-        let (start_offset, end_offset) = if start_offset > end_offset {
+        let (mut start_offset, mut end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
         } else {
             (start_offset, end_offset)
         };
+        let Some((first_line, end_line)) = self.first_end_folded_line() else {
+            return Ok(Vec::new());
+        };
+        if start_offset < first_line.folded_line.origin_interval.start {
+            start_offset = first_line.folded_line.origin_interval.start;
+            start_affinity = Some(CursorAffinity::Backward)
+        }
+        if end_offset >= end_line.folded_line.origin_interval.end {
+            let Some(last_origin_merge_col) = end_line.folded_line.last_origin_merge_col() else {
+                bail!("get last_origin_merge_col failed");
+            };
+            end_offset = last_origin_merge_col;
+            // end_affinity = Some(CursorAffinity::Backward)
+        }
         let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(
             start_offset,
             start_affinity.unwrap_or_default()

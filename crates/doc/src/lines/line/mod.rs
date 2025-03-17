@@ -351,6 +351,13 @@ impl OriginFoldedLine {
             .final_col_of_origin_merge_col(merge_col)
     }
 
+    pub fn last_origin_merge_col(
+        &self,
+    ) -> Option<usize> {
+        self.text_layout
+            .phantom_text.last_origin_merge_col().map(|x| x + self.origin_interval.start)
+    }
+
     pub fn offset_of_line(&self) -> usize {
         self.text_layout.phantom_text.offset_of_line
     }
