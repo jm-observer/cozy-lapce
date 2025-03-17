@@ -1331,7 +1331,7 @@ impl DocLines {
         let mut highlights= self.document_highlight.clone().unwrap_or_default().into_iter().peekable();
 
         // todo other color
-        let selection_color = self.selection_color();
+        let document_highlight_color = self.document_highlight();
         match view_kind {
             EditorViewKind::Normal => {
                 let start = start.min(self.origin_folded_lines.len() - 1);
@@ -1343,7 +1343,7 @@ impl DocLines {
                     let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                     line.init_layout();
                     line.extra_style();
-                    line.init_document_highlight(highlight, selection_color);
+                    line.init_document_highlight(highlight, document_highlight_color);
                     let size_width = line.size_width().width;
                     if size_width > max_width {
                         max_width = size_width;
@@ -1406,7 +1406,7 @@ impl DocLines {
                         let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
                         line.init_layout();
                         line.extra_style();
-                        line.init_document_highlight(highlight, selection_color);
+                        line.init_document_highlight(highlight, document_highlight_color);
                         let size_width = line.size_width().width;
                         if size_width > max_width {
                             max_width = size_width;
@@ -3664,6 +3664,10 @@ impl LinesEditorStyle {
         self.editor_style.ed_caret()
     }
 
+    pub fn document_highlight(&self) -> Color {
+        self.editor_style.document_highlight()
+    }
+    
     pub fn selection_color(&self) -> Color {
         self.editor_style.selection()
     }

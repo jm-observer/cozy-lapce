@@ -45,6 +45,7 @@ impl LapceColor {
     pub const EDITOR_INDENT_GUIDE: &'static str = "editor.indent_guide";
     pub const EDITOR_LINK: &'static str = "editor.link";
     pub const EDITOR_SELECTION: &'static str = "editor.selection";
+    pub const EDITOR_DOCUMENT_HIGHLIGHT: &'static str = "editor.document_highlight";
     pub const EDITOR_STICKY_HEADER_BACKGROUND: &'static str =
         "editor.sticky_header_background";
     pub const EDITOR_VISIBLE_WHITESPACE: &'static str = "editor.visible_whitespace";

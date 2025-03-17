@@ -47,6 +47,7 @@ use lapce_xi_rope::find::CaseMatching;
 use log::{error};
 use doc::EditorViewKind;
 use doc::lines::diff::DiffResult;
+use doc::lines::style::DocumentHighlightColor;
 use super::{DocSignal, EditorData};
 use crate::{
     app::clickable_icon,
@@ -93,7 +94,7 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
         wrap_style,
         wrap_with,
         caret_color,
-        selection_color,
+        selection_color, document_highlight_color,
         cl_color,
         vw,
         ig,
@@ -112,6 +113,7 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
             config.editor.wrap_width.signal(),
             config.color(LapceColor::EDITOR_CARET),
             config.color(LapceColor::EDITOR_SELECTION),
+            config.color(LapceColor::EDITOR_DOCUMENT_HIGHLIGHT),
             config.color(LapceColor::EDITOR_CURRENT_LINE),
             config.color(LapceColor::EDITOR_VISIBLE_WHITESPACE),
             config.color(LapceColor::EDITOR_INDENT_GUIDE),
@@ -130,7 +132,8 @@ pub fn editor_style(config: WithLapceConfig, doc: DocSignal, s: Style) -> Style 
     )
     .set(CursorColor, caret_color.get())
     .set(SelectionColor, selection_color.get())
-    .set(CurrentLineColor, cl_color.get())
+        .set(DocumentHighlightColor, document_highlight_color.get())
+        .set(CurrentLineColor, cl_color.get())
     .set(VisibleWhitespaceColor, vw.get())
     .set(IndentGuideColor, ig.get())
     .set(ScrollBeyondLastLine, scroll_beyond_last_line.get())

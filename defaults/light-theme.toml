@@ -84,6 +84,16 @@ dim-text = "#A0A1A7"
 
 "bracket.unpaired" = "$red"
 
+selfTypeKeyword = "$blue"
+macro = "#de712e"
+builtinAttribute = "$blue"
+boolean = "$blue"
+const = "#a537a6"
+lifetime = "#56abaa"
+punctuation = "$purple"
+operator = "$purple"
+decorator = "$purple"
+
 [color-theme.ui]
 "lapce.error" = "#E51400"
 "lapce.warn" = "#E9A700"
@@ -151,6 +161,7 @@ dim-text = "#A0A1A7"
 "editor.drag_drop_tab_background" = "#0b0e1433"
 "editor.sticky_header_background" = "$primary-background"
 "editor.bracket" = "#C5E1C5"
+"editor.document_highlight" = "#eeebfc"
 
 "inlay_hint.foreground" = "$text"
 "inlay_hint.background" = "#528bFF55"

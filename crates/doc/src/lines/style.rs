@@ -71,6 +71,7 @@ prop!(pub DropdownShadow: Option<Color> {} = None);
 prop!(pub Foreground: Color { inherited } = Color::from_rgb8(0x38, 0x3A, 0x42));
 prop!(pub Focus: Option<Color> {} = None);
 prop!(pub SelectionColor: Color {} = Color::BLACK.multiply_alpha(0.5));
+prop!(pub DocumentHighlightColor: Color {} = Color::from_rgb8(60, 116, 136));
 prop!(pub CurrentLineColor: Option<Color> {  } = None);
 prop!(pub Link: Option<Color> {} = None);
 prop!(pub VisibleWhitespaceColor: Color {} = Color::TRANSPARENT);
@@ -96,6 +97,7 @@ floem::prop_extractor! {
         pub indent_style: IndentStyleProp,
         pub caret: CursorColor,
         pub selection: SelectionColor,
+        pub document_highlight: DocumentHighlightColor,
         pub current_line: CurrentLineColor,
         pub visible_whitespace: VisibleWhitespaceColor,
         pub indent_guide: IndentGuideColor,
