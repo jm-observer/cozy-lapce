@@ -610,7 +610,7 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                         s.width(300.0).border(1.0).border_radius(6.0).border_color(
                             config.with_color(LapceColor::LAPCE_BORDER)
                         )
-                    })
+                    }).on_event_stop(EventListener::KeyDown, |_| {})
                     .into_any()
             } else if let SettingsValue::Dropdown(dropdown) = &item.value {
                 let expanded = create_rw_signal(false);
