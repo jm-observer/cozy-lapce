@@ -1,27 +1,14 @@
 use std::{collections::BTreeMap, rc::Rc, str::FromStr, time::Duration};
 
-use doc::lines::{editor_command::CommandExecuted, mode::Mode};
+use doc::lines::{editor_command::CommandExecuted, mode::Mode, signal::SignalManager};
 use floem::{
-    IntoView, View,
-    action::{TimerToken, add_overlay, exec_after, remove_overlay},
-    event::EventListener,
-    keyboard::Modifiers,
-    peniko::{
-        Color,
-        kurbo::{Point, Rect, Size}
-    },
-    prelude::{text_input, v_stack},
-    reactive::{
-        Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, create_effect,
-        create_memo, create_rw_signal
-    },
-    style::CursorStyle,
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout},
-    views::{
-        Decorators, VirtualVector, container, dyn_stack, empty, label,
-        scroll::{PropagatePointerWheel, scroll},
-        stack, text, virtual_stack
-    }
+    action::{add_overlay, exec_after, remove_overlay, TimerToken}, event::EventListener, keyboard::Modifiers, peniko::{
+        kurbo::{Point, Rect, Size}, Color
+    }, prelude::{text_input, v_stack}, reactive::{
+        create_effect, create_memo, create_rw_signal, Memo, ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith
+    }, style::CursorStyle, text::{Attrs, AttrsList, FamilyOwned, TextLayout}, views::{
+        container, dyn_stack, empty, label, scroll::{scroll, PropagatePointerWheel}, stack, text, virtual_stack, Decorators, VirtualVector
+    }, IntoView, View
 };
 use indexmap::IndexMap;
 use inflector::Inflector;
@@ -777,9 +764,9 @@ pub fn checkbox(
     })
 }
 
-struct BTreeMapVirtualList(BTreeMap<String, RwSignal<String>>);
+struct BTreeMapVirtualList(BTreeMap<String, ReadSignal<String>>);
 
-impl VirtualVector<(String, RwSignal<String>)> for BTreeMapVirtualList {
+impl VirtualVector<(String, ReadSignal<String>)> for BTreeMapVirtualList {
     fn total_len(&self) -> usize {
         self.0.len()
     }
@@ -787,7 +774,7 @@ impl VirtualVector<(String, RwSignal<String>)> for BTreeMapVirtualList {
     fn slice(
         &mut self,
         range: std::ops::Range<usize>
-    ) -> impl Iterator<Item = (String, RwSignal<String>)> {
+    ) -> impl Iterator<Item = (String, ReadSignal<String>)> {
         Box::new(
             self.0
                 .iter()
@@ -808,10 +795,10 @@ impl VirtualVector<(String, RwSignal<String>)> for BTreeMapVirtualList {
 fn color_section_list(
     kind: &str,
     header: &str,
-    list: impl Fn() -> BTreeMap<String, RwSignal<String>> + 'static,
+    list: impl Fn() -> BTreeMap<String, ReadSignal<String>> + 'static,
     max_width: Memo<f64>,
     text_height: Memo<f64>,
-    common: Rc<CommonData>, base: RwSignal<BTreeMap<String, RwSignal<String>>>
+    common: Rc<CommonData>, base: RwSignal<BTreeMap<String, SignalManager<String>>>, cx: Scope
 ) -> impl View {
     let config = common.config;
     let config_directory = common.directory.config_directory.clone();
@@ -828,17 +815,17 @@ fn color_section_list(
             // VirtualDirection::Vertical,
             // VirtualItemSize::Fixed(Box::new(move || text_height.get() + 24.0)),
             move || BTreeMapVirtualList(list()),
-            move |(_key, _)| (_key.to_owned()),
-            move |(key, query_str)| {
-                // info!("init color-theme.{kind} {}", &key);
-                // let query_str = create_rw_signal(value);
+            move |(_key, value)| (_key.to_owned(), value.get()),
+            move |(key, value)| {
+                log::info!("init color-theme.{kind} {}", &key);
+                let query_str = cx.create_rw_signal(value.get());
                 {
                     let timer = create_rw_signal(TimerToken::INVALID);
                     let kind = kind.clone();
                     let field = key.clone();
                     let common = common.clone();
                     // 保存新值
-                    create_effect(move |_| {
+                    cx.create_effect(move |_| {
                         let value = query_str.get();
                         if value.starts_with("#") {
                             let Ok(_) = Color::from_str(&value) else {
@@ -919,7 +906,7 @@ fn color_section_list(
                         });
                         let mut new_value = query_str.get();
                         if new_value.starts_with("$") {
-                            let origin = base.with_untracked(|x| x.get(new_value.trim_start_matches("$")).map(|x| *x));
+                            let origin = base.with_untracked(|x| x.get(new_value.trim_start_matches("$")).map(|x| x.signal()));
                             new_value = origin.map(|x| x.get()).unwrap_or_default();
                         }
                         
@@ -1044,10 +1031,11 @@ pub fn theme_color_settings_view(
     });
 
     let query_str = window_tab_data.theme_query;
-    let setting_items = SettingSignals::init(config);
+    let setting_items = SettingSignals::init(config, window_tab_data.scope);
     let base_signal = create_rw_signal( setting_items.base.clone());
     let syntax = setting_items.syntax;
     let ui = setting_items.ui;
+    let cx = window_tab_data.scope;
 
     v_stack((
         container({
@@ -1074,17 +1062,17 @@ pub fn theme_color_settings_view(
                             x.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), *x.1))
+                                        Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>()
+                                .collect::<BTreeMap<String, ReadSignal<String>>>()
                         })
                     },
                     max_width,
                     text_height,
-                    common.clone(), base_signal
+                    common.clone(), base_signal, cx
                 ),
                 color_section_list(
                     "syntax",
@@ -1094,16 +1082,16 @@ pub fn theme_color_settings_view(
                         syntax.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), *x.1))
+                                        Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>()
+                                .collect::<BTreeMap<String, ReadSignal<String>>>()
                     },
                     max_width,
                     text_height,
-                    common.clone(), base_signal
+                    common.clone(), base_signal, cx
                 ),
                 color_section_list(
                     "ui",
@@ -1113,16 +1101,16 @@ pub fn theme_color_settings_view(
                         ui.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), *x.1))
+                                        Some((x.0.clone(), x.1.signal()))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>()
+                                .collect::<BTreeMap<String, ReadSignal<String>>>()
                     },
                     max_width,
                     text_height,
-                    common.clone(), base_signal
+                    common.clone(), base_signal, cx
                 )
             )))
             .style(|s| s.absolute().size_full())
@@ -1370,13 +1358,13 @@ fn dropdown_scroll(
 
 
 struct SettingSignals {
-    pub base: BTreeMap<String, RwSignal<String>>,
-    pub syntax: BTreeMap<String, RwSignal<String>>,
-    pub ui: BTreeMap<String, RwSignal<String>>,
+    pub base: BTreeMap<String, SignalManager<String>>,
+    pub syntax: BTreeMap<String, SignalManager<String>>,
+    pub ui: BTreeMap<String, SignalManager<String>>,
 }
 
 impl SettingSignals {
-    pub fn init(config: WithLapceConfig) -> Self {
+    pub fn init(config: WithLapceConfig, cx: Scope) -> Self {
         let (base, syntax, ui) = 
             config.with_untracked(|c| {
                             (c.color_theme
@@ -1384,24 +1372,59 @@ impl SettingSignals {
                                 .0
                                 .iter()
                                 .map(|x| {
-                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                    (x.0.clone(), SignalManager::new(cx, x.1.clone()))
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>(),
+                                .collect::<BTreeMap<String, SignalManager<String>>>(),
                                 c.color_theme
                                 .syntax
                                 .iter()
                                 .map(|x| {
-                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                    (x.0.clone(), SignalManager::new(cx, x.1.clone()))
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>(),
+                                .collect::<BTreeMap<String, SignalManager<String>>>(),
                                  c.color_theme
                                 .ui
                                 .iter()
                                 .map(|x| {
-                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                    (x.0.clone(), SignalManager::new(cx, x.1.clone()))
                                 })
-                                .collect::<BTreeMap<String, RwSignal<String>>>())
+                                .collect::<BTreeMap<String, SignalManager<String>>>())
                         });
+        let  base_update = cx.create_rw_signal(base.clone());
+        let  syntax_update = cx.create_rw_signal(syntax.clone());
+        let  ui_update = cx.create_rw_signal(ui.clone());
+
+        create_effect(move |_| {
+            log::info!("update SettingSignals");
+            let c = config.get();
+            base_update.update(|base_update| {
+                for x in c.color_theme.base
+                    .0 {
+                    if let Some(val) = base_update.get_mut(&x.0) {
+                        val.update_and_trigger_if_not_equal(x.1);
+                    }
+                }
+            });
+
+            syntax_update.update(|syntax_update| {
+                for x in c.color_theme.syntax {
+                    if let Some(val) = syntax_update.get_mut(&x.0) {
+                        // log::info!("update syntax {}-{} to {}", x.0, x.1, val.val());
+                        if val.update_and_trigger_if_not_equal(x.1) {
+                            // log::info!("updated syntax {}", x.0);
+                        }
+                    }
+                }
+            });
+            ui_update.update(|ui_update| {
+                for x in c.color_theme.ui {
+                    if let Some(val) = ui_update.get_mut(&x.0) {
+                        val.update_and_trigger_if_not_equal(x.1);
+                    }
+                }
+            });
+        });
+                    
         Self {
             base, syntax, ui
         }
