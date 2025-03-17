@@ -1022,12 +1022,14 @@ impl Editor {
     pub fn offset_of_point(
         &self,
         mode: &CursorMode,
-        point: Point
+        mut point:  Point
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
         let viewport = self.viewport_untracked();
-        // log::info!("point={point:?}, viewport={viewport:?}");
+        // point.x += viewport.x0;
+        point.y -= viewport.y0;
+        log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
         self.screen_lines.with_untracked(|x| {
-            x.buffer_offset_of_click(mode, point.sub(viewport.origin().to_vec2()))
+            x.buffer_offset_of_click(mode, point)
         })
         // self.doc
         //     .get_untracked()
