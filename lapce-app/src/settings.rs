@@ -33,9 +33,7 @@ use serde_json::Value;
 use crate::{
     command::InternalCommand,
     config::{
-        DropdownInfo, LapceConfig, WithLapceConfig, color::LapceColor,
-        core::CoreConfig, editor::EditorConfig, terminal::TerminalConfig,
-        ui::UIConfig
+        color::LapceColor, core::CoreConfig, editor::EditorConfig, terminal::TerminalConfig, ui::UIConfig, DropdownInfo, LapceConfig, WithLapceConfig
     },
     keypress::KeyPressFocus,
     plugin::InstalledVoltData,
@@ -779,9 +777,9 @@ pub fn checkbox(
     })
 }
 
-struct BTreeMapVirtualList(BTreeMap<String, String>);
+struct BTreeMapVirtualList(BTreeMap<String, RwSignal<String>>);
 
-impl VirtualVector<(String, String)> for BTreeMapVirtualList {
+impl VirtualVector<(String, RwSignal<String>)> for BTreeMapVirtualList {
     fn total_len(&self) -> usize {
         self.0.len()
     }
@@ -789,14 +787,14 @@ impl VirtualVector<(String, String)> for BTreeMapVirtualList {
     fn slice(
         &mut self,
         range: std::ops::Range<usize>
-    ) -> impl Iterator<Item = (String, String)> {
+    ) -> impl Iterator<Item = (String, RwSignal<String>)> {
         Box::new(
             self.0
                 .iter()
                 .enumerate()
                 .filter_map(|(index, (k, v))| {
                     if range.contains(&index) {
-                        Some((k.to_string(), v.to_string()))
+                        Some((k.to_string(), *v))
                     } else {
                         None
                     }
@@ -810,10 +808,10 @@ impl VirtualVector<(String, String)> for BTreeMapVirtualList {
 fn color_section_list(
     kind: &str,
     header: &str,
-    list: impl Fn() -> BTreeMap<String, String> + 'static,
+    list: impl Fn() -> BTreeMap<String, RwSignal<String>> + 'static,
     max_width: Memo<f64>,
     text_height: Memo<f64>,
-    common: Rc<CommonData>
+    common: Rc<CommonData>, base: RwSignal<BTreeMap<String, RwSignal<String>>>
 ) -> impl View {
     let config = common.config;
     let config_directory = common.directory.config_directory.clone();
@@ -831,9 +829,9 @@ fn color_section_list(
             // VirtualItemSize::Fixed(Box::new(move || text_height.get() + 24.0)),
             move || BTreeMapVirtualList(list()),
             move |(_key, _)| (_key.to_owned()),
-            move |(key, value)| {
+            move |(key, query_str)| {
                 // info!("init color-theme.{kind} {}", &key);
-                let query_str = create_rw_signal(value);
+                // let query_str = create_rw_signal(value);
                 {
                     let timer = create_rw_signal(TimerToken::INVALID);
                     let kind = kind.clone();
@@ -857,11 +855,6 @@ fn color_section_list(
                             exec_after(Duration::from_millis(500), move |token| {
                                 if let Some(timer) = timer.try_get_untracked() {
                                     if timer == token {
-                                        // let value = query_str.get_untracked();
-                                        // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
-                                        // if new_value != value {
-                                        //     return;
-                                        // }
                                         let default = config.with_untracked(|config_val | {
                                             match kind.as_str() {
                                                 "base" => config_val
@@ -895,34 +888,6 @@ fn color_section_list(
                                                     value_ser, common
                                                 );
                                             }
-                                            // mut_config.update(|config| {
-                                            //     match kind.as_str() {
-                                            //         "base" => {
-                                            //             config
-                                            //                 .color
-                                            //                 .base.0.insert(field.clone(), color);
-                                            //             config.color_theme.base.0.insert(field.clone(), value);
-                                            //         },
-                                            //         "ui" => {
-                                            //             config
-                                            //                 .color
-                                            //                 .ui.insert(field.clone(), color);
-                                            //             config.color_theme.ui.insert(field.clone(), value);
-                                            //         },
-                                            //         "syntax" => {
-                                            //             config
-                                            //                 .color
-                                            //                 .syntax.insert(field.clone(), color);
-                                            //             config.color_theme.syntax.insert(field.clone(), value);
-                                            //         },
-                                            //         _ => ()
-                                            //     };
-                                            // });
-                                        // } else {
-                                        //     LapceConfig::reset_setting(
-                                        //         &format!("color-theme.{kind}"),
-                                        //         &field
-                                        //     );
                                         }
                                     }
                                 }
@@ -944,7 +909,7 @@ fn color_section_list(
                             .border_color(
                                 config.with_color(LapceColor::LAPCE_BORDER)
                             )
-                    }),
+                    }).on_event_stop(EventListener::KeyDown, |_| {}),
                     empty().style(move |s| {
                         let size = text_height.get() + 12.0;
                         let (caret_color, bg) = config.signal(|config| {
@@ -952,7 +917,12 @@ fn color_section_list(
                                 config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_FOREGROUND)
                             )
                         });
-                        let new_value = query_str.get();
+                        let mut new_value = query_str.get();
+                        if new_value.starts_with("$") {
+                            let origin = base.with_untracked(|x| x.get(new_value.trim_start_matches("$")).map(|x| *x));
+                            new_value = origin.map(|x| x.get()).unwrap_or_default();
+                        }
+                        
                         let color = Color::from_str(&new_value).ok();
                         s.border(1)
                             .border_radius(6)
@@ -1040,6 +1010,8 @@ pub fn theme_color_settings_view(
         let text_layout = TextLayout::new_with_text("W", attrs_list);
         text_layout.size().height
     });
+    
+    
 
     let max_width = create_memo(move |_| {
         config.with(|config| {
@@ -1072,6 +1044,10 @@ pub fn theme_color_settings_view(
     });
 
     let query_str = window_tab_data.theme_query;
+    let setting_items = SettingSignals::init(config);
+    let base_signal = create_rw_signal( setting_items.base.clone());
+    let syntax = setting_items.syntax;
+    let ui = setting_items.ui;
 
     v_stack((
         container({
@@ -1094,70 +1070,59 @@ pub fn theme_color_settings_view(
                     "Base Colors",
                     move || {
                         let filter = query_str.get();
-                        config.with(|c| {
-                            c.color_theme
-                                .base
-                                .0
-                                .iter()
+                        base_signal.with_untracked(|x| {
+                            x.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), x.1.clone()))
+                                        Some((x.0.clone(), *x.1))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, String>>()
+                                .collect::<BTreeMap<String, RwSignal<String>>>()
                         })
                     },
                     max_width,
                     text_height,
-                    common.clone()
+                    common.clone(), base_signal
                 ),
                 color_section_list(
                     "syntax",
                     "Syntax Colors",
                     move || {
                         let filter = query_str.get();
-                        config.with(|c| {
-                            c.color_theme
-                                .syntax
-                                .iter()
+                        syntax.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), x.1.clone()))
+                                        Some((x.0.clone(), *x.1))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, String>>()
-                        })
+                                .collect::<BTreeMap<String, RwSignal<String>>>()
                     },
                     max_width,
                     text_height,
-                    common.clone()
+                    common.clone(), base_signal
                 ),
                 color_section_list(
                     "ui",
                     "UI Colors",
                     move || {
                         let filter = query_str.get();
-                        config.with(|c| {
-                            c.color_theme
-                                .ui
-                                .iter()
+                        ui.iter()
                                 .filter_map(|x| {
                                     if x.0.contains(&filter) {
-                                        Some((x.0.clone(), x.1.clone()))
+                                        Some((x.0.clone(), *x.1))
                                     } else {
                                         None
                                     }
                                 })
-                                .collect::<BTreeMap<String, String>>()
-                        })
+                                .collect::<BTreeMap<String, RwSignal<String>>>()
                     },
                     max_width,
                     text_height,
-                    common.clone()
+                    common.clone(), base_signal
                 )
             )))
             .style(|s| s.absolute().size_full())
@@ -1400,4 +1365,45 @@ fn dropdown_scroll(
             .inset_left(x)
             .inset_top(y)
     })
+}
+
+
+
+struct SettingSignals {
+    pub base: BTreeMap<String, RwSignal<String>>,
+    pub syntax: BTreeMap<String, RwSignal<String>>,
+    pub ui: BTreeMap<String, RwSignal<String>>,
+}
+
+impl SettingSignals {
+    pub fn init(config: WithLapceConfig) -> Self {
+        let (base, syntax, ui) = 
+            config.with_untracked(|c| {
+                            (c.color_theme
+                                .base
+                                .0
+                                .iter()
+                                .map(|x| {
+                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                })
+                                .collect::<BTreeMap<String, RwSignal<String>>>(),
+                                c.color_theme
+                                .syntax
+                                .iter()
+                                .map(|x| {
+                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                })
+                                .collect::<BTreeMap<String, RwSignal<String>>>(),
+                                 c.color_theme
+                                .ui
+                                .iter()
+                                .map(|x| {
+                                    (x.0.clone(), create_rw_signal(x.1.clone()))
+                                })
+                                .collect::<BTreeMap<String, RwSignal<String>>>())
+                        });
+        Self {
+            base, syntax, ui
+        }
+    }
 }
