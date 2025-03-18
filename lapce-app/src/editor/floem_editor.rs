@@ -404,7 +404,7 @@ impl Editor {
     ) -> Option<usize> {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (new_offset, _is_inside, cursor_affinity) =
-            match self.offset_of_point(&mode, pointer_event.pos) {
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
                 Ok(Some(rs)) => rs,
                 Ok(None) => return None,
                 Err(err) => {
@@ -436,7 +436,7 @@ impl Editor {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
 
         let (mouse_offset, _, _) =
-            match self.offset_of_point(&mode, pointer_event.pos) {
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
                 Ok(Some(rs)) => rs,
                 Ok(None) => return,
                 Err(err) => {
@@ -485,7 +485,7 @@ impl Editor {
     pub fn triple_click(&self, pointer_event: &PointerInputEvent) {
         let mode = self.cursor.with_untracked(|c| c.mode().clone());
         let (mouse_offset, _, _) =
-            match self.offset_of_point(&mode, pointer_event.pos) {
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
                 Ok(Some(rs)) => rs,
                 Ok(None) => return,
                 Err(err) => {
@@ -1033,11 +1033,22 @@ impl Editor {
         self.screen_lines.with_untracked(|x| {
             x.buffer_offset_of_click(mode, point)
         })
-        // self.doc
-        //     .get_untracked()
-        //     .lines
-        //     .with_untracked(|x| x.buffer_offset_of_click(mode, point))
     }
+    
+    pub fn nearest_buffer_offset_of_click(
+        &self,
+        mode: &CursorMode,
+        mut point:  Point
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let viewport = self.viewport_untracked();
+        // point.x += viewport.x0;
+        point.y -= viewport.y0;
+        // log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
+        self.screen_lines.with_untracked(|x| {
+            x.nearest_buffer_offset_of_click(mode, point)
+        })
+    }
+
 
     // /// 获取该坐标所在的视觉行和行偏离
     // pub fn line_col_of_point_with_phantom(

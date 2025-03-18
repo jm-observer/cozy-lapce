@@ -497,6 +497,33 @@ impl ScreenLines {
         }
         None
     }
+    
+    pub(crate) fn nearest_visual_line_of_point(
+        &self,
+        point_y: f64
+    ) -> Option<(&VisualOriginText, bool)> {
+        let mut lines = self.visual_lines.iter().peekable();
+        let mut prev_line = None;
+        loop {
+            if let Some(line) = lines.peek() {
+                if let VisualLineInfo::OriginText { text } = line  {
+                    if point_y < text.folded_line_y {
+                        return prev_line.map(|x| (x, false));
+                    } else if text.folded_line_y <= point_y && point_y < text.folded_line_y + self.line_height {
+                        return Some((text, true));
+                    } else {
+                        prev_line = Some(text);
+                        lines.next();
+                    }
+                } else {
+                    lines.next();
+                }
+            } else {
+                break;
+            }
+        }
+        prev_line.map(|x| (x, false))
+    }
 
     pub fn buffer_offset_of_click(
         &self,
@@ -506,7 +533,7 @@ impl ScreenLines {
         let Some(info) = self.visual_line_of_point(point.y) else {
             return Ok(None);
         };
-        let VisualLineInfo::OriginText { text, .. } = info else {
+        let VisualLineInfo::OriginText { text, .. } = info else { 
             return Ok(None);
         };
         let info = &text.folded_line;
@@ -612,6 +639,87 @@ impl ScreenLines {
                     (text.offset_of_line, false, CursorAffinity::Backward)
                 },
             }))
+        }
+    }
+    
+    pub fn nearest_buffer_offset_of_click(
+        &self,
+        _mode: &CursorMode,
+        point: Point
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let Some( (text, inside)) = self.nearest_visual_line_of_point(point.y) else { 
+            return Ok(None);
+        };
+        let info = &text.folded_line;
+        if !inside {
+            let (offset, affi) = info.last_cursor_position();
+            return Ok(Some((offset, false, affi)));
+        }
+        let hit_point = info.hit_point(Point::new(point.x, 0.0));
+        let visual_char_offset = hit_point.index;
+
+        if hit_point.is_inside {
+            for x in info.text() {
+                match x {
+                    Text::Phantom { text } => {
+                        if text.final_col <= visual_char_offset
+                            && visual_char_offset < text.next_final_col()
+                        {
+                            // 在虚拟文本的后半部分，则光标置于虚拟文本之后
+                            return Ok(Some(
+                                if hit_point.index
+                                    > text.final_col + text.text.len() / 2
+                                {
+                                    (
+                                        info.origin_interval.start
+                                            + text.origin_merge_col,
+                                        true,
+                                        CursorAffinity::Forward
+                                    )
+                                } else {
+                                    (
+                                        info.origin_interval.start
+                                            + text.origin_merge_col,
+                                        true,
+                                        CursorAffinity::Backward
+                                    )
+                                }
+                            ));
+                        } else if visual_char_offset == text.next_final_col() {
+                            return Ok(Some((
+                                info.origin_interval.start + text.origin_merge_col,
+                                true,
+                                CursorAffinity::Forward
+                            )));
+                        }
+                    },
+                    Text::OriginText { text } => {
+                        if text.final_col.contains(visual_char_offset)
+                            || info.last_line
+                                && text.final_col.end == visual_char_offset
+                        {
+                            return Ok(Some((
+                                visual_char_offset - text.final_col.start
+                                    + text.origin_merge_col_start()
+                                    + info.origin_interval.start,
+                                true,
+                                CursorAffinity::Backward
+                            )));
+                        }
+                    },
+                    Text::EmptyLine { .. } => break
+                }
+            }
+            bail!(
+                "origin_line_start {}, point={:?}, visual_char_offset={} {:?}",
+                info.origin_line_start,
+                point,
+                visual_char_offset,
+                info.text()
+            );
+        } else {
+            let (offset, affi) = info.last_cursor_position();
+            return Ok(Some((offset, false, affi)));
         }
     }
 

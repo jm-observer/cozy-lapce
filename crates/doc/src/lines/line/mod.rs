@@ -2,14 +2,14 @@ pub mod update_lines;
 
 use std::{
     cell::RefMut,
-    fmt::{Debug, Formatter}
+    fmt::{Debug, Formatter},
 };
 
+use floem::peniko::Color;
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
-    text::{HitPoint, HitPosition}
+    text::{HitPoint, HitPosition},
 };
-use floem::peniko::Color;
 use lapce_xi_rope::Interval;
 use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
@@ -21,8 +21,8 @@ use crate::{
         cursor::CursorAffinity,
         delta_compute::Offset,
         phantom_text::{PhantomTextLine, Text},
-        style::NewLineStyle
-    }
+        style::NewLineStyle,
+    },
 };
 //
 // #[derive(Clone, Debug)]
@@ -35,13 +35,13 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginLine {
-    pub line_index:        usize,
+    pub line_index: usize,
     /// [start_offset...end_offset)
-    pub start_offset:      usize,
-    pub len:               usize,
-    pub phantom:           PhantomTextLine,
-    pub semantic_styles:   Vec<NewLineStyle>,
-    pub diagnostic_styles: Vec<NewLineStyle>
+    pub start_offset: usize,
+    pub len: usize,
+    pub phantom: PhantomTextLine,
+    pub semantic_styles: Vec<NewLineStyle>,
+    pub diagnostic_styles: Vec<NewLineStyle>,
 }
 
 impl Debug for OriginLine {
@@ -95,14 +95,14 @@ impl OriginLine {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
-    pub line_index:        usize,
+    pub line_index: usize,
     /// origin_line_start..=origin_line_end
     pub origin_line_start: usize,
     /// origin_line_start..=origin_line_end
-    pub origin_line_end:   usize,
-    pub origin_interval:   Interval,
-    pub last_line:         bool,
-    text_layout:           TextLayoutLine
+    pub origin_line_end: usize,
+    pub origin_interval: Interval,
+    pub last_line: bool,
+    text_layout: TextLayoutLine,
 }
 
 impl OriginFoldedLine {
@@ -110,7 +110,7 @@ impl OriginFoldedLine {
         &self,
         offset: Offset,
         line_offset: Offset,
-        line_index: usize
+        line_index: usize,
     ) -> Self {
         let mut obj = self.clone();
         offset.adjust(&mut obj.origin_interval.start);
@@ -164,7 +164,7 @@ impl OriginFoldedLine {
         &self,
         origin_line: usize,
         offset: usize,
-        _affinity: CursorAffinity
+        _affinity: CursorAffinity,
     ) -> Option<usize> {
         let final_offset = self
             .text_layout
@@ -214,7 +214,7 @@ impl OriginFoldedLine {
         end_col: usize,
         line_height: f64,
         y: f64,
-        base: Vec2
+        base: Vec2,
     ) -> Rect {
         let mut hit0 = self.text_layout.text.borrow_mut().hit_position(start_col);
         let hit1 = self.text_layout.text.borrow_mut().hit_position(end_col);
@@ -227,7 +227,7 @@ impl OriginFoldedLine {
     pub fn line_number(
         &self,
         show_relative: bool,
-        current_number: Option<usize>
+        current_number: Option<usize>,
     ) -> Option<usize> {
         let line_number = self.origin_line_start + 1;
         Some(if show_relative {
@@ -252,12 +252,12 @@ impl OriginFoldedLine {
     pub fn hit_position_aff(
         &self,
         col: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> HitPosition {
         hit_position_aff(
             &mut self.text_layout.text.borrow_mut(),
             col,
-            affinity == CursorAffinity::Backward
+            affinity == CursorAffinity::Backward,
         )
     }
 
@@ -273,7 +273,7 @@ impl OriginFoldedLine {
 
     pub fn text_of_origin_merge_col(
         &self,
-        final_col: usize
+        final_col: usize,
     ) -> anyhow::Result<&Text> {
         self.text_layout
             .phantom_text
@@ -282,7 +282,7 @@ impl OriginFoldedLine {
 
     pub fn cursor_position_of_final_col(
         &self,
-        final_col: usize
+        final_col: usize,
     ) -> (usize, CursorAffinity) {
         log::info!("{:?} {}", self, final_col);
         match self
@@ -295,12 +295,12 @@ impl OriginFoldedLine {
                 if final_col > text.final_col + text.text.len() / 2 {
                     (
                         text.origin_merge_col + self.offset_of_line(),
-                        CursorAffinity::Forward
+                        CursorAffinity::Forward,
                     )
                 } else {
                     (
                         text.origin_merge_col + self.offset_of_line(),
-                        CursorAffinity::Backward
+                        CursorAffinity::Backward,
                     )
                 }
             },
@@ -315,7 +315,7 @@ impl OriginFoldedLine {
                     // text.origin_col_of_final_col(visual_char_offset),
                     // visual_char_offset,
                     self.offset_of_line() + merge_col,
-                    CursorAffinity::Backward
+                    CursorAffinity::Backward,
                 )
             },
             Text::EmptyLine { text } => {
@@ -335,7 +335,7 @@ impl OriginFoldedLine {
     pub fn cursor_final_col_of_merge_col(
         &self,
         merge_col: usize,
-        cursor_affinity: CursorAffinity
+        cursor_affinity: CursorAffinity,
     ) -> anyhow::Result<usize> {
         self.text_layout
             .phantom_text
@@ -344,18 +344,54 @@ impl OriginFoldedLine {
 
     pub fn final_col_of_origin_merge_col(
         &self,
-        merge_col: usize
+        merge_col: usize,
     ) -> anyhow::Result<Option<usize>> {
         self.text_layout
             .phantom_text
             .final_col_of_origin_merge_col(merge_col)
     }
 
-    pub fn last_origin_merge_col(
-        &self,
-    ) -> Option<usize> {
+    pub fn last_origin_merge_col(&self) -> Option<usize> {
         self.text_layout
-            .phantom_text.last_origin_merge_col().map(|x| x + self.origin_interval.start)
+            .phantom_text
+            .last_origin_merge_col()
+            .map(|x| x + self.origin_interval.start)
+    }
+
+    pub fn last_cursor_position(&self) -> (usize, CursorAffinity) {
+        let Some(text) = self.text().last() else {
+            unreachable!()
+        };
+        // last of line
+        match text {
+            Text::Phantom { text } => (
+                text.origin_merge_col + self.origin_interval.start,
+                CursorAffinity::Forward,
+            ),
+            Text::OriginText { .. } => {
+                // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
+                if self.len_without_rn() == 0 {
+                    (self.offset_of_line(), CursorAffinity::Backward)
+                } else {
+                    // 该返回\r的前一个字符，CursorAffinity::Forward
+                    let line_ending_len = self.len() - self.len_without_rn();
+                    if line_ending_len == 0 {
+                        (self.origin_interval.end, CursorAffinity::Backward)
+                    } else {
+                        (
+                            self.origin_interval.end - line_ending_len,
+                            CursorAffinity::Backward,
+                        )
+                    }
+                }
+                // (text.merge_col.end +
+                // text_layout.phantom_text.offset_of_line - 1, false,
+                // CursorAffinity::Forward)
+            },
+            Text::EmptyLine { text } => {
+                (text.offset_of_line, CursorAffinity::Backward)
+            },
+        }
     }
 
     pub fn offset_of_line(&self) -> usize {
@@ -419,8 +455,14 @@ impl OriginFoldedLine {
         self.text_layout.text.borrow_mut().init_line();
     }
 
-    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color, line_height: usize) {
-        self.text_layout.init_document_highlight(highlight, fg_color, line_height);
+    pub fn init_document_highlight(
+        &mut self,
+        highlight: Vec<DocumentHighlight>,
+        fg_color: Color,
+        line_height: usize,
+    ) {
+        self.text_layout
+            .init_document_highlight(highlight, fg_color, line_height);
     }
     pub fn init_extra_style(&mut self) {
         self.text_layout.init_extra_style()

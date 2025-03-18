@@ -6,23 +6,11 @@ use std::{
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData, EditorViewKind,
-    config::EditorConfig,
-    language::LapceLanguage,
-    lines::{
-        DocLines, RopeTextPosition,
+    config::EditorConfig, language::LapceLanguage, lines::{
         buffer::{
-            Buffer,
-            diff::{DiffLines, rope_diff},
-            rope_text::RopeText
-        },
-        cursor::{Cursor, CursorMode},
-        diff::DiffInfo,
-        fold::{FoldingDisplayItem, FoldingDisplayType, FoldingRange},
-        selection::Selection,
-        style::EditorStyle
-    },
-    syntax::{BracketParser, Syntax}
+            diff::{rope_diff, DiffLines}, rope_text::RopeText, Buffer
+        }, cursor::{Cursor, CursorMode}, diff::{DiffInfo, DiffResult}, fold::{FoldingDisplayItem, FoldingDisplayType, FoldingRange}, selection::Selection, style::EditorStyle, DocLines, RopeTextPosition
+    }, syntax::{BracketParser, Syntax}, DiagnosticData, EditorViewKind
 };
 use floem::{
     kurbo::Rect,
@@ -353,15 +341,21 @@ pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind
     let rs_new = _init_code(file_new);
     let rs_old = _init_code(file_old);
 
-    // let diff = init_diff()?;
-    let left_kind = EditorViewKind::Diff(DiffInfo {
+    let diff = DiffInfo {
         is_right: false,
-        changes:  diff.clone()
-    });
-    let right_kind = EditorViewKind::Diff(DiffInfo {
-        is_right: true,
         changes:  diff
-    });
+    };
+
+    // let diff = init_diff()?;
+    let left_kind = EditorViewKind::Diff {
+        is_right: false,
+        changes:  diff.left_changes()
+    };
+    let right_kind = EditorViewKind::Diff {
+        is_right: true,
+        changes:  diff.right_changes()
+    };
+    
     let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
     let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
 
@@ -375,16 +369,21 @@ pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKi
     let diff = init_test_1_diff();
     let rs_new = _init_code(file_new);
     let rs_old = _init_code(file_old);
+    
+    let diff = DiffInfo {
+        is_right: false,
+        changes:  diff
+    };
 
     // let diff = init_diff()?;
-    let left_kind = EditorViewKind::Diff(DiffInfo {
+    let left_kind = EditorViewKind::Diff {
         is_right: false,
-        changes:  diff.clone()
-    });
-    let right_kind = EditorViewKind::Diff(DiffInfo {
+        changes:  diff.left_changes()
+    };
+    let right_kind = EditorViewKind::Diff {
         is_right: true,
-        changes:  diff
-    });
+        changes:  diff.right_changes()
+    };
     let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
     let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
 
