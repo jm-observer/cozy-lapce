@@ -2428,6 +2428,7 @@ impl EditorData {
         if let Some(edits) = edits.as_ref() {
             self.do_text_edit(edits, false);
         }
+        self.sync_document_symbol_by_offset(offset);
     }
 
     pub fn get_code_actions(&self) {
