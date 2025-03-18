@@ -1,6 +1,6 @@
 use anyhow::Result;
 use lapce_xi_rope::{RopeDelta, Transformer};
-use log::{error, info};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::lines::{
@@ -266,6 +266,7 @@ impl Cursor {
     }
 
     pub fn set_insert(&mut self, selection: Selection) {
+        debug!("set_insert {selection:?}");
         self.set_mode(CursorMode::Insert(selection));
     }
 

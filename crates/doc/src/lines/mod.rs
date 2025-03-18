@@ -2760,7 +2760,7 @@ impl ComputeLines {
         let start_line_offset = info.origin_interval.start;
         // TODO: is this always the correct affinity? It might be
         // desirable for the very first character on a wrapped line?
-        *affinity = CursorAffinity::Forward;
+        *affinity = CursorAffinity::Backward;
 
         Ok(if offset > non_blank_offset {
             // Jump to the first non-whitespace character if we're
