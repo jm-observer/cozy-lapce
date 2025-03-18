@@ -334,7 +334,6 @@ pub struct MainSplitData {
     // pub find_editor:       EditorData,
     pub find_str:          RwSignal<String>,
     pub replace_str:       RwSignal<String>,
-    pub find_view_id:      RwSignal<Option<ViewId>>,
     pub locations:         RwSignal<im::Vector<EditorLocation>>,
     pub current_location:  RwSignal<usize>,
     pub width:             RwSignal<f64>,
@@ -371,7 +370,6 @@ impl MainSplitData {
         let current_location = cx.create_rw_signal(0);
         let diagnostics = cx.create_rw_signal(im::HashMap::new());
         let find_str = cx.create_rw_signal(String::new());
-        let find_view_id = cx.create_rw_signal(None);
         let replace_str = cx.create_rw_signal(String::new());
 
         let active_editor = cx.create_memo(move |_| -> Option<EditorData> {
@@ -412,7 +410,6 @@ impl MainSplitData {
 
         Self {
             find_str,
-            find_view_id,
             replace_str,
             scope: cx,
             root_split: SplitId::next(),
@@ -2455,7 +2452,7 @@ impl MainSplitData {
         } else {
             self.find_str.set(String::new());
         }
-        if let Some(view_id) = self.find_view_id.get_untracked() {
+        if let Some(view_id) = self.common.find_view_id.get_untracked() {
             view_id.request_focus();
         }
     }

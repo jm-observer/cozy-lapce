@@ -2911,6 +2911,9 @@ impl EditorData {
             self.common.find.visual.set(true);
             self.find_focus.set(true);
             self.common.find.replace_focus.set(false);
+            if let Some(view_id) = self.common.find_view_id.get_untracked() {
+                view_id.request_focus();
+            }
         }
     }
 

@@ -226,6 +226,7 @@ pub struct CommonData {
     pub offset_line_from_top: RwSignal<Option<Option<usize>>>,
     pub sync_document_symbol: RwSignal<bool>,
     pub document_highlight_id: RwSignal<u64>,
+    pub find_view_id:      RwSignal<Option<ViewId>>,
 }
 
 impl std::fmt::Debug for CommonData {
@@ -481,6 +482,7 @@ impl WindowWorkspaceData {
             offset_line_from_top: cx.create_rw_signal(None),
             sync_document_symbol: cx.create_rw_signal(true),
             document_highlight_id: cx.create_rw_signal(0),
+            find_view_id: cx.create_rw_signal(None)
         });
 
         let main_split = MainSplitData::new(cx, common.clone());

@@ -1230,7 +1230,7 @@ pub fn editor_container_view(
 
     let find_str = main_split.find_str;
     let replace_str = main_split.replace_str;
-    let find_view_id = main_split.find_view_id;
+    let find_view_id = main_split.common.find_view_id;
     let common = main_split.common.clone();
     let config = main_split.common.config;
 
