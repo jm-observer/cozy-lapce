@@ -2091,7 +2091,7 @@ fn search_editor_view(
             || "Case Sensitive",
             config
         )
-        .style(|s| s.padding_vert(4.0)),
+        .style(|s| s.padding_vert(1.0)),
         clickable_icon(
             || LapceIcons::SEARCH_WHOLE_WORD,
             move || {
@@ -2126,7 +2126,7 @@ fn search_editor_view(
                 config.color(LapceColor::EDITOR_BACKGROUND)
             )
         });
-        s.width(200.0)
+        s.width(200.0).height(25.0)
             .items_center()
             .border(1.0)
             .border_radius(6.0)
@@ -2141,6 +2141,7 @@ fn replace_editor_view(
     // replace_focus: RwSignal<bool>,
     // is_active: impl Fn(bool) -> bool + 'static + Copy,
     // find_focus: RwSignal<bool>,
+    window_tab_data: WindowWorkspaceData,
     common: Rc<CommonData>,
     replace_str: RwSignal<String>
 ) -> impl View {
@@ -2148,25 +2149,18 @@ fn replace_editor_view(
     let config = common.config;
     // let visual = replace_editor.common.find.visual;
 
+    let replace_view = text_input(replace_str)
+        .keyboard_navigable()
+        .on_event_stop(EventListener::KeyDown, move |event| {
+            if let Event::KeyDown(_key_event) = event {
+                window_tab_data.key_down(_key_event);
+            }
+        })
+        .style(|s| s.width_pct(100.0))
+        .debug_name("replace_str_view_input");
+
     stack((
-        text_input(replace_str)
-            .keyboard_navigable()
-            .style(|s| s.width_pct(100.0)),
-        //
-        // TextInputBuilder::new()
-        //     .is_focused(move || {
-        //         is_active(true)
-        //             && visual.get()
-        //             && find_focus.get()
-        //             && replace_active.get()
-        //             && replace_focus.get()
-        //     })
-        //     .build_editor(replace_editor)
-        //     .on_event_cont(EventListener::PointerDown, move |_| {
-        //         find_focus.set(true);
-        //         replace_focus.set(true);
-        //     })
-        //     .style(|s| s.width_pct(100.0)),
+              replace_view,
         empty().style(move |s| {
             let size = config.with_icon_size() as f32 + 10.0;
             s.size(0.0, size).padding_vert(4.0)
@@ -2179,7 +2173,7 @@ fn replace_editor_view(
                 config.color(LapceColor::EDITOR_BACKGROUND)
             )
         });
-        s.width(200.0)
+        s.width(200.0).height(25.0)
             .items_center()
             .border(1.0)
             .border_radius(6.0)
@@ -2201,6 +2195,7 @@ fn find_view(
     let config = common.config;
     let find_visual = common.find.visual;
     let focus = common.focus;
+    let window_tab_data_replace = window_tab_data.clone();
 
     let find_pos = create_memo(move |_| {
         let visual = find_visual.get();
@@ -2297,11 +2292,7 @@ fn find_view(
                     s.width(width)
                 }),
                 replace_editor_view(
-                    // replace_editor,
-                    // replace_active,
-                    // replace_focus,
-                    // is_active,
-                    // find_focus,
+                    window_tab_data_replace,
                     common.clone(),
                     replace_str
                 ),
