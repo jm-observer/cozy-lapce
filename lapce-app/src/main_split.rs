@@ -11,7 +11,6 @@ use doc::{
     syntax::Syntax
 };
 use floem::{
-    ViewId,
     ext_event::create_ext_action,
     file::{FileDialogOptions, FileInfo},
     file_action::save_as,

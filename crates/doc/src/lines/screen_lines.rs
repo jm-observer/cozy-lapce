@@ -386,7 +386,7 @@ impl ScreenLines {
         start_offset: usize,
         end_offset: usize,
         mut start_affinity: Option<CursorAffinity>,
-        mut end_affinity: Option<CursorAffinity>
+        end_affinity: Option<CursorAffinity>
     ) -> Result<Vec<Rect>> {
         let (mut start_offset, mut end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
