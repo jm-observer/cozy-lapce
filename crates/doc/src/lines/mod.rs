@@ -3598,12 +3598,13 @@ impl PubUpdateLines {
     }
 
     pub fn set_document_highlight(&mut self, document_highlight: Option<Vec<DocumentHighlight>>) {
-        self.document_highlight = document_highlight;
-        // self.update_lines_new(OriginLinesDelta::default())?;
-        // self.on_update_lines();
-        self.signals.update_paint_text();
-
-        self.trigger_signals();
+        if self.document_highlight != document_highlight {
+            self.document_highlight = document_highlight;
+            // self.update_lines_new(OriginLinesDelta::default())?;
+            // self.on_update_lines();
+            self.signals.update_paint_text();
+            self.trigger_signals();
+        }
     }
 
     pub fn set_completion_lens(
