@@ -586,6 +586,7 @@ impl Doc {
         if self.content.with_untracked(|c| c.read_only())
             && !cmd.not_changing_buffer()
         {
+            debug!("do_edit read_only or not_changing_buffer");
             return Vec::new();
         }
         let deltas = match self.lines.try_update(|lines| {

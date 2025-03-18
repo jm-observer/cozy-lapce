@@ -3,7 +3,7 @@ use std::{collections::HashSet, iter, ops::Range};
 use anyhow::Result;
 use itertools::Itertools;
 use lapce_xi_rope::{DeltaElement, Rope, RopeDelta};
-use log::error;
+use log::{error, warn};
 
 use crate::lines::{
     buffer::{Buffer, InvalLines, rope_text::RopeText},
@@ -988,13 +988,15 @@ impl Action {
                 deltas
             },
             InsertNewLine => match cursor.mode().clone() {
-                CursorMode::Normal(offset) => Self::insert_new_line(
+                CursorMode::Normal(offset) => {
+                    warn!("Normal");
+                    Self::insert_new_line(
                     buffer,
                     cursor,
                     Selection::caret(offset),
                     keep_indent,
                     auto_indent
-                ),
+                )},
                 CursorMode::Insert(selection) => Self::insert_new_line(
                     buffer,
                     cursor,
@@ -1007,6 +1009,7 @@ impl Action {
                     end: _,
                     mode: _
                 } => {
+                    warn!("Visual");
                     vec![]
                 }
             },

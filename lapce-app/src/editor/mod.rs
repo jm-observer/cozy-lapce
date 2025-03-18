@@ -1612,7 +1612,6 @@ impl EditorData {
                                 locations,
                                 update_implementation
                             );
-                        } else {
                             window_tab_data.show_panel(PanelKind::Implementation);
                         }
                     }
