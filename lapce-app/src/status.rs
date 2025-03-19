@@ -391,7 +391,7 @@ pub fn status(
             let language_info = status_text(config, editor, move || {
                 if let Some(editor) = editor.get() {
                     let doc = editor.doc_signal().get();
-                    doc.syntax().language.name()
+                    doc.lines.with_untracked(|x| x.syntax.language.name())
                 } else {
                     "unknown"
                 }

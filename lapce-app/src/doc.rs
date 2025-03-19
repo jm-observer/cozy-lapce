@@ -1259,16 +1259,18 @@ impl Doc {
                     return None;
                 }
             };
-            self.syntax().sticky_headers(offset).map(|offsets| {
-                offsets
-                    .iter()
-                    .filter_map(|offset| {
-                        let l = buffer.line_of_offset(*offset);
-                        if l <= line { Some(l) } else { None }
-                    })
-                    .dedup()
-                    .sorted()
-                    .collect()
+            self.lines.with_untracked(|x| {
+                x.syntax.sticky_headers(offset).map(|offsets| {
+                    offsets
+                        .iter()
+                        .filter_map(|offset| {
+                            let l = buffer.line_of_offset(*offset);
+                            if l <= line { Some(l) } else { None }
+                        })
+                        .dedup()
+                        .sorted()
+                        .collect()
+                })
             })
         });
         self.sticky_headers.borrow_mut().insert(line, lines.clone());
@@ -1431,18 +1433,17 @@ impl Doc {
     /// current language, else falls back to a language unaware algorithm.
     pub fn find_enclosing_brackets(&self, offset: usize) -> Option<(usize, usize)> {
         let rev = self.rev();
-        let syntax = self.syntax();
-        (!syntax.text.is_empty() && syntax.rev == rev)
-            .then(|| syntax.find_enclosing_pair(offset))
-            // If syntax.text is empty, either the buffer is empty or we don't have syntax support
-            // for the current language.
-            // Try a language unaware search for enclosing brackets in case it is the latter.
-            .unwrap_or_else(|| {
-                self.lines.with_untracked(|buffer| {
-                    WordCursor::new(buffer.buffer().text(), offset)
-                        .find_enclosing_pair()
+        self.lines.with_untracked(|x| {
+            (!x.syntax.text.is_empty() && x.syntax.rev == rev)
+                .then(|| x.syntax.find_enclosing_pair(offset))
+                // If syntax.text is empty, either the buffer is empty or we don't have syntax support
+                // for the current language.
+                // Try a language unaware search for enclosing brackets in case it is the latter.
+                .unwrap_or_else(|| {
+                        WordCursor::new(x.buffer().text(), offset)
+                            .find_enclosing_pair()
                 })
-            })
+        })
     }
 }
 
@@ -1469,34 +1470,41 @@ impl Doc {
     // }
 
     pub fn find_unmatched(&self, offset: usize, previous: bool, ch: char) -> usize {
-        let syntax = self.syntax();
-        if syntax.layers.is_some() {
-            syntax
-                .find_tag(offset, previous, &CharBuffer::from(ch))
-                .unwrap_or(offset)
-        } else {
-            let text = self.text();
-            let mut cursor = WordCursor::new(&text, offset);
-            let new_offset = if previous {
-                cursor.previous_unmatched(ch)
+        self.lines.with_untracked(|x| {
+            let syntax = &x.syntax;
+            if syntax.layers.is_some() {
+                syntax
+                    .find_tag(offset, previous, &CharBuffer::from(ch))
+                    .unwrap_or(offset)
             } else {
-                cursor.next_unmatched(ch)
-            };
+                let text = self.text();
+                let mut cursor = WordCursor::new(&text, offset);
+                let new_offset = if previous {
+                    cursor.previous_unmatched(ch)
+                } else {
+                    cursor.next_unmatched(ch)
+                };
 
-            new_offset.unwrap_or(offset)
-        }
+                new_offset.unwrap_or(offset)
+            }
+        })
+
+
+
     }
 
     pub fn find_matching_pair(&self, offset: usize) -> usize {
-        let syntax = self.syntax();
-        if syntax.layers.is_some() {
-            syntax.find_matching_pair(offset).unwrap_or(offset)
-        } else {
-            let text = self.text();
-            WordCursor::new(&text, offset)
-                .match_pairs()
-                .unwrap_or(offset)
-        }
+        self.lines.with_untracked(|x| {
+            let syntax = &x.syntax;
+            if syntax.layers.is_some() {
+                syntax.find_matching_pair(offset).unwrap_or(offset)
+            } else {
+                let text = self.text();
+                WordCursor::new(&text, offset)
+                    .match_pairs()
+                    .unwrap_or(offset)
+            }
+        })
     }
 
     pub fn preedit(&self) -> PreeditData {

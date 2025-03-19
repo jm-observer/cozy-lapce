@@ -736,9 +736,8 @@ impl PhantomTextMultiLine {
                 false
             })
             .ok_or(anyhow!(
-                "No merge col found {} {:?}",
+                "No merge col found {}",
                 origin_merge_col,
-                self
             ))
     }
 
