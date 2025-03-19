@@ -160,20 +160,20 @@ impl OriginFoldedLine {
     //     )
     // }
 
-    pub(crate) fn visual_offset_of_cursor_offset(
-        &self,
-        origin_line: usize,
-        offset: usize,
-        _affinity: CursorAffinity,
-    ) -> Option<usize> {
-        let final_offset = self
-            .text_layout
-            .phantom_text
-            .visual_offset_of_cursor_offset(origin_line, offset, _affinity)?;
-        // let (sub_line, offset_of_visual) =
-        //     self.visual_line_of_final_offset(final_offset);
-        Some(final_offset)
-    }
+    // pub(crate) fn visual_offset_of_cursor_offset(
+    //     &self,
+    //     origin_line: usize,
+    //     offset: usize,
+    //     _affinity: CursorAffinity,
+    // ) -> Option<usize> {
+    //     let final_offset = self
+    //         .text_layout
+    //         .phantom_text
+    //         .visual_offset_of_cursor_offset(origin_line, offset, _affinity)?;
+    //     // let (sub_line, offset_of_visual) =
+    //     //     self.visual_line_of_final_offset(final_offset);
+    //     Some(final_offset)
+    // }
 
     // /// 求最终的行偏移出现在第几个视觉行，以及在视觉行的偏移位置
     // fn visual_line_of_final_offset(&self, final_offset: usize) -> usize {

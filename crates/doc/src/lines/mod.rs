@@ -55,7 +55,7 @@ use crate::{
         },
         edit::{Action, EditConf, EditType},
         encoding::{offset_utf8_to_utf16, offset_utf16_to_utf8},
-        fold::{FoldedRanges, FoldingDisplayItem, FoldingRanges, FoldingRangesLine},
+        fold::{FoldingDisplayItem, FoldingRanges, FoldingRangesLine},
         indent::IndentStyle,
         line::{LineTy, OriginLine, VisualLine},
         line_ending::LineEnding,
@@ -289,9 +289,9 @@ impl DocLines {
     //     self.update()
     // }
 
-    fn clear(&mut self) {
-        self.config.line_height = 0;
-    }
+    // fn clear(&mut self) {
+    //     self.config.line_height = 0;
+    // }
 
     fn update_parser(&mut self) -> Result<()> {
         let buffer = self.signals.buffer.val(); // 提前保存，结束不可变借用
@@ -736,83 +736,83 @@ impl DocLines {
     //     Ok(())
     // }
 
-    fn init_origin_line(
-        &self,
-        current_line: usize,
-        semantic_styles: Option<&mut Peekable<SpanIter<String>>>,
-        inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
-        folded_ranges: FoldedRanges
-    ) -> Result<OriginLine> {
-        let start_offset = self.buffer().offset_of_line(current_line)?;
-        let end_offset = self.buffer().offset_of_line(current_line + 1)?;
-        // let mut fg_styles = Vec::new();
-        // 用于存储该行的最高诊断级别。最后决定该行的背景色
-        // let mut max_severity: Option<DiagnosticSeverity> = None;
-        // fg_styles.extend(self.get_line_diagnostic_styles(
-        //     start_offset,
-        //     end_offset,
-        //     &mut max_severity,
-        //     0,
-        // ));
-
-        let phantom_text = self.phantom_text(
-            current_line,
-            folded_ranges,
-            inlay_hints,
-            start_offset,
-            end_offset
-        )?;
-        let semantic_styles = semantic_styles
-            .map(|x| {
-                let mut styles = vec![];
-                loop {
-                    if let Some((Interval { start, .. }, _)) = x.peek() {
-                        if end_offset <= *start {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                    if let Some((Interval { start, end }, fg_color)) = x.next() {
-                        if start_offset <= start && end < end_offset {
-                            let Some(color) =
-                                self.config.syntax_style_color(fg_color)
-                            else {
-                                continue;
-                            };
-                            styles.push(NewLineStyle {
-                                origin_line: current_line,
-                                origin_line_offset_start: start - start_offset,
-                                len: end - start,
-                                start_of_buffer: start,
-                                end_of_buffer: end,
-                                fg_color: color /* folded_line_offset_start:
-                                                 * start - line_start,
-                                                 * folded_line_offset_end: end -
-                                                 * line_start */
-                            });
-                        }
-                    }
-                }
-                styles
-            })
-            .unwrap_or_default();
-        // let semantic_styles =
-        //     self.get_line_semantic_styles(current_line, start_offset, end_offset);
-        let diagnostic_styles = self.get_line_diagnostic_styles_2(
-            current_line,
-            start_offset,
-            end_offset
-        );
-        Ok(OriginLine {
-            line_index: current_line,
-            start_offset,
-            len: end_offset - start_offset,
-            phantom: phantom_text,
-            semantic_styles,
-            diagnostic_styles
-        })
-    }
+    // fn init_origin_line(
+    //     &self,
+    //     current_line: usize,
+    //     semantic_styles: Option<&mut Peekable<SpanIter<String>>>,
+    //     inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
+    //     folded_ranges: FoldedRanges
+    // ) -> Result<OriginLine> {
+    //     let start_offset = self.buffer().offset_of_line(current_line)?;
+    //     let end_offset = self.buffer().offset_of_line(current_line + 1)?;
+    //     // let mut fg_styles = Vec::new();
+    //     // 用于存储该行的最高诊断级别。最后决定该行的背景色
+    //     // let mut max_severity: Option<DiagnosticSeverity> = None;
+    //     // fg_styles.extend(self.get_line_diagnostic_styles(
+    //     //     start_offset,
+    //     //     end_offset,
+    //     //     &mut max_severity,
+    //     //     0,
+    //     // ));
+    //
+    //     let phantom_text = self.phantom_text(
+    //         current_line,
+    //         folded_ranges,
+    //         inlay_hints,
+    //         start_offset,
+    //         end_offset
+    //     )?;
+    //     let semantic_styles = semantic_styles
+    //         .map(|x| {
+    //             let mut styles = vec![];
+    //             loop {
+    //                 if let Some((Interval { start, .. }, _)) = x.peek() {
+    //                     if end_offset <= *start {
+    //                         break;
+    //                     }
+    //                 } else {
+    //                     break;
+    //                 }
+    //                 if let Some((Interval { start, end }, fg_color)) = x.next() {
+    //                     if start_offset <= start && end < end_offset {
+    //                         let Some(color) =
+    //                             self.config.syntax_style_color(fg_color)
+    //                         else {
+    //                             continue;
+    //                         };
+    //                         styles.push(NewLineStyle {
+    //                             origin_line: current_line,
+    //                             origin_line_offset_start: start - start_offset,
+    //                             len: end - start,
+    //                             start_of_buffer: start,
+    //                             end_of_buffer: end,
+    //                             fg_color: color /* folded_line_offset_start:
+    //                                              * start - line_start,
+    //                                              * folded_line_offset_end: end -
+    //                                              * line_start */
+    //                         });
+    //                     }
+    //                 }
+    //             }
+    //             styles
+    //         })
+    //         .unwrap_or_default();
+    //     // let semantic_styles =
+    //     //     self.get_line_semantic_styles(current_line, start_offset, end_offset);
+    //     let diagnostic_styles = self.get_line_diagnostic_styles_2(
+    //         current_line,
+    //         start_offset,
+    //         end_offset
+    //     );
+    //     Ok(OriginLine {
+    //         line_index: current_line,
+    //         start_offset,
+    //         len: end_offset - start_offset,
+    //         phantom: phantom_text,
+    //         semantic_styles,
+    //         diagnostic_styles
+    //     })
+    // }
 
     // fn get_line_semantic_styles(
     //     &self,
@@ -1474,6 +1474,13 @@ impl DocLines {
             EditorViewKind::Diff { changes,.. } => (vec![], changes, false)
         };
         let mut folded_lines = FoldingRangesLine::new(&folded);
+        let empty_line_len = changes.iter().fold(0, |x, y| {
+            if let DiffResult::Empty {lines} = y {
+                x + lines.len()
+            } else {
+                x
+            }
+        });
         let mut empty_lines = changes
             .iter()
             .filter(is_empty as fn(&&DiffResult) -> bool)
@@ -1482,11 +1489,10 @@ impl DocLines {
             .iter()
             .filter(is_changed as fn(&&DiffResult) -> bool)
             .peekable();
-        let last_line = self.buffer().last_line();
+        let last_line = self.buffer().last_line() + empty_line_len;
         let min_val = min_val.min(last_line);
         let max_val = max_val.min(last_line);
         let visual_lines = self.generate_visual_lines(
-            min_val,
             last_line,
             &mut empty_lines,
             &mut folded_lines
@@ -1643,8 +1649,7 @@ impl DocLines {
 
     pub fn generate_visual_lines(
         &mut self,
-        start: usize,
-        end: usize,
+        last_line: usize,
         empty_lines: &mut Peekable<
             Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>
         >,
@@ -1654,8 +1659,8 @@ impl DocLines {
         let mut empty_count = 0;
         let mut origin_folded_line_index = 0;
         let mut origin_line_num = 0;
-        let mut visual_lines = Vec::with_capacity(end - start);
-        for visual_line_index in 0..=end {
+        let mut visual_lines = Vec::with_capacity(last_line);
+        for visual_line_index in 0..=last_line {
             if consume_line(empty_lines, origin_line_num + empty_count) {
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
@@ -1663,6 +1668,8 @@ impl DocLines {
                 });
                 empty_count += 1;
                 continue;
+            } else {
+                advance(empty_lines, origin_line_num + empty_count);
             }
             if let Some(range) = folded_lines.get_folded_range_by_line(origin_line_num as u32) {
                 origin_line_num = *range.end() + 1;
@@ -1673,9 +1680,7 @@ impl DocLines {
                         origin_folded_line_index
                     }
                 });
-
-            } else {
-
+            } else if origin_line_num <= last_line {
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
                     line_ty: LineTy::OriginText {
@@ -1684,6 +1689,8 @@ impl DocLines {
                     }
                 });
                 origin_line_num += 1;
+            } else {
+                break;
             }
             origin_folded_line_index += 1;
             empty_count = 0;
@@ -1691,321 +1698,321 @@ impl DocLines {
         visual_lines
     }
 
-    fn phantom_text(
-        &self,
-        line: usize,
-        folded_ranges: FoldedRanges,
-        inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
-        start_offset: usize,
-        end_offset: usize
-    ) -> Result<PhantomTextLine> {
-        let buffer = self.buffer();
-        let origin_text_len = end_offset - start_offset;
-        let mut text = inlay_hints
-            .map(|x| {
-                let mut styles =
-                    SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
-                loop {
-                    if let Some((Interval { start, .. }, _)) = x.peek() {
-                        if end_offset <= *start {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                    if let Some((Interval { start, end }, inlay_hint)) = x.next() {
-                        if start_offset <= start && end < end_offset {
-                            let (_, col) = match buffer.offset_to_line_col(start) {
-                                Ok(rs) => rs,
-                                Err(err) => {
-                                    error!("{err:?}");
-                                    return SmallVec::new();
-                                }
-                            };
-                            let mut text = match &inlay_hint.label {
-                                InlayHintLabel::String(label) => label.to_string(),
-                                InlayHintLabel::LabelParts(parts) => {
-                                    parts.iter().map(|p| &p.value).join("")
-                                },
-                            };
-                            match (text.starts_with(':'), text.ends_with(':')) {
-                                (true, true) => {
-                                    text.push(' ');
-                                },
-                                (true, false) => {
-                                    text.push(' ');
-                                },
-                                (false, true) => {
-                                    text = format!(" {} ", text);
-                                },
-                                (false, false) => {
-                                    text = format!(" {}", text);
-                                }
-                            }
-                            styles.push(PhantomText {
-                                kind: PhantomTextKind::InlayHint,
-                                col,
-                                text,
-                                fg: Some(self.config.inlay_hint_fg),
-                                // font_family:
-                                // Some(self.config.inlay_hint_font_family()),
-                                font_size: Some(self.config.inlay_hint_font_size()),
-                                bg: Some(self.config.inlay_hint_bg),
-                                under_line: None,
-                                final_col: col,
-                                line,
-                                visual_merge_col: col,
-                                origin_merge_col: col
-                            })
-                        }
-                    }
-                }
-                styles
-            })
-            .unwrap_or_default();
-
-        // lsp返回的字符包括换行符，现在长度不考虑，后续会有问题
-        // let line_ending =
-        // self.buffer.line_ending().get_chars().len();
-        // if origin_text_len >= line_ending {
-        //     origin_text_len -= line_ending;
-        // }
-        // if line == 10 {
-        //     info!("start_offset={start_offset}
-        // end_offset={end_offset}
-        // origin_text_len={origin_text_len}"); }
-
-        // let folded_ranges =
-        //     self.folding_ranges.get_folded_range_by_line(line as u32);
-
-        // If hints are enabled, and the hints field is filled, then
-        // get the hints for this line and convert them into
-        // PhantomText instances
-        // let hints = self
-        //     .config
-        //     .enable_inlay_hints
-        //     .then_some(())
-        //     .and(self.inlay_hints.as_ref())
-        //     .map(|hints| hints.iter_chunks(start_offset..end_offset))
-        //     .into_iter()
-        //     .flatten()
-        //     .filter(|(interval, hint)| {
-        //         interval.start >= start_offset
-        //             && interval.start < end_offset
-        //             && !folded_ranges.contain_position(hint.position)
-        //     })
-        //     .filter_map(|(interval, inlay_hint)| {
-        //         let (_, col) = match buffer.offset_to_line_col(interval.start) {
-        //             Ok(rs) => rs,
-        //             Err(err) => {
-        //                 error!("{err:?}");
-        //                 return None;
-        //             }
-        //         };
-        //         let mut text = match &inlay_hint.label {
-        //             InlayHintLabel::String(label) => label.to_string(),
-        //             InlayHintLabel::LabelParts(parts) => {
-        //                 parts.iter().map(|p| &p.value).join("")
-        //             },
-        //         };
-        //         match (text.starts_with(':'), text.ends_with(':')) {
-        //             (true, true) => {
-        //                 text.push(' ');
-        //             },
-        //             (true, false) => {
-        //                 text.push(' ');
-        //             },
-        //             (false, true) => {
-        //                 text = format!(" {} ", text);
-        //             },
-        //             (false, false) => {
-        //                 text = format!(" {}", text);
-        //             }
-        //         }
-        //         Some(PhantomText {
-        //             kind: PhantomTextKind::InlayHint,
-        //             col,
-        //             text,
-        //             fg: Some(self.config.inlay_hint_fg),
-        //             // font_family:
-        //             // Some(self.config.inlay_hint_font_family()),
-        //             font_size: Some(self.config.inlay_hint_font_size()),
-        //             bg: Some(self.config.inlay_hint_bg),
-        //             under_line: None,
-        //             final_col: col,
-        //             line,
-        //             visual_merge_col: col,
-        //             origin_merge_col: col,
-        //         })
-        //     });
-        // You're quite unlikely to have more than six hints on a
-        // single line this later has the diagnostics added
-        // onto it, but that's still likely to be below six
-        // overall.
-        // let mut text: SmallVec<[PhantomText; 6]> = hints.collect();
-
-        // If error lens is enabled, and the diagnostics field is
-        // filled, then get the diagnostics that end on this
-        // line which have a severity worse than HINT and convert them
-        // into PhantomText instances
-
-        // 会与折叠冲突，因此暂时去掉
-        // let mut diag_text: SmallVec<[PhantomText; 6]> = self.config
-        //     .enable_error_lens
-        //     .then_some(())
-        //     .map(|_|
-        // self.diagnostics.diagnostics_span.get_untracked())
-        //     .map(|diags| {
-        //         diags
-        //             .iter_chunks(start_offset..end_offset)
-        //             .filter_map(|(iv, diag)| {
-        //                 let end = iv.end();
-        //                 let end_line =
-        // self.buffer.line_of_offset(end);                 if
-        // end_line == line                     &&
-        // diag.severity < Some(DiagnosticSeverity::HINT)
-        //                     &&
-        // !folded_ranges.contain_position(diag.range.start)
-        //                     &&
-        // !folded_ranges.contain_position(diag.range.end)
-        //                 {
-        //                     let fg = {
-        //                         let severity = diag
-        //                             .severity
-        //
-        // .unwrap_or(DiagnosticSeverity::WARNING);
-        //
-        // self.config.color_of_error_lens(severity)
-        //                     };
-        //
-        //                     let text = if
-        // self.config.only_render_error_styling {
-        // "".to_string()                     } else if
-        // self.config.error_lens_multiline {
-        // format!("    {}", diag.message)
-        // } else {                         format!("    {}",
-        // diag.message.lines().join(" "))
-        // };                     Some(PhantomText {
-        //                         kind: PhantomTextKind::Diagnostic,
-        //                         col: end_offset - start_offset,
-        //                         affinity:
-        // Some(CursorAffinity::Backward),
-        // text,                         fg: Some(fg),
-        //                         font_size: Some(
-        //
-        // self.config.error_lens_font_size(),
-        // ),                         bg: None,
-        //                         under_line: None,
-        //                         final_col: end_offset -
-        // start_offset,                         line,
-        //                         merge_col: end_offset -
-        // start_offset,                     })
-        //                 } else {
-        //                     None
-        //                 }
-        //             })
-        //             .collect::<SmallVec<[PhantomText; 6]>>()
-        //     })
-        //     .unwrap_or_default();
-        //
-        // text.append(&mut diag_text);
-
-        let (completion_line, completion_col) = self.completion_pos;
-        let completion_text = self.config
-        .enable_completion_lens
-        .then_some(())
-        .and(self.completion_lens.as_ref())
-        // TODO: We're probably missing on various useful completion things to include here!
-        .filter(|_| {
-            line == completion_line
-                && !folded_ranges.contain_position(Position {
-                line: completion_line as u32,
-                character: completion_col as u32,
-            })
-        })
-        .map(|completion| PhantomText {
-            kind: PhantomTextKind::Completion,
-            col: completion_col,
-            text: completion.clone(),
-            fg: Some(self.config.completion_lens_foreground),
-            font_size: Some(self.config.completion_lens_font_size()),
-            // font_family: Some(self.config.editor.completion_lens_font_family()),
-            bg: None,
-            under_line: None,
-            final_col: completion_col,
-            line,
-            visual_merge_col: completion_col,
-            // TODO: italics?
-            origin_merge_col: completion_col,
-        });
-        if let Some(completion_text) = completion_text {
-            text.push(completion_text);
-        }
-
-        // TODO: don't display completion lens and inline completion
-        // at the same time and/or merge them so that they can
-        // be shifted between like multiple inline completions
-        // can
-        // let (inline_completion_line, inline_completion_col) =
-        //     self.inline_completion_pos;
-        let inline_completion_text = self
-            .config
-            .enable_inline_completion
-            .then_some(())
-            .and(self.inline_completion.as_ref())
-            .filter(|(_, inline_completion_line, inline_completion_col)| {
-                line == *inline_completion_line
-                    && !folded_ranges.contain_position(Position {
-                        line:      *inline_completion_line as u32,
-                        character: *inline_completion_col as u32
-                    })
-            })
-            .map(|(completion, _, inline_completion_col)| {
-                PhantomText {
-                    kind: PhantomTextKind::Completion,
-                    col: *inline_completion_col,
-                    text: completion.clone(),
-                    fg: Some(self.config.completion_lens_foreground),
-                    font_size: Some(self.config.completion_lens_font_size()),
-                    // font_family:
-                    // Some(self.config.
-                    // completion_lens_font_family()),
-                    bg: None,
-                    under_line: None,
-                    final_col: *inline_completion_col,
-                    line,
-                    visual_merge_col: *inline_completion_col, // TODO: italics?
-                    origin_merge_col: *inline_completion_col
-                }
-            });
-        if let Some(inline_completion_text) = inline_completion_text {
-            text.push(inline_completion_text);
-        }
-
-        // todo filter by folded?
-        if let Some(preedit) = util::preedit_phantom(
-            &self.preedit,
-            buffer,
-            Some(self.config.editor_foreground),
-            line
-        ) {
-            text.push(preedit)
-        }
-
-        let fg = self.config.inlay_hint_fg;
-        let font_size = self.config.inlay_hint_font_size();
-        let bg = self.config.inlay_hint_bg;
-        text.extend(
-            folded_ranges.into_phantom_text(buffer, line, font_size, fg, bg)
-        );
-
-        Ok(PhantomTextLine::new(
-            line,
-            origin_text_len,
-            start_offset,
-            text
-        ))
-    }
+    // fn phantom_text(
+    //     &self,
+    //     line: usize,
+    //     folded_ranges: FoldedRanges,
+    //     inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
+    //     start_offset: usize,
+    //     end_offset: usize
+    // ) -> Result<PhantomTextLine> {
+    //     let buffer = self.buffer();
+    //     let origin_text_len = end_offset - start_offset;
+    //     let mut text = inlay_hints
+    //         .map(|x| {
+    //             let mut styles =
+    //                 SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
+    //             loop {
+    //                 if let Some((Interval { start, .. }, _)) = x.peek() {
+    //                     if end_offset <= *start {
+    //                         break;
+    //                     }
+    //                 } else {
+    //                     break;
+    //                 }
+    //                 if let Some((Interval { start, end }, inlay_hint)) = x.next() {
+    //                     if start_offset <= start && end < end_offset {
+    //                         let (_, col) = match buffer.offset_to_line_col(start) {
+    //                             Ok(rs) => rs,
+    //                             Err(err) => {
+    //                                 error!("{err:?}");
+    //                                 return SmallVec::new();
+    //                             }
+    //                         };
+    //                         let mut text = match &inlay_hint.label {
+    //                             InlayHintLabel::String(label) => label.to_string(),
+    //                             InlayHintLabel::LabelParts(parts) => {
+    //                                 parts.iter().map(|p| &p.value).join("")
+    //                             },
+    //                         };
+    //                         match (text.starts_with(':'), text.ends_with(':')) {
+    //                             (true, true) => {
+    //                                 text.push(' ');
+    //                             },
+    //                             (true, false) => {
+    //                                 text.push(' ');
+    //                             },
+    //                             (false, true) => {
+    //                                 text = format!(" {} ", text);
+    //                             },
+    //                             (false, false) => {
+    //                                 text = format!(" {}", text);
+    //                             }
+    //                         }
+    //                         styles.push(PhantomText {
+    //                             kind: PhantomTextKind::InlayHint,
+    //                             col,
+    //                             text,
+    //                             fg: Some(self.config.inlay_hint_fg),
+    //                             // font_family:
+    //                             // Some(self.config.inlay_hint_font_family()),
+    //                             font_size: Some(self.config.inlay_hint_font_size()),
+    //                             bg: Some(self.config.inlay_hint_bg),
+    //                             under_line: None,
+    //                             final_col: col,
+    //                             line,
+    //                             visual_merge_col: col,
+    //                             origin_merge_col: col
+    //                         })
+    //                     }
+    //                 }
+    //             }
+    //             styles
+    //         })
+    //         .unwrap_or_default();
+    //
+    //     // lsp返回的字符包括换行符，现在长度不考虑，后续会有问题
+    //     // let line_ending =
+    //     // self.buffer.line_ending().get_chars().len();
+    //     // if origin_text_len >= line_ending {
+    //     //     origin_text_len -= line_ending;
+    //     // }
+    //     // if line == 10 {
+    //     //     info!("start_offset={start_offset}
+    //     // end_offset={end_offset}
+    //     // origin_text_len={origin_text_len}"); }
+    //
+    //     // let folded_ranges =
+    //     //     self.folding_ranges.get_folded_range_by_line(line as u32);
+    //
+    //     // If hints are enabled, and the hints field is filled, then
+    //     // get the hints for this line and convert them into
+    //     // PhantomText instances
+    //     // let hints = self
+    //     //     .config
+    //     //     .enable_inlay_hints
+    //     //     .then_some(())
+    //     //     .and(self.inlay_hints.as_ref())
+    //     //     .map(|hints| hints.iter_chunks(start_offset..end_offset))
+    //     //     .into_iter()
+    //     //     .flatten()
+    //     //     .filter(|(interval, hint)| {
+    //     //         interval.start >= start_offset
+    //     //             && interval.start < end_offset
+    //     //             && !folded_ranges.contain_position(hint.position)
+    //     //     })
+    //     //     .filter_map(|(interval, inlay_hint)| {
+    //     //         let (_, col) = match buffer.offset_to_line_col(interval.start) {
+    //     //             Ok(rs) => rs,
+    //     //             Err(err) => {
+    //     //                 error!("{err:?}");
+    //     //                 return None;
+    //     //             }
+    //     //         };
+    //     //         let mut text = match &inlay_hint.label {
+    //     //             InlayHintLabel::String(label) => label.to_string(),
+    //     //             InlayHintLabel::LabelParts(parts) => {
+    //     //                 parts.iter().map(|p| &p.value).join("")
+    //     //             },
+    //     //         };
+    //     //         match (text.starts_with(':'), text.ends_with(':')) {
+    //     //             (true, true) => {
+    //     //                 text.push(' ');
+    //     //             },
+    //     //             (true, false) => {
+    //     //                 text.push(' ');
+    //     //             },
+    //     //             (false, true) => {
+    //     //                 text = format!(" {} ", text);
+    //     //             },
+    //     //             (false, false) => {
+    //     //                 text = format!(" {}", text);
+    //     //             }
+    //     //         }
+    //     //         Some(PhantomText {
+    //     //             kind: PhantomTextKind::InlayHint,
+    //     //             col,
+    //     //             text,
+    //     //             fg: Some(self.config.inlay_hint_fg),
+    //     //             // font_family:
+    //     //             // Some(self.config.inlay_hint_font_family()),
+    //     //             font_size: Some(self.config.inlay_hint_font_size()),
+    //     //             bg: Some(self.config.inlay_hint_bg),
+    //     //             under_line: None,
+    //     //             final_col: col,
+    //     //             line,
+    //     //             visual_merge_col: col,
+    //     //             origin_merge_col: col,
+    //     //         })
+    //     //     });
+    //     // You're quite unlikely to have more than six hints on a
+    //     // single line this later has the diagnostics added
+    //     // onto it, but that's still likely to be below six
+    //     // overall.
+    //     // let mut text: SmallVec<[PhantomText; 6]> = hints.collect();
+    //
+    //     // If error lens is enabled, and the diagnostics field is
+    //     // filled, then get the diagnostics that end on this
+    //     // line which have a severity worse than HINT and convert them
+    //     // into PhantomText instances
+    //
+    //     // 会与折叠冲突，因此暂时去掉
+    //     // let mut diag_text: SmallVec<[PhantomText; 6]> = self.config
+    //     //     .enable_error_lens
+    //     //     .then_some(())
+    //     //     .map(|_|
+    //     // self.diagnostics.diagnostics_span.get_untracked())
+    //     //     .map(|diags| {
+    //     //         diags
+    //     //             .iter_chunks(start_offset..end_offset)
+    //     //             .filter_map(|(iv, diag)| {
+    //     //                 let end = iv.end();
+    //     //                 let end_line =
+    //     // self.buffer.line_of_offset(end);                 if
+    //     // end_line == line                     &&
+    //     // diag.severity < Some(DiagnosticSeverity::HINT)
+    //     //                     &&
+    //     // !folded_ranges.contain_position(diag.range.start)
+    //     //                     &&
+    //     // !folded_ranges.contain_position(diag.range.end)
+    //     //                 {
+    //     //                     let fg = {
+    //     //                         let severity = diag
+    //     //                             .severity
+    //     //
+    //     // .unwrap_or(DiagnosticSeverity::WARNING);
+    //     //
+    //     // self.config.color_of_error_lens(severity)
+    //     //                     };
+    //     //
+    //     //                     let text = if
+    //     // self.config.only_render_error_styling {
+    //     // "".to_string()                     } else if
+    //     // self.config.error_lens_multiline {
+    //     // format!("    {}", diag.message)
+    //     // } else {                         format!("    {}",
+    //     // diag.message.lines().join(" "))
+    //     // };                     Some(PhantomText {
+    //     //                         kind: PhantomTextKind::Diagnostic,
+    //     //                         col: end_offset - start_offset,
+    //     //                         affinity:
+    //     // Some(CursorAffinity::Backward),
+    //     // text,                         fg: Some(fg),
+    //     //                         font_size: Some(
+    //     //
+    //     // self.config.error_lens_font_size(),
+    //     // ),                         bg: None,
+    //     //                         under_line: None,
+    //     //                         final_col: end_offset -
+    //     // start_offset,                         line,
+    //     //                         merge_col: end_offset -
+    //     // start_offset,                     })
+    //     //                 } else {
+    //     //                     None
+    //     //                 }
+    //     //             })
+    //     //             .collect::<SmallVec<[PhantomText; 6]>>()
+    //     //     })
+    //     //     .unwrap_or_default();
+    //     //
+    //     // text.append(&mut diag_text);
+    //
+    //     let (completion_line, completion_col) = self.completion_pos;
+    //     let completion_text = self.config
+    //     .enable_completion_lens
+    //     .then_some(())
+    //     .and(self.completion_lens.as_ref())
+    //     // TODO: We're probably missing on various useful completion things to include here!
+    //     .filter(|_| {
+    //         line == completion_line
+    //             && !folded_ranges.contain_position(Position {
+    //             line: completion_line as u32,
+    //             character: completion_col as u32,
+    //         })
+    //     })
+    //     .map(|completion| PhantomText {
+    //         kind: PhantomTextKind::Completion,
+    //         col: completion_col,
+    //         text: completion.clone(),
+    //         fg: Some(self.config.completion_lens_foreground),
+    //         font_size: Some(self.config.completion_lens_font_size()),
+    //         // font_family: Some(self.config.editor.completion_lens_font_family()),
+    //         bg: None,
+    //         under_line: None,
+    //         final_col: completion_col,
+    //         line,
+    //         visual_merge_col: completion_col,
+    //         // TODO: italics?
+    //         origin_merge_col: completion_col,
+    //     });
+    //     if let Some(completion_text) = completion_text {
+    //         text.push(completion_text);
+    //     }
+    //
+    //     // TODO: don't display completion lens and inline completion
+    //     // at the same time and/or merge them so that they can
+    //     // be shifted between like multiple inline completions
+    //     // can
+    //     // let (inline_completion_line, inline_completion_col) =
+    //     //     self.inline_completion_pos;
+    //     let inline_completion_text = self
+    //         .config
+    //         .enable_inline_completion
+    //         .then_some(())
+    //         .and(self.inline_completion.as_ref())
+    //         .filter(|(_, inline_completion_line, inline_completion_col)| {
+    //             line == *inline_completion_line
+    //                 && !folded_ranges.contain_position(Position {
+    //                     line:      *inline_completion_line as u32,
+    //                     character: *inline_completion_col as u32
+    //                 })
+    //         })
+    //         .map(|(completion, _, inline_completion_col)| {
+    //             PhantomText {
+    //                 kind: PhantomTextKind::Completion,
+    //                 col: *inline_completion_col,
+    //                 text: completion.clone(),
+    //                 fg: Some(self.config.completion_lens_foreground),
+    //                 font_size: Some(self.config.completion_lens_font_size()),
+    //                 // font_family:
+    //                 // Some(self.config.
+    //                 // completion_lens_font_family()),
+    //                 bg: None,
+    //                 under_line: None,
+    //                 final_col: *inline_completion_col,
+    //                 line,
+    //                 visual_merge_col: *inline_completion_col, // TODO: italics?
+    //                 origin_merge_col: *inline_completion_col
+    //             }
+    //         });
+    //     if let Some(inline_completion_text) = inline_completion_text {
+    //         text.push(inline_completion_text);
+    //     }
+    //
+    //     // todo filter by folded?
+    //     if let Some(preedit) = util::preedit_phantom(
+    //         &self.preedit,
+    //         buffer,
+    //         Some(self.config.editor_foreground),
+    //         line
+    //     ) {
+    //         text.push(preedit)
+    //     }
+    //
+    //     let fg = self.config.inlay_hint_fg;
+    //     let font_size = self.config.inlay_hint_font_size();
+    //     let bg = self.config.inlay_hint_bg;
+    //     text.extend(
+    //         folded_ranges.into_phantom_text(buffer, line, font_size, fg, bg)
+    //     );
+    //
+    //     Ok(PhantomTextLine::new(
+    //         line,
+    //         origin_text_len,
+    //         start_offset,
+    //         text
+    //     ))
+    // }
 
 
     fn phantom_text_2(
@@ -2171,100 +2178,100 @@ impl DocLines {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn new_text_layout_2(
-        &self,
-        line: usize,
-        origins: &[OriginLine],
-        attrs: Attrs,
-        line_ending: &'static str,
-        last_line: usize
-    ) -> Result<TextLayoutLine> {
-        let origin_line =
-            origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
-
-        let mut line_content = String::new();
-
-        {
-            let line_content_original = self.buffer().line_content(line)?;
-            util::push_strip_suffix(&line_content_original, &mut line_content);
-        }
-
-        let mut collapsed_line_col = origin_line.phantom.folded_line();
-        let mut phantom_text = PhantomTextMultiLine::new(
-            origin_line.phantom.clone(),
-            line == last_line
-        );
-
-        let mut attrs_list = AttrsList::new(attrs);
-        // let mut font_system = FONT_SYSTEM.lock();
-        let mut semantic_styles = origin_line.semantic_styles(0);
-        let mut diagnostic_styles = origin_line.diagnostic_styles(0);
-
-        while let Some(collapsed_line) = collapsed_line_col.take() {
-            {
-                util::push_strip_suffix(
-                    self.buffer().line_content(collapsed_line)?.as_ref(),
-                    &mut line_content
-                );
-            }
-            let offset_col = phantom_text.origin_text_len;
-            let next_origin_line = origins
-                .get(collapsed_line)
-                .ok_or(anyhow!("origins {line} empty"))?;
-            let next_phantom_text = next_origin_line.phantom.clone();
-            collapsed_line_col = next_phantom_text.folded_line();
-            semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
-            diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
-            let is_last_line = next_phantom_text.line == last_line;
-            phantom_text.merge(next_phantom_text, is_last_line);
-        }
-
-        let phantom_color = self.editor_style.phantom_color();
-        phantom_text.add_phantom_style(
-            &mut attrs_list,
-            attrs.font_size(attrs.font_size - 1.0),
-            phantom_color
-        );
-        let final_line_content = phantom_text.final_line_content(&line_content);
-        self.apply_semantic_styles_2(
-            &phantom_text,
-            &semantic_styles,
-            &mut attrs_list,
-            attrs
-        );
-        let text_layout = TextLayout::new_without_init(
-            line,
-            &final_line_content,
-            attrs_list,
-            None,
-            Wrap::WordOrGlyph,
-            line_ending
-        );
-        // drop(font_system);
-        // match self.editor_style.wrap_method() {
-        //     WrapMethod::None => {},
-        //     WrapMethod::EditorWidth => {
-        //         text_layout.set_wrap(Wrap::WordOrGlyph);
-        //         text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
-        //     },
-        //     WrapMethod::WrapWidth { width } => {
-        //         text_layout.set_wrap(Wrap::WordOrGlyph);
-        //         text_layout.set_size(width, f32::MAX);
-        //     },
-        //     // TODO:
-        //     WrapMethod::WrapColumn { .. } => {}
-        // }
-        let indent = 0.0;
-        let layout_line = TextLayoutLine::new(
-            text_layout.into(),
-            None,
-            indent,
-            phantom_text,
-            semantic_styles,
-            diagnostic_styles
-        );
-        Ok(layout_line)
-    }
+    // fn new_text_layout_2(
+    //     &self,
+    //     line: usize,
+    //     origins: &[OriginLine],
+    //     attrs: Attrs,
+    //     line_ending: &'static str,
+    //     last_line: usize
+    // ) -> Result<TextLayoutLine> {
+    //     let origin_line =
+    //         origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
+    //
+    //     let mut line_content = String::new();
+    //
+    //     {
+    //         let line_content_original = self.buffer().line_content(line)?;
+    //         util::push_strip_suffix(&line_content_original, &mut line_content);
+    //     }
+    //
+    //     let mut collapsed_line_col = origin_line.phantom.folded_line();
+    //     let mut phantom_text = PhantomTextMultiLine::new(
+    //         origin_line.phantom.clone(),
+    //         line == last_line
+    //     );
+    //
+    //     let mut attrs_list = AttrsList::new(attrs);
+    //     // let mut font_system = FONT_SYSTEM.lock();
+    //     let mut semantic_styles = origin_line.semantic_styles(0);
+    //     let mut diagnostic_styles = origin_line.diagnostic_styles(0);
+    //
+    //     while let Some(collapsed_line) = collapsed_line_col.take() {
+    //         {
+    //             util::push_strip_suffix(
+    //                 self.buffer().line_content(collapsed_line)?.as_ref(),
+    //                 &mut line_content
+    //             );
+    //         }
+    //         let offset_col = phantom_text.origin_text_len;
+    //         let next_origin_line = origins
+    //             .get(collapsed_line)
+    //             .ok_or(anyhow!("origins {line} empty"))?;
+    //         let next_phantom_text = next_origin_line.phantom.clone();
+    //         collapsed_line_col = next_phantom_text.folded_line();
+    //         semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
+    //         diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
+    //         let is_last_line = next_phantom_text.line == last_line;
+    //         phantom_text.merge(next_phantom_text, is_last_line);
+    //     }
+    //
+    //     let phantom_color = self.editor_style.phantom_color();
+    //     phantom_text.add_phantom_style(
+    //         &mut attrs_list,
+    //         attrs.font_size(attrs.font_size - 1.0),
+    //         phantom_color
+    //     );
+    //     let final_line_content = phantom_text.final_line_content(&line_content);
+    //     self.apply_semantic_styles_2(
+    //         &phantom_text,
+    //         &semantic_styles,
+    //         &mut attrs_list,
+    //         attrs
+    //     );
+    //     let text_layout = TextLayout::new_without_init(
+    //         line,
+    //         &final_line_content,
+    //         attrs_list,
+    //         None,
+    //         Wrap::WordOrGlyph,
+    //         line_ending
+    //     );
+    //     // drop(font_system);
+    //     // match self.editor_style.wrap_method() {
+    //     //     WrapMethod::None => {},
+    //     //     WrapMethod::EditorWidth => {
+    //     //         text_layout.set_wrap(Wrap::WordOrGlyph);
+    //     //         text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
+    //     //     },
+    //     //     WrapMethod::WrapWidth { width } => {
+    //     //         text_layout.set_wrap(Wrap::WordOrGlyph);
+    //     //         text_layout.set_size(width, f32::MAX);
+    //     //     },
+    //     //     // TODO:
+    //     //     WrapMethod::WrapColumn { .. } => {}
+    //     // }
+    //     let indent = 0.0;
+    //     let layout_line = TextLayoutLine::new(
+    //         text_layout.into(),
+    //         None,
+    //         indent,
+    //         phantom_text,
+    //         semantic_styles,
+    //         diagnostic_styles
+    //     );
+    //     Ok(layout_line)
+    // }
 
     fn init_origin_line_2(
         &self,

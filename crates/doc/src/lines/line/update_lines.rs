@@ -1,21 +1,19 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow};
 
 use anyhow::Result;
 use floem::text::{Attrs, AttrsList, FamilyOwned, LineHeightValue};
-use lapce_xi_rope::Interval;
-use log::{debug, error};
+use log::{error};
 
 use crate::lines::{
     DocLines,
-    buffer::rope_text::RopeText,
-    delta_compute::{CopyDelta, Offset, OriginLinesDelta},
+    delta_compute::{OriginLinesDelta},
     line::{OriginFoldedLine, OriginLine}
 };
 
 impl DocLines {
     pub fn update_lines_new(
         &mut self,
-        mut lines_delta: OriginLinesDelta
+        mut _lines_delta: OriginLinesDelta
     ) -> Result<()> {
         // todo
         return Ok(());
