@@ -4,7 +4,7 @@ use std::{
     cell::RefMut,
     fmt::{Debug, Formatter},
 };
-
+use std::ops::RangeInclusive;
 use floem::peniko::Color;
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
@@ -508,6 +508,6 @@ pub enum LineTy {
     OriginText {
         /// 原始合并行的索引
         origin_folded_line_index: usize,
-        line_number: usize,
+        line_range_inclusive: RangeInclusive<usize>,
     }
 }

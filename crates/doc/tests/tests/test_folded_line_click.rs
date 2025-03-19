@@ -187,7 +187,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(is_inside, true);
         assert_eq!(affinity, CursorAffinity::Backward);
     }
-    lines._log_folded_lines();
+    // lines._log_folded_lines();
     Ok(())
 }
 

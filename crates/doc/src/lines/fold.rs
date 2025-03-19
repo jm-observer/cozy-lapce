@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::iter::Peekable;
+use std::ops::{RangeInclusive};
 use std::slice::Iter;
 use anyhow::Result;
 use floem::peniko::Color;
@@ -27,19 +28,19 @@ impl <'a> FoldingRangesLine<'a> {
         }
     }
 
-    pub fn is_folded(&mut self, line: u32) -> bool {
+    pub fn get_folded_range_by_line(&mut self, line: u32) -> Option<RangeInclusive<usize>> {
         loop {
             if let Some(folded) = self.folding.peek() {
                 if folded.end.line < line {
                     self.folding.next();
                     continue;
-                } else if folded.start.line < line && line <= folded.end.line {
-                    return true;
+                } else if folded.start.line <= line && line <= folded.end.line {
+                    return Some(folded.start.line as usize..=folded.end.line as usize);
                 } else {
-                    return false;
+                    return None;
                 }
             } else {
-                return false;
+                return None;
             }
         }
     }

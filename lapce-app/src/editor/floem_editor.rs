@@ -970,36 +970,36 @@ impl Editor {
             .with_untracked(|x| x.signal_max_width().get_untracked())
     }
 
-    /// Returns the point into the text layout of the line at the given offset.
-    /// `x` being the leading edge of the character, and `y` being the baseline.
-    pub fn line_point_of_offset(
-        &self,
-        offset: usize,
-        affinity: CursorAffinity
-    ) -> Result<Point> {
-        let (line, col) = self.offset_to_line_col(offset)?;
-        self.line_point_of_visual_line_col(line, col, affinity, false)
-    }
+    // /// Returns the point into the text layout of the line at the given offset.
+    // /// `x` being the leading edge of the character, and `y` being the baseline.
+    // pub fn line_point_of_offset(
+    //     &self,
+    //     offset: usize,
+    //     affinity: CursorAffinity
+    // ) -> Result<Point> {
+    //     let (line, col) = self.offset_to_line_col(offset)?;
+    //     self.line_point_of_visual_line_col(line, col, affinity, false)
+    // }
 
-    /// Returns the point into the text layout of the line at the given line and
-    /// col. `x` being the leading edge of the character, and `y` being the
-    /// baseline.
-    pub fn line_point_of_visual_line_col(
-        &self,
-        visual_line: usize,
-        col: usize,
-        affinity: CursorAffinity,
-        _force_affinity: bool
-    ) -> Result<Point> {
-        self.doc().lines.with_untracked(|x| {
-            x.line_point_of_visual_line_col(
-                visual_line,
-                col,
-                affinity,
-                _force_affinity
-            )
-        })
-    }
+    // /// Returns the point into the text layout of the line at the given line and
+    // /// col. `x` being the leading edge of the character, and `y` being the
+    // /// baseline.
+    // pub fn line_point_of_visual_line_col(
+    //     &self,
+    //     visual_line: usize,
+    //     col: usize,
+    //     affinity: CursorAffinity,
+    //     _force_affinity: bool
+    // ) -> Result<Point> {
+    //     self.doc().lines.with_untracked(|x| {
+    //         x.line_point_of_visual_line_col(
+    //             visual_line,
+    //             col,
+    //             affinity,
+    //             _force_affinity
+    //         )
+    //     })
+    // }
 
     /// Get the (point above, point below) of a particular offset within the
     /// editor.
