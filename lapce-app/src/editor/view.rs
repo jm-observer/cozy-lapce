@@ -853,41 +853,17 @@ impl View for EditorView {
             if self.inner_node.is_none() {
                 self.inner_node = Some(self.id.new_taffy_node());
             }
-
             let e_data = &self.editor;
             let editor = &e_data.editor;
-
             let viewport_size = self.editor.viewport_untracked().size();
-
-            // let screen_lines = e_data
-            //     .editor
-            //     .doc()
-            //     .lines
-            //     .with_untracked(|x| x.signals.screen_lines.clone());
-            // let mut line_unique = HashSet::new();
-            // for (line, ..) in screen_lines.iter_lines_y() {
-            //     // fill in text layout cache so that max width is correct.
-            //     line_unique.insert(line);
-            //     editor.text_layout_of_visual_line(line);
-            // }
-
             let inner_node = self.inner_node.unwrap();
-
             let line_height = self
                 .editor
                 .common
                 .config
                 .with_untracked(|config| config.editor.line_height())
                 as f64;
-
-            // let is_local = e_data.doc().content.with_untracked(|c| c.is_local());
-
             let width = (editor.max_line_width() + 10.0).max(viewport_size.width);
-            // let width = if !is_local {
-            //     width;
-            // } else {
-            //     width
-            // };
 
             let visual_line_len = e_data
                 .doc()
@@ -1811,7 +1787,7 @@ fn count_rect(changes: Vec<DiffResult>, index: usize, right_editor: EditorData) 
                         break;
                     }
                 }
-                (visual_line, x.line_height)
+                (visual_line, x.config.line_height)
             });
             let y = ((empty_line_count_0 + visual_line_count) * line_height) as f64;
             let y1 =((empty_line_count_1 + visual_line_count) * line_height) as f64;

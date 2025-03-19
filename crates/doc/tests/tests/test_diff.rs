@@ -23,7 +23,7 @@ fn test_screen() -> Result<()> {
 }
 
 pub fn _test_1_screen() -> Result<()> {
-    let (mut left_lines, mut right_lines, left_kind, right_kind) = init_test_1()?;
+    let (_left_lines, mut right_lines, _left_kind, right_kind) = init_test_1()?;
 
     let screen_lines = right_lines
         ._compute_screen_lines(
@@ -34,38 +34,6 @@ pub fn _test_1_screen() -> Result<()> {
     for line in screen_lines.visual_lines {
         debug!("{:?}", line);
     }
-    // let visual_lines = &screen_lines.visual_lines;
-    // assert!(
-    //     visual_lines[3].is_diff()
-    //         && visual_lines[9].is_diff()
-    //         && visual_lines[17].is_diff()
-    //         && !visual_lines[10].is_diff()
-    // );
-    // assert!(
-    //     visual_lines[18].is_diff_delete()
-    //         && visual_lines[19].is_diff_delete()
-    //         && !visual_lines[20].is_diff_delete()
-    // );
-    // let screen_lines = left_lines
-    //     ._compute_screen_lines(
-    //         Rect::from_origin_size((0.0, 60.0), Size::new(1000., 800.)),
-    //         left_kind
-    //     )
-    //     .0;
-    // let visual_lines = &screen_lines.visual_lines;
-    // assert!(
-    //     visual_lines[0].is_diff()
-    //         && visual_lines[6].is_diff()
-    //         && visual_lines[14].is_diff()
-    //         && !visual_lines[7].is_diff()
-    // );
-    // assert!(
-    //     visual_lines[15].is_diff_delete()
-    //         && visual_lines[16].is_diff_delete()
-    //         && !visual_lines[17].is_diff_delete()
-    // );
-
-
     Ok(())
 }
 

@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
-
+use std::iter::Peekable;
+use std::slice::Iter;
 use anyhow::Result;
 use floem::peniko::Color;
 use im::HashMap;
@@ -13,6 +14,142 @@ use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
     screen_lines::ScreenLines
 };
+
+pub struct FoldingRangesLine<'a> {
+    folding: Peekable<Iter<'a, FoldedRange>>,
+}
+
+impl <'a> FoldingRangesLine<'a> {
+    pub fn new(folding: &'a Vec<FoldedRange>) -> Self {
+        let folding = folding.iter().peekable();
+        Self {
+            folding,
+        }
+    }
+
+    pub fn is_folded(&mut self, line: u32) -> bool {
+        loop {
+            if let Some(folded) = self.folding.peek() {
+                if folded.end.line < line {
+                    self.folding.next();
+                    continue;
+                } else if folded.start.line < line && line <= folded.end.line {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+
+    pub fn contain_position(&mut self, position: Position) -> bool {
+        loop {
+            if let Some(folded) = self.folding.peek() {
+                if folded.end.line < position.line {
+                    self.folding.next();
+                    continue;
+                } else if folded.start <= position && position <= folded.end {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+
+    pub fn phantom_text(&mut self, line: u32, buffer: &Buffer, inlay_hint_font_size: usize,
+                        inlay_hint_foreground: Color,
+                        inlay_hint_background: Color) -> Result<Option<PhantomText>> {
+        loop {
+            if let Some(folded) = self.folding.peek() {
+                if folded.end.line < line {
+                    self.folding.next();
+                    continue;
+                } else if folded.start.line == line {
+                    let same_line = folded.start.line == folded.end.line;
+                    let Some(start_char) =
+                        buffer.char_at_offset(get_offset(buffer, folded.start)?)
+                    else {
+                        return Ok(None);
+                    };
+                    let Some(end_char) =
+                        buffer.char_at_offset(get_offset(buffer, folded.end)? - 1)
+                    else {
+                        return Ok(None);
+                    };
+
+                    let mut text = String::new();
+                    text.push(start_char);
+                    text.push_str("...");
+                    text.push(end_char);
+                    let next_line = if same_line {
+                        None
+                    } else {
+                        Some(folded.end.line as usize)
+                    };
+                    let start = folded.start.character as usize;
+                    let (all_len, len) = if same_line {
+                        (
+                            folded.end.character as usize - start,
+                            folded.end.character as usize - start
+                        )
+                    } else {
+                        let folded_end = buffer.offset_of_line(folded.end.line as usize)?;
+                        let current = buffer.offset_of_line(folded.start.line as usize)?;
+                        let content = buffer.line_content(line as usize)?.len();
+                        (folded_end - current - start, content - start)
+                    };
+                    return Ok(Some(PhantomText {
+                        kind: PhantomTextKind::LineFoldedRang {
+                            next_line,
+                            len,
+                            all_len,
+                            start_position: folded.start
+                        },
+                        col: start,
+                        text,
+                        fg: Some(inlay_hint_foreground),
+                        font_size: Some(inlay_hint_font_size),
+                        bg: Some(inlay_hint_background),
+                        under_line: None,
+                        final_col: start,
+                        line: line as usize,
+                        visual_merge_col: start,
+                        origin_merge_col: start
+                    }))
+                } else if folded.end.line == line {
+                    let text = String::new();
+                    return Ok(Some(PhantomText {
+                        kind: PhantomTextKind::LineFoldedRang {
+                            next_line:      None,
+                            len:            folded.end.character as usize,
+                            all_len:        folded.end.character as usize,
+                            start_position: folded.start
+                        },
+                        col: 0,
+                        text,
+                        fg: None,
+                        font_size: None,
+                        bg: None,
+                        under_line: None,
+                        final_col: 0,
+                        line: line as usize,
+                        visual_merge_col: 0,
+                        origin_merge_col: 0
+                    }))
+                } else {
+                    return Ok(None);
+                }
+            } else {
+                return Ok(None);
+            }
+        }
+    }
+}
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct FoldingRanges(pub Vec<FoldingRange>);

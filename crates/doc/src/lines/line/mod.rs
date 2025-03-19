@@ -102,7 +102,7 @@ pub struct OriginFoldedLine {
     pub origin_line_end: usize,
     pub origin_interval: Interval,
     pub last_line: bool,
-    text_layout: TextLayoutLine,
+    pub(crate) text_layout: TextLayoutLine,
 }
 
 impl OriginFoldedLine {
@@ -491,107 +491,23 @@ impl Debug for OriginFoldedLine {
     }
 }
 
-// #[derive(Clone)]
-// pub struct VisualLine {
-//     pub line_index:                   usize,
-//     pub origin_interval:              Interval,
-//     /// 合并后的视觉范围
-//     pub visual_interval:              Interval,
-//     pub origin_line:                  usize,
-//     pub origin_folded_line:           usize,
-//     pub origin_folded_line_sub_index: usize,
-//     pub text_layout:                  TextLayoutLine
-// }
-//
-// impl Debug for VisualLine {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("VisualLine")
-//             .field("line_index", &self.line_index)
-//             .field("origin_interval", &self.origin_interval)
-//             .field("visual_interval", &self.visual_interval)
-//             .field("origin_line", &self.origin_line)
-//             .field("origin_folded_line", &self.origin_folded_line)
-//             .field(
-//                 "origin_folded_line_sub_index",
-//                 &self.origin_folded_line_sub_index,
-//             )
-//             // .field("text_layout layout len=",
-// &self.text_layout.text.line().layout_opt().map(|x| x.len()))             //
-// .field("phantom_text", &self.text_layout.phantom_text)             .finish()
-//     }
-// }
+#[derive(Clone)]
+pub struct   VisualLine {
+    /// 视觉行的索引，包括diff的空行
+    pub line_index:                   usize,
+    pub line_ty:              LineTy,
+}
 
-// impl VisualLine {
-//     // pub fn cmp_y(&self, other: &Self) -> Ordering {
-//     //     let rs = self.origin_folded_line.cmp(&other.origin_folded_line);
-//     //     match rs {
-//     //         Ordering::Equal => self
-//     //             .origin_folded_line_sub_index
-//     //             .cmp(&other.origin_folded_line_sub_index),
-//     //         Ordering::Less | Ordering::Greater => rs
-//     //     }
-//     // }
-//
-//     // pub fn rvline(&self) -> RVLine {
-//     //     RVLine {
-//     //         line: self.origin_folded_line,
-//     //         line_index: self.origin_folded_line_sub_index,
-//     //     }
-//     // }
-//     //
-//     // pub fn vline(&self) -> VLine {
-//     //     VLine(self.line_index)
-//     // }
-//
-//     // pub fn vline_info(&self) -> VLineInfo {
-//     //     let rvline = self.rvline();
-//     //     let vline = self.vline();
-//     //     let interval = self.origin_interval;
-//     //     // todo?
-//     //     let origin_line = self.origin_folded_line;
-//     //     VLineInfo {
-//     //         interval,
-//     //         rvline,
-//     //         origin_line,
-//     //         vline,
-//     //     }
-//     // }
-//
-//     // 行号
-//     pub fn line_number(
-//         &self,
-//         show_relative: bool,
-//         current_number: Option<usize>
-//     ) -> Option<usize> {
-//         if self.origin_folded_line_sub_index == 0 {
-//             let line_number = self.origin_line + 1;
-//             Some(if show_relative {
-//                 if let Some(current_number) = current_number {
-//                     if line_number == current_number {
-//                         line_number
-//                     } else {
-//                         line_number.abs_diff(current_number)
-//                     }
-//                 } else {
-//                     line_number
-//                 }
-//             } else {
-//                 line_number
-//             })
-//         } else {
-//             None
-//         }
-//     }
-// }
+impl VisualLine {
 
-// impl From<&VisualLine> for RVLine {
-//     fn from(value: &VisualLine) -> Self {
-//         value.rvline()
-//     }
-// }
-//
-// impl From<&VisualLine> for VLine {
-//     fn from(value: &VisualLine) -> Self {
-//         value.vline()
-//     }
-// }
+}
+
+#[derive(Clone)]
+pub enum LineTy {
+    DiffEmpty,
+    OriginText {
+        /// 原始合并行的索引
+        origin_folded_line_index: usize,
+        line_number: usize,
+    }
+}

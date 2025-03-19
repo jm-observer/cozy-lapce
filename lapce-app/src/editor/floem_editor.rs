@@ -170,12 +170,16 @@ impl Editor {
             let val = signal_paint_content.get();
             let Some((screen_lines_val, folding_display_item_val)) = lines
                 .try_update(|x| {
-                    let (screen_lines_val, folding_display_item_val) =
-                        x._compute_screen_lines(base, kind);
-                    (screen_lines_val, folding_display_item_val)
-                })
+                    match x.compute_screen_lines_new(base, kind) {
+                        Ok(rs) => {Some(rs)}
+                        Err(err) => {
+                            error!("{err}");
+                            None
+                        }
+                    }
+                }).flatten()
             else {
-                unreachable!()
+                return ;
             };
             debug!(
                 "create_effect _compute_screen_lines {val} base={base:?} {:?}",

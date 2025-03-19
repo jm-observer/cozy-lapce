@@ -49,15 +49,15 @@ fn test_buffer_offset_of_click() -> Result<()> {
 pub fn _test_buffer_offset_of_click() -> Result<()> {
     // let file: PathBuf = "resources/test_code/main.rs".into();
     let mut lines = init_main()?;
-    assert_eq!(lines.line_height, 20);
+    assert_eq!(lines.config.line_height, 20);
 
     let screen_lines = lines
-        ._compute_screen_lines(
+        .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
             EditorViewKind::Normal
-        )
+        )?
         .0;
-    lines._log_folded_lines();
+    screen_lines.log();
     //below end of buffer
     {
         let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(

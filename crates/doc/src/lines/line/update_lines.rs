@@ -17,9 +17,11 @@ impl DocLines {
         &mut self,
         mut lines_delta: OriginLinesDelta
     ) -> Result<()> {
+        if true {
+            return Ok(());
+        }
         debug!("update_lines_new");
         self.clear();
-        self.line_height = self.config.line_height;
         let line_ending: &'static str = self.buffer().line_ending().get_chars();
 
         let all_origin_lines = self.init_all_origin_line_new(&mut lines_delta)?;
@@ -154,7 +156,7 @@ impl DocLines {
         Attrs::new()
             .family(family)
             .font_size(font_size as f32)
-            .line_height(LineHeightValue::Px(self.line_height as f32))
+            .line_height(LineHeightValue::Px(self.config.line_height as f32))
     }
 
     pub(crate) fn init_attrs_with_color<'a>(
@@ -166,7 +168,7 @@ impl DocLines {
             .color(self.editor_style.ed_text_color())
             .family(family)
             .font_size(font_size as f32)
-            .line_height(LineHeightValue::Px(self.line_height as f32))
+            .line_height(LineHeightValue::Px(self.config.line_height as f32))
     }
 
     pub fn init_default_attrs_list(&self) -> AttrsList {

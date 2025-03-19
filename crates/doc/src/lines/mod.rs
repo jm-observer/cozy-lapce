@@ -1,9 +1,10 @@
 use std::{
     borrow::Cow,
     fmt::{Debug, Formatter},
-    iter::Peekable,
+    iter::{Filter, Peekable},
     ops::Range,
     path::PathBuf,
+    slice::Iter,
     sync::{
         Arc,
         atomic::{self, AtomicUsize}
@@ -28,7 +29,10 @@ use lapce_xi_rope::{
 use layout::{TextLayout, TextLayoutLine};
 use line::OriginFoldedLine;
 use log::{debug, error, info, warn};
-use lsp_types::{DiagnosticSeverity, DocumentHighlight, InlayHint, InlayHintLabel, Location, Position};
+use lsp_types::{
+    DiagnosticSeverity, DocumentHighlight, InlayHint, InlayHintLabel, Location,
+    Position
+};
 use phantom_text::{
     PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine
 };
@@ -46,14 +50,14 @@ use crate::{
         cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
         delta_compute::{OriginLinesDelta, resolve_delta_rs},
         diff::{
-            DiffResult, consume_line, consume_lines_until_enough, is_changed,
-            is_diff, is_empty
+            DiffResult, advance, consume_line, consume_lines_until_enough,
+            is_changed, is_diff, is_empty
         },
         edit::{Action, EditConf, EditType},
         encoding::{offset_utf8_to_utf16, offset_utf16_to_utf8},
-        fold::{FoldedRanges, FoldingDisplayItem, FoldingRanges},
+        fold::{FoldedRanges, FoldingDisplayItem, FoldingRanges, FoldingRangesLine},
         indent::IndentStyle,
-        line::OriginLine,
+        line::{LineTy, OriginLine, VisualLine},
         line_ending::LineEnding,
         mode::{Mode, MotionMode},
         phantom_text::Text,
@@ -62,12 +66,11 @@ use crate::{
         selection::Selection,
         style::EditorStyle,
         text::{PreeditData, SystemClipboard},
+        util::get_document_highlight,
         word::WordCursor
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
-use crate::lines::diff::advance;
-use crate::lines::util::get_document_highlight;
 
 pub mod action;
 pub mod buffer;
@@ -218,9 +221,8 @@ pub struct DocLines {
     pub(crate) signals:    Signals,
     style_from_lsp:        bool,
     // folding_items: Vec<FoldingDisplayItem>,
-    pub line_height:       usize, // pub screen_lines: ScreenLines,
     path:                  Option<PathBuf>,
-    document_highlight: Option<Vec<DocumentHighlight>>
+    document_highlight:    Option<Vec<DocumentHighlight>>
 }
 
 impl DocLines {
@@ -269,8 +271,7 @@ impl DocLines {
             // kind,
             style_from_lsp: false,
             // folding_items: Default::default(),
-            line_height: 0,
-            document_highlight: None,
+            document_highlight: None
         };
         lines.update_lines_new(OriginLinesDelta::default())?;
         Ok(lines)
@@ -290,7 +291,7 @@ impl DocLines {
     // }
 
     fn clear(&mut self) {
-        self.line_height = 0;
+        self.config.line_height = 0;
     }
 
     fn update_parser(&mut self) -> Result<()> {
@@ -315,7 +316,7 @@ impl DocLines {
     //     let mut current_line = 0;
     //     let mut origin_folded_line_index = 0;
     //     let mut visual_line_index = 0;
-    //     self.line_height = self.config.line_height;
+    //     self.config.line_height = self.config.line_height;
     //
     //     let font_size = self.config.font_size;
     //     let family = Cow::Owned(
@@ -325,7 +326,7 @@ impl DocLines {
     //         .color(self.editor_style.ed_text_color())
     //         .family(&family)
     //         .font_size(font_size as f32)
-    //         .line_height(LineHeightValue::Px(self.line_height as
+    //         .line_height(LineHeightValue::Px(self.config.line_height as
     // f32));     // let mut duration = Duration::from_secs(0);
     //     while current_line <= last_line {
     //         let start_offset =
@@ -448,7 +449,7 @@ impl DocLines {
     //     let mut current_line = 0;
     //     let mut origin_folded_line_index = 0;
     //     let mut visual_line_index = 0;
-    //     self.line_height = self.config.line_height;
+    //     self.config.line_height = self.config.line_height;
     //     let font_size = self.config.font_size;
     //     let family = Cow::Owned(
     //         FamilyOwned::parse_list(&self.config.font_family).
@@ -457,7 +458,7 @@ impl DocLines {
     //         .color(self.editor_style.ed_text_color())
     //         .family(&family)
     //         .font_size(font_size as f32)
-    //         .line_height(LineHeightValue::Px(self.line_height as
+    //         .line_height(LineHeightValue::Px(self.config.line_height as
     // f32));     // let mut duration = Duration::from_secs(0);
     //
     //     let all_origin_lines = self.init_all_origin_line((&None,
@@ -571,7 +572,7 @@ impl DocLines {
     // ) -> Result<()> {
     //     self.clear();
     //     self.visual_lines.clear();
-    //     self.line_height = self.config.line_height;
+    //     self.config.line_height = self.config.line_height;
     //     let last_line = self.signals.buffer.val().last_line();
     //     let font_size = self.config.font_size;
     //     let family =
@@ -580,7 +581,7 @@ impl DocLines {
     //         .color(self.editor_style.ed_text_color())
     //         .family(&family)
     //         .font_size(font_size as f32)
-    //         .line_height(LineHeightValue::Px(self.line_height as f32));
+    //         .line_height(LineHeightValue::Px(self.config.line_height as f32));
     //     // let mut duration = Duration::from_secs(0);
     //
     //     let all_origin_lines =
@@ -1094,7 +1095,7 @@ impl DocLines {
         point_y: f64
     ) -> Option<&OriginFoldedLine> {
         let origin_folded_line_index =
-            (point_y / self.line_height as f64).floor() as usize;
+            (point_y / self.config.line_height as f64).floor() as usize;
         self.origin_folded_lines.get(origin_folded_line_index)
     }
 
@@ -1328,7 +1329,12 @@ impl DocLines {
     ) -> ScreenLines {
         let mut max_width = 0.0;
 
-        let mut highlights= self.document_highlight.clone().unwrap_or_default().into_iter().peekable();
+        let mut highlights = self
+            .document_highlight
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .peekable();
 
         // todo other color
         let document_highlight_color = self.document_highlight();
@@ -1340,10 +1346,18 @@ impl DocLines {
 
                 for index in start..=end {
                     let line = &mut self.origin_folded_lines[index];
-                    let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
+                    let highlight = get_document_highlight(
+                        &mut highlights,
+                        line.origin_line_start as u32,
+                        line.origin_line_end as u32
+                    );
                     line.init_layout();
                     line.extra_style();
-                    line.init_document_highlight(highlight, document_highlight_color, line_height);
+                    line.init_document_highlight(
+                        highlight,
+                        document_highlight_color,
+                        line_height
+                    );
                     let size_width = line.size_width().width;
                     if size_width > max_width {
                         max_width = size_width;
@@ -1367,9 +1381,7 @@ impl DocLines {
                     buffer_len: self.buffer().len()
                 }
             },
-            EditorViewKind::Diff{
-                changes, ..
-            } => {
+            EditorViewKind::Diff { changes, .. } => {
                 // let changes = diff.changes();
                 let mut empty_lines = changes
                     .iter()
@@ -1399,14 +1411,23 @@ impl DocLines {
                     } else if let Some(line) =
                         &mut self.origin_folded_lines.get_mut(origin_line_index)
                     {
-                        let is_diff = is_diff(&mut change_lines, line.origin_line_start);
+                        let is_diff =
+                            is_diff(&mut change_lines, line.origin_line_start);
                         start_line = line.origin_line_end + 1;
                         origin_line_index += 1;
 
-                        let highlight = get_document_highlight(&mut highlights, line.origin_line_start as u32, line.origin_line_end as u32);
+                        let highlight = get_document_highlight(
+                            &mut highlights,
+                            line.origin_line_start as u32,
+                            line.origin_line_end as u32
+                        );
                         line.init_layout();
                         line.extra_style();
-                        line.init_document_highlight(highlight, document_highlight_color, line_height);
+                        line.init_document_highlight(
+                            highlight,
+                            document_highlight_color,
+                            line_height
+                        );
                         let size_width = line.size_width().width;
                         if size_width > max_width {
                             max_width = size_width;
@@ -1434,6 +1455,232 @@ impl DocLines {
                 }
             }
         }
+    }
+
+    pub fn compute_screen_lines_new(
+        &mut self,
+        base: Rect,
+        view_kind: EditorViewKind
+    ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>)> {
+        info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
+        let line_height = self.config.line_height;
+        let (y0, y1) = (base.y0, base.y1);
+        let min_val = (y0 / line_height as f64).floor() as usize;
+        let max_val = (y1 / line_height as f64).floor() as usize;
+
+        let (folded, changes, is_normal) = match view_kind {
+            EditorViewKind::Normal => {
+                (self.folding_ranges.get_all_folded_range().0, vec![], true)
+            },
+            EditorViewKind::Diff { changes,.. } => (vec![], changes, false)
+        };
+        let mut folded_lines = FoldingRangesLine::new(&folded);
+        let mut empty_lines = changes
+            .iter()
+            .filter(is_empty as fn(&&DiffResult) -> bool)
+            .peekable();
+        let mut change_lines = changes
+            .iter()
+            .filter(is_changed as fn(&&DiffResult) -> bool)
+            .peekable();
+        let last_line = self.buffer().last_line();
+        let min_val = min_val.min(last_line);
+        let max_val = max_val.min(last_line);
+        let visual_lines = self.generate_visual_lines(
+            min_val,
+            max_val,
+            &mut empty_lines,
+            &mut folded_lines
+        );
+
+        let screen_lines = self._compute_screen_lines_new(&visual_lines[min_val..=max_val], self.config.line_height, y0, base, &mut change_lines, &mut FoldingRangesLine::new(&folded))?;
+
+        let display_items = if is_normal {
+            self.folding_ranges.to_display_items(&screen_lines)
+        } else {
+            vec![]
+        };
+
+        self.signals.trigger();
+        Ok((screen_lines, display_items))
+    }
+
+    pub fn _compute_screen_lines_new(
+        &mut self,
+        lines: &[VisualLine],
+        line_height: usize,
+        y0: f64,
+        base: Rect,
+        change_lines: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
+        folded_lines: &mut FoldingRangesLine
+    ) -> Result<ScreenLines> {
+        let mut max_width = 0.0;
+
+        let mut highlights = self
+            .document_highlight
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .peekable();
+
+        // todo other color
+        let document_highlight_color = self.document_highlight();
+        let mut visual_lines = Vec::with_capacity(lines.len());
+        let buffer = self.buffer();
+        let line_ending: &'static str = buffer.line_ending().get_chars();
+        let last_line = buffer.last_line();
+        let preedit_phantom = util::preedit_phantom_2(
+            &self.preedit,
+            buffer,
+            Some(self.config.editor_foreground),
+        );
+        let family =
+            Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
+        let attrs = self.init_attrs_with_color(&family);
+
+        let mut semantic_styles = if self.style_from_lsp {
+            self.semantic_styles.as_ref().map(|x| x.1.iter().peekable())
+        } else {
+            self.syntax.styles.as_ref().map(|x| x.iter().peekable())
+        };
+        let mut inlay_hints = self
+            .config
+            .enable_inlay_hints
+            .then_some(())
+            .and(self.inlay_hints.as_ref())
+            .map(|x| x.iter().peekable());
+
+        for line in lines {
+            match line.line_ty {
+                LineTy::DiffEmpty => {
+                    let folded_line_y = line.line_index * line_height;
+                    let visual_line_info = VisualLineInfo::DiffDelete {
+                        folded_line_y: folded_line_y as f64 - y0
+                    };
+                    visual_lines.push(visual_line_info);
+                },
+                LineTy::OriginText { line_number, origin_folded_line_index } => {
+                    let mut folded_line = self.init_folded_line_2(line_number, attrs, origin_folded_line_index, line_ending, last_line
+                                                                  , &mut semantic_styles, &mut inlay_hints, folded_lines, &preedit_phantom)?;
+                    let is_diff = is_diff(change_lines, line_number);
+
+                    let highlight = get_document_highlight(
+                        &mut highlights,
+                        folded_line.origin_line_start as u32,
+                        folded_line.origin_line_end as u32
+                    );
+                    folded_line.init_layout();
+                    folded_line.extra_style();
+                    folded_line.init_document_highlight(
+                        highlight,
+                        document_highlight_color,
+                        line_height
+                    );
+                    let size_width = folded_line.size_width().width;
+                    if size_width > max_width {
+                        max_width = size_width;
+                    }
+                    let folded_line_y = line.line_index * line_height;
+                    let visual_line_info = VisualLineInfo::OriginText {
+                        text: VisualOriginText {
+                            folded_line_y: folded_line_y as f64 - y0,
+                            folded_line: folded_line.clone(),
+                            is_diff
+                        }
+                    };
+                    visual_lines.push(visual_line_info);
+                }
+            }
+        }
+        self.signals.max_width.update_if_not_equal(max_width);
+        Ok(ScreenLines {
+            visual_lines,
+            diff_sections: None,
+            base,
+            line_height: line_height as f64,
+            buffer_len: self.buffer().len()
+        })
+    }
+
+    fn init_folded_line_2(
+        &self,
+        current_origin_line: usize,
+        attrs: Attrs,
+        origin_folded_line_index: usize,
+        line_ending: &'static str,
+        last_line: usize,
+        all_semantic_styles: &mut Option<Peekable<SpanIter<String>>>,
+        all_inlay_hints: &mut Option<Peekable<SpanIter<InlayHint>>>,
+        folded_ranges: &mut FoldingRangesLine,
+        preedit_phantom: &Option<PhantomText>
+    ) -> Result<OriginFoldedLine> {
+        let text_layout = self.new_text_layout_3(
+            current_origin_line,
+            attrs,
+            line_ending,
+            last_line, all_semantic_styles, all_inlay_hints, folded_ranges, preedit_phantom
+        )?;
+        // duration += time.elapsed().unwrap();
+        let origin_line_start = text_layout.phantom_text.line;
+        let origin_line_end = text_layout.phantom_text.last_line;
+
+        let origin_interval = Interval {
+            start: self.buffer().offset_of_line(origin_line_start)?,
+            end:   self.buffer().offset_of_line(origin_line_end + 1)?
+        };
+
+        let last_line =
+            origin_line_start <= last_line && last_line <= origin_line_end;
+
+        Ok(OriginFoldedLine {
+            line_index: origin_folded_line_index,
+            origin_line_start,
+            origin_line_end,
+            origin_interval,
+            text_layout,
+            last_line
+        })
+    }
+
+    pub fn generate_visual_lines(
+        &mut self,
+        start: usize,
+        end: usize,
+        empty_lines: &mut Peekable<
+            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>
+        >,
+        folded_lines: &mut FoldingRangesLine
+    ) -> Vec<VisualLine> {
+        // 合并后，起始行
+        let mut empty_count = 0;
+        let mut origin_folded_line_index = 0;
+        let mut origin_line_num = 0;
+        let mut visual_lines = Vec::with_capacity(end - start);
+        for visual_line_index in 0..=end {
+            if consume_line(empty_lines, origin_line_num + empty_count) {
+                visual_lines.push(VisualLine {
+                    line_index: visual_line_index,
+                    line_ty:    LineTy::DiffEmpty
+                });
+                empty_count += 1;
+            } else if folded_lines.is_folded(origin_line_num as u32) {
+                origin_line_num += 1;
+                empty_count = 0;
+                continue;
+            } else {
+                visual_lines.push(VisualLine {
+                    line_index: visual_line_index,
+                    line_ty:    LineTy::OriginText {
+                        line_number: origin_line_num,
+                        origin_folded_line_index
+                    }
+                });
+                origin_line_num += 1;
+                origin_folded_line_index += 1;
+                empty_count = 0;
+            }
+        }
+        visual_lines
     }
 
     fn phantom_text(
@@ -1657,32 +1904,32 @@ impl DocLines {
 
         let (completion_line, completion_col) = self.completion_pos;
         let completion_text = self.config
-            .enable_completion_lens
-            .then_some(())
-            .and(self.completion_lens.as_ref())
-            // TODO: We're probably missing on various useful completion things to include here!
-            .filter(|_| {
-                line == completion_line
-                    && !folded_ranges.contain_position(Position {
-                    line: completion_line as u32,
-                    character: completion_col as u32,
-                })
+        .enable_completion_lens
+        .then_some(())
+        .and(self.completion_lens.as_ref())
+        // TODO: We're probably missing on various useful completion things to include here!
+        .filter(|_| {
+            line == completion_line
+                && !folded_ranges.contain_position(Position {
+                line: completion_line as u32,
+                character: completion_col as u32,
             })
-            .map(|completion| PhantomText {
-                kind: PhantomTextKind::Completion,
-                col: completion_col,
-                text: completion.clone(),
-                fg: Some(self.config.completion_lens_foreground),
-                font_size: Some(self.config.completion_lens_font_size()),
-                // font_family: Some(self.config.editor.completion_lens_font_family()),
-                bg: None,
-                under_line: None,
-                final_col: completion_col,
-                line,
-                visual_merge_col: completion_col,
-                // TODO: italics?
-                origin_merge_col: completion_col,
-            });
+        })
+        .map(|completion| PhantomText {
+            kind: PhantomTextKind::Completion,
+            col: completion_col,
+            text: completion.clone(),
+            fg: Some(self.config.completion_lens_foreground),
+            font_size: Some(self.config.completion_lens_font_size()),
+            // font_family: Some(self.config.editor.completion_lens_font_family()),
+            bg: None,
+            under_line: None,
+            final_col: completion_col,
+            line,
+            visual_merge_col: completion_col,
+            // TODO: italics?
+            origin_merge_col: completion_col,
+        });
         if let Some(completion_text) = completion_text {
             text.push(completion_text);
         }
@@ -1752,6 +1999,169 @@ impl DocLines {
         ))
     }
 
+
+    fn phantom_text_2(
+        &self,
+        line: usize,
+        inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
+        start_offset: usize,
+        end_offset: usize,
+        folded_ranges: &mut FoldingRangesLine,
+        preedit_phantom: &Option<PhantomText>
+    ) -> Result<PhantomTextLine> {
+        let buffer = self.buffer();
+        let origin_text_len = end_offset - start_offset;
+        let mut text = inlay_hints
+            .map(|x| {
+                let mut styles =
+                    SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
+                loop {
+                    if let Some((Interval { start, .. }, _)) = x.peek() {
+                        if end_offset <= *start {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                    if let Some((Interval { start, end }, inlay_hint)) = x.next() {
+                        if start_offset <= start && end < end_offset {
+                            let (_, col) = match buffer.offset_to_line_col(start) {
+                                Ok(rs) => rs,
+                                Err(err) => {
+                                    error!("{err:?}");
+                                    return SmallVec::new();
+                                }
+                            };
+                            let mut text = match &inlay_hint.label {
+                                InlayHintLabel::String(label) => label.to_string(),
+                                InlayHintLabel::LabelParts(parts) => {
+                                    parts.iter().map(|p| &p.value).join("")
+                                },
+                            };
+                            match (text.starts_with(':'), text.ends_with(':')) {
+                                (true, true) => {
+                                    text.push(' ');
+                                },
+                                (true, false) => {
+                                    text.push(' ');
+                                },
+                                (false, true) => {
+                                    text = format!(" {} ", text);
+                                },
+                                (false, false) => {
+                                    text = format!(" {}", text);
+                                }
+                            }
+                            styles.push(PhantomText {
+                                kind: PhantomTextKind::InlayHint,
+                                col,
+                                text,
+                                fg: Some(self.config.inlay_hint_fg),
+                                // font_family:
+                                // Some(self.config.inlay_hint_font_family()),
+                                font_size: Some(self.config.inlay_hint_font_size()),
+                                bg: Some(self.config.inlay_hint_bg),
+                                under_line: None,
+                                final_col: col,
+                                line,
+                                visual_merge_col: col,
+                                origin_merge_col: col
+                            })
+                        }
+                    }
+                }
+                styles
+            })
+            .unwrap_or_default();
+
+        let (completion_line, completion_col) = self.completion_pos;
+        let completion_text = self.config
+            .enable_completion_lens
+            .then_some(())
+            .and(self.completion_lens.as_ref())
+            // TODO: We're probably missing on various useful completion things to include here!
+            .filter(|_| {
+                line == completion_line
+                    && !folded_ranges.contain_position(Position {
+                    line: completion_line as u32,
+                    character: completion_col as u32,
+                })
+            })
+            .map(|completion| PhantomText {
+                kind: PhantomTextKind::Completion,
+                col: completion_col,
+                text: completion.clone(),
+                fg: Some(self.config.completion_lens_foreground),
+                font_size: Some(self.config.completion_lens_font_size()),
+                // font_family: Some(self.config.editor.completion_lens_font_family()),
+                bg: None,
+                under_line: None,
+                final_col: completion_col,
+                line,
+                visual_merge_col: completion_col,
+                // TODO: italics?
+                origin_merge_col: completion_col,
+            });
+        if let Some(completion_text) = completion_text {
+            text.push(completion_text);
+        }
+        let inline_completion_text = self
+            .config
+            .enable_inline_completion
+            .then_some(())
+            .and(self.inline_completion.as_ref())
+            .filter(|(_, inline_completion_line, inline_completion_col)| {
+                line == *inline_completion_line
+                    && !folded_ranges.contain_position(Position {
+                    line:      *inline_completion_line as u32,
+                    character: *inline_completion_col as u32
+                })
+            })
+            .map(|(completion, _, inline_completion_col)| {
+                PhantomText {
+                    kind: PhantomTextKind::Completion,
+                    col: *inline_completion_col,
+                    text: completion.clone(),
+                    fg: Some(self.config.completion_lens_foreground),
+                    font_size: Some(self.config.completion_lens_font_size()),
+                    bg: None,
+                    under_line: None,
+                    final_col: *inline_completion_col,
+                    line,
+                    visual_merge_col: *inline_completion_col, // TODO: italics?
+                    origin_merge_col: *inline_completion_col
+                }
+            });
+        if let Some(inline_completion_text) = inline_completion_text {
+            text.push(inline_completion_text);
+        }
+
+        if let Some(preedit) = preedit_phantom.as_ref() {
+            if preedit.line == line {
+                text.push(preedit.clone());
+            }
+        }
+
+        let fg = self.config.inlay_hint_fg;
+        let font_size = self.config.inlay_hint_font_size();
+        let bg = self.config.inlay_hint_bg;
+
+        // may be one more phantom_text?
+        if let Some(phantom_text) = folded_ranges.phantom_text(line as u32, buffer, font_size, fg, bg)? {
+            text.push(
+                phantom_text
+            );
+        }
+
+
+        Ok(PhantomTextLine::new(
+            line,
+            origin_text_len,
+            start_offset,
+            text
+        ))
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn new_text_layout_2(
         &self,
@@ -1793,6 +2203,181 @@ impl DocLines {
             let next_origin_line = origins
                 .get(collapsed_line)
                 .ok_or(anyhow!("origins {line} empty"))?;
+            let next_phantom_text = next_origin_line.phantom.clone();
+            collapsed_line_col = next_phantom_text.folded_line();
+            semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
+            diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
+            let is_last_line = next_phantom_text.line == last_line;
+            phantom_text.merge(next_phantom_text, is_last_line);
+        }
+
+        let phantom_color = self.editor_style.phantom_color();
+        phantom_text.add_phantom_style(
+            &mut attrs_list,
+            attrs.font_size(attrs.font_size - 1.0),
+            phantom_color
+        );
+        let final_line_content = phantom_text.final_line_content(&line_content);
+        self.apply_semantic_styles_2(
+            &phantom_text,
+            &semantic_styles,
+            &mut attrs_list,
+            attrs
+        );
+        let text_layout = TextLayout::new_without_init(
+            line,
+            &final_line_content,
+            attrs_list,
+            None,
+            Wrap::WordOrGlyph,
+            line_ending
+        );
+        // drop(font_system);
+        // match self.editor_style.wrap_method() {
+        //     WrapMethod::None => {},
+        //     WrapMethod::EditorWidth => {
+        //         text_layout.set_wrap(Wrap::WordOrGlyph);
+        //         text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
+        //     },
+        //     WrapMethod::WrapWidth { width } => {
+        //         text_layout.set_wrap(Wrap::WordOrGlyph);
+        //         text_layout.set_size(width, f32::MAX);
+        //     },
+        //     // TODO:
+        //     WrapMethod::WrapColumn { .. } => {}
+        // }
+        let indent = 0.0;
+        let layout_line = TextLayoutLine::new(
+            text_layout.into(),
+            None,
+            indent,
+            phantom_text,
+            semantic_styles,
+            diagnostic_styles
+        );
+        Ok(layout_line)
+    }
+
+    fn init_origin_line_2(
+        &self,
+        current_line: usize,
+        semantic_styles: Option<&mut Peekable<SpanIter<String>>>,
+        inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
+        folded_ranges: &mut FoldingRangesLine,
+        preedit_phantom: &Option<PhantomText>
+    ) -> Result<OriginLine> {
+        let start_offset = self.buffer().offset_of_line(current_line)?;
+        let end_offset = self.buffer().offset_of_line(current_line + 1)?;
+        // let mut fg_styles = Vec::new();
+        // 用于存储该行的最高诊断级别。最后决定该行的背景色
+        // let mut max_severity: Option<DiagnosticSeverity> = None;
+        // fg_styles.extend(self.get_line_diagnostic_styles(
+        //     start_offset,
+        //     end_offset,
+        //     &mut max_severity,
+        //     0,
+        // ));
+
+        let phantom_text = self.phantom_text_2(
+            current_line,
+            inlay_hints,
+            start_offset,
+            end_offset, folded_ranges, preedit_phantom
+        )?;
+        let semantic_styles = semantic_styles
+            .map(|x| {
+                let mut styles = vec![];
+                loop {
+                    if let Some((Interval { start, .. }, _)) = x.peek() {
+                        if end_offset <= *start {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                    if let Some((Interval { start, end }, fg_color)) = x.next() {
+                        if start_offset <= start && end < end_offset {
+                            let Some(color) =
+                                self.config.syntax_style_color(fg_color)
+                            else {
+                                continue;
+                            };
+                            styles.push(NewLineStyle {
+                                origin_line: current_line,
+                                origin_line_offset_start: start - start_offset,
+                                len: end - start,
+                                start_of_buffer: start,
+                                end_of_buffer: end,
+                                fg_color: color /* folded_line_offset_start:
+                                                 * start - line_start,
+                                                 * folded_line_offset_end: end -
+                                                 * line_start */
+                            });
+                        }
+                    }
+                }
+                styles
+            })
+            .unwrap_or_default();
+        // let semantic_styles =
+        //     self.get_line_semantic_styles(current_line, start_offset, end_offset);
+        let diagnostic_styles = self.get_line_diagnostic_styles_2(
+            current_line,
+            start_offset,
+            end_offset
+        );
+        Ok(OriginLine {
+            line_index: current_line,
+            start_offset,
+            len: end_offset - start_offset,
+            phantom: phantom_text,
+            semantic_styles,
+            diagnostic_styles
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new_text_layout_3(
+        &self,
+        line: usize,
+        attrs: Attrs,
+        line_ending: &'static str,
+        last_line: usize,
+        all_semantic_styles: &mut Option<Peekable<SpanIter<String>>>,
+        all_inlay_hints: &mut Option<Peekable<SpanIter<InlayHint>>>,
+        folded_ranges: &mut FoldingRangesLine,
+        preedit_phantom: &Option<PhantomText>
+    ) -> Result<TextLayoutLine> {
+        let origin_line = self.init_origin_line_2(line, all_semantic_styles.as_mut(), all_inlay_hints.as_mut(), folded_ranges, preedit_phantom)?;
+            // origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
+
+        let mut line_content = String::new();
+
+        {
+            let line_content_original = self.buffer().line_content(line)?;
+            util::push_strip_suffix(&line_content_original, &mut line_content);
+        }
+
+        let mut collapsed_line_col = origin_line.phantom.folded_line();
+        let mut phantom_text = PhantomTextMultiLine::new(
+            origin_line.phantom.clone(),
+            line == last_line
+        );
+
+        let mut attrs_list = AttrsList::new(attrs);
+        // let mut font_system = FONT_SYSTEM.lock();
+        let mut semantic_styles = origin_line.semantic_styles(0);
+        let mut diagnostic_styles = origin_line.diagnostic_styles(0);
+
+        while let Some(collapsed_line) = collapsed_line_col.take() {
+            {
+                util::push_strip_suffix(
+                    self.buffer().line_content(collapsed_line)?.as_ref(),
+                    &mut line_content
+                );
+            }
+            let offset_col = phantom_text.origin_text_len;
+            let next_origin_line = self.init_origin_line_2(collapsed_line, all_semantic_styles.as_mut(), all_inlay_hints.as_mut(), folded_ranges, preedit_phantom)?;
             let next_phantom_text = next_origin_line.phantom.clone();
             collapsed_line_col = next_phantom_text.folded_line();
             semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
@@ -2032,7 +2617,7 @@ impl DocLines {
         // let view_kind = self.kind.get_untracked();
         // let base = self.screen_lines().base;
 
-        let line_height = self.line_height;
+        let line_height = self.config.line_height;
         let (y0, y1) = (base.y0, base.y1);
         // Get the start and end (visual) lines that are visible in
         // the viewport
@@ -2058,7 +2643,7 @@ impl DocLines {
             self.buffer().text().len(),
             self.style_from_lsp,
             self.buffer().is_pristine(),
-            self.line_height
+            self.config.line_height
         );
         // info!("{:?}", self.config);
         for origin_lines in &self.origin_lines {
@@ -2726,20 +3311,17 @@ impl DocLines {
 
     pub fn line_count(&self, kind: EditorViewKind) -> usize {
         match kind {
-            EditorViewKind::Normal => {
+            EditorViewKind::Normal => self.origin_folded_lines.len(),
+            EditorViewKind::Diff { changes, .. } => {
                 self.origin_folded_lines.len()
-            }
-            EditorViewKind::Diff{
-                changes, ..
-            } => {
-                self.origin_folded_lines.len() + changes.iter().fold(0, |acc, line| {
-                    if let DiffResult::Empty {lines} = line {
-                        acc + lines.len()
-                    } else {
-                        acc
-                    }
-                })
-            }
+                    + changes.iter().fold(0, |acc, line| {
+                        if let DiffResult::Empty { lines } = line {
+                            acc + lines.len()
+                        } else {
+                            acc
+                        }
+                    })
+            },
         }
     }
 }
@@ -2819,7 +3401,7 @@ impl ComputeLines {
         let (vl, offset_folded) = self.folded_line_of_offset(offset, affinity)?;
         let mut point_of_document =
             vl.hit_position_aff(offset_folded, affinity).point;
-        let line_height = self.line_height;
+        let line_height = self.config.line_height;
         point_of_document.y = (vl.line_index * line_height) as f64;
 
         // let info = crate::lines::InfoOfBufferOffset {
@@ -2864,7 +3446,7 @@ impl ComputeLines {
     //         viewpport_point,
     //         line_height,
     //         origin_point,
-    //         self.line_height
+    //         self.config.line_height
     //     )))
     // }
 
@@ -2880,7 +3462,7 @@ impl ComputeLines {
     //     // let mut hit1 =
     //     // folded_line.text_layout.text.hit_position(col_2 + 1);
     //     // hit0.point.y += rs.y;
-    //     // hit1.point.y += rs.y + self.line_height as f64;
+    //     // hit1.point.y += rs.y + self.config.line_height as f64;
     //     // Some((hit0.point, hit1.point))
     //     self.normal_selection(offset, offset + 1)
     // }
@@ -2904,7 +3486,7 @@ impl ComputeLines {
     //         let rs = folded_line_start.line_scope(
     //             col_start,
     //             col_end,
-    //             self.line_height as f64,
+    //             self.config.line_height as f64,
     //             rs_start.folded_line_y,
     //             base
     //         );
@@ -2916,7 +3498,7 @@ impl ComputeLines {
     // folded_line_end.line_index + 1);         first.push(folded_line_start.
     // line_scope(             col_start,
     //             folded_line_start.len_without_rn(self.buffer().line_ending()),
-    //             self.line_height as f64,
+    //             self.config.line_height as f64,
     //             rs_start.folded_line_y,
     //             base
     //         ));
@@ -2930,7 +3512,7 @@ impl ComputeLines {
     //                 let selection = vl.visual_line.line_scope(
     //                     0,
     //                     vl.visual_line.final_len(),
-    //                     self.line_height as f64,
+    //                     self.config.line_height as f64,
     //                     vl.folded_line_y,
     //                     base
     //                 );
@@ -2940,7 +3522,7 @@ impl ComputeLines {
     //         let last = folded_line_end.line_scope(
     //             0,
     //             col_end,
-    //             self.line_height as f64,
+    //             self.config.line_height as f64,
     //             rs_end.folded_line_y,
     //             base
     //         );
@@ -3597,7 +4179,10 @@ impl PubUpdateLines {
         Ok(())
     }
 
-    pub fn set_document_highlight(&mut self, document_highlight: Option<Vec<DocumentHighlight>>) {
+    pub fn set_document_highlight(
+        &mut self,
+        document_highlight: Option<Vec<DocumentHighlight>>
+    ) {
         if self.document_highlight != document_highlight {
             self.document_highlight = document_highlight;
             // self.update_lines_new(OriginLinesDelta::default())?;
@@ -3668,7 +4253,7 @@ impl LinesEditorStyle {
     pub fn document_highlight(&self) -> Color {
         self.editor_style.document_highlight()
     }
-    
+
     pub fn selection_color(&self) -> Color {
         self.editor_style.selection()
     }

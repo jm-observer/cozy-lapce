@@ -50,6 +50,34 @@ pub fn preedit_phantom(
     })
 }
 
+
+pub fn preedit_phantom_2(
+    preedit: &PreeditData,
+    buffer: &Buffer,
+    under_line: Option<Color>,
+) -> Option<PhantomText> {
+    let preedit = preedit.preedit.get_untracked()?;
+
+    let Ok((ime_line, col)) = buffer.offset_to_line_col(preedit.offset) else {
+        error!("{}", preedit.offset);
+        return None;
+    };
+
+    Some(PhantomText {
+        kind: PhantomTextKind::Ime,
+        line: ime_line,
+        text: preedit.text,
+        final_col: col,
+        visual_merge_col: col,
+        font_size: None,
+        fg: None,
+        bg: None,
+        under_line,
+        col,
+        origin_merge_col: col
+    })
+}
+
 pub fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
     // if let Some(s) = line_content_original.strip_suffix("\r\n") {
     //     rs.push_str(s);
