@@ -36,6 +36,7 @@ impl EditorViewKind {
     pub fn is_normal(&self) -> bool {
         matches!(self, EditorViewKind::Normal)
     }
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

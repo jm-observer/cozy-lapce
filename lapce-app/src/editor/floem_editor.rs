@@ -42,7 +42,7 @@ use floem::{
 use lapce_core::id::EditorId;
 use lapce_xi_rope::Rope;
 use log::{debug, error, info};
-
+use doc::lines::line::VisualLine;
 use crate::{
     command::InternalCommand, doc::Doc, editor::view::StickyHeaderInfo,
     window_workspace::CommonData
@@ -72,6 +72,7 @@ pub struct Editor {
     pub window_origin:        RwSignal<Point>,
     pub viewport:             RwSignal<Rect>,
     pub screen_lines:         RwSignal<ScreenLines>,
+    pub visual_lines:         RwSignal<Vec<VisualLine>>,
     pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
 
     pub editor_view_focused:    Trigger,
@@ -95,7 +96,7 @@ pub struct Editor {
     // pub es: RwSignal<EditorStyle>,
     pub floem_style_id:       RwSignal<u64>, // pub lines: DocLinesManager,
     pub sticky_header_height: RwSignal<f64>,
-    pub sticky_header_info:   RwSignal<StickyHeaderInfo>
+    pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
 }
 impl Editor {
     /// Create a new editor into the given document, using the styling.
@@ -156,6 +157,8 @@ impl Editor {
 
         let viewport = cx.create_rw_signal(Rect::ZERO);
         let screen_lines = cx.create_rw_signal(ScreenLines::default());
+        let visual_lines = cx.create_rw_signal(vec![]);
+
         let folding_display_item = cx.create_rw_signal(vec![]);
 
         let viewport_memo = cx.create_memo(move |_| viewport.get());
@@ -168,7 +171,7 @@ impl Editor {
             let signal_paint_content =
                 lines.with_untracked(|x| x.signal_paint_content());
             let val = signal_paint_content.get();
-            let Some((screen_lines_val, folding_display_item_val)) = lines
+            let Some((screen_lines_val, folding_display_item_val, visual_lines_val)) = lines
                 .try_update(|x| {
                     match x.compute_screen_lines_new(base, kind) {
                         Ok(rs) => {Some(rs)}
@@ -185,6 +188,7 @@ impl Editor {
                 "create_effect _compute_screen_lines {val} base={base:?} {:?}",
                 floem::prelude::SignalGet::id(&signal_paint_content)
             );
+            visual_lines.set(visual_lines_val);
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);
         });
@@ -215,7 +219,8 @@ impl Editor {
             folding_display_item,
             sticky_header_height: cx.create_rw_signal(0.0),
             sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
-            kind
+            kind,
+            visual_lines
         }
     }
 

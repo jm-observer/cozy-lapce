@@ -865,10 +865,7 @@ impl View for EditorView {
                 as f64;
             let width = (editor.max_line_width() + 10.0).max(viewport_size.width);
 
-            let visual_line_len = e_data
-                .doc()
-                .lines
-                .with_untracked(|x| x.line_count(self.editor.editor.kind.get_untracked()));
+            let visual_line_len = e_data.editor.visual_lines.with_untracked(|x| x.len());
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
             let last_line_height = line_height * visual_line_len as f64;

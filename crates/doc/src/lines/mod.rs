@@ -1461,7 +1461,7 @@ impl DocLines {
         &mut self,
         base: Rect,
         view_kind: EditorViewKind
-    ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>)> {
+    ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
         info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         let line_height = self.config.line_height;
         let (y0, y1) = (base.y0, base.y1);
@@ -1488,7 +1488,7 @@ impl DocLines {
         let max_val = max_val.min(last_line);
         let visual_lines = self.generate_visual_lines(
             min_val,
-            max_val,
+            last_line,
             &mut empty_lines,
             &mut folded_lines
         );
@@ -1502,7 +1502,7 @@ impl DocLines {
         };
 
         self.signals.trigger();
-        Ok((screen_lines, display_items))
+        Ok((screen_lines, display_items, visual_lines))
     }
 
     pub fn _compute_screen_lines_new(
@@ -3309,21 +3309,6 @@ impl DocLines {
         self.signals.buffer.val_mut()
     }
 
-    pub fn line_count(&self, kind: EditorViewKind) -> usize {
-        match kind {
-            EditorViewKind::Normal => self.origin_folded_lines.len(),
-            EditorViewKind::Diff { changes, .. } => {
-                self.origin_folded_lines.len()
-                    + changes.iter().fold(0, |acc, line| {
-                        if let DiffResult::Empty { lines } = line {
-                            acc + lines.len()
-                        } else {
-                            acc
-                        }
-                    })
-            },
-        }
-    }
 }
 
 type ComputeLines = DocLines;
