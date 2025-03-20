@@ -37,10 +37,16 @@ impl DiffResult {
         }
     }
 
-    pub fn consume_line(&self, line: &usize) -> bool {
+    pub fn consume_line(&self, line: &usize) -> Option<Range<usize>> {
         match self {
-            DiffResult::Empty { lines } => lines.contains(line),
-            DiffResult::Changed { .. } => false
+            DiffResult::Empty { lines } => {
+                if lines.contains(line) {
+                    Some(lines.clone())
+                } else {
+                    None
+                }
+            },
+            DiffResult::Changed { .. } => None
         }
     }
 
@@ -197,30 +203,30 @@ pub fn advance(
 pub fn consume_line(
     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
     line_index: usize
-) -> bool {
+) -> Option<Range<usize>> {
     if let Some(diff) = changes.peek() {
         diff.consume_line(&line_index)
     } else {
-        false
+        None
     }
 }
 
-pub fn consume_lines_until_enough(
-    changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    end_index: usize
-) -> usize {
-    let mut index = 0;
-    let mut line = 0;
-    loop {
-        if index >= end_index {
-            break;
-        }
-        if consume_line(changes, line) {
-            index += 1;
-            continue;
-        }
-        line += 1;
-        index += 1;
-    }
-    line
-}
+// pub fn consume_lines_until_enough(
+//     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
+//     end_index: usize
+// ) -> usize {
+//     let mut index = 0;
+//     let mut line = 0;
+//     loop {
+//         if index >= end_index {
+//             break;
+//         }
+//         if consume_line(changes, line).is_some() {
+//             index += 1;
+//             continue;
+//         }
+//         line += 1;
+//         index += 1;
+//     }
+//     line
+// }

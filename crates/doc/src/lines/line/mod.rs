@@ -491,7 +491,7 @@ impl Debug for OriginFoldedLine {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct   VisualLine {
     /// 视觉行的索引，包括diff的空行
     pub line_index:                   usize,
@@ -502,9 +502,11 @@ impl VisualLine {
 
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LineTy {
-    DiffEmpty,
+    DiffEmpty {
+        change_line_start: usize,
+    },
     OriginText {
         /// 原始合并行的索引
         origin_folded_line_index: usize,

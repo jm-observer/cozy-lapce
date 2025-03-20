@@ -122,7 +122,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(affinity, CursorAffinity::Backward);
 
         let (_visual_line, final_col, ..) =
-            lines.folded_line_of_offset(offset_of_buffer, affinity)?;
+            lines.folded_line_and_final_col_of_offset(offset_of_buffer, affinity)?;
         assert_eq!(final_col, 15);
     }
 
@@ -203,10 +203,10 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     let items = init_main_folded_item_2()?;
     lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
     let screen_lines = lines
-        ._compute_screen_lines(
+        .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
             EditorViewKind::Normal
-        )
+        )?
         .0;
     // lines.log();
 
@@ -270,10 +270,10 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
 
     lines.log();
     let screen_lines = lines
-        ._compute_screen_lines(
+        .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
             EditorViewKind::Normal
-        )
+        )?
         .0;
     //  |    let a: A [] = A;
     {
@@ -355,10 +355,10 @@ pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
         assert_eq!(rs, ClickResult::NoHintOrNothing);
     }
     let screen_lines = lines
-        ._compute_screen_lines(
+        .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
             EditorViewKind::Normal
-        )
+        )?
         .0;
     {
         // single_click (51.24201965332031, 128.0898895263672) 7 true Backward

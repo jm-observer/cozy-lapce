@@ -1,6 +1,6 @@
 use std::{borrow::Cow, path::PathBuf, rc::Rc};
 use std::ops::{AddAssign, SubAssign};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use doc::lines::{
     buffer::{Buffer, diff::DiffLines, rope_text::RopeText},
     cursor::CursorMode,
@@ -47,6 +47,7 @@ use lapce_xi_rope::find::CaseMatching;
 use log::{error};
 use doc::EditorViewKind;
 use doc::lines::diff::DiffResult;
+use doc::lines::line::LineTy;
 use doc::lines::style::DocumentHighlightColor;
 use super::{DocSignal, EditorData};
 use crate::{
@@ -1762,37 +1763,43 @@ fn editor_breadcrumbs(
     .debug_name("Editor BreadCrumbs")
 }
 
-fn count_rect(changes: Vec<DiffResult>, index: usize, right_editor: EditorData) {
-    let mut empty_line_count_0 = 0;
-    let empty_line_count_1;
-    for (change_index, change) in changes.iter().enumerate() {
-        if change_index < index {
-            if let DiffResult::Empty{lines} = change {
-                empty_line_count_0 += lines.len();
-            }
-        } else if change_index == index {
-            let change_line = change.line().start;
-            empty_line_count_1 = empty_line_count_0 + change.line().len();
-            let lines = right_editor.editor.doc.with_untracked(|x| x.lines);
-            let (visual_line_count, line_height) = lines.with_untracked(|x| {
-                let mut visual_line = 0;
-
-                for folded in &x.origin_folded_lines {
-                    if folded.origin_line_start <= change_line {
-                        visual_line += 1;
-                    } else {
-                        break;
+fn count_rect(changes: Vec<DiffResult>, index: usize, right_editor: EditorData) -> Result<()>{
+    if let Some(change) = changes.get(index) {
+        let line_index = match change {
+            DiffResult::Empty { lines } => {
+                right_editor.editor.visual_lines.with_untracked(|x| {
+                    for (index, line) in x.iter().enumerate() {
+                        if let LineTy::DiffEmpty { change_line_start } = line.line_ty {
+                            if change_line_start == lines.start {
+                                return Ok(index);
+                            }
+                        }
                     }
-                }
-                (visual_line, x.config.line_height)
-            });
-            let y = ((empty_line_count_0 + visual_line_count) * line_height) as f64;
-            let y1 =((empty_line_count_1 + visual_line_count) * line_height) as f64;
-            let rect = Rect::new(0.0, y, 0.0, y1);
-            log::info!("index={index} rect={rect:?} len={}", changes.len());
-            right_editor.ensure_visible.set(rect);
-            return ;
-        }
+                    bail!("count_rect Empty {lines:?} {x:?}");
+                })
+            }
+            DiffResult::Changed { lines } => {
+                right_editor.editor.visual_lines.with_untracked(|x| {
+                    for (index, line) in x.iter().enumerate() {
+                        if let LineTy::OriginText { line_range_inclusive, .. } = &line.line_ty {
+                            if line_range_inclusive.contains(&lines.start) {
+                                return Ok(index);
+                            }
+                        }
+                    }
+                    bail!("count_rect Changed {lines:?} {x:?}");
+                })
+            }
+        }?;
+        let line_height = right_editor.editor.line_height(0);
+        let y = (line_index * line_height) as f64;
+        let y1 =((line_index + 1) * line_height) as f64;
+        let rect = Rect::new(0.0, y, 0.0, y1);
+        log::info!("index={index} rect={rect:?} len={}", changes.len());
+        right_editor.ensure_visible.set(rect);
+        Ok(())
+    } else {
+        bail!("changes len {} index {}", changes.len(), index);
     }
 }
 
@@ -1815,7 +1822,9 @@ pub fn editor_diff_header(config: WithLapceConfig, right_editor: RwSignal<Editor
                 }) else {
                     return
                 };
-                count_rect(changes, index, right_editor);
+                if let Err(err) = count_rect(changes, index, right_editor) {
+                    error!("{err}");
+                }
             }
         }),
         common_svg(config, None, LapceIcons::FOLD_DOWN).on_click_stop(move |_| {
@@ -1832,7 +1841,9 @@ pub fn editor_diff_header(config: WithLapceConfig, right_editor: RwSignal<Editor
                 }) else {
                     return
                 };
-                count_rect(changes, index, right_editor);
+                if let Err(err) = count_rect(changes, index, right_editor) {
+                    error!("{err}");
+                }
             }
         })
     ));

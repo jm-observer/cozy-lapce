@@ -1,6 +1,6 @@
 //! Movement logic for the editor.
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, bail};
 use doc::lines::{
     buffer::rope_text::RopeText,
     command::MultiSelectionCommand,
@@ -14,7 +14,6 @@ use doc::lines::{
 use floem::reactive::SignalGet;
 use lapce_xi_rope::Rope;
 use log::info;
-
 use crate::editor::floem_editor::{CommonAction, Editor};
 
 /// Move a selection region by a given movement.
@@ -437,6 +436,21 @@ fn move_down(
     _mode: Mode,
     _count: usize
 ) -> Result<Option<(usize, ColPosition)>> {
+
+    // let line = view.doc.with_untracked(|x| x.lines.with_untracked(|x| x.buffer().line_of_offset(offset)));
+    //
+    // view.visual_lines.with_untracked(|x| {
+    //     let prev_line = None;
+    //     for visual_line in x {
+    //         if let LineTy::OriginText { origin_folded_line_index, line_range_inclusive: line_number } =  visual_line.line_ty {
+    //             if line < line_number {
+    //                 continue;
+    //             } else if line == line_number
+    //         }
+    //     }
+    // })
+
+
     log::info!("move_down {offset}");
     let Some((offset_of_buffer, horiz, new_affinity)) = view
         .doc()
@@ -475,18 +489,19 @@ fn first_non_blank(
 }
 
 fn start_of_line(
-    view: &Editor,
+    _view: &Editor,
     _affinity: &mut CursorAffinity,
-    offset: usize
+    _offset: usize
 ) -> Result<(usize, ColPosition)> {
-    let start_offset = view.doc().lines.with_untracked(|x| {
-        let origin_line = x.buffer().line_of_offset(offset);
-        x.origin_lines
-            .get(origin_line)
-            .ok_or(anyhow!("origin_line is empty"))
-            .map(|x| x.start_offset)
-    })?;
-    Ok((start_offset, ColPosition::Start))
+    bail!("todo");
+    // let start_offset = view.doc().lines.with_untracked(|x| {
+    //     let origin_line = x.buffer().line_of_offset(offset);
+    //     x.origin_lines
+    //         .get(origin_line)
+    //         .ok_or(anyhow!("origin_line is empty"))
+    //         .map(|x| x.start_offset)
+    // })?;
+    // Ok((start_offset, ColPosition::Start))
 }
 
 fn end_of_line(

@@ -216,7 +216,7 @@ impl View for EditorGutterView {
 
         let (current_visual_line, _line_offset) =
             match doc.lines.with_untracked(|x| {
-                x.folded_line_of_offset(offset, CursorAffinity::Forward)
+                x.folded_line_and_final_col_of_offset(offset, CursorAffinity::Forward)
                     .map(|x| (x.0.clone(), x.1))
             }) {
                 Ok(rs) => rs,
