@@ -96,7 +96,7 @@ pub fn test_move_right() -> Result<()> {
             .move_right(69, CursorAffinity::Backward)
             .unwrap()
             .unwrap();
-        // assert_eq!(lines.buffer().char_at_offset(107).unwrap(), '\r');
+        assert_eq!(lines.buffer().char_at_offset(69).unwrap(), '{');
         assert_eq!(rs, (69, CursorAffinity::Forward));
     }
 

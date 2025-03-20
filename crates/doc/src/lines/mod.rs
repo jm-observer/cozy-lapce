@@ -72,7 +72,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
-use crate::lines::fold::FoldedRanges;
+use crate::lines::fold::{FoldedRanges, MergeFoldingRangesLine};
 
 pub mod action;
 pub mod buffer;
@@ -1607,10 +1607,14 @@ impl DocLines {
         })
     }
 
-    pub fn init_folded_line_layout_alone(&self, current_origin_line: usize,) -> Result<OriginFoldedLine>{
+    pub fn init_folded_line_layout_alone(&self, mut current_origin_line: usize,) -> Result<OriginFoldedLine>{
         let binding = self.folding_ranges.get_all_folded_range();
-        let mut folded_lines = FoldingRangesLine::new(&binding.0);
-        let folded_index = folded_lines.get_origin_folded_line_index(current_origin_line);
+        debug!("{binding:?}");
+        let folded_index = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_origin_folded_line_index(current_origin_line);
+        if let Some(folded_range) = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_folded_range_by_line(current_origin_line as u32) {
+            current_origin_line = *folded_range.start();
+        }
+
         let mut folded_lines = FoldingRangesLine::new(&binding.0);
 
         let buffer = self.buffer();
@@ -1652,8 +1656,7 @@ impl DocLines {
         let last_line = buffer.last_line();
 
         let binding = self.folding_ranges.get_all_folded_range();
-        let mut folded_lines = FoldingRangesLine::new(&binding.0);
-        let Some(line_num) = folded_lines.get_line_num(origin_folded_index, last_line) else {
+        let Some(line_num) = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_line_num(origin_folded_index, last_line) else {
             return Ok(None);
         };
         let mut folded_lines = FoldingRangesLine::new(&binding.0);
@@ -2243,12 +2246,7 @@ impl DocLines {
         let bg = self.config.inlay_hint_bg;
 
         // may be one more phantom_text?
-        if let Some(phantom_text) = folded_ranges.phantom_text(line as u32, buffer, font_size, fg, bg)? {
-            text.push(
-                phantom_text
-            );
-        }
-
+        text.append(&mut folded_ranges.phantom_text(line as u32, buffer, font_size, fg, bg)?);
 
         Ok(PhantomTextLine::new(
             line,
@@ -2474,10 +2472,11 @@ impl DocLines {
             }
             let offset_col = phantom_text.origin_text_len;
             let next_origin_line = self.init_origin_line_2(collapsed_line, all_semantic_styles.as_mut(), all_inlay_hints.as_mut(), folded_ranges, preedit_phantom)?;
-            let next_phantom_text = next_origin_line.phantom.clone();
-            collapsed_line_col = next_phantom_text.folded_line();
+
             semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
             diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
+            let next_phantom_text = next_origin_line.phantom;
+            collapsed_line_col = next_phantom_text.folded_line();
             let is_last_line = next_phantom_text.line == last_line;
             phantom_text.merge(next_phantom_text, is_last_line);
         }
@@ -3004,6 +3003,7 @@ impl DocLines {
         }
 
         let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
+        debug!("{folded_line:?}");
         let origin_merge_col = buffer_offset - folded_line.origin_interval.start;
 
         let mut iter = folded_line.text().iter();
@@ -3188,11 +3188,13 @@ impl DocLines {
         if folded_line.line_index == 0 {
             return Ok(None);
         }
+        debug!("{folded_line:?}");
         let Some(previous) =
             self.init_folded_line_layout_alone_by_index(folded_line.line_index - 1)?
         else {
             bail!("unreachable")
         };
+        debug!("{previous:?}");
         let Some(text) = previous.text().last() else {
             bail!("unreachable")
         };

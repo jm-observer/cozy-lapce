@@ -9,7 +9,7 @@ use lapce_xi_rope::Rope;
 use log::error;
 use lsp_types::Position;
 use serde::{Deserialize, Serialize};
-
+use smallvec::SmallVec;
 use super::phantom_text::{PhantomText, PhantomTextKind};
 use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
@@ -20,7 +20,11 @@ pub struct FoldingRangesLine<'a> {
     folding: Peekable<Iter<'a, FoldedRange>>,
 }
 
-impl <'a> FoldingRangesLine<'a> {
+pub struct MergeFoldingRangesLine<'a> {
+    folding: Peekable<Iter<'a, FoldedRange>>,
+}
+
+impl <'a> MergeFoldingRangesLine<'a> {
     pub fn new(folding: &'a Vec<FoldedRange>) -> Self {
         let folding = folding.iter().peekable();
         Self {
@@ -46,11 +50,43 @@ impl <'a> FoldingRangesLine<'a> {
         None
     }
 
+    pub fn get_folded_range_by_line(&mut self, line: u32) -> Option<RangeInclusive<usize>> {
+        loop {
+            if let Some(folded) = self.folding.peek() {
+                if folded.end.line < line {
+                    self.folding.next();
+                    continue;
+                } else if folded.start.line <= line && line <= folded.end.line {
+                    let start_line = folded.start.line;
+                    let mut end_line = folded.end.line;
+                    self.folding.next();
+                    while let Some(next_folded) = self.folding.peek() {
+                        if next_folded.start.line == end_line {
+                            end_line = next_folded.end.line;
+                            self.folding.next();
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                    return Some(start_line as usize..=end_line as usize);
+                } else {
+                    return None;
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
     /// 计算line在实际展示时，位于第几行
     pub fn get_origin_folded_line_index(&mut self, line: usize) -> usize {
         let mut index = 0;
         let mut line_num = 0;
         while line_num <= line {
+            if line_num >= line {
+                break;
+            }
             if let Some(folded) = self.get_folded_range_by_line(line_num as u32) {
                 line_num = *folded.end() + 1;
             } else {
@@ -59,6 +95,14 @@ impl <'a> FoldingRangesLine<'a> {
             index += 1;
         }
         index
+    }
+}
+impl <'a> FoldingRangesLine<'a> {
+    pub fn new(folding: &'a Vec<FoldedRange>) -> Self {
+        let folding = folding.iter().peekable();
+        Self {
+            folding,
+        }
     }
 
     pub fn get_folded_range_by_line(&mut self, line: u32) -> Option<RangeInclusive<usize>> {
@@ -109,7 +153,8 @@ impl <'a> FoldingRangesLine<'a> {
 
     pub fn phantom_text(&mut self, line: u32, buffer: &Buffer, inlay_hint_font_size: usize,
                         inlay_hint_foreground: Color,
-                        inlay_hint_background: Color) -> Result<Option<PhantomText>> {
+                        inlay_hint_background: Color) -> Result<SmallVec<[PhantomText; 6]>> {
+        let mut textes = SmallVec::<[PhantomText; 6]>::new();
         loop {
             if let Some(folded) = self.folding.peek() {
                 if folded.end.line < line {
@@ -120,12 +165,14 @@ impl <'a> FoldingRangesLine<'a> {
                     let Some(start_char) =
                         buffer.char_at_offset(get_offset(buffer, folded.start)?)
                     else {
-                        return Ok(None);
+                        self.folding.next();
+                        continue;
                     };
                     let Some(end_char) =
                         buffer.char_at_offset(get_offset(buffer, folded.end)? - 1)
                     else {
-                        return Ok(None);
+                        self.folding.next();
+                        continue;
                     };
 
                     let mut text = String::new();
@@ -149,7 +196,7 @@ impl <'a> FoldingRangesLine<'a> {
                         let content = buffer.line_content(line as usize)?.len();
                         (folded_end - current - start, content - start)
                     };
-                    return Ok(Some(PhantomText {
+                    textes.push(PhantomText {
                         kind: PhantomTextKind::LineFoldedRang {
                             next_line,
                             len,
@@ -166,10 +213,15 @@ impl <'a> FoldingRangesLine<'a> {
                         line: line as usize,
                         visual_merge_col: start,
                         origin_merge_col: start
-                    }))
+                    });
+                    if !same_line {
+                        break;
+                    } else {
+                        self.folding.next();
+                    }
                 } else if folded.end.line == line {
                     let text = String::new();
-                    return Ok(Some(PhantomText {
+                    textes.push(PhantomText {
                         kind: PhantomTextKind::LineFoldedRang {
                             next_line:      None,
                             len:            folded.end.character as usize,
@@ -186,14 +238,16 @@ impl <'a> FoldingRangesLine<'a> {
                         line: line as usize,
                         visual_merge_col: 0,
                         origin_merge_col: 0
-                    }))
+                    });
+                    self.folding.next();
                 } else {
-                    return Ok(None);
+                    break;
                 }
             } else {
-                return Ok(None);
+                break
             }
         }
+        Ok(textes)
     }
 }
 
@@ -204,7 +258,39 @@ pub struct FoldingRanges(pub Vec<FoldingRange>);
 pub struct FoldedRanges(pub Vec<FoldedRange>);
 
 impl FoldingRanges {
+
+    /// 将衔接在一起的range合并在一条中，这样便于找到合并行的起始行
+    pub fn get_all_folded_folded_range(&self) -> FoldedRanges {
+        let mut range = Vec::new();
+        let mut limit_line = 0;
+        let mut peek = self.0.iter().peekable();
+        while let Some(item) = peek.next() {
+            if item.start.line < limit_line && limit_line > 0 {
+                continue;
+            }
+            if item.status.is_folded() {
+                let start = item.start;
+                let mut end = item.end;
+                while let Some(next_item) = peek.peek() {
+                    if item.end.line == next_item.start.line {
+                        end = next_item.end;
+                        peek.next();
+                    } else {
+                        break;
+                    }
+                }
+                range.push(FoldedRange {
+                    start,
+                    end,
+                });
+                limit_line = end.line;
+            }
+        }
+        FoldedRanges(range)
+    }
+
     pub fn get_all_folded_range(&self) -> FoldedRanges {
+        // 不能合并，因为后续是一行一行拼接的。合并会导致中间行缺失
         let mut range = Vec::new();
         let mut limit_line = 0;
         for item in &self.0 {
@@ -215,7 +301,6 @@ impl FoldingRanges {
                 range.push(FoldedRange {
                     start:          item.start,
                     end:            item.end,
-                    collapsed_text: item.collapsed_text.clone()
                 });
                 limit_line = item.end.line;
             }
@@ -499,7 +584,6 @@ fn get_offset(buffer: &Buffer, positon: Position) -> Result<usize> {
 pub struct FoldedRange {
     pub start:          Position,
     pub end:            Position,
-    pub collapsed_text: Option<String>
 }
 
 impl FoldedRange {
