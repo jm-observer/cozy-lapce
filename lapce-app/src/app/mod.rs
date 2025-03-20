@@ -3455,44 +3455,41 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
     let config = window_tab_data.common.config;
     let rename_data_key_down = window_tab_data.rename.clone();
     let rename_data = window_tab_data.rename.clone();
-    // todo rename激活时，focus输入框
-    container(
-        container(
-            text_input(name_str)
-                .style(|s| s.width(150.0))
-                .debug_name("rename")
-                .on_event_stop(EventListener::KeyDown, move |event: &Event| {
-                    if let Event::KeyDown(key_event) = event {
-                        if let Key::Named(NamedKey::Enter) =
-                            key_event.key.logical_key
-                        {
-                            rename_data_key_down.confirm();
-                        }
-                    }
-                })
-                .on_event_stop(EventListener::FocusLost, move |event: &Event| {
-                    if let Event::FocusLost = event {
-                        rename_data.cancel();
-                    }
-                }),
-        )
-        .style(move |s| {
-            let (fg, bg, font_family, font_size) = config.signal(|config| {
-                (
-                    config.color(LapceColor::LAPCE_BORDER),
-                    config.color(LapceColor::EDITOR_BACKGROUND),
-                    config.ui.font_family.signal(),
-                    config.ui.font_size.signal(),
-                )
-            });
-            s.font_family(font_family.get().1)
-                .font_size(font_size.get() as f32)
-                .border(1.0)
-                .border_radius(6.0)
-                .border_color(fg.get())
-                .background(bg.get())
-        }),
-    )
+    let rename_data_view = rename_data.clone();
+
+    let input_view = text_input(name_str)
+        .style(|s| s.width(150.0))
+        .debug_name("rename")
+        .on_event_stop(EventListener::KeyDown, move |event: &Event| {
+            if let Event::KeyDown(key_event) = event {
+                if let Key::Named(NamedKey::Enter) = key_event.key.logical_key {
+                    rename_data_key_down.confirm();
+                }
+            }
+        })
+        .on_event_stop(EventListener::FocusLost, move |event: &Event| {
+            if let Event::FocusLost = event {
+                rename_data.cancel();
+            }
+        });
+    let id = input_view.id();
+    rename_data_view.view_id.set(id);
+    container(container(input_view).style(move |s| {
+        let (fg, bg, font_family, font_size) = config.signal(|config| {
+            (
+                config.color(LapceColor::LAPCE_BORDER),
+                config.color(LapceColor::EDITOR_BACKGROUND),
+                config.ui.font_family.signal(),
+                config.ui.font_size.signal(),
+            )
+        });
+        s.font_family(font_family.get().1)
+            .font_size(font_size.get() as f32)
+            .border(1.0)
+            .border_radius(6.0)
+            .border_color(fg.get())
+            .background(bg.get())
+    }))
     .on_resize(move |rect| {
         layout_rect.set(rect);
     })

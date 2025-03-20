@@ -4,6 +4,7 @@ use doc::lines::{
     command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
 };
 use floem::{
+    ViewId,
     ext_event::create_ext_action,
     keyboard::Modifiers,
     peniko::kurbo::Rect,
@@ -26,6 +27,7 @@ pub struct RenameData {
     pub position:    RwSignal<Position>,
     pub path:        RwSignal<PathBuf>,
     pub layout_rect: RwSignal<Rect>,
+    pub view_id:     RwSignal<ViewId>,
     pub common:      Rc<CommonData>,
 }
 
@@ -70,6 +72,7 @@ impl RenameData {
             path,
             common,
             name_str,
+            view_id: cx.create_rw_signal(ViewId::default()),
         }
     }
 
@@ -87,6 +90,7 @@ impl RenameData {
             self.position.set(position);
             self.active.set(true);
             self.common.focus.set(Focus::Rename);
+            self.view_id.get_untracked().request_focus();
         });
     }
 
