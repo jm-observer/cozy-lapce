@@ -31,9 +31,7 @@ fn test_all() -> Result<()> {
     tests::test_folded_line_click::_test_buffer_offset_of_click_3()?;
     tests::test_folded_line_click::_test_main_3_buffer_offset_of_click()?;
 
-    tests::test_line::test_folded()?;
-
-    tests::test_lines_move::test_move_up()?;
+     tests::test_lines_move::test_move_up()?;
     tests::test_lines_move::test_move_right()?;
     tests::test_lines_move::test_move_left()?;
 

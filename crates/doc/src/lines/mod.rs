@@ -72,6 +72,7 @@ use crate::{
     },
     syntax::{BracketParser, Syntax, edit::SyntaxEdit}
 };
+use crate::lines::fold::FoldedRanges;
 
 pub mod action;
 pub mod buffer;
@@ -1465,11 +1466,14 @@ impl DocLines {
 
         let (folded, changes, is_normal) = match view_kind {
             EditorViewKind::Normal => {
-                (self.folding_ranges.get_all_folded_range().0, vec![], true)
+                (self.folding_ranges.get_all_folded_range(), vec![], true)
             },
-            EditorViewKind::Diff { changes,.. } => (vec![], changes, false)
+            EditorViewKind::Diff { changes,.. } => (FoldedRanges(vec![]), changes, false)
         };
-        let mut folded_lines = FoldingRangesLine::new(&folded);
+        debug!("{folded:?}");
+        let folded_line_count = folded.folded_line_count();
+        let mut folded_lines = FoldingRangesLine::new(&folded.0);
+
         let empty_line_len = changes.iter().fold(0, |x, y| {
             if let DiffResult::Empty {lines} = y {
                 x + lines.len()
@@ -1485,7 +1489,7 @@ impl DocLines {
             .iter()
             .filter(is_changed as fn(&&DiffResult) -> bool)
             .peekable();
-        let last_line = self.buffer().last_line() + empty_line_len;
+        let last_line = self.buffer().last_line() + empty_line_len - folded_line_count;
         let min_val = min_val.min(last_line);
         let max_val = max_val.min(last_line);
         let visual_lines = self.generate_visual_lines(
@@ -1494,7 +1498,7 @@ impl DocLines {
             &mut folded_lines
         );
 
-        let screen_lines = self._compute_screen_lines_new(&visual_lines[min_val..=max_val], self.config.line_height, y0, base, &mut change_lines, &mut FoldingRangesLine::new(&folded))?;
+        let screen_lines = self._compute_screen_lines_new(&visual_lines[min_val..=max_val], self.config.line_height, y0, base, &mut change_lines, &mut FoldingRangesLine::new(&folded.0))?;
 
         let display_items = if is_normal {
             self.folding_ranges.to_display_items(&screen_lines)
@@ -1759,7 +1763,7 @@ impl DocLines {
                         origin_folded_line_index
                     }
                 });
-            } else if origin_line_num <= last_line {
+            } else {
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
                     line_ty: LineTy::OriginText {
@@ -1768,8 +1772,6 @@ impl DocLines {
                     }
                 });
                 origin_line_num += 1;
-            } else {
-                break;
             }
             origin_folded_line_index += 1;
             empty_count = 0;

@@ -11,6 +11,7 @@ use crate::tests::lines_util::*;
 #[test]
 fn test_changes() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
+    _test_changes()?;
     _test_1_changes()?;
     Ok(())
 }

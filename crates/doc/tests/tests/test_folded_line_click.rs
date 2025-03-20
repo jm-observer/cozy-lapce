@@ -208,7 +208,6 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
             EditorViewKind::Normal
         )?
         .0;
-    // lines.log();
 
     {
         //|    if true {...} else {\r\n  [    ]
@@ -269,12 +268,16 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     lines.update_folding_ranges(items.get(1).cloned().unwrap().into())?;
 
     lines.log();
-    let screen_lines = lines
+    let (screen_lines, _, visual_lines) = lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
             EditorViewKind::Normal
         )?
-        .0;
+        ;
+    for vl in &visual_lines {
+        debug!("{vl:?}");
+    }
+    screen_lines.log();
     //  |    let a: A [] = A;
     {
         let point = Point::new(97.7, 49.0);

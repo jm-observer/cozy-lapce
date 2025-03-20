@@ -68,7 +68,19 @@ impl <'a> FoldingRangesLine<'a> {
                     self.folding.next();
                     continue;
                 } else if folded.start.line <= line && line <= folded.end.line {
-                    return Some(folded.start.line as usize..=folded.end.line as usize);
+                    let start_line = folded.start.line;
+                    let mut end_line = folded.end.line;
+                    self.folding.next();
+                    while let Some(next_folded) = self.folding.peek() {
+                        if next_folded.start.line == end_line {
+                            end_line = next_folded.end.line;
+                            self.folding.next();
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                    return Some(start_line as usize..=end_line as usize);
                 } else {
                     return None;
                 }
@@ -188,7 +200,7 @@ impl <'a> FoldingRangesLine<'a> {
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct FoldingRanges(pub Vec<FoldingRange>);
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct FoldedRanges(pub Vec<FoldedRange>);
 
 impl FoldingRanges {
@@ -377,6 +389,14 @@ impl FoldingRanges {
 }
 
 impl FoldedRanges {
+
+    pub fn folded_line_count(&self) -> usize {
+        self.0
+            .iter()
+            .fold(0usize, |count, item| {
+                count + item.end.line as usize - item.start.line as usize
+            })
+    }
     pub fn filter_by_line(&self, line: usize) -> Self {
         let line = line as u32;
         Self(
