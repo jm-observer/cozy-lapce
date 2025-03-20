@@ -556,9 +556,18 @@ impl MainSplitData {
         lsp_req: bool,
         content: DocContent
     ) -> (Rc<Doc>, bool) {
+        self.get_doc_with_force(path, unsaved, lsp_req, content, false)
+    }
+    pub fn get_doc_with_force(
+        &self,
+        path: PathBuf,
+        unsaved: Option<String>,
+        lsp_req: bool,
+        content: DocContent, force: bool
+    ) -> (Rc<Doc>, bool) {
         let cx = self.scope;
         let doc = self.docs.with_untracked(|docs| docs.get(&content).cloned());
-        if let Some(doc) = doc {
+        if let Some(doc) = doc && !force {
             (doc, false)
         } else {
             let diagnostic_data = self.get_diagnostic_data(&path);

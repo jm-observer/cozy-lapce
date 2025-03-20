@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 pub mod about;
 pub mod alert;
 pub mod app;

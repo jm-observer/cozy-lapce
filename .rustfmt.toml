@@ -10,7 +10,6 @@ enum_discrim_align_threshold = 20
 struct_field_align_threshold = 20
 format_strings = true
 reorder_impl_items = true
-trailing_comma = "Never"
 brace_style = "PreferSameLine"
 style_edition = "2024"
 wrap_comments = true

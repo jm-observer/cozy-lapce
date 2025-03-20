@@ -1095,14 +1095,14 @@ impl PaletteData {
         if let Some(run_toml) =
             self.common.workspace.run_and_debug_path_with_create()?
         {
-            let (doc, new_doc) = self.main_split.get_doc(
+            let (doc, new_doc) = self.main_split.get_doc_with_force(
                 run_toml.clone(),
                 None,
                 false,
                 DocContent::File {
                     path:      run_toml.clone(),
                     read_only: true
-                }
+                }, true
             );
             if !new_doc {
                 let content = doc.lines.with_untracked(|x| x.buffer().to_string());
