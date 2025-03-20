@@ -662,8 +662,10 @@ impl MainSplitData {
                     editor.go_to_location(location, new_doc, edits, Some(off_top_line));
                 });
             }
+        } else {
+            anyhow::bail!("get_editor_tab_child not EditorTabChildId::Editor");
         }
-        Ok(())
+        Ok(()) 
     }
 
     pub fn open_file_changes(&self, path: PathBuf) {
@@ -766,17 +768,17 @@ impl MainSplitData {
             .with_untracked(|config| config.editor.show_tab);
 
         let active_editor_tab_id = self.active_editor_tab.get_untracked();
-        let editor_tabs = self.editor_tabs.get_untracked();
-        let active_editor_tab = active_editor_tab_id
-            .and_then(|id| editor_tabs.get(&id))
+        let editor_tab_manages = self.editor_tabs.get_untracked();
+        let active_editor_tab_manage = active_editor_tab_id
+            .and_then(|id| editor_tab_manages.get(&id))
             .cloned();
 
         let editors = self.editors;
         let diff_editors = self.diff_editors.get_untracked();
 
-        let active_editor_tab = if let Some(editor_tab) = active_editor_tab {
+        let active_editor_tab = if let Some(editor_tab) = active_editor_tab_manage {
             editor_tab
-        } else if editor_tabs.is_empty() {
+        } else if editor_tab_manages.is_empty() {
             let editor_tab_id = EditorTabManageId::next();
             let editor_tab = self.new_editor_tab(editor_tab_id, self.root_split);
             let root_split = self.splits.with_untracked(|splits| {
@@ -791,7 +793,7 @@ impl MainSplitData {
             self.active_editor_tab.set(Some(editor_tab_id));
             editor_tab
         } else {
-            let (editor_tab_id, editor_tab) = editor_tabs.iter().next().unwrap();
+            let (editor_tab_id, editor_tab) = editor_tab_manages.iter().next().unwrap();
             self.active_editor_tab.set(Some(*editor_tab_id));
             *editor_tab
         };
@@ -1195,7 +1197,7 @@ impl MainSplitData {
 
         // check file exists in non active editor tabs
         if show_tab && !ignore_unconfirmed && !same_editor_tab {
-            for (editor_tab_id, editor_tab) in &editor_tabs {
+            for (editor_tab_id, editor_tab) in &editor_tab_manages {
                 if Some(*editor_tab_id) != active_editor_tab_id {
                     if let Some(index) =
                         editor_tab.with_untracked(|editor_tab| match &source {

@@ -483,27 +483,21 @@ impl EditorTabManageData {
             if !confirmed {
                 return Some((i, child.id().clone()));
             }
-            // match child.id() {
-            //     EditorTabChildId::Editor(editor_id) => {
-            //         if let Some(editor) =
-            // editors.editor_untracked(*editor_id) {
-            // let confirmed = editor.confirmed.get_untracked();
-            //             if !confirmed {
-            //                 return Some((i, child.id().clone()));
-            //             }
-            //         }
-            //     },
-            //     EditorTabChildId::DiffEditor(diff_editor_id) => {
-            //         if let Some(diff_editor) =
-            // diff_editors.get(diff_editor_id) {             let
-            // confirmed = diff_editor.confirmed.get_untracked();
-            //             if !confirmed {
-            //                 return Some((i, child.id().clone()));
-            //             }
-            //         }
-            //     },
-            //     _ => (),
-            // }
+            match child.id() {
+                EditorTabChildId::Editor(_editor_id) => {
+                    let confirmed = child.confirmed.get_untracked();
+                    if !confirmed {
+                        return Some((i, child.id().clone()));
+                    }
+                },
+                EditorTabChildId::DiffEditor(_diff_editor_id) => {
+                    let confirmed = child.confirmed.get_untracked();
+                    if !confirmed {
+                        return Some((i, child.id().clone()));
+                    }
+                },
+                _ => (),
+            }
         }
         None
     }
