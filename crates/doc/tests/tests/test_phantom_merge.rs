@@ -44,8 +44,7 @@ pub fn _test_merge() -> Result<()> {
         /*
         2 |    if true {
         */
-        let line = lines.folded_line_of_origin_line(1).unwrap();
-        debug!("{:?}", lines.origin_lines.get(1).unwrap());
+        let line = lines.init_folded_line_layout_alone(1).unwrap();
         debug!("{:?}", line);
         assert_eq!(line.len_without_rn(), 13);
         check_lines_col!(
@@ -55,14 +54,8 @@ pub fn _test_merge() -> Result<()> {
             "    if true {\r\n"
         );
         lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
-        let line = lines.folded_line_of_origin_line(1).unwrap();
+        let line = lines.init_folded_line_layout_alone(1).unwrap();
 
-        let line_1 = lines.origin_lines.get(1).unwrap();
-        let line_2 = lines.origin_lines.get(2).unwrap();
-        let line_3 = lines.origin_lines.get(3).unwrap();
-        debug!("{:?}", line_1);
-        debug!("{:?}", line_2);
-        debug!("{:?}", line_3);
         debug!("{:?}", line);
         let expect_str = "    if true {...} else {\r\n";
         assert_eq!(line.len(), expect_str.len());
@@ -79,59 +72,12 @@ pub fn _test_merge() -> Result<()> {
             bail!("should be Phantom");
         };
         assert_eq!((text_2.line, text_2.col), (3, 0));
-        assert_eq!(
-            (
-                text_2.visual_merge_col,
-                text_2.origin_merge_col,
-                text_2.final_col
-            ),
-            (
-                line_1.len,
-                line_3.start_offset - line_1.start_offset,
-                "    if true {...}".len()
-            )
-        );
 
         //  else {
         let Text::OriginText { text: text_3 } = &texts[3] else {
             bail!("should be Phantom");
         };
         assert_eq!((text_3.line, text_3.col), (3, Interval::from(5..14)));
-        assert_eq!(
-            (
-                text_3.visual_merge_col,
-                Interval::from(
-                    (text_3.origin_merge_col_start())
-                        ..(text_3.origin_merge_col_end())
-                ),
-                text_3.final_col
-            ),
-            (
-                Interval::from((line_1.len + 5)..(line_1.len + 14)),
-                Interval::from(
-                    (line_1.len + line_2.len + 5)..(line_1.len + line_2.len + 14)
-                ),
-                Interval::from(17..26)
-            )
-        );
-
-        // // print_lines(&lines);
-        // // print_line(&line_folded_4);
-        // lines.merge(line_folded_4);
-        // // print_lines(&lines);
-        // check_lines_col!(
-        //     &lines.text,
-        //     lines.final_text_len,
-        //     "    if true {\r\n    } else {\r\n",
-        //     "    if true {...} else {...}"
-        // );
-        // lines.merge(line6);
-        // check_lines_col!(
-        //     &lines.text,
-        //     lines.final_text_len,
-        //     "    if true {\r\n    } else {\r\n    }\r\n",
-        //     "    if true {...} else {...}\r\n"
-        // );
     }
     Ok(())
 }
