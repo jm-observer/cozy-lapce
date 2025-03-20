@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
     process::{self, Child, Command, Stdio},
     sync::Arc,
-    thread
+    thread,
 };
 
 use anyhow::{Result, anyhow};
@@ -14,13 +14,13 @@ use lapce_core::meta;
 use lapce_rpc::{
     RpcError,
     plugin::{PluginId, VoltID},
-    style::LineStyle
+    style::LineStyle,
 };
 use lapce_xi_rope::Rope;
 use lsp_types::{
     notification::{Initialized, Notification},
     request::{Initialize, Request},
-    *
+    *,
 };
 use parking_lot::Mutex;
 use serde_json::Value;
@@ -30,8 +30,8 @@ use super::{
     psp::{
         PluginHandlerNotification, PluginHostHandler, PluginServerHandler,
         PluginServerRpcHandler, ResponseSender, RpcCallback,
-        handle_plugin_server_message
-    }
+        handle_plugin_server_message,
+    },
 };
 use crate::{buffer::Buffer, plugin::PluginCatalogRpcHandler};
 
@@ -42,20 +42,20 @@ pub enum LspRpc {
     Request {
         id:     u64,
         method: String,
-        params: Params
+        params: Params,
     },
     Notification {
         method: String,
-        params: Params
+        params: Params,
     },
     Response {
         id:     u64,
-        result: Value
+        result: Value,
     },
     Error {
         id:    u64,
-        error: RpcError
-    }
+        error: RpcError,
+    },
 }
 
 pub struct LspClient {
@@ -64,7 +64,7 @@ pub struct LspClient {
     process:    Child,
     workspace:  Option<PathBuf>,
     host:       PluginHostHandler,
-    options:    Option<Value>
+    options:    Option<Value>,
 }
 
 impl PluginServerHandler for LspClient {
@@ -75,14 +75,14 @@ impl PluginServerHandler for LspClient {
     fn document_supported(
         &mut self,
         lanaguage_id: Option<&str>,
-        path: Option<&Path>
+        path: Option<&Path>,
     ) -> bool {
         self.host.document_supported(lanaguage_id, path)
     }
 
     fn handle_handler_notification(
         &mut self,
-        notification: PluginHandlerNotification
+        notification: PluginHandlerNotification,
     ) {
         use PluginHandlerNotification::*;
         match notification {
@@ -95,7 +95,7 @@ impl PluginServerHandler for LspClient {
             Shutdown => {
                 self.shutdown();
             },
-            SpawnedPluginLoaded { .. } => {}
+            SpawnedPluginLoaded { .. } => {},
         }
     }
 
@@ -104,7 +104,7 @@ impl PluginServerHandler for LspClient {
         id: Id,
         method: String,
         params: Params,
-        resp: ResponseSender
+        resp: ResponseSender,
     ) {
         self.host.handle_request(id, method, params, resp);
     }
@@ -113,7 +113,7 @@ impl PluginServerHandler for LspClient {
         &mut self,
         method: String,
         params: Params,
-        from: String
+        from: String,
     ) {
         if let Err(err) = self.host.handle_notification(method, params, from) {
             log::error!("{:?}", err);
@@ -125,13 +125,13 @@ impl PluginServerHandler for LspClient {
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: lapce_xi_rope::Rope
+        text: lapce_xi_rope::Rope,
     ) {
         self.host.handle_did_save_text_document(
             language_id,
             path,
             text_document,
-            text
+            text,
         );
     }
 
@@ -145,9 +145,9 @@ impl PluginServerHandler for LspClient {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>
-            )>
-        >
+                Option<TextDocumentContentChangeEvent>,
+            )>,
+        >,
     ) {
         self.host.handle_did_change_text_document(
             language_id,
@@ -155,7 +155,7 @@ impl PluginServerHandler for LspClient {
             delta,
             text,
             new_text,
-            change
+            change,
         );
     }
 
@@ -164,7 +164,7 @@ impl PluginServerHandler for LspClient {
         id: u64,
         tokens: SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
     ) {
         self.host.format_semantic_tokens(id, tokens, text, f);
     }
@@ -184,7 +184,7 @@ impl LspClient {
         server_uri: Url,
         args: Vec<String>,
         options: Option<Value>,
-        id: u64
+        id: u64,
     ) -> Result<Self> {
         let server = match server_uri.scheme() {
             "file" => {
@@ -200,7 +200,7 @@ impl LspClient {
                 path.to_str().ok_or_else(|| anyhow!(""))?.to_string()
             },
             "urn" => server_uri.path().to_string(),
-            _ => return Err(anyhow!("uri not supported"))
+            _ => return Err(anyhow!("uri not supported")),
         };
 
         let mut process = Self::process(workspace.as_ref(), &server, &args)?;
@@ -215,7 +215,7 @@ impl LspClient {
             spawned_by,
             plugin_id,
             io_tx.clone(),
-            id
+            id,
         );
         thread::spawn(move || {
             for msg in io_rx {
@@ -266,7 +266,7 @@ impl LspClient {
                         if let Some(resp) = handle_plugin_server_message(
                             &local_server_rpc,
                             &message_str,
-                            &name
+                            &name,
                         ) {
                             if let Err(err) = io_tx.send(resp) {
                                 log::error!("{:?}", err);
@@ -280,10 +280,10 @@ impl LspClient {
                             Some(format!(
                                 "lapce_proxy::plugin::lsp::{}::{}::stopped",
                                 volt_id_closure.author, volt_id_closure.name
-                            ))
+                            )),
                         );
                         return;
-                    }
+                    },
                 };
             }
         });
@@ -305,12 +305,12 @@ impl LspClient {
                             Some(format!(
                                 "lapce_proxy::plugin::lsp::{}::{}::stderr",
                                 volt_id_closure.author, volt_id_closure.name
-                            ))
+                            )),
                         );
                     },
                     Err(_) => {
                         return;
-                    }
+                    },
                 }
             }
         });
@@ -323,7 +323,7 @@ impl LspClient {
             document_selector,
             plugin_rpc.core_rpc.clone(),
             server_rpc.clone(),
-            plugin_rpc.clone()
+            plugin_rpc.clone(),
         );
 
         Ok(Self {
@@ -332,7 +332,7 @@ impl LspClient {
             process,
             workspace,
             host,
-            options
+            options,
         })
     }
 
@@ -349,7 +349,7 @@ impl LspClient {
         server_uri: Url,
         args: Vec<String>,
         options: Option<Value>,
-        id: u64
+        id: u64,
     ) -> Result<PluginId> {
         let mut lsp = Self::new(
             plugin_rpc,
@@ -363,7 +363,7 @@ impl LspClient {
             server_uri,
             args,
             options,
-            id
+            id,
         )?;
         let plugin_id = lsp.server_rpc.plugin_id;
 
@@ -390,16 +390,16 @@ impl LspClient {
             workspace_folders:         root_uri.map(|uri| {
                 vec![WorkspaceFolder {
                     name: uri.as_str().to_string(),
-                    uri
+                    uri,
                 }]
             }),
             client_info:               Some(ClientInfo {
                 name:    meta::NAME.to_owned(),
-                version: Some(meta::VERSION.to_owned())
+                version: Some(meta::VERSION.to_owned()),
             }),
             locale:                    None,
             root_path:                 None,
-            work_done_progress_params: WorkDoneProgressParams::default()
+            work_done_progress_params: WorkDoneProgressParams::default(),
         };
         match self.server_rpc.server_request(
             Initialize::METHOD,
@@ -407,7 +407,7 @@ impl LspClient {
             None,
             None,
             false,
-            id
+            id,
         ) {
             Ok(value) => {
                 log::info!("{}", serde_json::to_string(&value).unwrap());
@@ -419,7 +419,7 @@ impl LspClient {
                     InitializedParams {},
                     None,
                     None,
-                    false
+                    false,
                 );
                 if self
                     .plugin_rpc
@@ -432,7 +432,7 @@ impl LspClient {
             },
             Err(err) => {
                 log::error!("{:?}", err);
-            }
+            },
         }
         //     move |result| {
         //         if let Ok(value) = result {
@@ -458,7 +458,7 @@ impl LspClient {
     fn process(
         workspace: Option<&PathBuf>,
         server: &str,
-        args: &[String]
+        args: &[String],
     ) -> Result<Child> {
         let mut process = Command::new(server);
         if let Some(workspace) = workspace {
@@ -482,14 +482,14 @@ pub struct DocumentFilter {
     /// The document must have this language id, if it exists
     pub language_id: Option<String>,
     /// The document's path must match this glob, if it exists
-    pub pattern:     Option<globset::GlobMatcher> /* TODO: URI Scheme from
-                                                   * lsp-types document filter */
+    pub pattern:     Option<globset::GlobMatcher>, /* TODO: URI Scheme from
+                                                    * lsp-types document filter */
 }
 impl DocumentFilter {
     /// Constructs a document filter from the LSP version
     /// This ignores any fields that are badly constructed
     pub(crate) fn from_lsp_filter_loose(
-        filter: &lsp_types::DocumentFilter
+        filter: &lsp_types::DocumentFilter,
     ) -> DocumentFilter {
         DocumentFilter {
             language_id: filter.language.clone(),
@@ -499,14 +499,14 @@ impl DocumentFilter {
                 .as_deref()
                 .map(globset::Glob::new)
                 .and_then(Result::ok)
-                .map(|x| globset::Glob::compile_matcher(&x))
+                .map(|x| globset::Glob::compile_matcher(&x)),
         }
     }
 }
 
 pub enum LspHeader {
     ContentType,
-    ContentLength(usize)
+    ContentLength(usize),
 }
 
 fn parse_header(s: &str) -> Result<LspHeader> {
@@ -520,7 +520,7 @@ fn parse_header(s: &str) -> Result<LspHeader> {
         HEADER_CONTENT_LENGTH => {
             Ok(LspHeader::ContentLength(split[1].parse::<usize>()?))
         },
-        _ => Err(anyhow!("Unknown parse error occurred: {s}"))
+        _ => Err(anyhow!("Unknown parse error occurred: {s}")),
     }
 }
 
@@ -537,9 +537,9 @@ pub fn read_message<T: BufRead>(reader: &mut T) -> Result<String> {
             s => {
                 match parse_header(s)? {
                     LspHeader::ContentLength(len) => content_length = Some(len),
-                    LspHeader::ContentType => ()
+                    LspHeader::ContentType => (),
                 };
-            }
+            },
         };
     }
 
@@ -556,7 +556,7 @@ pub fn read_message<T: BufRead>(reader: &mut T) -> Result<String> {
 pub fn get_change_for_sync_kind(
     sync_kind: TextDocumentSyncKind,
     buffer: &Buffer,
-    content_change: &TextDocumentContentChangeEvent
+    content_change: &TextDocumentContentChangeEvent,
 ) -> Option<Vec<TextDocumentContentChangeEvent>> {
     match sync_kind {
         TextDocumentSyncKind::NONE => None,
@@ -565,11 +565,11 @@ pub fn get_change_for_sync_kind(
                 TextDocumentContentChangeEvent {
                     range:        None,
                     range_length: None,
-                    text:         buffer.get_document()
+                    text:         buffer.get_document(),
                 };
             Some(vec![text_document_content_change_event])
         },
         TextDocumentSyncKind::INCREMENTAL => Some(vec![content_change.clone()]),
-        _ => None
+        _ => None,
     }
 }

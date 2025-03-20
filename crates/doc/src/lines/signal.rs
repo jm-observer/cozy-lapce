@@ -1,11 +1,11 @@
 use std::{
     fmt::{Debug, Formatter},
-    ops::AddAssign
+    ops::AddAssign,
 };
 
 use floem::{
     peniko::Color,
-    reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch}
+    reactive::{ReadSignal, RwSignal, Scope, SignalUpdate, batch},
 };
 
 use crate::lines::{buffer::Buffer, style::EditorStyle};
@@ -19,7 +19,7 @@ pub struct Signals {
     // start from 1, (line num, paint width)
     pub(crate) last_line:         SignalManager<(usize, f64)>,
     pub paint_content:            SignalManager<usize>,
-    pub max_width:                SignalManager<f64>
+    pub max_width:                SignalManager<f64>,
 }
 
 impl Signals {
@@ -27,11 +27,11 @@ impl Signals {
         cx: Scope,
         style: &EditorStyle,
         buffer: Buffer,
-        last_line: (usize, f64)
+        last_line: (usize, f64),
     ) -> Self {
         let show_indent_guide = SignalManager::new(
             cx,
-            (style.show_indent_guide(), style.indent_guide())
+            (style.show_indent_guide(), style.indent_guide()),
         );
         let rev = buffer.rev();
         let pristine = buffer.is_pristine();
@@ -49,7 +49,7 @@ impl Signals {
             last_line,
             pristine,
             paint_content: paint_context,
-            max_width
+            max_width,
         }
     }
 
@@ -95,7 +95,7 @@ impl Signals {
 pub struct SignalManager<V: Clone + 'static> {
     v:      V,
     signal: RwSignal<V>,
-    dirty:  bool
+    dirty:  bool,
 }
 
 impl<V: Clone + 'static + Debug> Debug for SignalManager<V> {
@@ -114,7 +114,7 @@ impl<V: Clone + 'static> SignalManager<V> {
         Self {
             signal: cx.create_rw_signal(v.clone()),
             v,
-            dirty: false
+            dirty: false,
         }
     }
 

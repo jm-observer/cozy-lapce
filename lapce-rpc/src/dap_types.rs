@@ -32,14 +32,14 @@ impl DapId {
 pub struct DapServer {
     pub program: String,
     pub args:    Vec<String>,
-    pub cwd:     Option<PathBuf>
+    pub cwd:     Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct RunDebugProgram {
     pub program: String,
-    pub args:    Option<Vec<String>>
+    pub args:    Option<Vec<String>>,
 }
 
 impl RunDebugProgram {
@@ -72,7 +72,7 @@ pub struct RunDebugConfig {
     #[serde(default)]
     pub tracing_output: bool,
     #[serde(default)]
-    pub config_source:  ConfigSource
+    pub config_source:  ConfigSource,
 }
 
 impl RunDebugConfig {
@@ -106,7 +106,7 @@ pub enum ConfigSource {
     #[default]
     Palette,
     RunInTerminal,
-    RustCodeLens
+    RustCodeLens,
 }
 impl ConfigSource {
     pub fn from_palette(&self) -> bool {
@@ -128,7 +128,7 @@ pub trait Request {
 pub struct DapRequest {
     pub seq:       u64,
     pub command:   String,
-    pub arguments: Option<Value>
+    pub arguments: Option<Value>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -138,7 +138,7 @@ pub struct DapResponse {
     pub success:     bool,
     pub command:     String,
     pub message:     Option<String>,
-    pub body:        Option<Value>
+    pub body:        Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -153,24 +153,24 @@ pub enum DapEvent {
     Terminated(Option<Terminated>),
     Thread {
         reason:    String,
-        thread_id: ThreadId
+        thread_id: ThreadId,
     },
     Output(Output),
     Breakpoint {
         reason:     String,
-        breakpoint: Breakpoint
+        breakpoint: Breakpoint,
     },
     Module {
         reason: String,
-        module: Module
+        module: Module,
     },
     LoadedSource {
         reason: String,
-        source: Source
+        source: Source,
     },
     Process(Process),
     Capabilities(Capabilities),
-    Memory(Memory)
+    Memory(Memory),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -178,7 +178,7 @@ pub enum DapEvent {
 pub enum DapPayload {
     Request(DapRequest),
     Response(DapResponse),
-    Event(DapEvent)
+    Event(DapEvent),
 }
 
 impl DapPayload {
@@ -229,7 +229,7 @@ pub struct InitializeParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supports_progress_reporting: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub supports_invalidated_event: Option<bool>
+    pub supports_invalidated_event: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -242,7 +242,7 @@ pub struct ColumnDescriptor {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub ty:             Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub width:          Option<usize>
+    pub width:          Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -257,7 +257,7 @@ pub struct ExceptionBreakpointsFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supports_condition:    Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub condition_description: Option<String>
+    pub condition_description: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -338,7 +338,7 @@ pub struct DebuggerCapabilities {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_module_columns:             Option<Vec<ColumnDescriptor>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub supported_checksum_algorithms:         Option<Vec<String>>
+    pub supported_checksum_algorithms:         Option<Vec<String>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -356,7 +356,7 @@ pub struct Stopped {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub all_threads_stopped: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub hit_breakpoint_ids:  Option<Vec<usize>>
+    pub hit_breakpoint_ids:  Option<Vec<usize>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -364,20 +364,20 @@ pub struct Stopped {
 pub struct Continued {
     pub thread_id:             ThreadId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub all_threads_continued: Option<bool>
+    pub all_threads_continued: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Exited {
-    pub exit_code: usize
+    pub exit_code: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Terminated {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub restart: Option<Value>
+    pub restart: Option<Value>,
 }
 
 #[derive(
@@ -405,14 +405,14 @@ impl std::fmt::Display for ThreadId {
 #[serde(rename_all = "camelCase")]
 pub struct Thread {
     pub id:   ThreadId,
-    pub name: String
+    pub name: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Checksum {
     pub algorithm: String,
-    pub checksum:  String
+    pub checksum:  String,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -433,7 +433,7 @@ pub struct Source {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub adapter_data:      Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub checksums:         Option<Vec<Checksum>>
+    pub checksums:         Option<Vec<Checksum>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -453,7 +453,7 @@ pub struct Output {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source:              Option<Source>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data:                Option<Value>
+    pub data:                Option<Value>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -467,7 +467,7 @@ pub struct SourceBreakpoint {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hit_condition: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub log_message:   Option<String>
+    pub log_message:   Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -491,7 +491,7 @@ pub struct Breakpoint {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instruction_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset:                Option<usize>
+    pub offset:                Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -514,7 +514,7 @@ pub struct Module {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_time_stamp:  Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub address_range:    Option<String>
+    pub address_range:    Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -528,13 +528,13 @@ pub struct Process {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start_method:      Option<String>, // TODO: use enum
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pointer_size:      Option<usize>
+    pub pointer_size:      Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Capabilities {
-    pub capabilities: DebuggerCapabilities
+    pub capabilities: DebuggerCapabilities,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -542,7 +542,7 @@ pub struct Capabilities {
 pub struct Memory {
     pub memory_reference: String,
     pub offset:           usize,
-    pub count:            usize
+    pub count:            usize,
 }
 
 pub enum Launch {}
@@ -560,7 +560,7 @@ pub struct RunInTerminalResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub process_id:       Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shell_process_id: Option<u32>
+    pub shell_process_id: Option<u32>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -574,7 +574,7 @@ pub struct RunInTerminalArguments {
     pub cwd:   Option<String>,
     pub args:  Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub env:   Option<HashMap<String, Option<String>>>
+    pub env:   Option<HashMap<String, Option<String>>>,
 }
 
 #[derive(Debug)]
@@ -595,14 +595,14 @@ pub struct SetBreakpointsArguments {
     pub breakpoints:     Option<Vec<SourceBreakpoint>>,
     // lines is deprecated
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_modified: Option<bool>
+    pub source_modified: Option<bool>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetBreakpointsResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub breakpoints: Option<Vec<Breakpoint>>
+    pub breakpoints: Option<Vec<Breakpoint>>,
 }
 
 #[derive(Debug)]
@@ -628,14 +628,14 @@ impl Request for ConfigurationDone {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContinueArguments {
-    pub thread_id: ThreadId
+    pub thread_id: ThreadId,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContinueResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub all_threads_continued: Option<bool>
+    pub all_threads_continued: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -651,7 +651,7 @@ impl Request for Continue {
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ThreadsResponse {
-    pub threads: Vec<Thread>
+    pub threads: Vec<Thread>,
 }
 
 #[derive(Debug)]
@@ -684,7 +684,7 @@ pub struct StackFrame {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module_id: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub presentation_hint: Option<String>
+    pub presentation_hint: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -703,7 +703,7 @@ pub struct StackFrameFormat {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module:           Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub include_all:      Option<bool>
+    pub include_all:      Option<bool>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -715,7 +715,7 @@ pub struct StackTraceArguments {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub levels:      Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub format:      Option<StackFrameFormat>
+    pub format:      Option<StackFrameFormat>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -723,7 +723,7 @@ pub struct StackTraceArguments {
 pub struct StackTraceResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_frames: Option<usize>,
-    pub stack_frames: Vec<StackFrame>
+    pub stack_frames: Vec<StackFrame>,
 }
 
 #[derive(Debug)]
@@ -759,7 +759,7 @@ impl Request for Terminate {
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PauseArguments {
-    pub thread_id: ThreadId
+    pub thread_id: ThreadId,
 }
 
 #[derive(Debug)]
@@ -793,19 +793,19 @@ pub struct Scope {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_line:            Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_column:          Option<usize>
+    pub end_column:          Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScopesArguments {
-    pub frame_id: usize
+    pub frame_id: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScopesResponse {
-    pub scopes: Vec<Scope>
+    pub scopes: Vec<Scope>,
 }
 
 #[derive(Debug)]
@@ -822,7 +822,7 @@ impl Request for Scopes {
 #[serde(rename_all = "camelCase")]
 pub struct ValueFormat {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub hex: Option<bool>
+    pub hex: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -833,7 +833,7 @@ pub struct VariablePresentationHint {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub visibility: Option<String>
+    pub visibility: Option<String>,
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -853,7 +853,7 @@ pub struct Variable {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub indexed_variables:   Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub memory_reference:    Option<String>
+    pub memory_reference:    Option<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -867,13 +867,13 @@ pub struct VariablesArguments {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub count:               Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub format:              Option<ValueFormat>
+    pub format:              Option<ValueFormat>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VariablesResponse {
-    pub variables: Vec<Variable>
+    pub variables: Vec<Variable>,
 }
 
 #[derive(Debug)]
@@ -891,7 +891,7 @@ impl Request for Variables {
 pub struct NextArguments {
     pub thread_id:   ThreadId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub granularity: Option<String>
+    pub granularity: Option<String>,
 }
 
 #[derive(Debug)]
@@ -911,7 +911,7 @@ pub struct StepInArguments {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_id:   Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub granularity: Option<String>
+    pub granularity: Option<String>,
 }
 
 #[derive(Debug)]
@@ -929,7 +929,7 @@ impl Request for StepIn {
 pub struct StepOutArguments {
     pub thread_id:   ThreadId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub granularity: Option<String>
+    pub granularity: Option<String>,
 }
 
 #[derive(Debug)]

@@ -4,7 +4,7 @@ use floem::{
     keyboard::{Key, NamedKey},
     prelude::*,
     style::{AlignItems, JustifyContent, StyleValue},
-    views::container
+    views::container,
 };
 
 fn app_view() -> impl IntoView {
@@ -20,18 +20,18 @@ fn app_view() -> impl IntoView {
             .style(|x| x.width(10.0)),
         container(
             label("{", None, Some(Color::from_str("#B7E1CD").unwrap()))
-                .style(|x| x.width(10.0))
+                .style(|x| x.width(10.0)),
         )
         .style(|x| x.width(10.0)),
         container(label("    println!(\"abc\")", None, None))
-            .style(|x| x.width(100.0))
+            .style(|x| x.width(100.0)),
     ));
 
     let id = view.id();
     view.on_key_up(
         Key::Named(NamedKey::F11),
         |m| m.is_empty(),
-        move |_| id.inspect()
+        move |_| id.inspect(),
     )
 }
 

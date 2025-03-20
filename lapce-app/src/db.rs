@@ -4,7 +4,7 @@ use anyhow::Result;
 use floem::{peniko::kurbo::Vec2, reactive::SignalGet};
 use lapce_core::{
     panel::{PanelKind, PanelOrder},
-    workspace::{LapceWorkspace, WorkspaceInfo}
+    workspace::{LapceWorkspace, WorkspaceInfo},
 };
 use lapce_rpc::plugin::VoltID;
 use sha2::{Digest, Sha256};
@@ -14,7 +14,7 @@ use crate::{
     doc::DocInfo,
     local_task::{LocalNotification, LocalTaskRequester},
     window::{WindowData, WindowInfo},
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 const APP: &str = "app";
@@ -32,13 +32,13 @@ pub enum SaveEvent {
     Doc(DocInfo),
     DisabledVolts(Vec<VoltID>),
     WorkspaceDisabledVolts(LapceWorkspace, Vec<VoltID>),
-    PanelOrder(PanelOrder)
+    PanelOrder(PanelOrder),
 }
 
 #[derive(Clone)]
 pub struct LapceDb {
     folder:           PathBuf,
-    workspace_folder: PathBuf // save_tx:          Sender<SaveEvent>,
+    workspace_folder: PathBuf, // save_tx:          Sender<SaveEvent>,
 }
 
 impl LapceDb {
@@ -51,7 +51,7 @@ impl LapceDb {
 
         let db = Self {
             workspace_folder,
-            folder
+            folder,
         };
         // let local_db = db.clone();
         // std::thread::Builder::new()
@@ -74,10 +74,10 @@ impl LapceDb {
     pub fn save_disabled_volts(
         &self,
         volts: Vec<VoltID>,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::DisabledVolts(volts)
+            SaveEvent::DisabledVolts(volts),
         ));
     }
 
@@ -85,10 +85,10 @@ impl LapceDb {
         &self,
         workspace: LapceWorkspace,
         volts: Vec<VoltID>,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::WorkspaceDisabledVolts(workspace, volts)
+            SaveEvent::WorkspaceDisabledVolts(workspace, volts),
         ));
     }
 
@@ -101,7 +101,7 @@ impl LapceDb {
     pub fn insert_workspace_disabled_volts(
         &self,
         workspace: LapceWorkspace,
-        volts: Vec<VoltID>
+        volts: Vec<VoltID>,
     ) -> Result<()> {
         let folder = self
             .workspace_folder
@@ -117,7 +117,7 @@ impl LapceDb {
 
     pub fn get_workspace_disabled_volts(
         &self,
-        workspace: &LapceWorkspace
+        workspace: &LapceWorkspace,
     ) -> Result<Vec<VoltID>> {
         let folder = self.workspace_folder.join(workspace_folder_name(workspace));
         let volts = std::fs::read_to_string(folder.join(DISABLED_VOLTS))?;
@@ -135,13 +135,13 @@ impl LapceDb {
     pub fn update_recent_workspace(
         &self,
         workspace: &LapceWorkspace,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         if workspace.path.is_none() {
             return;
         }
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::RecentWorkspace(workspace.clone())
+            SaveEvent::RecentWorkspace(workspace.clone()),
         ));
     }
 
@@ -177,24 +177,24 @@ impl LapceDb {
     pub fn save_window_tab(
         &self,
         data: WindowWorkspaceData,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         let workspace = data.workspace.clone();
         let workspace_info = data.workspace_info();
 
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::Workspace(workspace, workspace_info)
+            SaveEvent::Workspace(workspace, workspace_info),
         ));
     }
 
     pub fn get_workspace_info(
         &self,
-        workspace: &LapceWorkspace
+        workspace: &LapceWorkspace,
     ) -> Result<WorkspaceInfo> {
         let info = std::fs::read_to_string(
             self.workspace_folder
                 .join(workspace_folder_name(workspace))
-                .join(WORKSPACE_INFO)
+                .join(WORKSPACE_INFO),
         )?;
         let info: WorkspaceInfo = serde_json::from_str(&info)?;
         Ok(info)
@@ -203,7 +203,7 @@ impl LapceDb {
     pub(crate) fn insert_workspace(
         &self,
         workspace: &LapceWorkspace,
-        info: &WorkspaceInfo
+        info: &WorkspaceInfo,
     ) -> Result<()> {
         let folder = self.workspace_folder.join(workspace_folder_name(workspace));
         if let Err(err) = std::fs::create_dir_all(&folder) {
@@ -224,7 +224,7 @@ impl LapceDb {
             windows: windows
                 .values()
                 .map(|window_data| window_data.info())
-                .collect()
+                .collect(),
         };
         if info.windows.is_empty() {
             return;
@@ -256,7 +256,7 @@ impl LapceDb {
             windows: windows
                 .values()
                 .map(|window_data| window_data.info())
-                .collect()
+                .collect(),
         };
         self.insert_app_info(info)?;
         Ok(())
@@ -331,10 +331,10 @@ impl LapceDb {
     pub fn save_panel_orders(
         &self,
         order: PanelOrder,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::PanelOrder(order)
+            SaveEvent::PanelOrder(order),
         ));
     }
 
@@ -350,13 +350,13 @@ impl LapceDb {
         path: PathBuf,
         cursor_offset: usize,
         scroll_offset: Vec2,
-        requester: &LocalTaskRequester
+        requester: &LocalTaskRequester,
     ) {
         let info = DocInfo {
             workspace: workspace.clone(),
             path,
             scroll_offset: (scroll_offset.x, scroll_offset.y),
-            cursor_offset
+            cursor_offset,
         };
         requester.notification(LocalNotification::DbSaveEvent(SaveEvent::Doc(info)));
     }
@@ -377,7 +377,7 @@ impl LapceDb {
     pub fn get_doc_info(
         &self,
         workspace: &LapceWorkspace,
-        path: &Path
+        path: &Path,
     ) -> Result<DocInfo> {
         let folder = self
             .workspace_folder

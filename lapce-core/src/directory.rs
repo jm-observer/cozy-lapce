@@ -18,7 +18,7 @@ pub struct Directory {
     pub local_socket:         PathBuf,
     pub updates_directory:    Option<PathBuf>,
     pub queries_directory:    PathBuf,
-    pub grammars_directory:   PathBuf
+    pub grammars_directory:   PathBuf,
 }
 
 async fn init_path(dir: &Path) -> Result<()> {
@@ -84,7 +84,7 @@ impl Directory {
             local_socket,
             updates_directory,
             queries_directory,
-            grammars_directory
+            grammars_directory,
         })
     }
 
@@ -124,7 +124,7 @@ impl Directory {
                 }
                 Some(dir.to_path_buf())
             },
-            None => None
+            None => None,
         }
     }
 
@@ -221,7 +221,7 @@ impl Directory {
                 }
                 Some(dir.to_path_buf())
             },
-            None => None
+            None => None,
         }
     }
 

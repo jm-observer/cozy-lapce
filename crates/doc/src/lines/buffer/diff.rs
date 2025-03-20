@@ -3,8 +3,8 @@ use std::{
     ops::Range,
     sync::{
         Arc,
-        atomic::{self, AtomicU64}
-    }
+        atomic::{self, AtomicU64},
+    },
 };
 
 use lapce_xi_rope::Rope;
@@ -14,14 +14,14 @@ use serde::{Deserialize, Serialize};
 pub enum DiffResult<T> {
     Left(T),
     Both(T, T),
-    Right(T)
+    Right(T),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DiffBothInfo {
     pub left:  Range<usize>,
     pub right: Range<usize>,
-    pub skip:  Option<Range<usize>>
+    pub skip:  Option<Range<usize>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,20 +30,20 @@ pub enum DiffLines {
     Left(Range<usize>),
     Both(DiffBothInfo),
     /// add line to right(new)
-    Right(Range<usize>)
+    Right(Range<usize>),
 }
 
 pub enum DiffExpand {
     Up(usize),
     Down(usize),
-    All
+    All,
 }
 
 pub fn expand_diff_lines(
     diff_lines: &mut [DiffLines],
     line: usize,
     expand: DiffExpand,
-    is_right: bool
+    is_right: bool,
 ) {
     for diff_line in diff_lines.iter_mut() {
         if let DiffLines::Both(info) = diff_line {
@@ -84,7 +84,7 @@ pub fn rope_diff(
     right_rope: Rope,
     rev: u64,
     atomic_rev: Arc<AtomicU64>,
-    context_lines: Option<usize>
+    context_lines: Option<usize>,
 ) -> Option<Vec<DiffLines>> {
     let left_lines = left_rope.lines(..).collect::<Vec<Cow<str>>>();
     let right_lines = right_rope.lines(..).collect::<Vec<Cow<str>>>();
@@ -169,7 +169,7 @@ pub fn rope_diff(
         changes.push(DiffLines::Both(DiffBothInfo {
             left:  0..leading_equals,
             right: 0..leading_equals,
-            skip:  None
+            skip:  None,
         }))
     }
     left_line += leading_equals;
@@ -183,7 +183,7 @@ pub fn rope_diff(
             DiffResult::Left(_) => {
                 match changes.last_mut() {
                     Some(DiffLines::Left(r)) => r.end = left_line + 1,
-                    _ => changes.push(DiffLines::Left(left_line..left_line + 1))
+                    _ => changes.push(DiffLines::Left(left_line..left_line + 1)),
                 }
                 left_line += 1;
             },
@@ -196,8 +196,8 @@ pub fn rope_diff(
                     _ => changes.push(DiffLines::Both(DiffBothInfo {
                         left:  left_line..left_line + 1,
                         right: right_line..right_line + 1,
-                        skip:  None
-                    }))
+                        skip:  None,
+                    })),
                 }
                 left_line += 1;
                 right_line += 1;
@@ -205,10 +205,10 @@ pub fn rope_diff(
             DiffResult::Right(_) => {
                 match changes.last_mut() {
                     Some(DiffLines::Right(r)) => r.end = right_line + 1,
-                    _ => changes.push(DiffLines::Right(right_line..right_line + 1))
+                    _ => changes.push(DiffLines::Right(right_line..right_line + 1)),
                 }
                 right_line += 1;
-            }
+            },
         }
     }
 
@@ -216,7 +216,7 @@ pub fn rope_diff(
         changes.push(DiffLines::Both(DiffBothInfo {
             left:  left_count - trailing_equals..left_count,
             right: right_count - trailing_equals..right_count,
-            skip:  None
+            skip:  None,
         }));
     }
     if let Some(context_lines) = context_lines {

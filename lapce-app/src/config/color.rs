@@ -9,14 +9,14 @@ pub enum LoadThemeError {
     #[error("theme file ({theme_name}.toml) was not found in {themes_folder:?}")]
     FileNotFound {
         themes_folder: PathBuf,
-        theme_name:    String
+        theme_name:    String,
     },
     #[error("recursion limit reached for {variable_name}")]
     RecursionLimitReached { variable_name: String },
     #[error("variable {variable_name} not found")]
     VariableNotFound { variable_name: String },
     #[error("There was an error reading the theme file")]
-    Read(std::io::Error)
+    Read(std::io::Error),
 }
 
 pub struct LapceColor {}
@@ -36,6 +36,7 @@ impl LapceColor {
     pub const EDITOR_CURRENT_LINE: &'static str = "editor.current_line";
     pub const EDITOR_DEBUG_BREAK_LINE: &'static str = "editor.debug_break_line";
     pub const EDITOR_DIM: &'static str = "editor.dim";
+    pub const EDITOR_DOCUMENT_HIGHLIGHT: &'static str = "editor.document_highlight";
     pub const EDITOR_DRAG_DROP_BACKGROUND: &'static str =
         "editor.drag_drop_background";
     pub const EDITOR_DRAG_DROP_TAB_BACKGROUND: &'static str =
@@ -45,7 +46,6 @@ impl LapceColor {
     pub const EDITOR_INDENT_GUIDE: &'static str = "editor.indent_guide";
     pub const EDITOR_LINK: &'static str = "editor.link";
     pub const EDITOR_SELECTION: &'static str = "editor.selection";
-    pub const EDITOR_DOCUMENT_HIGHLIGHT: &'static str = "editor.document_highlight";
     pub const EDITOR_STICKY_HEADER_BACKGROUND: &'static str =
         "editor.sticky_header_background";
     pub const EDITOR_VISIBLE_WHITESPACE: &'static str = "editor.visible_whitespace";

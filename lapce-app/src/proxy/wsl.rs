@@ -6,7 +6,7 @@ use lapce_core::workspace::WslHost;
 use super::{new_command, remote::Remote};
 
 pub struct WslRemote {
-    pub wsl: WslHost
+    pub wsl: WslHost,
 }
 
 impl Remote for WslRemote {

@@ -4,19 +4,19 @@ use log::info;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
-    sync::mpsc
+    sync::mpsc,
 };
 
 use crate::{resolve_stderr, resolve_stdout};
 
 pub enum OutputLine {
     StdOut(String),
-    StdErr(String)
+    StdErr(String),
 }
 
 pub async fn run_command(
     mut command: Command,
-    mut channel: ExtChannel<StyledText>
+    mut channel: ExtChannel<StyledText>,
 ) -> Result<()> {
     // 启动子进程，并捕获 stdout 和 stderr
     let mut child = command
@@ -63,7 +63,7 @@ pub async fn run_command(
             },
             OutputLine::StdErr(line) => {
                 channel.send(resolve_stderr(&line));
-            }
+            },
         }
     }
 

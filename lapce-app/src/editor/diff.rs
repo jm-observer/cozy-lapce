@@ -5,10 +5,10 @@ use doc::{
     lines::{
         buffer::{
             diff::{DiffLines, rope_diff},
-            rope_text::RopeText
+            rope_text::RopeText,
         },
-        diff::DiffInfo
-    }
+        diff::DiffInfo,
+    },
 };
 use floem::{
     ext_event::create_ext_action,
@@ -16,14 +16,11 @@ use floem::{
 };
 use lapce_core::{
     editor_tab::DiffEditorInfo,
-    id::{DiffEditorId, EditorId, EditorTabManageId}
+    id::{DiffEditorId, EditorId, EditorTabManageId},
 };
 
 use super::EditorData;
-use crate::{
-doc::Doc, main_split::Editors,
-    window_workspace::CommonData
-};
+use crate::{doc::Doc, main_split::Editors, window_workspace::CommonData};
 
 // #[derive(Clone)]
 // pub struct DiffInfo {
@@ -39,7 +36,7 @@ pub struct DiffEditorData {
     pub left:          EditorData,
     pub right:         EditorData,
     // pub confirmed:     RwSignal<bool>,
-    pub focus_right:   RwSignal<bool>
+    pub focus_right:   RwSignal<bool>,
 }
 
 impl DiffEditorData {
@@ -50,7 +47,7 @@ impl DiffEditorData {
         left_doc: Rc<Doc>,
         right_doc: Rc<Doc>,
         editors: Editors,
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Self {
         let cx = cx.create_child();
 
@@ -63,9 +60,9 @@ impl DiffEditorData {
                 Some((editor_tab_id, id)),
                 common.clone(),
                 EditorViewKind::Diff {
-                    changes: vec![],
-                    is_right: false
-                }
+                    changes:  vec![],
+                    is_right: false,
+                },
             ),
             editors.make_from_doc(
                 cx,
@@ -73,11 +70,11 @@ impl DiffEditorData {
                 None,
                 Some((editor_tab_id, id)),
                 common.clone(),
-                EditorViewKind::Diff{
-                    changes: vec![],
-                    is_right: true
-                }
-            )
+                EditorViewKind::Diff {
+                    changes:  vec![],
+                    is_right: true,
+                },
+            ),
         ];
 
         let data = Self {
@@ -86,7 +83,7 @@ impl DiffEditorData {
             scope: cx,
             left,
             right,
-            focus_right: cx.create_rw_signal(true)
+            focus_right: cx.create_rw_signal(true),
         };
 
         data.listen_diff_changes();
@@ -97,7 +94,7 @@ impl DiffEditorData {
     pub fn diff_editor_info(&self) -> DiffEditorInfo {
         DiffEditorInfo {
             left_content:  self.left.doc().content.get_untracked(),
-            right_content: self.right.doc().content.get_untracked()
+            right_content: self.right.doc().content.get_untracked(),
         }
     }
 
@@ -106,7 +103,7 @@ impl DiffEditorData {
         cx: Scope,
         editor_tab_id: EditorTabManageId,
         diff_editor_id: EditorId,
-        editors: Editors
+        editors: Editors,
     ) -> Self {
         let cx = cx.create_child();
 
@@ -116,7 +113,7 @@ impl DiffEditorData {
                     editor_data.id(),
                     cx,
                     None,
-                    Some((editor_tab_id, diff_editor_id))
+                    Some((editor_tab_id, diff_editor_id)),
                 )
                 .unwrap()
         });
@@ -127,7 +124,7 @@ impl DiffEditorData {
             editor_tab_id: cx.create_rw_signal(editor_tab_id),
             focus_right: cx.create_rw_signal(true),
             left,
-            right
+            right,
         };
 
         diff_editor.listen_diff_changes();
@@ -191,14 +188,14 @@ impl DiffEditorData {
                     }
                     let diff = DiffInfo {
                         is_right: false,
-                        changes
+                        changes,
                     };
                     left_editor_view.set(EditorViewKind::Diff {
-                        changes: diff.left_changes(),
+                        changes:  diff.left_changes(),
                         is_right: false,
                     });
                     right_editor_view.set(EditorViewKind::Diff {
-                        changes: diff.right_changes(),
+                        changes:  diff.right_changes(),
                         is_right: true,
                     });
                 })
@@ -210,7 +207,7 @@ impl DiffEditorData {
                     right_rope,
                     right_rev,
                     right_atomic_rev.clone(),
-                    Some(3)
+                    Some(3),
                 );
                 send(changes);
             });
@@ -240,7 +237,8 @@ impl DiffEditorData {
 //         if let EditorViewKind::Diff(diff_info) = editor_view {
 //             let viewport = viewport.get();
 //             let line_height =
-//                 config.with_untracked(|config| config.editor.line_height() as f64);
+//                 config.with_untracked(|config| config.editor.line_height() as
+// f64);
 //
 //             let min_line = (viewport.y0 / line_height).floor() as usize;
 //             let max_line = (viewport.y1 / line_height).ceil() as usize;
@@ -299,7 +297,8 @@ impl DiffEditorData {
 //     };
 //
 //     let key_fn =
-//         move |section: &DiffShowMoreSection| (section.visual_line, section.lines);
+//         move |section: &DiffShowMoreSection| (section.visual_line,
+// section.lines);
 //
 //     let view_fn = move |section: DiffShowMoreSection| {
 //         stack((
@@ -311,8 +310,8 @@ impl DiffEditorData {
 //             label(move || format!("{} Hidden Lines", section.lines)),
 //             label(|| "|".to_string()).style(|s| s.margin_left(10.0)),
 //             stack((
-//                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move |s| {
-//                     let (caret_color, size) = config.signal(|config| {
+//                 svg(move || config.with_ui_svg(LapceIcons::FOLD)).style(move
+// |s| {                     let (caret_color, size) = config.signal(|config| {
 //                         (
 //                             config.color(LapceColor::EDITOR_FOREGROUND),
 //                             config.ui.icon_size.signal()
@@ -321,8 +320,8 @@ impl DiffEditorData {
 //                     let size = size.get() as f32;
 //                     s.size(size, size).color(caret_color.get())
 //                 }),
-//                 label(|| "Expand All".to_string()).style(|s| s.margin_left(6.0))
-//             ))
+//                 label(|| "Expand All".to_string()).style(|s|
+// s.margin_left(6.0))             ))
 //             .on_event_stop(EventListener::PointerDown, move |_| {})
 //             .on_click_stop(move |_event| {
 //                 left_editor_view.update(|editor_view| {
@@ -366,8 +365,8 @@ impl DiffEditorData {
 //                         s.size(size, size).color(caret_color.get())
 //                     }
 //                 ),
-//                 label(|| "Expand Up".to_string()).style(|s| s.margin_left(6.0))
-//             ))
+//                 label(|| "Expand Up".to_string()).style(|s|
+// s.margin_left(6.0))             ))
 //             .on_event_stop(EventListener::PointerDown, move |_| {})
 //             .on_click_stop(move |_event| {
 //                 left_editor_view.update(|editor_view| {
@@ -411,8 +410,8 @@ impl DiffEditorData {
 //                         s.size(size, size).color(caret_color.get())
 //                     }
 //                 ),
-//                 label(|| "Expand Down".to_string()).style(|s| s.margin_left(6.0))
-//             ))
+//                 label(|| "Expand Down".to_string()).style(|s|
+// s.margin_left(6.0))             ))
 //             .on_event_stop(EventListener::PointerDown, move |_| {})
 //             .on_click_stop(move |_event| {
 //                 left_editor_view.update(|editor_view| {

@@ -7,7 +7,7 @@ pub enum Offset {
     #[default]
     None,
     Add(usize),
-    Minus(usize)
+    Minus(usize),
 }
 
 impl Offset {
@@ -39,7 +39,7 @@ impl Offset {
         match self {
             Offset::None => {},
             Offset::Add(offset) => *num += *offset,
-            Offset::Minus(offset) => *num -= offset
+            Offset::Minus(offset) => *num -= offset,
         }
     }
 
@@ -47,7 +47,7 @@ impl Offset {
         match self {
             Offset::None => num,
             Offset::Add(offset) => num + *offset,
-            Offset::Minus(offset) => num - offset
+            Offset::Minus(offset) => num - offset,
         }
     }
 }
@@ -56,7 +56,7 @@ impl Offset {
 pub struct OffsetDelta {
     pub copy_start:   Interval,
     pub internal_len: usize,
-    pub copy_end:     Interval
+    pub copy_end:     Interval,
 }
 
 impl Default for OffsetDelta {
@@ -64,7 +64,7 @@ impl Default for OffsetDelta {
         Self {
             copy_start:   Interval::new(0, 0),
             internal_len: 0,
-            copy_end:     Interval::new(0, 0)
+            copy_end:     Interval::new(0, 0),
         }
     }
 }
@@ -74,7 +74,7 @@ pub struct OriginLinesDelta {
     pub copy_line_start:      CopyDelta,
     pub recompute_line_start: usize,
     pub recompute_offset_end: usize,
-    pub copy_line_end:        CopyDelta
+    pub copy_line_end:        CopyDelta,
 }
 
 impl Default for OriginLinesDelta {
@@ -83,7 +83,7 @@ impl Default for OriginLinesDelta {
             copy_line_start:      Default::default(),
             recompute_line_start: 0,
             recompute_offset_end: usize::MAX,
-            copy_line_end:        Default::default()
+            copy_line_end:        Default::default(),
         }
     }
 }
@@ -99,8 +99,8 @@ pub enum CopyDelta {
         offset: Offset,
         /// 相对的旧buffer的偏移
         line_offset: Offset,
-        copy_line: Interval
-    }
+        copy_line: Interval,
+    },
 }
 
 // impl CopyStartDelta {
@@ -123,7 +123,7 @@ pub fn resolve_delta_rs(rope: &Rope, delta: &RopeDelta) -> Result<OriginLinesDel
 
 pub fn resolve_line_delta(
     rope: &Rope,
-    offset_delta_compute: OffsetDelta
+    offset_delta_compute: OffsetDelta,
 ) -> Result<OriginLinesDelta> {
     let mut copy_line_start = CopyDelta::default();
     let mut offset_end = 0;
@@ -131,11 +131,11 @@ pub fn resolve_line_delta(
     if !offset_delta_compute.copy_start.is_empty() {
         let copy_line_start_info = resolve_line_complete_by_start_offset(
             rope,
-            offset_delta_compute.copy_start.start
+            offset_delta_compute.copy_start.start,
         )?;
         let copy_line_end_info = resolve_line_complete_by_end_offset(
             rope,
-            offset_delta_compute.copy_start.end
+            offset_delta_compute.copy_start.end,
         )?;
         offset_end += offset_delta_compute.copy_start.size();
         if copy_line_end_info.0 > copy_line_start_info.0 {
@@ -151,7 +151,7 @@ pub fn resolve_line_delta(
                 recompute_first_or_last_line: recompute_first_line,
                 offset: Offset::minus(offset_delta_compute.copy_start.start),
                 line_offset,
-                copy_line
+                copy_line,
             };
             line_start += copy_line_end_info.0 - copy_line_start_info.0;
         }
@@ -170,7 +170,7 @@ pub fn resolve_line_delta(
         };
         let copy_line_end_info = resolve_line_complete_by_end_offset(
             rope,
-            offset_delta_compute.copy_end.end
+            offset_delta_compute.copy_end.end,
         )?;
         if copy_line_end_info.0 > line {
             // offset_end += copy_line_start_info.1 -
@@ -186,7 +186,7 @@ pub fn resolve_line_delta(
                 recompute_first_or_last_line: recompute_last_line,
                 offset: Offset::new(offset_of_line, offset_end),
                 copy_line,
-                line_offset: Default::default()
+                line_offset: Default::default(),
             };
         } else {
             offset_end = usize::MAX;
@@ -198,14 +198,14 @@ pub fn resolve_line_delta(
         copy_line_start,
         recompute_line_start: line_start,
         recompute_offset_end: offset_end,
-        copy_line_end
+        copy_line_end,
     })
 }
 
 /// return (line, offset_line, recompute)
 fn resolve_line_complete_by_start_offset(
     rope: &Rope,
-    offset: usize
+    offset: usize,
 ) -> Result<(usize, usize, bool)> {
     let mut line = rope.line_of_offset(offset);
     let mut line_offset = rope.offset_of_line(line)?;
@@ -220,7 +220,7 @@ fn resolve_line_complete_by_start_offset(
 /// return (line, offset_line, recompute)
 fn resolve_line_complete_by_end_offset(
     rope: &Rope,
-    offset: usize
+    offset: usize,
 ) -> Result<(usize, usize, bool)> {
     let line = rope.line_of_offset(offset);
     let offset_line = rope.offset_of_line(line)?;
@@ -242,7 +242,7 @@ pub fn resolve_delta_compute(delta: &RopeDelta) -> Option<OffsetDelta> {
                 },
                 DeltaElement::Insert(val) => {
                     rs.internal_len = val.len();
-                }
+                },
             }
         },
         _ => {
@@ -250,7 +250,7 @@ pub fn resolve_delta_compute(delta: &RopeDelta) -> Option<OffsetDelta> {
             match (first, last) {
                 (
                     DeltaElement::Copy(start, end),
-                    DeltaElement::Copy(start_end, end_end)
+                    DeltaElement::Copy(start_end, end_end),
                 ) => {
                     rs.copy_start = Interval::new(*start, *end);
                     rs.copy_end = Interval::new(*start_end, *end_end);
@@ -261,14 +261,14 @@ pub fn resolve_delta_compute(delta: &RopeDelta) -> Option<OffsetDelta> {
                 },
                 (
                     DeltaElement::Insert(val),
-                    DeltaElement::Copy(start_end, end_end)
+                    DeltaElement::Copy(start_end, end_end),
                 ) => {
                     rs.internal_len = val.len();
                     rs.copy_end = Interval::new(*start_end, *end_end);
                 },
                 (DeltaElement::Insert(val), DeltaElement::Insert(val_end)) => {
                     rs.internal_len = val.len() + val_end.len();
-                }
+                },
             }
             if len > 2 {
                 let iter = delta.els[1..len - 1].iter();
@@ -279,11 +279,11 @@ pub fn resolve_delta_compute(delta: &RopeDelta) -> Option<OffsetDelta> {
                         },
                         DeltaElement::Insert(val) => {
                             rs.internal_len += val.len();
-                        }
+                        },
                     }
                 }
             }
-        }
+        },
     }
     Some(rs)
 }

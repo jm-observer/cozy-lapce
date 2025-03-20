@@ -2,11 +2,11 @@ use floem::{
     View,
     prelude::{
         Decorators, RwSignal, SignalGet, SignalWith, Svg, clip, container, palette,
-        static_label
+        static_label,
     },
     style::{CursorStyle, StyleValue},
     taffy::{AlignItems, JustifyContent},
-    views::dyn_stack
+    views::dyn_stack,
 };
 use lapce_core::icon::LapceIcons;
 use log::{error, warn};
@@ -15,10 +15,10 @@ use crate::{
     config::{WithLapceConfig, color::LapceColor},
     editor::{
         DocSignal, EditorData,
-        gutter_new::{GutterData, GutterMarker, gutter_data}
+        gutter_new::{GutterData, GutterMarker, gutter_data},
     },
     svg,
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 fn gutter_marker_none_svg_view(config: WithLapceConfig) -> Svg {
@@ -33,7 +33,7 @@ fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
         let (icon_size, color) = config.signal(|config| {
             (
                 config.ui.icon_size.signal(),
-                config.color(LapceColor::DEBUG_BREAKPOINT_HOVER)
+                config.color(LapceColor::DEBUG_BREAKPOINT_HOVER),
             )
         });
         let size = icon_size.get() as f64;
@@ -44,7 +44,7 @@ fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
 fn gutter_marker_code_len_svg_view(
     window_tab_data: WindowWorkspaceData,
     line: Option<usize>,
-    doc: DocSignal
+    doc: DocSignal,
 ) -> Svg {
     let config = window_tab_data.common.config;
     svg(move || config.with_ui_svg(LapceIcons::START))
@@ -72,7 +72,7 @@ fn gutter_marker_code_len_svg_view(
 
 pub fn editor_gutter_new(
     window_tab_data: WindowWorkspaceData,
-    e_data: RwSignal<EditorData>
+    e_data: RwSignal<EditorData>,
 ) -> impl View {
     let (doc, config) = e_data.with_untracked(|e| (e.doc_signal(), e.common.config));
     let window_tab_data_clone = window_tab_data.clone();
@@ -81,16 +81,16 @@ pub fn editor_gutter_new(
             dyn_stack(
                 move || gutter_data(window_tab_data_clone.clone(), e_data),
                 |data| data.clone(),
-                move |data| gutter_data_view(&data, &window_tab_data, doc, config)
+                move |data| gutter_data_view(&data, &window_tab_data, doc, config),
             )
-            .style(|style| style.height_full().width_full())
+            .style(|style| style.height_full().width_full()),
         )
         .style(move |style| {
             style
                 .width_full()
                 .height_pct(100.0)
                 .background(config.with_color(LapceColor::PANEL_BACKGROUND))
-        })
+        }),
     )
     .style(move |style| {
         let doc = doc.get();
@@ -110,7 +110,7 @@ fn gutter_data_view(
     data: &GutterData,
     window_tab_data: &WindowWorkspaceData,
     doc: DocSignal,
-    config: WithLapceConfig
+    config: WithLapceConfig,
 ) -> impl View {
     let data_clone = data.clone();
     let line_height = window_tab_data.common.ui_line_height;
@@ -127,7 +127,7 @@ fn gutter_data_view(
                 .align_items(AlignItems::Center)
                 .justify_content(JustifyContent::FlexEnd)
         }),
-        marker_view(data, window_tab_data.clone(), config, doc)
+        marker_view(data, window_tab_data.clone(), config, doc),
     ))
     .style(move |style| {
         style
@@ -141,16 +141,16 @@ fn marker_view(
     data: &GutterData,
     window_tab_data: WindowWorkspaceData,
     config: WithLapceConfig,
-    doc_signal: DocSignal
+    doc_signal: DocSignal,
 ) -> impl View {
     let svg = match data.marker {
         GutterMarker::None => gutter_marker_none_svg_view(config),
         GutterMarker::CodeLen => gutter_marker_code_len_svg_view(
             window_tab_data,
             data.origin_line_start,
-            doc_signal
+            doc_signal,
         ),
-        GutterMarker::Breakpoint => gutter_marker_breakpoint_svg_view(config)
+        GutterMarker::Breakpoint => gutter_marker_breakpoint_svg_view(config),
     };
     container(svg)
         .style(move |s| {

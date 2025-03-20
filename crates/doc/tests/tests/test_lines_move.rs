@@ -9,11 +9,11 @@ use doc::lines::{
     fold::{FoldingDisplayItem, FoldingDisplayType},
     mode::Mode,
     selection::Selection,
-    word::WordCursor
+    word::WordCursor,
 };
 use floem::{
     kurbo::{Point, Rect},
-    reactive::SignalUpdate
+    reactive::SignalUpdate,
 };
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
@@ -21,7 +21,7 @@ use lsp_types::Position;
 
 use super::lines_util::{
     cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_main_folded_item_2, init_semantic_2
+    init_main_folded_item_2, init_semantic_2,
 };
 
 #[test]

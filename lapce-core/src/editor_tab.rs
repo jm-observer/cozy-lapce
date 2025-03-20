@@ -7,7 +7,7 @@ use crate::doc::DocContent;
 pub struct EditorTabInfo {
     pub active:   usize,
     pub is_focus: bool,
-    pub children: Vec<EditorTabChildInfo>
+    pub children: Vec<EditorTabChildInfo>,
 }
 
 impl EditorTabInfo {}
@@ -19,7 +19,7 @@ pub enum EditorTabChildInfo {
     Settings,
     ThemeColorSettings,
     Keymap,
-    Volt(VoltID)
+    Volt(VoltID),
 }
 
 impl EditorTabChildInfo {}
@@ -29,11 +29,11 @@ pub struct EditorInfo {
     pub content:       DocContent,
     pub unsaved:       Option<String>,
     pub offset:        usize,
-    pub scroll_offset: (f64, f64)
+    pub scroll_offset: (f64, f64),
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DiffEditorInfo {
     pub left_content:  DocContent,
-    pub right_content: DocContent
+    pub right_content: DocContent,
 }

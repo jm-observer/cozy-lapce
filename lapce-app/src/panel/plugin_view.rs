@@ -6,22 +6,22 @@ use floem::{
     peniko::kurbo::{Point, Rect, Size},
     prelude::text_input,
     reactive::{
-        RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo, create_rw_signal
+        RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo, create_rw_signal,
     },
     style::CursorStyle,
     views::{
         Decorators, VirtualVector, container, dyn_container, img, label,
-        scroll::scroll, stack, virtual_stack
-    }
+        scroll::scroll, stack, virtual_stack,
+    },
 };
 use indexmap::IndexMap;
 use lapce_core::{
     icon::LapceIcons,
-    panel::{PanelContainerPosition, PanelKind, PanelSection}
+    panel::{PanelContainerPosition, PanelKind, PanelSection},
 };
 use lapce_rpc::{
     core::CoreRpcHandler,
-    plugin::{VoltID, VoltInfo}
+    plugin::{VoltID, VoltInfo},
 };
 
 use super::view::PanelBuilder;
@@ -31,7 +31,7 @@ use crate::{
     config::color::LapceColor,
     plugin::{AvailableVoltData, InstalledVoltData, PluginData, VoltIcon},
     svg,
-    window_workspace::{Focus, WindowWorkspaceData}
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 pub const VOLT_DEFAULT_PNG: &[u8] = include_bytes!("../../../extra/images/volt.png");
 
@@ -62,14 +62,14 @@ impl<K: Clone + 'static, V: Clone + 'static> VirtualVector<(usize, K, V)>
             self.items(range)
                 .into_iter()
                 .enumerate()
-                .map(move |(i, (k, v))| (i + start, k, v))
+                .map(move |(i, (k, v))| (i + start, k, v)),
         )
     }
 }
 
 pub fn plugin_panel(
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition
+    position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let plugin = window_tab_data.plugin.clone();
@@ -79,12 +79,12 @@ pub fn plugin_panel(
         .add(
             "Installed",
             installed_view(plugin.clone()),
-            window_tab_data.panel.section_open(PanelSection::Installed)
+            window_tab_data.panel.section_open(PanelSection::Installed),
         )
         .add(
             "Available",
             available_view(plugin.clone(), core_rpc),
-            window_tab_data.panel.section_open(PanelSection::Available)
+            window_tab_data.panel.section_open(PanelSection::Available),
         )
         .build()
         .debug_name("Plugin Panel")
@@ -115,7 +115,7 @@ fn installed_view(plugin: PluginData) -> impl View {
                     Some(VoltIcon::Img(buf)) => {
                         img(move || buf.clone()).style(|s| s.size_full()).into_any()
                     },
-                }
+                },
             )
             .style(|s| {
                 s.min_size(50.0, 50.0)
@@ -151,7 +151,7 @@ fn installed_view(plugin: PluginData) -> impl View {
                                 format!("v{}", volt.meta.with(|m| m.version.clone()))
                             }
                         })
-                        .style(|s| s.text_ellipsis().selectable(false))
+                        .style(|s| s.text_ellipsis().selectable(false)),
                     ))
                     .style(|s| {
                         s.justify_between()
@@ -164,20 +164,20 @@ fn installed_view(plugin: PluginData) -> impl View {
                         || false,
                         || false,
                         || "Options",
-                        config
+                        config,
                     )
                     .style(|s| s.padding_left(6.0))
                     .popout_menu(move || {
                         plugin.plugin_controls(volt.meta.get(), volt.latest.get())
-                    })
+                    }),
                 ))
-                .style(|s| s.width_pct(100.0).items_center())
+                .style(|s| s.width_pct(100.0).items_center()),
             ))
-            .style(|s| s.flex_col().flex_grow(1.0).flex_basis(0.0).min_width(0.0))
+            .style(|s| s.flex_col().flex_grow(1.0).flex_basis(0.0).min_width(0.0)),
         ))
         .on_click_stop(move |_| {
             internal_command.send(InternalCommand::OpenVoltView {
-                volt_id: local_volt_id.clone()
+                volt_id: local_volt_id.clone(),
             });
         })
         .style(move |s| {
@@ -186,7 +186,7 @@ fn installed_view(plugin: PluginData) -> impl View {
                 .padding_vert(5.0)
                 .hover(|s| {
                     s.background(
-                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
         })
@@ -201,11 +201,11 @@ fn installed_view(plugin: PluginData) -> impl View {
                 // })),
                 move || IndexMapItems(volts.get()),
                 move |(_, id, _)| id.clone(),
-                move |(_, _, volt)| view_fn(volt, plugin.clone())
+                move |(_, _, volt)| view_fn(volt, plugin.clone()),
             )
-            .style(|s| s.flex_col().width_pct(100.0))
+            .style(|s| s.flex_col().width_pct(100.0)),
         )
-        .style(|s| s.absolute().size_pct(100.0, 100.0))
+        .style(|s| s.absolute().size_pct(100.0, 100.0)),
     )
     .style(|s| {
         s.width_pct(100.0)
@@ -246,7 +246,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                     (
                         config.color(LapceColor::LAPCE_BUTTON_PRIMARY_FOREGROUND),
                         config.color(LapceColor::LAPCE_BUTTON_PRIMARY_BACKGROUND),
-                        config.color(LapceColor::EDITOR_DIM)
+                        config.color(LapceColor::EDITOR_DIM),
                     )
                 });
                 let bg = bg.get();
@@ -281,7 +281,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                     Some(VoltIcon::Img(buf)) => {
                         img(move || buf.clone()).style(|s| s.size_full()).into_any()
                     },
-                }
+                },
             )
             .style(|s| {
                 s.min_size(50.0, 50.0)
@@ -307,15 +307,15 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                             .flex_basis(0.0)
                             .selectable(false)
                     }),
-                    install_button(id, volt.info, volt.installing)
+                    install_button(id, volt.info, volt.installing),
                 ))
-                .style(|s| s.width_pct(100.0).items_center())
+                .style(|s| s.width_pct(100.0).items_center()),
             ))
-            .style(|s| s.flex_col().flex_grow(1.0).flex_basis(0.0).min_width(0.0))
+            .style(|s| s.flex_col().flex_grow(1.0).flex_basis(0.0).min_width(0.0)),
         ))
         .on_click_stop(move |_| {
             internal_command.send(InternalCommand::OpenVoltView {
-                volt_id: volt_id.clone()
+                volt_id: volt_id.clone(),
             });
         })
         .style(move |s| {
@@ -324,7 +324,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 .padding_vert(5.0)
                 .hover(|s| {
                     s.background(
-                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                        config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                     )
                 })
         })
@@ -345,7 +345,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                     .style(|s| {
                         s.padding_vert(4.0).padding_horiz(10.0).min_width_pct(100.0)
                         // }).on_click_stop(move |event| {
-                    })
+                    }),
             )
             .ensure_visible(move || {
                 Size::new(20.0, 0.0)
@@ -360,7 +360,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                 let (caret_color, bg) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_BACKGROUND),
-                        config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::LAPCE_BORDER),
                     )
                 });
                 s.width_pct(100.0)
@@ -382,7 +382,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
                     // })),
                     move || IndexMapItems(volts.get()),
                     move |(_, id, _)| id.clone(),
-                    view_fn
+                    view_fn,
                 )
                 .on_resize(move |rect| {
                     content_rect.set(rect);
@@ -396,7 +396,7 @@ fn available_view(plugin: PluginData, core_rpc: CoreRpcHandler) -> impl View {
             })
             .style(|s| s.absolute().size_pct(100.0, 100.0))
         })
-        .style(|s| s.size_pct(100.0, 100.0))
+        .style(|s| s.size_pct(100.0, 100.0)),
     ))
     .style(|s| {
         s.width_pct(100.0)

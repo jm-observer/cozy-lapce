@@ -11,7 +11,7 @@ pub enum LineEnding {
     /// `\r\n` Windows  
     CrLf,
     /// `\n` Unix
-    Lf
+    Lf,
 }
 impl LineEnding {
     /// Replace the line endings (`\n`, `\r\n`, `\r`) used in `text`
@@ -47,7 +47,7 @@ impl LineEnding {
                 },
                 LeChunkKind::Cr => {
                     builder.replace(range, le.clone());
-                }
+                },
             }
         }
 
@@ -86,7 +86,7 @@ impl LineEnding {
     pub fn get_chars(&self) -> &'static str {
         match self {
             LineEnding::CrLf => "\r\n",
-            LineEnding::Lf => "\n"
+            LineEnding::Lf => "\n",
         }
     }
 
@@ -94,7 +94,7 @@ impl LineEnding {
     pub fn as_str(&self) -> &'static str {
         match self {
             LineEnding::CrLf => "CRLF",
-            LineEnding::Lf => "LF"
+            LineEnding::Lf => "LF",
         }
     }
 
@@ -102,7 +102,7 @@ impl LineEnding {
     pub fn len(&self) -> usize {
         match self {
             LineEnding::CrLf => 2,
-            LineEnding::Lf => 1
+            LineEnding::Lf => 1,
         }
     }
 
@@ -117,7 +117,7 @@ pub enum LineEndingDetermination {
     CrLf,
     Lf,
     Mixed,
-    Unknown
+    Unknown,
 }
 impl LineEndingDetermination {
     // TODO: should we just do a simpler routine of checking the first
@@ -134,7 +134,7 @@ impl LineEndingDetermination {
                 LineEndingDetermination::Mixed => {
                     return LineEndingDetermination::Mixed;
                 },
-                LineEndingDetermination::Unknown => {}
+                LineEndingDetermination::Unknown => {},
             }
         }
 
@@ -142,7 +142,7 @@ impl LineEndingDetermination {
             (true, true) => LineEndingDetermination::Mixed,
             (true, false) => LineEndingDetermination::CrLf,
             (false, true) => LineEndingDetermination::Lf,
-            (false, false) => LineEndingDetermination::Unknown
+            (false, false) => LineEndingDetermination::Unknown,
         }
     }
 
@@ -159,7 +159,7 @@ impl LineEndingDetermination {
             },
             Some(x) if bytes[x] == b'\n' => LineEndingDetermination::Lf,
             Some(_) => LineEndingDetermination::Mixed,
-            None => LineEndingDetermination::Unknown
+            None => LineEndingDetermination::Unknown,
         }
     }
 
@@ -167,7 +167,7 @@ impl LineEndingDetermination {
         match self {
             LineEndingDetermination::CrLf => LineEnding::CrLf,
             LineEndingDetermination::Lf => LineEnding::Lf,
-            LineEndingDetermination::Mixed | LineEndingDetermination::Unknown => le
+            LineEndingDetermination::Mixed | LineEndingDetermination::Unknown => le,
         }
     }
 }
@@ -176,7 +176,7 @@ impl LineEndingDetermination {
 enum LeChunkKind {
     CrLf,
     Lf,
-    Cr
+    Cr,
 }
 
 /// Line ending chunk searcher
@@ -184,14 +184,14 @@ struct FullLeChunkSearch<'a, I: Iterator<Item = &'a str>> {
     offset:    usize,
     /// Offset within the chunk itself
     chunk_pos: usize,
-    chunks:    Peekable<I>
+    chunks:    Peekable<I>,
 }
 impl<'a, I: Iterator<Item = &'a str>> FullLeChunkSearch<'a, I> {
     fn new(chunks: I) -> Self {
         Self {
             offset:    0,
             chunk_pos: 0,
-            chunks:    chunks.peekable()
+            chunks:    chunks.peekable(),
         }
     }
 
@@ -281,7 +281,7 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for FullLeChunkSearch<'a, I> {
             None => {
                 self.advance_chunk();
                 self.next()
-            }
+            },
         }
     }
 }
@@ -292,7 +292,7 @@ struct LoneCrChunkSearch<'a, I: Iterator<Item = &'a str>> {
     /// Offset of the start of the current chunk
     offset:    usize,
     chunk_pos: usize,
-    chunks:    Peekable<I>
+    chunks:    Peekable<I>,
 }
 
 impl<'a, I: Iterator<Item = &'a str>> LoneCrChunkSearch<'a, I> {
@@ -300,7 +300,7 @@ impl<'a, I: Iterator<Item = &'a str>> LoneCrChunkSearch<'a, I> {
         Self {
             offset:    0,
             chunk_pos: 0,
-            chunks:    chunks.peekable()
+            chunks:    chunks.peekable(),
         }
     }
 
@@ -363,7 +363,7 @@ impl<'a, I: Iterator<Item = &'a str>> Iterator for LoneCrChunkSearch<'a, I> {
                 },
                 None => {
                     self.advance_chunk();
-                }
+                },
             }
         }
     }

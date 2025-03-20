@@ -14,14 +14,14 @@ pub struct EditorLocation {
     // if there's no match path on the active editor tab
     pub ignore_unconfirmed: bool,
     // This will stop finding matching path on different editor tabs
-    pub same_editor_tab:    bool
+    pub same_editor_tab:    bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditorPosition {
     Line(usize),
     Position(Position),
-    Offset(usize)
+    Offset(usize),
 }
 
 impl EditorPosition {
@@ -31,7 +31,7 @@ impl EditorPosition {
             EditorPosition::Position(position) => {
                 text.offset_of_position(position)?
             },
-            EditorPosition::Offset(offset) => (*offset).min(text.len())
+            EditorPosition::Offset(offset) => (*offset).min(text.len()),
         })
     }
 }

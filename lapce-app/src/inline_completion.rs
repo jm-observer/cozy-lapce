@@ -4,9 +4,9 @@ use doc::lines::{
     RopeTextPosition,
     buffer::{
         Buffer,
-        rope_text::{RopeText, RopeTextRef}
+        rope_text::{RopeText, RopeTextRef},
     },
-    selection::Selection
+    selection::Selection,
 };
 use floem::reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch};
 use log::error;
@@ -27,7 +27,7 @@ pub struct InlineCompletionItem {
     /// The range (of offsets) to replace  
     pub range:              Option<Range<usize>>,
     pub command:            Option<lsp_types::Command>,
-    pub insert_text_format: Option<InsertTextFormat>
+    pub insert_text_format: Option<InsertTextFormat>,
 }
 impl InlineCompletionItem {
     pub fn from_lsp(buffer: &Buffer, item: lsp_types::InlineCompletionItem) -> Self {
@@ -37,14 +37,14 @@ impl InlineCompletionItem {
                 Err(err) => {
                     error!("{err:?}");
                     return None;
-                }
+                },
             };
             let end = match buffer.offset_of_position(&r.end) {
                 Ok(rs) => rs,
                 Err(err) => {
                     error!("{err:?}");
                     return None;
-                }
+                },
             };
             Some(start..end)
         });
@@ -53,14 +53,14 @@ impl InlineCompletionItem {
             filter_text: item.filter_text,
             range,
             command: item.command,
-            insert_text_format: item.insert_text_format
+            insert_text_format: item.insert_text_format,
         }
     }
 
     pub fn apply(
         &self,
         editor: &EditorData,
-        start_offset: usize
+        start_offset: usize,
     ) -> anyhow::Result<()> {
         let text_format = self
             .insert_text_format
@@ -76,7 +76,7 @@ impl InlineCompletionItem {
             InsertTextFormat::PLAIN_TEXT => editor.do_edit(
                 &selection,
                 &[(selection.clone(), self.insert_text.as_str())],
-                false
+                false,
             ),
             InsertTextFormat::SNIPPET => {
                 let snippet = Snippet::from_str(&self.insert_text)?;
@@ -87,12 +87,12 @@ impl InlineCompletionItem {
                     snippet,
                     &selection,
                     additional_edit,
-                    start_offset
+                    start_offset,
                 )?;
             },
             _ => {
                 // We don't know how to support this text format
-            }
+            },
         }
 
         Ok(())
@@ -108,7 +108,7 @@ pub enum InlineCompletionStatus {
     Started,
     /// The inline completion is active and has received a response from the
     /// server.
-    Active
+    Active,
 }
 
 #[derive(Clone)]
@@ -118,7 +118,7 @@ pub struct InlineCompletionData {
     pub active:       RwSignal<usize>,
     pub items:        im::Vector<InlineCompletionItem>,
     pub start_offset: usize,
-    pub path:         PathBuf
+    pub path:         PathBuf,
 }
 impl InlineCompletionData {
     pub fn new(cx: Scope) -> Self {
@@ -127,7 +127,7 @@ impl InlineCompletionData {
             active:       cx.create_rw_signal(0),
             items:        im::vector![],
             start_offset: 0,
-            path:         PathBuf::new()
+            path:         PathBuf::new(),
         }
     }
 
@@ -169,7 +169,7 @@ impl InlineCompletionData {
         &mut self,
         items: im::Vector<InlineCompletionItem>,
         start_offset: usize,
-        path: PathBuf
+        path: PathBuf,
     ) {
         batch(|| {
             self.items = items;
@@ -212,7 +212,7 @@ impl InlineCompletionData {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
         doc.set_inline_completion(text, line, col);
     }
@@ -221,7 +221,7 @@ impl InlineCompletionData {
         &self,
         doc: &Doc,
         cursor_offset: usize,
-        enable_inline_completion: bool
+        enable_inline_completion: bool,
     ) {
         if !enable_inline_completion {
             doc.clear_inline_completion();
@@ -252,10 +252,10 @@ impl InlineCompletionData {
                     Err(err) => {
                         error!("{err:?}");
                         return;
-                    }
+                    },
                 };
                 doc.set_inline_completion(new, line, col);
-            }
+            },
         }
     }
 }
@@ -263,7 +263,7 @@ impl InlineCompletionData {
 enum ICompletionRes {
     Hide,
     Unchanged,
-    Set(String, usize)
+    Set(String, usize),
 }
 
 /// Get the text of the inline completion item  
@@ -272,7 +272,7 @@ fn inline_completion_text(
     start_offset: usize,
     cursor_offset: usize,
     item: &InlineCompletionItem,
-    current_completion: Option<&str>
+    current_completion: Option<&str>,
 ) -> ICompletionRes {
     let text_format = item
         .insert_text_format
@@ -303,7 +303,7 @@ fn inline_completion_text(
         _ => {
             // We don't know how to support this text format
             return ICompletionRes::Hide;
-        }
+        },
     };
 
     let range = start_offset..match rope_text.offset_line_end(start_offset, true) {
@@ -311,7 +311,7 @@ fn inline_completion_text(
         Err(err) => {
             error!("{err:?}");
             return ICompletionRes::Unchanged;
-        }
+        },
     };
     let prefix = rope_text.slice_to_cow(range);
     // We strip the prefix of the current input from the label.

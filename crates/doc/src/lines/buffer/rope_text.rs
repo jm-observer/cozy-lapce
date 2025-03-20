@@ -147,7 +147,7 @@ pub trait RopeText {
     /// will return an empty string.
     fn line_content(&self, line: usize) -> Result<Cow<'_, str>> {
         Ok(self.text().slice_to_cow(
-            self.offset_of_line(line)?..self.offset_of_line(line + 1)?
+            self.offset_of_line(line)?..self.offset_of_line(line + 1)?,
         ))
     }
 
@@ -156,7 +156,7 @@ pub trait RopeText {
         &self,
         offset: usize,
         count: usize,
-        limit: usize
+        limit: usize,
     ) -> usize {
         let offset = offset.min(self.len());
         let mut cursor = Cursor::new(self.text(), offset);
@@ -179,7 +179,7 @@ pub trait RopeText {
         &self,
         offset: usize,
         count: usize,
-        limit: usize
+        limit: usize,
     ) -> usize {
         let offset = if offset > self.len() {
             self.len()
@@ -258,15 +258,15 @@ pub trait RopeText {
     /// `slice_to_cow` which can
     fn char_indices_iter<'a, T: IntervalBounds>(
         &'a self,
-        range: T
+        range: T,
     ) -> CharIndicesJoin<
         std::str::CharIndices<'a>,
-        std::iter::Map<ChunkIter<'a>, fn(&str) -> std::str::CharIndices<'_>>
+        std::iter::Map<ChunkIter<'a>, fn(&str) -> std::str::CharIndices<'_>>,
     > {
         let iter: ChunkIter<'a> = self.text().iter_chunks(range);
         let iter: std::iter::Map<
             ChunkIter<'a>,
-            fn(&str) -> std::str::CharIndices<'_>
+            fn(&str) -> std::str::CharIndices<'_>,
         > = iter.map(str::char_indices);
         CharIndicesJoin::new(iter)
     }
@@ -296,7 +296,7 @@ pub trait RopeText {
                 let c = word_cursor.inner.next_codepoint();
                 c.is_some_and(|c| c == '\n')
             },
-            _ => false
+            _ => false,
         })
     }
 
@@ -325,10 +325,10 @@ pub trait RopeText {
         &self,
         offset: usize,
         mut count: usize,
-        mut find_next: F
+        mut find_next: F,
     ) -> usize
     where
-        F: FnMut(&mut ParagraphCursor) -> Option<usize> {
+        F: FnMut(&mut ParagraphCursor) -> Option<usize>, {
         let mut cursor = ParagraphCursor::new(self.text(), offset);
         let mut new_offset = offset;
         while count != 0 {
@@ -362,10 +362,10 @@ pub trait RopeText {
         &self,
         offset: usize,
         mut count: usize,
-        mut find_next: F
+        mut find_next: F,
     ) -> usize
     where
-        F: FnMut(&mut WordCursor) -> Option<usize> {
+        F: FnMut(&mut WordCursor) -> Option<usize>, {
         let mut cursor = WordCursor::new(self.text(), offset);
         let mut new_offset = offset;
         while count != 0 {
@@ -388,7 +388,7 @@ pub trait RopeText {
         &self,
         offset: usize,
         count: usize,
-        inserting: bool
+        inserting: bool,
     ) -> usize {
         let mut new_offset =
             self.find_nth_word(offset, count, |cursor| cursor.end_boundary());
@@ -402,7 +402,7 @@ pub trait RopeText {
         &self,
         offset: usize,
         count: usize,
-        mode: Mode
+        mode: Mode,
     ) -> usize {
         self.find_nth_word(offset, count, |cursor| cursor.prev_boundary(mode))
     }
@@ -414,7 +414,7 @@ pub trait RopeText {
 
 #[derive(Clone)]
 pub struct RopeTextVal {
-    pub text: Rope
+    pub text: Rope,
 }
 impl RopeTextVal {
     pub fn new(text: Rope) -> Self {
@@ -433,7 +433,7 @@ impl From<Rope> for RopeTextVal {
 }
 #[derive(Copy, Clone)]
 pub struct RopeTextRef<'a> {
-    pub text: &'a Rope
+    pub text: &'a Rope,
 }
 impl<'a> RopeTextRef<'a> {
     pub fn new(text: &'a Rope) -> Self {
@@ -465,7 +465,7 @@ pub struct CharIndicesJoin<I: Iterator<Item = (usize, char)>, O: Iterator<Item =
     current_base:    usize,
     /// The latest base, since we don't know when the
     /// `current_indices` iterator will end
-    latest_base:     usize
+    latest_base:     usize,
 }
 
 impl<I: Iterator<Item = (usize, char)>, O: Iterator<Item = I>>
@@ -476,7 +476,7 @@ impl<I: Iterator<Item = (usize, char)>, O: Iterator<Item = I>>
             main_iter,
             current_indices: None,
             current_base: 0,
-            latest_base: 0
+            latest_base: 0,
         }
     }
 }

@@ -9,11 +9,12 @@ use doc::lines::{
     movement::{LinePosition, Movement},
     register::Register,
     selection::{SelRegion, Selection},
-    soft_tab::SnapDirection
+    soft_tab::SnapDirection,
 };
 use floem::reactive::SignalGet;
 use lapce_xi_rope::Rope;
 use log::info;
+
 use crate::editor::floem_editor::{CommonAction, Editor};
 
 /// Move a selection region by a given movement.
@@ -26,7 +27,7 @@ fn move_region(
     count: usize,
     modify: bool,
     movement: &Movement,
-    mode: Mode
+    mode: Mode,
 ) -> Result<SelRegion> {
     let (count, region) = if count >= 1 && !modify && !region.is_caret() {
         // If we're not a caret, and we are moving left/up or right/down, we want to
@@ -44,10 +45,10 @@ fn move_region(
                 let rightmost = region.max();
                 (
                     count - 1,
-                    SelRegion::new(rightmost, rightmost, region.horiz)
+                    SelRegion::new(rightmost, rightmost, region.horiz),
                 )
             },
-            _ => (count, *region)
+            _ => (count, *region),
         }
     } else {
         (count, *region)
@@ -60,11 +61,11 @@ fn move_region(
         affinity,
         count,
         movement,
-        mode
+        mode,
     )?;
     let start = match modify {
         true => region.start,
-        false => end
+        false => end,
     };
     Ok(SelRegion::new(start, end, horiz))
 }
@@ -76,12 +77,12 @@ pub fn move_selection(
     count: usize,
     modify: bool,
     movement: &Movement,
-    mode: Mode
+    mode: Mode,
 ) -> Result<Selection> {
     let mut new_selection = Selection::new();
     for region in selection.regions() {
         new_selection.add_region(move_region(
-            view, region, affinity, count, modify, movement, mode
+            view, region, affinity, count, modify, movement, mode,
         )?);
     }
     Ok(new_selection)
@@ -96,7 +97,7 @@ pub fn move_offset(
     affinity: &mut CursorAffinity,
     count: usize,
     movement: &Movement,
-    mode: Mode
+    mode: Mode,
 ) -> Result<(usize, Option<ColPosition>)> {
     let (new_offset, horiz) = match movement {
         Movement::Left => {
@@ -167,7 +168,7 @@ pub fn move_offset(
             let new_offset = view.rope_text().move_n_wordends_forward(
                 offset,
                 count,
-                mode == Mode::Insert
+                mode == Mode::Insert,
             );
             (new_offset, None)
         },
@@ -206,7 +207,7 @@ pub fn move_offset(
                 view.rope_text().move_n_paragraphs_backward(offset, count);
 
             (new_offset, None)
-        }
+        },
     };
 
     // todo ?
@@ -249,7 +250,7 @@ pub fn snap_to_soft_tab(
     text: &Rope,
     offset: usize,
     direction: SnapDirection,
-    tab_width: usize
+    tab_width: usize,
 ) -> Result<usize> {
     // Fine which line we're on.
     let line = text.line_of_offset(offset);
@@ -264,7 +265,7 @@ pub fn snap_to_soft_tab(
             offset_within_line,
             start_line_offset,
             direction,
-            tab_width
+            tab_width,
         ))
 }
 
@@ -273,7 +274,7 @@ fn snap_to_soft_tab_logic(
     offset_or_col: usize,
     start_line_offset: usize,
     direction: SnapDirection,
-    tab_width: usize
+    tab_width: usize,
 ) -> usize {
     assert!(tab_width >= 1);
 
@@ -289,7 +290,7 @@ fn snap_to_soft_tab_logic(
     let bias = match direction {
         SnapDirection::Left => 0,
         SnapDirection::Right => tab_width - 1,
-        SnapDirection::Nearest => tab_width / 2
+        SnapDirection::Nearest => tab_width / 2,
     };
 
     ((offset_or_col + bias) / tab_width) * tab_width
@@ -315,7 +316,7 @@ fn move_left(
     offset: usize,
     affinity: &mut CursorAffinity,
     _mode: Mode,
-    _count: usize
+    _count: usize,
 ) -> Result<usize> {
     log::info!("move_left {offset} {affinity:?}");
     let Some((new_offset, new_affinity)) = ed
@@ -354,7 +355,7 @@ fn move_right(
     offset: usize,
     affinity: &mut CursorAffinity,
     _mode: Mode,
-    _count: usize
+    _count: usize,
 ) -> Result<usize> {
     log::info!("move_right {offset} {affinity:?}");
     let Some((new_offset, new_affinity)) = view
@@ -378,7 +379,7 @@ fn move_up(
     affinity: &mut CursorAffinity,
     horiz: Option<ColPosition>,
     _mode: Mode,
-    _count: usize
+    _count: usize,
 ) -> Result<Option<(usize, ColPosition)>> {
     log::info!("move_up {offset} {affinity:?} {horiz:?}");
     let Some((offset_of_buffer, horiz, new_affinity)) = view
@@ -399,7 +400,7 @@ fn move_down_last_rvline(
     _offset: usize,
     affinity: &mut CursorAffinity,
     _horiz: Option<ColPosition>,
-    mode: Mode
+    mode: Mode,
 ) -> Result<(usize, ColPosition)> {
     // let rope_text = view.rope_text();
     //
@@ -434,22 +435,21 @@ fn move_down(
     affinity: &mut CursorAffinity,
     horiz: Option<ColPosition>,
     _mode: Mode,
-    _count: usize
+    _count: usize,
 ) -> Result<Option<(usize, ColPosition)>> {
-
-    // let line = view.doc.with_untracked(|x| x.lines.with_untracked(|x| x.buffer().line_of_offset(offset)));
+    // let line = view.doc.with_untracked(|x| x.lines.with_untracked(|x|
+    // x.buffer().line_of_offset(offset)));
     //
     // view.visual_lines.with_untracked(|x| {
     //     let prev_line = None;
     //     for visual_line in x {
-    //         if let LineTy::OriginText { origin_folded_line_index, line_range_inclusive: line_number } =  visual_line.line_ty {
-    //             if line < line_number {
-    //                 continue;
+    //         if let LineTy::OriginText { origin_folded_line_index,
+    // line_range_inclusive: line_number } =  visual_line.line_ty {             
+    // if line < line_number {                 continue;
     //             } else if line == line_number
     //         }
     //     }
     // })
-
 
     log::info!("move_down {offset}");
     let Some((offset_of_buffer, horiz, new_affinity)) = view
@@ -466,7 +466,7 @@ fn move_down(
 fn document_end(
     rope_text: impl RopeText,
     affinity: &mut CursorAffinity,
-    mode: Mode
+    mode: Mode,
 ) -> Result<(usize, ColPosition)> {
     let last_offset =
         rope_text.offset_line_end(rope_text.len(), mode != Mode::Normal)?;
@@ -480,7 +480,7 @@ fn document_end(
 fn first_non_blank(
     view: &Editor,
     affinity: &mut CursorAffinity,
-    offset: usize
+    offset: usize,
 ) -> Result<(usize, ColPosition)> {
     view.doc
         .get_untracked()
@@ -491,7 +491,7 @@ fn first_non_blank(
 fn start_of_line(
     _view: &Editor,
     _affinity: &mut CursorAffinity,
-    _offset: usize
+    _offset: usize,
 ) -> Result<(usize, ColPosition)> {
     bail!("todo");
     // let start_offset = view.doc().lines.with_untracked(|x| {
@@ -508,7 +508,7 @@ fn end_of_line(
     view: &Editor,
     affinity: &mut CursorAffinity,
     offset: usize,
-    mode: Mode
+    mode: Mode,
 ) -> Result<(usize, ColPosition)> {
     view.doc
         .get_untracked()
@@ -521,7 +521,7 @@ fn to_line(
     offset: usize,
     horiz: Option<ColPosition>,
     mode: Mode,
-    position: &LinePosition
+    position: &LinePosition,
 ) -> (usize, ColPosition) {
     // let rope_text = view.rope_text();
     //
@@ -556,7 +556,7 @@ pub fn move_cursor(
     movement: &Movement,
     count: usize,
     modify: bool,
-    register: &mut Register
+    register: &mut Register,
 ) -> Result<()> {
     let motion_mode = cursor.motion_mode.clone();
     let horiz = cursor.horiz;
@@ -577,7 +577,7 @@ pub fn move_cursor(
                 &mut cursor.affinity,
                 count,
                 movement,
-                Mode::Normal
+                Mode::Normal,
             )?;
             if let Some(motion_mode) = &motion_mode {
                 let (moved_new_offset, _) = move_offset(
@@ -587,7 +587,7 @@ pub fn move_cursor(
                     &mut cursor.affinity,
                     1,
                     &Movement::Right,
-                    Mode::Insert
+                    Mode::Insert,
                 )?;
                 let range = match movement {
                     Movement::EndOfLine | Movement::WordEndForward => {
@@ -600,7 +600,7 @@ pub fn move_cursor(
                             moved_new_offset..new_offset
                         }
                     },
-                    _ => offset..new_offset
+                    _ => offset..new_offset,
                 };
                 action.exec_motion_mode(
                     ed,
@@ -608,7 +608,7 @@ pub fn move_cursor(
                     motion_mode.clone(),
                     range,
                     movement.is_vertical(),
-                    register
+                    register,
                 );
                 cursor.motion_mode = None;
             } else {
@@ -627,12 +627,12 @@ pub fn move_cursor(
                 &mut cursor.affinity,
                 count,
                 movement,
-                Mode::Visual(VisualMode::Normal)
+                Mode::Visual(VisualMode::Normal),
             )?;
             cursor.set_mode(CursorMode::Visual {
                 start,
                 end: new_offset,
-                mode
+                mode,
             });
             cursor.horiz = horiz;
         },
@@ -645,10 +645,10 @@ pub fn move_cursor(
                 count,
                 modify,
                 movement,
-                Mode::Insert
+                Mode::Insert,
             );
             cursor.set_insert(selection?);
-        }
+        },
     }
     Ok(())
 }
@@ -656,7 +656,7 @@ pub fn move_cursor(
 pub fn do_multi_selection(
     view: &Editor,
     cursor: &mut Cursor,
-    cmd: &MultiSelectionCommand
+    cmd: &MultiSelectionCommand,
 ) -> Result<()> {
     use MultiSelectionCommand::*;
     let rope_text = view.rope_text();
@@ -680,7 +680,7 @@ pub fn do_multi_selection(
                     &mut cursor.affinity,
                     1,
                     &Movement::Up,
-                    Mode::Insert
+                    Mode::Insert,
                 )?;
                 if new_offset != offset {
                     selection
@@ -699,7 +699,7 @@ pub fn do_multi_selection(
                     &mut cursor.affinity,
                     1,
                     &Movement::Down,
-                    Mode::Insert
+                    Mode::Insert,
                 )?;
                 if new_offset != offset {
                     selection
@@ -751,7 +751,7 @@ pub fn do_multi_selection(
         SelectAll => {
             let new_selection = Selection::region(0, rope_text.len());
             cursor.set_insert(new_selection);
-        }
+        },
     }
     Ok(())
 }
@@ -761,7 +761,7 @@ pub fn do_motion_mode(
     action: &dyn CommonAction,
     cursor: &mut Cursor,
     motion_mode: MotionMode,
-    register: &mut Register
+    register: &mut Register,
 ) {
     if let Some(cached_motion_mode) = cursor.motion_mode.take() {
         // If it's the same MotionMode discriminant, continue, count is cached in the
@@ -776,7 +776,7 @@ pub fn do_motion_mode(
                 cached_motion_mode,
                 offset..offset,
                 true,
-                register
+                register,
             );
         }
     } else {
@@ -791,7 +791,7 @@ mod tests {
     use floem_editor_core::{
         buffer::rope_text::{RopeText, RopeTextVal},
         cursor::{ColPosition, CursorAffinity},
-        mode::Mode
+        mode::Mode,
     };
     use floem_reactive::{Scope, SignalUpdate};
     use lapce_xi_rope::Rope;
@@ -801,7 +801,7 @@ mod tests {
     use crate::views::editor::{
         movement::{correct_crlf, end_of_line, move_down, move_up},
         text::SimpleStyling,
-        text_document::TextDocument
+        text_document::TextDocument,
     };
 
     fn make_ed(text: &str) -> Editor {

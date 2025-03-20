@@ -3,12 +3,12 @@ use std::collections::VecDeque;
 use floem::{
     ext_event::{ExtSendTrigger, create_ext_action, register_ext_trigger},
     prelude::SignalUpdate,
-    reactive::{ReadSignal, Scope, with_scope}
+    reactive::{ReadSignal, Scope, with_scope},
 };
 use parking_lot::Mutex;
 
 pub fn create_signal_from_channel<T: Send + Clone + 'static>(
-    cx: Scope //channel_closed: WriteSignal<bool>
+    cx: Scope, //channel_closed: WriteSignal<bool>
 ) -> (ReadSignal<Option<T>>, ExtChannel<T>, impl FnOnce(())) {
     let (read, write) = cx.create_signal(None);
     let cx = cx.create_child();
@@ -34,7 +34,7 @@ pub fn create_signal_from_channel<T: Send + Clone + 'static>(
 #[derive(Clone)]
 pub struct ExtChannel<T: Send + Clone + 'static> {
     trigger: ExtSendTrigger,
-    data:    std::sync::Arc<Mutex<VecDeque<T>>>
+    data:    std::sync::Arc<Mutex<VecDeque<T>>>,
 }
 
 impl<T: Send + Clone + 'static> ExtChannel<T> {

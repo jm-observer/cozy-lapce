@@ -16,7 +16,7 @@ pub enum WrapStyle {
     // /// Wrap at the wrap-column
     // WrapColumn,
     /// Wrap at a specific width
-    WrapWidth
+    WrapWidth,
 }
 impl WrapStyle {
     pub fn as_str(&self) -> &'static str {
@@ -24,7 +24,7 @@ impl WrapStyle {
             WrapStyle::None => "none",
             WrapStyle::EditorWidth => "editor-width",
             // WrapStyle::WrapColumn => "wrap-column",
-            WrapStyle::WrapWidth => "wrap-width"
+            WrapStyle::WrapWidth => "wrap-width",
         }
     }
 
@@ -34,7 +34,7 @@ impl WrapStyle {
             "editor-width" => Some(WrapStyle::EditorWidth),
             // "wrap-column" => Some(WrapStyle::WrapColumn),
             "wrap-width" => Some(WrapStyle::WrapWidth),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -79,7 +79,7 @@ pub struct EditorConfig {
 
     pub editor_foreground: Color,
 
-    pub syntax: HashMap<String, Color>
+    pub syntax: HashMap<String, Color>,
 }
 
 impl EditorConfig {
@@ -127,24 +127,24 @@ impl EditorConfig {
 
     pub fn color_of_diagnostic(
         &self,
-        diagnostic_severity: DiagnosticSeverity
+        diagnostic_severity: DiagnosticSeverity,
     ) -> Option<Color> {
         use DiagnosticSeverity;
         match diagnostic_severity {
             DiagnosticSeverity::ERROR => Some(self.diagnostic_error),
             DiagnosticSeverity::WARNING => Some(self.diagnostic_warn),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn color_of_error_lens(
         &self,
-        diagnostic_severity: DiagnosticSeverity
+        diagnostic_severity: DiagnosticSeverity,
     ) -> Color {
         match diagnostic_severity {
             DiagnosticSeverity::ERROR => self.error_lens_error_foreground,
             DiagnosticSeverity::WARNING => self.error_lens_warning_foreground,
-            _ => self.error_lens_other_foreground
+            _ => self.error_lens_other_foreground,
         }
     }
 
@@ -153,7 +153,7 @@ impl EditorConfig {
             "boolean" => self.syntax.get("constant").copied(),
             // "macro" => ?
             // "operator" => ?,
-            _ => self.syntax.get(name).copied()
+            _ => self.syntax.get(name).copied(),
         }
     }
 }

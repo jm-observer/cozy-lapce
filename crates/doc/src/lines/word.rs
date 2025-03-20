@@ -2,7 +2,7 @@ use lapce_xi_rope::{Cursor, Rope, RopeInfo};
 
 use crate::lines::{
     mode::Mode,
-    util::{matching_char, matching_pair_direction}
+    util::{matching_char, matching_pair_direction},
 };
 
 /// Describe char classifications used to compose word boundaries
@@ -17,7 +17,7 @@ pub enum CharClassification {
     /// Any punctuation character
     Punctuation,
     /// Includes letters and all of non-ascii unicode
-    Other
+    Other,
 }
 
 /// A word boundary can be the start of a word, its end or both for
@@ -31,7 +31,7 @@ enum WordBoundary {
     /// A boundary indicating the start of a word
     End,
     /// Both start and end boundaries (ex: punctuation characters)
-    Both
+    Both,
 }
 
 impl WordBoundary {
@@ -53,7 +53,7 @@ impl WordBoundary {
 /// by word boundaries.
 /// Boundaries can be the start of a word, its end, punctuation etc.
 pub struct WordCursor<'a> {
-    pub inner: Cursor<'a, RopeInfo>
+    pub inner: Cursor<'a, RopeInfo>,
 }
 
 impl<'a> WordCursor<'a> {
@@ -445,7 +445,7 @@ impl<'a> WordCursor<'a> {
                     {
                         return Some((
                             opening_bracket_offset,
-                            closing_bracket_offset
+                            closing_bracket_offset,
                         ));
                     } else {
                         self.inner.set(opening_bracket_offset);
@@ -482,7 +482,7 @@ pub fn get_char_property(codepoint: char) -> CharClassification {
 
 fn classify_boundary(
     prev: CharClassification,
-    next: CharClassification
+    next: CharClassification,
 ) -> WordBoundary {
     use self::{CharClassification::*, WordBoundary::*};
     match (prev, next) {
@@ -499,7 +499,7 @@ fn classify_boundary(
         (_, Lf) => End,
         (Punctuation, Other) => Both,
         (Other, Punctuation) => Both,
-        _ => Interior
+        _ => Interior,
     }
 }
 

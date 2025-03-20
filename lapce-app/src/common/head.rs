@@ -4,11 +4,11 @@ use floem::{
     style::CursorStyle,
     taffy::{
         Line,
-        style_helpers::{self, auto, fr}
+        style_helpers::{self, auto, fr},
     },
     unit::{Auto, PxPctAuto},
     views::{scroll::VerticalScrollAsHorizontal, *},
-    *
+    *,
 };
 use lapce_core::icon::LapceIcons;
 
@@ -18,17 +18,17 @@ use crate::{
     config::{
         WithLapceConfig,
         color::LapceColor,
-        ui::{TabCloseButton, TabSeparatorHeight}
+        ui::{TabCloseButton, TabSeparatorHeight},
     },
     svg,
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 /// The top bar of an Editor tab. Includes the tab forward/back buttons, the tab
 /// scroll bar and the new split and tab close all button.
 pub fn common_tab_header<T: Clone + TabHead + 'static>(
     window_tab_data: WindowWorkspaceData,
-    tabs: Tabs<T>
+    tabs: Tabs<T>,
 ) -> impl View {
     let config = window_tab_data.common.config;
 
@@ -44,7 +44,7 @@ pub fn common_tab_header<T: Clone + TabHead + 'static>(
                     |(tab, _close_manager): &(Tab<T>, CloseManager<T>)| tab.key(),
                     |(tab, close_manager): (Tab<T>, CloseManager<T>)| {
                         tab.view_content(close_manager)
-                    }
+                    },
                 )
                 .debug_name("Horizontal Tab Stack")
                 .style(|s| s.height_full().items_center())
@@ -71,18 +71,18 @@ pub fn common_tab_header<T: Clone + TabHead + 'static>(
                 s.set(VerticalScrollAsHorizontal, true)
                     .absolute()
                     .size_full()
-            })
+            }),
         )
         .style(|s| s.height_full().flex_grow(1.0).flex_basis(0.).min_width(10.))
         .debug_name("Tab scroll"),
-        tabs.view_close()
+        tabs.view_close(),
     ))
     .style(move |s| {
         let (border_color, bg, header_height) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
                 config.color(LapceColor::PANEL_BACKGROUND),
-                config.ui.header_height.signal()
+                config.ui.header_height.signal(),
             )
         });
         s.items_center()
@@ -99,7 +99,7 @@ pub fn common_tab_header<T: Clone + TabHead + 'static>(
 
 fn tooltip_tip<V: View + 'static>(
     config: WithLapceConfig,
-    child: V
+    child: V,
 ) -> impl IntoView {
     container(child).style(move |s| {
         let (border, shadow, fg, bg, font_size, font_family) =
@@ -110,7 +110,7 @@ fn tooltip_tip<V: View + 'static>(
                     config.color(LapceColor::TOOLTIP_FOREGROUND),
                     config.color(LapceColor::TOOLTIP_BACKGROUND),
                     config.ui.font_size.signal(),
-                    config.ui.font_family.signal()
+                    config.ui.font_family.signal(),
                 )
             });
         s.padding_horiz(10.0)
@@ -135,12 +135,12 @@ pub struct Tabs<T: Clone + TabHead + 'static> {
     pub close_manager: CloseManager<T>,
     pub active:        RwSignal<Option<ViewId>>,
     pub tabs:          RwSignal<Vec<Tab<T>>>,
-    pub cx:            Scope
+    pub cx:            Scope,
 }
 
 #[derive(Clone, Copy)]
 pub struct CloseManager<T: Clone + TabHead + 'static> {
-    pub tabs: RwSignal<Vec<Tab<T>>>
+    pub tabs: RwSignal<Vec<Tab<T>>>,
 }
 
 impl<T: Clone + TabHead + 'static> CloseManager<T> {
@@ -165,13 +165,13 @@ pub struct Tab<T: Clone + TabHead + 'static> {
     pub active:     RwSignal<Option<ViewId>>,
     pub config:     WithLapceConfig,
     pub rect:       RwSignal<Rect>,
-    pub references: RwSignal<T>
+    pub references: RwSignal<T>,
 }
 
 impl<T: Clone + TabHead + 'static> Tab<T> {
     fn view_tab_close_button(
         &self,
-        close_manager: CloseManager<T>
+        close_manager: CloseManager<T>,
     ) -> impl View + 'static {
         let config = self.config;
         let id = self.id;
@@ -183,14 +183,14 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
             || false,
             || false,
             || "Close",
-            config
+            config,
         )
         .style(move |s| {
             let tab_close_button = config.with_tab_close_button();
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(1),
-                    end:   style_helpers::span(1)
+                    end:   style_helpers::span(1),
                 })
             })
             .apply_if(tab_close_button == TabCloseButton::Off, |s| s.hide())
@@ -209,14 +209,14 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
         let (content, tip) = self.content_tip();
         tooltip(
             label(move || content.clone()).style(move |s| s.selectable(false)),
-            move || tooltip_tip(config, text(tip.clone()))
+            move || tooltip_tip(config, text(tip.clone())),
         )
         .style(move |s| {
             let tab_close_button = config.with_tab_close_button();
             s.apply_if(tab_close_button == TabCloseButton::Left, |s| {
                 s.grid_column(Line {
                     start: style_helpers::line(2),
-                    end:   style_helpers::span(1)
+                    end:   style_helpers::span(1),
                 })
             })
             .apply_if(tab_close_button == TabCloseButton::Off, |s| {
@@ -233,7 +233,7 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
                 move |s| {
                     let size = config.with_icon_size() as f32;
                     s.size(size, size)
-                }
+                },
             )
         })
         .style(move |s| {
@@ -242,7 +242,7 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
                 .apply_if(tab_close_button == TabCloseButton::Left, |s| {
                     s.grid_column(Line {
                         start: style_helpers::line(3),
-                        end:   style_helpers::span(1)
+                        end:   style_helpers::span(1),
                     })
                 })
         })
@@ -335,7 +335,7 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
             tabs,
             close_manager,
             active,
-            cx
+            cx,
         }
     }
 
@@ -352,7 +352,7 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
             active,
             config,
             rect,
-            references
+            references,
         };
         batch(|| {
             self.tabs.update(|x| x.push(tab));
@@ -487,7 +487,7 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
                 || false,
                 || false,
                 || "Previous Tab",
-                config
+                config,
             )
             .style(|s| s.margin_horiz(6.0).margin_vert(7.0)),
             clickable_icon(
@@ -498,7 +498,7 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
                 || false,
                 || false,
                 || "Next Tab",
-                config
+                config,
             )
             .style(|s| s.margin_right(6.0)),
             empty()
@@ -506,10 +506,10 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
                     s.absolute().height_full().border_color(
                         config
                             .with_color(LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE)
-                            .multiply_alpha(0.5)
+                            .multiply_alpha(0.5),
                     )
                 })
-                .debug_name("Tab Boundary")
+                .debug_name("Tab Boundary"),
         ))
         .on_resize(move |rect| {
             size.set(rect.size());

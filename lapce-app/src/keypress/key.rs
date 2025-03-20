@@ -1,6 +1,6 @@
 use floem::{
     keyboard::{Key, KeyLocation, NamedKey, PhysicalKey},
-    pointer::PointerButton
+    pointer::PointerButton,
 };
 
 use super::keymap::KeyMapKey;
@@ -12,9 +12,9 @@ pub(crate) enum KeyInput {
         logical:               Key,
         location:              KeyLocation,
         key_without_modifiers: Key,
-        repeat:                bool
+        repeat:                bool,
     },
-    Pointer(PointerButton)
+    Pointer(PointerButton),
 }
 
 impl KeyInput {
@@ -50,7 +50,7 @@ impl KeyInput {
                     KeyLocation::Numpad => {
                         return Some(KeyMapKey::Logical(logical.to_owned()));
                     },
-                    _ => {}
+                    _ => {},
                 }
 
                 match key_without_modifiers {
@@ -62,20 +62,20 @@ impl KeyInput {
                             KeyMapKey::Logical(Key::Named(NamedKey::Space))
                         } else if c.len() == 1 && c.is_ascii() {
                             KeyMapKey::Logical(Key::Character(
-                                c.to_lowercase().into()
+                                c.to_lowercase().into(),
                             ))
                         } else {
                             KeyMapKey::Physical(*physical)
                         }
                     },
                     Key::Unidentified(_) => KeyMapKey::Physical(*physical),
-                    Key::Dead(_) => KeyMapKey::Physical(*physical)
+                    Key::Dead(_) => KeyMapKey::Physical(*physical),
                 }
             },
             KeyInput::Pointer(PointerButton::Touch { .. })
             | KeyInput::Pointer(PointerButton::Unknown(_)) => {
                 return None;
-            }
+            },
         })
     }
 }

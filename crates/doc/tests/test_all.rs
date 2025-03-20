@@ -9,11 +9,11 @@ use doc::lines::{
     fold::{FoldingDisplayItem, FoldingDisplayType},
     mode::Mode,
     selection::Selection,
-    word::WordCursor
+    word::WordCursor,
 };
 use floem::{
     kurbo::{Point, Rect},
-    reactive::SignalUpdate
+    reactive::SignalUpdate,
 };
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::info;
@@ -31,7 +31,7 @@ fn test_all() -> Result<()> {
     tests::test_folded_line_click::_test_buffer_offset_of_click_3()?;
     tests::test_folded_line_click::_test_main_3_buffer_offset_of_click()?;
 
-     tests::test_lines_move::test_move_up()?;
+    tests::test_lines_move::test_move_up()?;
     tests::test_lines_move::test_move_right()?;
     tests::test_lines_move::test_move_left()?;
 

@@ -2,12 +2,12 @@ use std::cell::RefCell;
 
 use cosmic_text::{
     Affinity, BufferLine, Cursor, FontSystem, LayoutLine, LineEnding, Metrics,
-    Scroll, ShapeBuffer, Shaping, Wrap
+    Scroll, ShapeBuffer, Shaping, Wrap,
 };
 use floem::{
     kurbo::{Point, Size},
     peniko::Color,
-    text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun}
+    text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun},
 };
 use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::lines::{
     delta_compute::Offset, phantom_text::PhantomTextMultiLine, style::NewLineStyle,
-    util, util::extra_styles_for_range
+    util, util::extra_styles_for_range,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -26,7 +26,7 @@ pub struct LineExtraStyle {
     pub height:     f64,
     pub bg_color:   Option<Color>,
     pub under_line: Option<Color>,
-    pub wave_line:  Option<Color>
+    pub wave_line:  Option<Color>,
 }
 
 /// --以原始文本行为单位，的相关--
@@ -53,7 +53,7 @@ pub struct TextLayoutLine {
     // 不易于更新迭代？
     pub semantic_styles:   Vec<NewLineStyle>,
     pub diagnostic_styles: Vec<NewLineStyle>,
-    init:                  bool
+    init:                  bool,
 }
 
 impl TextLayoutLine {
@@ -67,7 +67,7 @@ impl TextLayoutLine {
         phantom_text: PhantomTextMultiLine,
         // 不易于更新迭代？
         semantic_styles: Vec<NewLineStyle>,
-        diagnostic_styles: Vec<NewLineStyle>
+        diagnostic_styles: Vec<NewLineStyle>,
     ) -> Self {
         Self {
             extra_style: vec![],
@@ -78,7 +78,7 @@ impl TextLayoutLine {
             phantom_text,
             semantic_styles,
             diagnostic_styles,
-            init: false
+            init: false,
         }
     }
 
@@ -209,7 +209,7 @@ impl TextLayoutLine {
     pub fn extra_style(&mut self) -> &[LineExtraStyle] {
         &self.extra_style
     }
-    
+
     pub fn init_extra_style(&mut self) {
         if !self.init {
             self.apply_diagnostic_styles_2();
@@ -240,7 +240,9 @@ impl TextLayoutLine {
                 phantom.final_col + phantom.text.len(),
                 phantom.bg,
                 phantom.under_line,
-                None, None, true
+                None,
+                None,
+                true,
             );
             for style in iter {
                 self.extra_style.push(style)
@@ -248,21 +250,31 @@ impl TextLayoutLine {
         });
     }
 
-    pub fn init_document_highlight(&mut self, highlight: Vec<DocumentHighlight>, fg_color: Color, line_height: usize) {
+    pub fn init_document_highlight(
+        &mut self,
+        highlight: Vec<DocumentHighlight>,
+        fg_color: Color,
+        line_height: usize,
+    ) {
         let layout = &mut self.text.borrow_mut();
         let phantom_text = &self.phantom_text;
         let mut highlight_styles = vec![];
-        for highlight in highlight
-        {
-            if let Some((start, end)) = phantom_text.final_col_of_origin_line_col(highlight.range.start.line as usize, highlight.range.start.character as usize,
-                                                                                  highlight.range.end.line as usize, highlight.range.end.character as usize, ) {
+        for highlight in highlight {
+            if let Some((start, end)) = phantom_text.final_col_of_origin_line_col(
+                highlight.range.start.line as usize,
+                highlight.range.start.character as usize,
+                highlight.range.end.line as usize,
+                highlight.range.end.character as usize,
+            ) {
                 let styles = util::extra_styles_for_range(
                     layout,
                     start,
                     end,
                     Some(fg_color),
                     None,
-                    None, Some(line_height as f64), false
+                    None,
+                    Some(line_height as f64),
+                    false,
                 );
                 highlight_styles.extend(styles);
             }
@@ -285,11 +297,11 @@ impl TextLayoutLine {
         {
             match (
                 phantom_text.final_col_of_origin_merge_col(
-                    *start_of_buffer - phantom_text.offset_of_line
+                    *start_of_buffer - phantom_text.offset_of_line,
                 ),
                 phantom_text.final_col_of_origin_merge_col(
-                    *end_of_buffer - phantom_text.offset_of_line
-                )
+                    *end_of_buffer - phantom_text.offset_of_line,
+                ),
             ) {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     let styles = util::extra_styles_for_range(
@@ -298,14 +310,16 @@ impl TextLayoutLine {
                         end + 1,
                         None,
                         None,
-                        Some(*fg_color), None, true
+                        Some(*fg_color),
+                        None,
+                        true,
                     );
                     self.extra_style.extend(styles);
                 },
                 _ => {
                     // maybe be folded
                     continue;
-                }
+                },
             }
         }
     }
@@ -335,7 +349,7 @@ pub struct TextLayout {
     pub(crate) text_len: usize,
     /// 最终文本长度，包括虚拟文本，但不包括末尾的\r\n
     pub(crate) text_len_without_rn: usize,
-    init: bool
+    init: bool,
 }
 
 impl Clone for TextLayout {
@@ -354,7 +368,7 @@ impl Clone for TextLayout {
             scratch:             ShapeBuffer::default(),
             text_len:            self.text_len,
             text_len_without_rn: self.text_len_without_rn,
-            init:                self.init
+            init:                self.init,
         }
     }
 }
@@ -369,7 +383,7 @@ impl TextLayout {
     pub fn new<T: Into<String>>(
         text: T,
         attrs_list: AttrsList,
-        line_ending: &'static str
+        line_ending: &'static str,
     ) -> Self {
         let mut font_system = FONT_SYSTEM.lock();
         Self::new_with_font_system(
@@ -377,7 +391,7 @@ impl TextLayout {
             text,
             attrs_list,
             &mut font_system,
-            line_ending
+            line_ending,
         )
     }
 
@@ -386,7 +400,7 @@ impl TextLayout {
         text: T,
         attrs_list: AttrsList,
         font_system: &mut FontSystem,
-        line_ending: &'static str
+        line_ending: &'static str,
     ) -> Self {
         Self::new_with_config(
             line,
@@ -395,7 +409,7 @@ impl TextLayout {
             font_system,
             None,
             Wrap::WordOrGlyph,
-            line_ending
+            line_ending,
         )
     }
 
@@ -405,7 +419,7 @@ impl TextLayout {
         attrs_list: AttrsList,
         width_opt: Option<f32>,
         wrap: Wrap,
-        line_ending: &'static str
+        line_ending: &'static str,
     ) -> Self {
         let text = text.into();
         let text_len = text.len();
@@ -425,7 +439,7 @@ impl TextLayout {
                 new_text,
                 ending,
                 attrs_list.0,
-                Shaping::Advanced
+                Shaping::Advanced,
             ),
             width_opt,
             height_opt: None,
@@ -436,7 +450,7 @@ impl TextLayout {
             monospace_width: None,
             tab_width: 8,
             scratch: Default::default(),
-            init: false
+            init: false,
         };
 
         text_layout
@@ -449,7 +463,7 @@ impl TextLayout {
         font_system: &mut FontSystem,
         width_opt: Option<f32>,
         wrap: Wrap,
-        line_ending: &'static str
+        line_ending: &'static str,
     ) -> Self {
         let text = text.into();
         let text_len = text.len();
@@ -469,7 +483,7 @@ impl TextLayout {
                 new_text,
                 ending,
                 attrs_list.0,
-                Shaping::Advanced
+                Shaping::Advanced,
             ),
             width_opt,
             height_opt: None,
@@ -480,7 +494,7 @@ impl TextLayout {
             monospace_width: None,
             tab_width: 8,
             scratch: Default::default(),
-            init: false
+            init: false,
         };
 
         text_layout.shape_until_scroll(font_system, false);
@@ -489,7 +503,7 @@ impl TextLayout {
 
     pub fn line_layout_with_font_system(
         &mut self,
-        font_system: &mut FontSystem
+        font_system: &mut FontSystem,
     ) -> &[LayoutLine] {
         self.buffer.layout(
             font_system,
@@ -497,7 +511,7 @@ impl TextLayout {
             self.width_opt,
             self.wrap,
             self.monospace_width,
-            self.tab_width
+            self.tab_width,
         )
     }
 
@@ -713,7 +727,7 @@ impl TextLayout {
             line:          0,
             point:         Point::ZERO,
             glyph_ascent:  0.0,
-            glyph_descent: 0.0
+            glyph_descent: 0.0,
         };
         for (line, run) in self.layout_runs().enumerate() {
             if run.line_i > last_line {
@@ -731,7 +745,7 @@ impl TextLayout {
                     line,
                     point: Point::new(glyph.x as f64, run.line_y as f64),
                     glyph_ascent: run.max_ascent as f64,
-                    glyph_descent: run.max_descent as f64
+                    glyph_descent: run.max_descent as f64,
                 };
                 if (glyph.start + offset..glyph.end + offset).contains(&idx) {
                     return last_position;
@@ -748,7 +762,7 @@ impl TextLayout {
             line:          0,
             point:         Point::ZERO,
             glyph_ascent:  0.0,
-            glyph_descent: 0.0
+            glyph_descent: 0.0,
         }
     }
 
@@ -760,13 +774,13 @@ impl TextLayout {
             HitPoint {
                 line: cursor.line,
                 index: cursor.index,
-                is_inside
+                is_inside,
             }
         } else {
             HitPoint {
                 line:      0,
                 index:     0,
-                is_inside: false
+                is_inside: false,
             }
         }
     }
@@ -849,7 +863,7 @@ impl TextLayout {
                             new_cursor.index = glyph.end;
                             new_cursor.affinity = Affinity::Before;
                         }
-                    }
+                    },
                 }
 
                 new_cursor_opt = Some(new_cursor);
@@ -965,7 +979,7 @@ pub struct LayoutRunIter<'b> {
     line_i:       usize,
     layout_i:     usize,
     total_height: f32,
-    line_top:     f32
+    line_top:     f32,
 }
 
 impl<'b> LayoutRunIter<'b> {
@@ -975,7 +989,7 @@ impl<'b> LayoutRunIter<'b> {
             line_i: 0,
             layout_i: 0,
             total_height: 0.0,
-            line_top: 0.0
+            line_top: 0.0,
         }
     }
 }
@@ -1021,7 +1035,7 @@ impl<'b> Iterator for LayoutRunIter<'b> {
                 line_y,
                 line_top,
                 line_height,
-                line_w: layout_line.w
+                line_w: layout_line.w,
             });
         }
         self.line_i += 1;

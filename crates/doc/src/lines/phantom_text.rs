@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt, ops::Range};
 use anyhow::{Result, anyhow};
 use floem::{
     peniko::Color,
-    text::{Attrs, AttrsList}
+    text::{Attrs, AttrsList},
 };
 use lapce_xi_rope::Interval;
 use log::{info, warn};
@@ -50,7 +50,7 @@ pub struct PhantomText {
     // font_family: Option<FontFamily>,
     pub fg:               Option<Color>,
     pub bg:               Option<Color>,
-    pub under_line:       Option<Color>
+    pub under_line:       Option<Color>,
 }
 
 impl PartialEq for PhantomText {
@@ -164,7 +164,7 @@ pub struct OriginText {
     /// Provided by calculate.Column index in final line.
     ///
     /// 在最终行文本的位置，包含虚拟文本
-    pub final_col:        Interval
+    pub final_col:        Interval,
 }
 
 impl OriginText {
@@ -201,13 +201,13 @@ pub struct EmptyText {
     /// at.Provided by lsp
     ///
     /// 在原始行文本的位置
-    pub offset_of_line: usize
+    pub offset_of_line: usize,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Text {
     Phantom { text: PhantomText },
     OriginText { text: OriginText },
-    EmptyLine { text: EmptyText }
+    EmptyLine { text: EmptyText },
 }
 
 impl Text {
@@ -228,7 +228,7 @@ impl Text {
             Text::OriginText { text } => {
                 line_delta.adjust(&mut text.line);
             },
-            _ => {}
+            _ => {},
         }
     }
 
@@ -236,7 +236,7 @@ impl Text {
         mut self,
         merge_offset: usize,
         origin_merge_offset: usize,
-        final_text_len: usize
+        final_text_len: usize,
     ) -> Self {
         match &mut self {
             Text::Phantom { text } => {
@@ -251,7 +251,7 @@ impl Text {
                     text.origin_merge_col.translate(origin_merge_offset);
                 text.final_col = text.final_col.translate(final_text_len);
             },
-            _ => {}
+            _ => {},
         }
         self
     }
@@ -304,8 +304,8 @@ pub enum PhantomTextKind {
         len:            usize,
         // 包括其他折叠行的长度
         all_len:        usize,
-        start_position: Position
-    }
+        start_position: Position,
+    },
 }
 
 impl PhantomTextKind {
@@ -342,7 +342,7 @@ pub struct PhantomTextLine {
     final_text_len:     usize,
     /// This uses a smallvec because most lines rarely have more than
     /// a couple phantom texts
-    pub texts:          SmallVec<[Text; 6]>
+    pub texts:          SmallVec<[Text; 6]>,
 }
 
 impl PhantomTextLine {
@@ -350,7 +350,7 @@ impl PhantomTextLine {
         line: usize,
         origin_text_len: usize,
         offset_of_line: usize,
-        mut phantom_texts: SmallVec<[PhantomText; 6]>
+        mut phantom_texts: SmallVec<[PhantomText; 6]>,
     ) -> Self {
         phantom_texts.sort_by(|a, b| {
             if a.visual_merge_col == b.visual_merge_col {
@@ -378,7 +378,7 @@ impl PhantomTextLine {
                     phantom.final_col =
                         usize_offset(phantom.final_col, final_offset);
                     final_offset += phantom.text.len() as i32;
-                }
+                },
             }
             // phantom.visual_merge_col = phantom.final_col;
             if final_last_end < phantom.final_col {
@@ -389,22 +389,22 @@ impl PhantomTextLine {
                         line:             phantom.line,
                         col:              Interval::new(
                             origin_merge_col_last_end,
-                            origin_merge_col_last_end + len
+                            origin_merge_col_last_end + len,
                         ),
                         visual_merge_col: Interval::new(
                             merge_last_end,
-                            merge_last_end + len
+                            merge_last_end + len,
                         ),
                         origin_merge_col: Interval::new(
                             origin_merge_col_last_end,
-                            origin_merge_col_last_end + len
+                            origin_merge_col_last_end + len,
                         ),
                         final_col:        Interval::new(
                             final_last_end,
-                            final_last_end + len
-                        )
+                            final_last_end + len,
+                        ),
                     }
-                    .into()
+                    .into(),
                 );
             }
             final_last_end = phantom.next_final_col();
@@ -420,27 +420,27 @@ impl PhantomTextLine {
                     line,
                     col: Interval::new(
                         origin_merge_col_last_end,
-                        origin_merge_col_last_end + len
+                        origin_merge_col_last_end + len,
                     ),
                     visual_merge_col: Interval::new(
                         merge_last_end,
-                        merge_last_end + len
+                        merge_last_end + len,
                     ),
                     origin_merge_col: Interval::new(
                         merge_last_end,
-                        merge_last_end + len
+                        merge_last_end + len,
                     ),
-                    final_col: Interval::new(final_last_end, final_last_end + len)
+                    final_col: Interval::new(final_last_end, final_last_end + len),
                 }
-                .into()
+                .into(),
             );
         } else if origin_text_len == 0 {
             texts.push(
                 EmptyText {
                     line,
-                    offset_of_line
+                    offset_of_line,
                 }
-                .into()
+                .into(),
             );
         }
 
@@ -450,7 +450,7 @@ impl PhantomTextLine {
             line,
             origin_text_len,
             texts,
-            offset_of_line
+            offset_of_line,
         }
     }
 
@@ -486,10 +486,10 @@ pub struct PhantomTextMultiLine {
     // pub len_of_line:     Vec<(usize, usize, usize)>,
     /// This uses a smallvec because most lines rarely have more than
     /// a couple phantom texts
-    pub text:            SmallVec<[Text; 6]> /* 可以去掉，仅做记录
-                                              * pub lines:
-                                              * Vec<PhantomTextLine>,
-                                              */
+    pub text:            SmallVec<[Text; 6]>, /* 可以去掉，仅做记录
+                                               * pub lines:
+                                               * Vec<PhantomTextLine>,
+                                               */
 }
 
 impl PhantomTextMultiLine {
@@ -504,7 +504,7 @@ impl PhantomTextMultiLine {
             origin_text_len: line.origin_text_len,
             final_text_len: line.final_text_len,
             // len_of_line,
-            text: line.texts
+            text: line.texts,
         }
     }
 
@@ -520,7 +520,7 @@ impl PhantomTextMultiLine {
             self.text.push(phantom.merge_to(
                 visual_merge_offset,
                 origin_merge_offset,
-                final_text_len
+                final_text_len,
             ));
         }
         self.last_line = line.line;
@@ -550,7 +550,7 @@ impl PhantomTextMultiLine {
         &self,
         attrs_list: &mut AttrsList,
         attrs: Attrs,
-        phantom_color: Color
+        phantom_color: Color,
     ) {
         self.text.iter().for_each(|x| match x {
             Text::Phantom { text } => {
@@ -563,16 +563,16 @@ impl PhantomTextMultiLine {
                     }
                     if let Some(phantom_font_size) = text.font_size {
                         attrs = attrs.font_size(
-                            (phantom_font_size as f32).min(attrs.font_size)
+                            (phantom_font_size as f32).min(attrs.font_size),
                         );
                     }
                     attrs_list.add_span(
                         text.final_col..(text.final_col + text.text.len()),
-                        attrs
+                        attrs,
                     );
                 }
             },
-            Text::OriginText { .. } | Text::EmptyLine { .. } => {}
+            Text::OriginText { .. } | Text::EmptyLine { .. } => {},
         });
     }
 
@@ -637,7 +637,7 @@ impl PhantomTextMultiLine {
                             return true;
                         }
                     },
-                    Text::EmptyLine { .. } => return true
+                    Text::EmptyLine { .. } => return true,
                 }
                 false
             })
@@ -648,7 +648,7 @@ impl PhantomTextMultiLine {
         for text in self.text.iter().rev() {
             match text {
                 Text::OriginText { text } => {
-                    return Some(text.origin_merge_col_end() - 1)
+                    return Some(text.origin_merge_col_end() - 1);
                 },
                 Text::EmptyLine { text } => return Some(text.offset_of_line),
                 _ => continue,
@@ -693,12 +693,19 @@ impl PhantomTextMultiLine {
         origin_line: usize,
         origin_col: usize,
         origin_line_end: usize,
-        origin_col_end: usize
+        origin_col_end: usize,
     ) -> Option<(usize, usize)> {
         self.text.iter().find_map(|x| {
             if let Text::OriginText { text } = x {
-                if text.line == origin_line && text.line == origin_line_end && text.col.contains(origin_col) && origin_col_end <= text.col.end() {
-                    return Some((origin_col - text.col.start + text.final_col.start, origin_col_end - text.col.start + text.final_col.start))
+                if text.line == origin_line
+                    && text.line == origin_line_end
+                    && text.col.contains(origin_col)
+                    && origin_col_end <= text.col.end()
+                {
+                    return Some((
+                        origin_col - text.col.start + text.final_col.start,
+                        origin_col_end - text.col.start + text.final_col.start,
+                    ));
                 }
             }
             None
@@ -708,7 +715,7 @@ impl PhantomTextMultiLine {
     /// merge col一定会出现在某个text中
     pub fn text_of_origin_merge_col(
         &self,
-        origin_merge_col: usize
+        origin_merge_col: usize,
     ) -> Result<&Text> {
         self.text
             .iter()
@@ -724,28 +731,25 @@ impl PhantomTextMultiLine {
                     Text::OriginText { text } => {
                         if text.origin_merge_col_contains(
                             origin_merge_col,
-                            self.is_last_line
+                            self.is_last_line,
                         ) {
                             return true;
                         }
                     },
                     Text::EmptyLine { .. } => {
                         return true;
-                    }
+                    },
                 }
                 false
             })
-            .ok_or(anyhow!(
-                "No merge col found {}",
-                origin_merge_col,
-            ))
+            .ok_or(anyhow!("No merge col found {}", origin_merge_col,))
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
     /// 则返回none(不应该在此情况下调用该方法)
     pub fn origin_col_of_final_offset(
         &self,
-        final_col: usize
+        final_col: usize,
     ) -> Option<(usize, usize)> {
         // let final_col = final_col.min(self.final_text_len - 1);
         if let Text::OriginText { text } = self.text_of_visual_char(final_col) {
@@ -757,23 +761,23 @@ impl PhantomTextMultiLine {
 
     pub fn final_col_of_origin_merge_col(
         &self,
-        origin_merge_col: usize
+        origin_merge_col: usize,
     ) -> Result<Option<usize>> {
         let text = self.text_of_origin_merge_col(origin_merge_col)?;
         Ok(match text {
             Text::Phantom { .. } => None,
             Text::OriginText { text } => Some(
                 text.final_col.start + origin_merge_col
-                    - text.origin_merge_col.start
+                    - text.origin_merge_col.start,
             ),
-            Text::EmptyLine { .. } => None
+            Text::EmptyLine { .. } => None,
         })
     }
 
     pub fn cursor_final_col_of_origin_merge_col(
         &self,
         origin_merge_col: usize,
-        cursor_affinity: CursorAffinity
+        cursor_affinity: CursorAffinity,
     ) -> Result<usize> {
         // let Ok(text) = self.text_of_merge_col(merge_col) else {
         //     warn!("merge_col not found: line={} merge col={}", self.line,
@@ -783,7 +787,7 @@ impl PhantomTextMultiLine {
         Ok(match text {
             Text::Phantom { text, .. } => match cursor_affinity {
                 CursorAffinity::Forward => text.next_final_col(),
-                CursorAffinity::Backward => text.final_col
+                CursorAffinity::Backward => text.final_col,
             },
             Text::OriginText { text } => match cursor_affinity {
                 CursorAffinity::Forward => {
@@ -796,7 +800,7 @@ impl PhantomTextMultiLine {
                         - text.origin_merge_col.start
                 },
             },
-            Text::EmptyLine { .. } => 0
+            Text::EmptyLine { .. } => 0,
         })
     }
 
@@ -845,7 +849,7 @@ impl PhantomTextMultiLine {
         &self,
         origin_line: usize,
         origin_col: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Option<usize> {
         for x in &self.text {
             match x {
@@ -873,21 +877,21 @@ impl PhantomTextMultiLine {
                                     text.final_col
                                 });
                             },
-                            Ordering::Greater => break
+                            Ordering::Greater => break,
                         },
                         Ordering::Greater => {
                             break;
-                        }
+                        },
                     }
                 },
                 Text::OriginText { text } => {
                     if text.line == origin_line && text.col.contains(origin_col) {
                         return Some(
-                            text.final_col.start + origin_col - text.col.start
+                            text.final_col.start + origin_col - text.col.start,
                         );
                     }
                 },
-                Text::EmptyLine { .. } => return Some(0)
+                Text::EmptyLine { .. } => return Some(0),
             }
         }
         Some(self.final_text_len)
@@ -940,7 +944,7 @@ impl PhantomTextMultiLine {
 
     pub fn text_of_final_col_even_overflow(
         &self,
-        mut visual_char_offset: usize
+        mut visual_char_offset: usize,
     ) -> &Text {
         // 因为通过hit_point获取的index会大于等于final_text_len
         if visual_char_offset >= self.final_text_len {
@@ -992,7 +996,7 @@ impl PhantomTextMultiLine {
     /// 获取偏移位置的幽灵文本以及在该幽灵文本的偏移值
     pub fn phantom_text_of_final_col(
         &self,
-        col: usize
+        col: usize,
     ) -> Option<(PhantomText, usize)> {
         let text = self.text_of_visual_char(col);
         if let Text::Phantom { text } = text {
@@ -1097,7 +1101,7 @@ fn usize_offset(val: usize, offset: i32) -> usize {
 
 /// Not allowed to cross the range??
 pub struct Ranges {
-    ranges: Vec<Range<usize>>
+    ranges: Vec<Range<usize>>,
 }
 
 impl Ranges {
@@ -1147,12 +1151,12 @@ pub fn combine_with_text(lines: &[Text], origin: &str) -> String {
                 rs.push_str(sub_str(
                     origin,
                     text.visual_merge_col.start.min(origin.len()),
-                    text.visual_merge_col.end.min(origin.len())
+                    text.visual_merge_col.end.min(origin.len()),
                 ));
             },
             Text::EmptyLine { .. } => {
                 break;
-            }
+            },
         }
     }
     rs

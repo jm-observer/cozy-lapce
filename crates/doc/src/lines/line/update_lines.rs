@@ -1,30 +1,31 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 use anyhow::Result;
 use floem::text::{Attrs, AttrsList, FamilyOwned, LineHeightValue};
-use log::{error};
+use log::error;
 
 use crate::lines::{
     DocLines,
-    delta_compute::{OriginLinesDelta},
-    line::{OriginFoldedLine, OriginLine}
+    delta_compute::OriginLinesDelta,
+    line::{OriginFoldedLine, OriginLine},
 };
 
 impl DocLines {
     pub fn update_lines_new(
         &mut self,
-        mut _lines_delta: OriginLinesDelta
+        mut _lines_delta: OriginLinesDelta,
     ) -> Result<()> {
         // todo
         return Ok(());
         // debug!("update_lines_new");
         // self.clear();
-        // let line_ending: &'static str = self.buffer().line_ending().get_chars();
+        // let line_ending: &'static str =
+        // self.buffer().line_ending().get_chars();
         //
-        // let all_origin_lines = self.init_all_origin_line_new(&mut lines_delta)?;
-        // check_origin_lines(&all_origin_lines, self.buffer().len());
-        // let all_origin_folded_lines = self.init_all_origin_folded_line_new(
-        //     &lines_delta,
+        // let all_origin_lines = self.init_all_origin_line_new(&mut
+        // lines_delta)?; check_origin_lines(&all_origin_lines,
+        // self.buffer().len()); let all_origin_folded_lines =
+        // self.init_all_origin_folded_line_new(     &lines_delta,
         //     &all_origin_lines,
         //     line_ending
         // )?;
@@ -100,8 +101,8 @@ impl DocLines {
     //         copy_line
     //     } = &mut lines_delta.copy_line_end
     //     {
-    //         let line_offset_new = Offset::new(copy_line.start, origin_lines.len());
-    //         *line_offset = line_offset_new;
+    //         let line_offset_new = Offset::new(copy_line.start,
+    // origin_lines.len());         *line_offset = line_offset_new;
     //         origin_lines.extend(self.copy_origin_line(
     //             *copy_line,
     //             *offset,
@@ -147,7 +148,7 @@ impl DocLines {
 
     pub(crate) fn init_attrs_without_color<'a>(
         &self,
-        family: &'a [FamilyOwned]
+        family: &'a [FamilyOwned],
     ) -> Attrs<'a> {
         let font_size = self.config.font_size;
         Attrs::new()
@@ -158,7 +159,7 @@ impl DocLines {
 
     pub(crate) fn init_attrs_with_color<'a>(
         &self,
-        family: &'a [FamilyOwned]
+        family: &'a [FamilyOwned],
     ) -> Attrs<'a> {
         let font_size = self.config.font_size;
         Attrs::new()
@@ -182,10 +183,10 @@ impl DocLines {
     //     line_ending: &'static str
     // ) -> Result<Vec<OriginFoldedLine>> {
     //     let family =
-    //         Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
-    //     let attrs = self.init_attrs_with_color(&family);
-    //     let mut origin_folded_lines = Vec::with_capacity(self.buffer().num_lines());
-    //     let mut x = 0;
+    //         Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).
+    // collect());     let attrs = self.init_attrs_with_color(&family);
+    //     let mut origin_folded_lines =
+    // Vec::with_capacity(self.buffer().num_lines());     let mut x = 0;
     //     let last_line = self.buffer().last_line();
     //     if let CopyDelta::Copy {
     //         offset,
@@ -196,8 +197,8 @@ impl DocLines {
     //     {
     //         let last_line = line_offset.adjust_new(copy_line.end);
     //         let origin_folded_line =
-    //             self.compute_copy_origin_folded_line(copy_line, offset, line_offset);
-    //         while x < last_line {
+    //             self.compute_copy_origin_folded_line(copy_line, offset,
+    // line_offset);         while x < last_line {
     //             let line = if let Some((folded_line, offset, line_offset)) =
     //                 origin_folded_line.get(&x)
     //             {
@@ -236,8 +237,8 @@ impl DocLines {
     //         let line = if let Some((folded_line, offset, line_offset)) =
     //             origin_folded_line.get(&x)
     //         {
-    //             folded_line.adjust(*offset, *line_offset, origin_folded_lines.len())
-    //         } else {
+    //             folded_line.adjust(*offset, *line_offset,
+    // origin_folded_lines.len())         } else {
     //             self.init_folded_line(
     //                 x,
     //                 all_origin_lines,
@@ -343,7 +344,7 @@ pub fn check_origin_lines(origin_lines: &[OriginLine], buffer_len: usize) -> boo
 
 pub fn check_origin_folded_lines(
     origin_folded_lines: &[OriginFoldedLine],
-    buffer_len: usize
+    buffer_len: usize,
 ) -> bool {
     let mut line = 0;
     let mut offset_line = 0;

@@ -12,7 +12,7 @@ pub enum DocContent {
     /// A document of an old version in the source control
     History(DocHistory),
     /// A new file which doesn't exist in the file system
-    Scratch { id: BufferId, name: String }
+    Scratch { id: BufferId, name: String },
 }
 
 impl DocContent {
@@ -29,7 +29,7 @@ impl DocContent {
             DocContent::File { read_only, .. } => *read_only,
             DocContent::Local => false,
             DocContent::History(_) => true,
-            DocContent::Scratch { .. } => false
+            DocContent::Scratch { .. } => false,
         }
     }
 
@@ -38,7 +38,7 @@ impl DocContent {
             DocContent::File { path, .. } => Some(path),
             DocContent::Local => None,
             DocContent::History(_) => None,
-            DocContent::Scratch { .. } => None
+            DocContent::Scratch { .. } => None,
         }
     }
 }
@@ -46,5 +46,5 @@ impl DocContent {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
 pub struct DocHistory {
     pub path:    PathBuf,
-    pub version: String
+    pub version: String,
 }

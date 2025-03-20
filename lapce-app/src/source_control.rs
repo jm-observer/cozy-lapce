@@ -3,7 +3,7 @@ use std::{path::PathBuf, rc::Rc};
 use doc::lines::{editor_command::CommandExecuted, mode::Mode};
 use floem::{
     keyboard::Modifiers,
-    reactive::{RwSignal, Scope, SignalWith}
+    reactive::{RwSignal, Scope, SignalWith},
 };
 use indexmap::IndexMap;
 use lapce_rpc::source_control::FileDiff;
@@ -13,7 +13,7 @@ use crate::{
     editor::EditorData,
     keypress::{KeyPressFocus, condition::Condition},
     main_split::Editors,
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 
 #[derive(Clone, Debug)]
@@ -24,7 +24,7 @@ pub struct SourceControlData {
     pub branches:   RwSignal<im::Vector<String>>,
     pub tags:       RwSignal<im::Vector<String>>,
     pub editor:     EditorData,
-    pub common:     Rc<CommonData>
+    pub common:     Rc<CommonData>,
 }
 
 impl KeyPressFocus for SourceControlData {
@@ -43,7 +43,7 @@ impl KeyPressFocus for SourceControlData {
         &self,
         command: &crate::command::LapceCommand,
         count: Option<usize>,
-        mods: Modifiers
+        mods: Modifiers,
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Edit(_)
@@ -51,7 +51,7 @@ impl KeyPressFocus for SourceControlData {
             | CommandKind::MultiSelection(_) => {
                 self.editor.run_command(command, count, mods)
             },
-            _ => CommandExecuted::No
+            _ => CommandExecuted::No,
         }
     }
 
@@ -70,9 +70,9 @@ impl SourceControlData {
             editor: editors.make_local_with_name(
                 cx,
                 common.clone(),
-                "SourceControlData".to_string()
+                "SourceControlData".to_string(),
             ),
-            common
+            common,
         }
     }
 
@@ -83,7 +83,7 @@ impl SourceControlData {
                 .filter_map(
                     |(_, (diff, checked))| {
                         if *checked { Some(diff) } else { None }
-                    }
+                    },
                 )
                 .cloned()
                 .collect()

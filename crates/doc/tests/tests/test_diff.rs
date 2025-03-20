@@ -1,7 +1,7 @@
 use anyhow::Result;
 use doc::lines::{
     buffer::diff::DiffLines,
-    diff::{DiffInfo, DiffResult}
+    diff::{DiffInfo, DiffResult},
 };
 use floem::kurbo::{Rect, Size};
 use log::debug;
@@ -30,7 +30,7 @@ pub fn _test_1_screen() -> Result<()> {
     let screen_lines = right_lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
-            right_kind.clone()
+            right_kind.clone(),
         )?
         .0;
     let visual_lines = screen_lines.visual_lines;
@@ -47,14 +47,13 @@ pub fn _test_1_screen() -> Result<()> {
     Ok(())
 }
 
-
 pub fn _test_screen() -> Result<()> {
     let (mut left_lines, _, left_kind, _) = init_test()?;
 
     let screen_lines = left_lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
-            left_kind.clone()
+            left_kind.clone(),
         )?
         .0;
     let visual_lines = &screen_lines.visual_lines;
@@ -72,7 +71,7 @@ pub fn _test_screen() -> Result<()> {
     let screen_lines = left_lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 60.0), Size::new(1000., 800.)),
-            left_kind
+            left_kind,
         )?
         .0;
     let visual_lines = &screen_lines.visual_lines;
@@ -99,13 +98,13 @@ pub fn _test_changes() -> Result<()> {
     debug!("{}", serde_json::to_string(&diff)?);
     let diff = DiffInfo {
         is_right: false,
-        changes:  diff.clone()
+        changes:  diff.clone(),
     };
     let left_changes: Vec<DiffResult> = serde_json::from_str(
-        r#"[{"Changed":{"lines":{"start":3,"end":10}}},{"Changed":{"lines":{"start":17,"end":18}}},{"Empty":{"lines":{"start":18,"end":20}}}]"#
+        r#"[{"Changed":{"lines":{"start":3,"end":10}}},{"Changed":{"lines":{"start":17,"end":18}}},{"Empty":{"lines":{"start":18,"end":20}}}]"#,
     )?;
     let right_changes: Vec<DiffResult> = serde_json::from_str(
-        r#"[{"Changed":{"lines":{"start":3,"end":4}}},{"Empty":{"lines":{"start":4,"end":10}}},{"Changed":{"lines":{"start":11,"end":14}}}]"#
+        r#"[{"Changed":{"lines":{"start":3,"end":4}}},{"Empty":{"lines":{"start":4,"end":10}}},{"Changed":{"lines":{"start":11,"end":14}}}]"#,
     )?;
 
     let tys = diff.left_changes();
@@ -122,18 +121,18 @@ pub fn _test_1_changes() -> Result<()> {
     debug!("{}", serde_json::to_string(&diff)?);
     let diff = DiffInfo {
         is_right: false,
-        changes:  diff.clone()
+        changes:  diff.clone(),
     };
     let tys = diff.left_changes();
     debug!("{}", serde_json::to_string(&tys)?);
     let left_changes: Vec<DiffResult> = serde_json::from_str(
-        r#"[{"Changed":{"lines":{"start":1,"end":2}}},{"Changed":{"lines":{"start":3,"end":15}}},{"Empty":{"lines":{"start":19,"end":23}}}]"#
+        r#"[{"Changed":{"lines":{"start":1,"end":2}}},{"Changed":{"lines":{"start":3,"end":15}}},{"Empty":{"lines":{"start":19,"end":23}}}]"#,
     )?;
     assert_eq!(tys, left_changes);
     let tys = diff.right_changes();
     debug!("{}", serde_json::to_string(&tys)?);
     let right_changes: Vec<DiffResult> = serde_json::from_str(
-        r#"[{"Empty":{"lines":{"start":1,"end":2}}},{"Empty":{"lines":{"start":2,"end":14}}},{"Changed":{"lines":{"start":6,"end":10}}}]"#
+        r#"[{"Empty":{"lines":{"start":1,"end":2}}},{"Empty":{"lines":{"start":2,"end":14}}},{"Changed":{"lines":{"start":6,"end":10}}}]"#,
     )?;
     assert_eq!(tys, right_changes);
     Ok(())

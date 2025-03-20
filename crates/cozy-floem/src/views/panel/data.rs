@@ -8,7 +8,7 @@ use floem::{
     prelude::{RwSignal, SignalGet, SignalUpdate, SignalWith, palette},
     reactive::{Scope, batch},
     taffy::NodeId,
-    text::{Attrs, FamilyOwned, LineHeightValue}
+    text::{Attrs, FamilyOwned, LineHeightValue},
 };
 pub use lines::*;
 use log::{error, info};
@@ -22,7 +22,7 @@ mod lines;
 pub struct DocManager {
     pub panel_id:   ViewId,
     pub inner_node: Option<NodeId>,
-    doc:            RwSignal<SimpleDoc>
+    doc:            RwSignal<SimpleDoc>,
 }
 
 impl DocManager {
@@ -35,8 +35,8 @@ impl DocManager {
             doc:        cx.create_rw_signal(SimpleDoc::new(
                 id,
                 hover_hyperlink,
-                doc_style
-            ))
+                doc_style,
+            )),
         }
     }
 
@@ -67,7 +67,7 @@ pub struct DocStyle {
     pub font_size:    f32,
     pub line_height:  f64,
     pub selection_bg: Color,
-    pub fg_color:     Color
+    pub fg_color:     Color,
 }
 
 impl DocStyle {
@@ -86,7 +86,7 @@ impl Default for DocStyle {
             font_size:    13.0,
             line_height:  23.0,
             selection_bg: palette::css::BLUE_VIOLET,
-            fg_color:     Color::BLACK
+            fg_color:     Color::BLACK,
         }
     }
 }
@@ -101,14 +101,14 @@ pub struct SimpleDoc {
     pub hover_hyperlink: RwSignal<Option<usize>>,
     pub style:           DocStyle,
     pub auto_scroll:     bool,
-    pub lines:           Lines
+    pub lines:           Lines,
 }
 
 impl SimpleDoc {
     pub fn new(
         id: ViewId,
         hover_hyperlink: RwSignal<Option<usize>>,
-        style: DocStyle
+        style: DocStyle,
     ) -> Self {
         Self {
             id,
@@ -117,12 +117,12 @@ impl SimpleDoc {
             viewport: Default::default(),
             cursor: Cursor {
                 dragging: false,
-                position: Position::None
+                position: Position::None,
             },
             hover_hyperlink,
             style,
             auto_scroll: true,
-            lines: Default::default()
+            lines: Default::default(),
         }
     }
 
@@ -133,7 +133,7 @@ impl SimpleDoc {
         if line >= last_line {
             return Ok((
                 self.lines.line_info()?.0.len().max(1) - 1,
-                last_line.max(1) - 1
+                last_line.max(1) - 1,
             ));
         }
         let mut text = self.lines.text_layout_of_line(line)?;
@@ -162,7 +162,7 @@ impl SimpleDoc {
                 if event.modifiers.shift() {
                     self.cursor.position = Position::Region {
                         start: self.cursor.start().unwrap_or(offset),
-                        end:   offset
+                        end:   offset,
                     };
                 } else {
                     self.cursor.position = Position::Caret(offset);
@@ -176,7 +176,7 @@ impl SimpleDoc {
                         .select_word();
                 self.cursor.position = Position::Region {
                     start: start_code,
-                    end:   end_code
+                    end:   end_code,
                 };
                 self.id.request_paint();
             },
@@ -195,10 +195,10 @@ impl SimpleDoc {
                 // );
                 self.cursor.position = Position::Region {
                     start: offset,
-                    end:   next_line_offset
+                    end:   next_line_offset,
                 };
                 self.id.request_paint();
-            }
+            },
         }
         Ok(())
     }
@@ -215,7 +215,7 @@ impl SimpleDoc {
             let offset = self.offset_of_pos(event.pos)?.0;
             self.cursor.position = Position::Region {
                 start: self.cursor.start().unwrap_or(offset),
-                end:   offset
+                end:   offset,
             };
             self.id.request_paint();
         }
@@ -255,14 +255,14 @@ impl SimpleDoc {
         // );
         let rect = Rect::from_origin_size(
             (point.x - 1.0, point.y),
-            (2.0, self.style.line_height)
+            (2.0, self.style.line_height),
         );
         Ok(Some(rect))
     }
 
     fn point_of_offset(
         &self,
-        offset: usize
+        offset: usize,
     ) -> anyhow::Result<Option<(Point, usize, usize)>> {
         let rs = self.lines.point_of_offset(offset)?;
         Ok(rs.map(|(mut point, line, offset)| {
@@ -296,19 +296,19 @@ impl SimpleDoc {
             let viewport_width = self.viewport.width();
             rects.push(Rect::from_origin_size(
                 start_point,
-                (viewport_width, self.style.line_height)
+                (viewport_width, self.style.line_height),
             ));
             start_line += 1;
             while start_line < end_line {
                 rects.push(Rect::from_origin_size(
                     Point::new(0.0, self.height_of_line(start_line)),
-                    (viewport_width, self.style.line_height)
+                    (viewport_width, self.style.line_height),
                 ));
                 start_line += 1;
             }
             rects.push(Rect::from_points(
                 Point::new(0.0, self.height_of_line(start_line)),
-                end_point
+                end_point,
             ));
             Ok(rects)
         }
@@ -543,7 +543,7 @@ impl SimpleDoc {
             Err(err) => {
                 error!("{err:?}");
                 Size::new(0., 0.)
-            }
+            },
         }
     }
 
@@ -551,13 +551,13 @@ impl SimpleDoc {
         match self.lines.visual_lines(
             self.viewport,
             self.style.line_height,
-            self.style.fg_color
+            self.style.fg_color,
         ) {
             Ok(lines) => lines,
             Err(err) => {
                 error!("{err:?}");
                 vec![]
-            }
+            },
         }
     }
 
@@ -580,7 +580,7 @@ impl SimpleDoc {
             0.0,
             0.0,
             self.style.line_height,
-            self.style.line_height
+            self.style.line_height,
         )));
         // self.auto_scroll(true);
     }
@@ -591,7 +591,7 @@ impl SimpleDoc {
             let line = self.line_of_offset(len)?;
             let rect = Rect::from_origin_size(
                 Point::new(self.viewport.x0, self.height_of_line(line)),
-                Size::new(self.style.line_height, self.style.line_height)
+                Size::new(self.style.line_height, self.style.line_height),
             );
             // debug!("auto_scroll {rect:?} len={len} line={line}",);
             self.id.scroll_to(Some(rect));

@@ -5,7 +5,7 @@ use std::{
     fs::File,
     io::{Read, Write},
     path::{Path, PathBuf},
-    time::SystemTime
+    time::SystemTime,
 };
 
 use anyhow::{Result, anyhow};
@@ -23,7 +23,7 @@ pub struct Buffer {
     pub rope:        Rope,
     pub path:        PathBuf,
     pub rev:         u64,
-    pub mod_time:    Option<SystemTime>
+    pub mod_time:    Option<SystemTime>,
 }
 
 impl Buffer {
@@ -36,10 +36,10 @@ impl Buffer {
                         ("Permission Denied".to_string(), true)
                     },
                     std::io::ErrorKind::NotFound => ("".to_string(), false),
-                    _ => ("Not Supported".to_string(), true)
+                    _ => ("Not Supported".to_string(), true),
                 },
-                None => ("Not Supported".to_string(), true)
-            }
+                None => ("Not Supported".to_string(), true),
+            },
         };
         let rope = Rope::from(s);
         let rev = u64::from(!rope.is_empty());
@@ -52,7 +52,7 @@ impl Buffer {
             path,
             language_id,
             rev,
-            mod_time
+            mod_time,
         }
     }
 
@@ -70,7 +70,7 @@ impl Buffer {
                 let mut ext = ext.to_os_string();
                 ext.push(".bak");
                 ext
-            }
+            },
         );
         let path = if self.path.is_symlink() {
             self.path.canonicalize()?
@@ -110,7 +110,7 @@ impl Buffer {
     pub fn update(
         &mut self,
         delta: &RopeDelta,
-        rev: u64
+        rev: u64,
     ) -> Result<Option<TextDocumentContentChangeEvent>> {
         if self.rev + 1 != rev {
             return Ok(None);
@@ -122,7 +122,7 @@ impl Buffer {
             TextDocumentContentChangeEvent {
                 range:        None,
                 range_length: None,
-                text:         self.get_document()
+                text:         self.get_document(),
             }
         })))
     }
@@ -155,7 +155,7 @@ impl Buffer {
 
         Ok(Position {
             line:      line as u32,
-            character: utf16_col as u32
+            character: utf16_col as u32,
         })
     }
 
@@ -165,7 +165,7 @@ impl Buffer {
 
     pub fn line_to_cow(&self, line: usize) -> Result<Cow<str>> {
         Ok(self.rope.slice_to_cow(
-            self.offset_of_line(line)?..self.offset_of_line(line + 1)?
+            self.offset_of_line(line)?..self.offset_of_line(line + 1)?,
         ))
     }
 
@@ -174,7 +174,7 @@ impl Buffer {
     /// `slice_to_cow` which can
     pub fn char_indices_iter<T: IntervalBounds>(
         &self,
-        range: T
+        range: T,
     ) -> impl Iterator<Item = (usize, char)> + '_ {
         CharIndicesJoin::new(self.rope.iter_chunks(range).map(str::char_indices))
     }
@@ -279,8 +279,8 @@ pub fn language_id_from_path(path: &Path) -> Option<&'static str> {
                     "yml" | "yaml" => "yaml",
                     "zig" => "zig",
                     "vue" => "vue",
-                    _ => return None
-                }
+                    _ => return None,
+                },
             }
         },
         // Handle paths without extension
@@ -290,15 +290,15 @@ pub fn language_id_from_path(path: &Path) -> Option<&'static str> {
             filename => match filename.to_lowercase().as_str() {
                 "dockerfile" => "dockerfile",
                 "makefile" | "gnumakefile" => "makefile",
-                _ => return None
-            }
-        }
+                _ => return None,
+            },
+        },
     })
 }
 
 fn get_document_content_changes(
     delta: &RopeDelta,
-    buffer: &Buffer
+    buffer: &Buffer,
 ) -> Result<Option<TextDocumentContentChangeEvent>> {
     let (interval, _) = delta.summary();
     let (start, end) = interval.start_end();
@@ -314,7 +314,7 @@ fn get_document_content_changes(
         Some(TextDocumentContentChangeEvent {
             range:        Some(Range { start, end }),
             range_length: None,
-            text:         String::from(node)
+            text:         String::from(node),
         })
     }
     // Or a simple delete
@@ -326,10 +326,10 @@ fn get_document_content_changes(
         Some(TextDocumentContentChangeEvent {
             range:        Some(Range {
                 start,
-                end: end_position
+                end: end_position,
             }),
             range_length: None,
-            text:         String::new()
+            text:         String::new(),
         })
     } else {
         None

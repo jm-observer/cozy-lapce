@@ -2,7 +2,7 @@
 pub enum ReleaseType {
     Debug,
     Stable,
-    Nightly
+    Nightly,
 }
 
 include!(concat!(env!("OUT_DIR"), "/meta.rs"));

@@ -9,7 +9,7 @@ use floem::{
     reactive::SignalGet,
     style::{CursorStyle, Style},
     taffy::NodeId,
-    views::scroll
+    views::scroll,
 };
 use log::error;
 
@@ -24,7 +24,7 @@ pub fn panel(doc: DocManager) -> impl View {
                 match rs {
                     Some(Err(err)) => error!("{err:?}"),
                     None => error!("doc try update point down fail"),
-                    _ => ()
+                    _ => (),
                 }
             }
         })
@@ -34,7 +34,7 @@ pub fn panel(doc: DocManager) -> impl View {
                 match rs {
                     Some(Err(err)) => error!("{err:?}"),
                     None => error!("doc try update point move fail"),
-                    _ => ()
+                    _ => (),
                 }
             }
         })
@@ -44,7 +44,7 @@ pub fn panel(doc: DocManager) -> impl View {
                 match rs {
                     Some(Err(err)) => error!("{err:?}"),
                     None => error!("doc try update point up fail"),
-                    _ => ()
+                    _ => (),
                 }
             }
         })
@@ -58,7 +58,7 @@ pub fn panel(doc: DocManager) -> impl View {
                         error!("{err:?}");
                     }
                 });
-            }
+            },
         )
         .style(move |x| {
             let hover_hyperlink = hover_hyperlink.get();
@@ -91,7 +91,7 @@ pub fn panel(doc: DocManager) -> impl View {
 pub struct Panel {
     pub id:         ViewId,
     pub inner_node: Option<NodeId>,
-    pub doc:        DocManager
+    pub doc:        DocManager,
 }
 
 impl View for DocManager {
@@ -106,13 +106,13 @@ impl View for DocManager {
     fn update(
         &mut self,
         _cx: &mut floem::context::UpdateCx,
-        _state: Box<dyn std::any::Any>
+        _state: Box<dyn std::any::Any>,
     ) {
     }
 
     fn layout(
         &mut self,
-        cx: &mut floem::context::LayoutCx
+        cx: &mut floem::context::LayoutCx,
     ) -> floem::taffy::prelude::NodeId {
         cx.layout_node(self.panel_id, true, |_cx| {
             if self.inner_node.is_none() {
@@ -133,7 +133,7 @@ impl View for DocManager {
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx
+        _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<Rect> {
         // let viewport = cx.current_viewport();
         // self.editor.doc().lines.update(|x| {
@@ -153,7 +153,7 @@ impl View for DocManager {
                     x.viewport_lines(),
                     x.position_of_cursor(),
                     x.select_of_cursor(),
-                    x.style.clone()
+                    x.style.clone(),
                 )
             });
         match selections {
@@ -167,7 +167,7 @@ impl View for DocManager {
             },
             Err(err) => {
                 error!("{err:?}");
-            }
+            },
         }
         // paint cursor
         match position_of_cursor {
@@ -180,7 +180,7 @@ impl View for DocManager {
             Err(err) => {
                 error!("{err:?}");
             },
-            Ok(None) => {}
+            Ok(None) => {},
         }
         for line_info in lines {
             let y = line_info.pos_y;
@@ -188,7 +188,7 @@ impl View for DocManager {
             paint_extra_style(cx, &line_info.hyperlinks);
             cx.draw_text_with_layout(
                 line_info.text.borrow_mut().layout_runs(),
-                Point::new(0.0, y)
+                Point::new(0.0, y),
             );
         }
         // paint select

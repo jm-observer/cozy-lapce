@@ -6,7 +6,7 @@ use crate::window_workspace::WindowWorkspaceData;
 
 pub fn build_panel(
     window_tab_data: WindowWorkspaceData,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     let data = window_tab_data.build_data;
     tree_with_panel(data).style(|x| x.size_full())

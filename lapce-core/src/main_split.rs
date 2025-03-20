@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     editor_tab::EditorTabInfo,
-    id::{EditorTabManageId, SplitId}
+    id::{EditorTabManageId, SplitId},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SplitDirection {
     Vertical,
-    Horizontal
+    Horizontal,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -16,7 +16,7 @@ pub enum SplitMoveDirection {
     Up,
     Down,
     Right,
-    Left
+    Left,
 }
 
 impl SplitMoveDirection {
@@ -35,14 +35,14 @@ impl SplitMoveDirection {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SplitContent {
     EditorTab(EditorTabManageId),
-    Split(SplitId)
+    Split(SplitId),
 }
 
 impl SplitContent {
     pub fn id(&self) -> u64 {
         match self {
             SplitContent::EditorTab(id) => id.to_raw(),
-            SplitContent::Split(id) => id.to_raw()
+            SplitContent::Split(id) => id.to_raw(),
         }
     }
 }
@@ -50,13 +50,13 @@ impl SplitContent {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SplitInfo {
     pub children:  Vec<SplitContentInfo>,
-    pub direction: SplitDirection
+    pub direction: SplitDirection,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SplitContentInfo {
     EditorTab(EditorTabInfo),
-    Split(SplitInfo)
+    Split(SplitInfo),
 }
 
 // fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url,
@@ -165,5 +165,5 @@ pub enum SplitContentInfo {
 pub enum TabCloseKind {
     CloseOther,
     CloseToLeft,
-    CloseToRight
+    CloseToRight,
 }

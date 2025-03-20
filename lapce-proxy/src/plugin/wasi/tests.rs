@@ -38,7 +38,7 @@ async fn test_load_volt() {
     let path = lapce_proxy_dir.join("some-path");
     match path.canonicalize() {
         Ok(path) => panic!("{path:?} file must not exast, but it is"),
-        Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::NotFound)
+        Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::NotFound),
     };
     // This should return Err since the file does not exist
     if let Ok(volt_metadata) = load_volt(&lapce_proxy_dir).await {
@@ -53,14 +53,14 @@ async fn test_load_volt() {
     let path = lapce_proxy_dir.join("smiley.png");
     let path = match path.canonicalize() {
         Ok(path) => path,
-        Err(err) => panic!("{path:?} file must exast, but: {err:?}")
+        Err(err) => panic!("{path:?} file must exast, but: {err:?}"),
     };
     // Making sure the data in the file is invalid utf-8
     match std::fs::read_to_string(path.clone()) {
         Ok(str) => panic!(
             "{path:?} file must be invalid utf-8, but it is valid utf-8: {str:?}",
         ),
-        Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::InvalidData)
+        Err(err) => assert_eq!(err.kind(), std::io::ErrorKind::InvalidData),
     }
     // This should return Err since the `*.png` file cannot be read as a String
     if let Ok(volt_metadata) = load_volt(&path).await {
@@ -77,13 +77,13 @@ async fn test_load_volt() {
         .join("Light.svg");
     let path = match path.canonicalize() {
         Ok(path) => path,
-        Err(err) => panic!("{path:?} file must exast, but: {err:?}")
+        Err(err) => panic!("{path:?} file must exast, but: {err:?}"),
     };
     // Making sure the data in the file is valid utf-8 (*.svg file is must be a
     // valid utf-8)
     match std::fs::read_to_string(path.clone()) {
         Ok(_) => {},
-        Err(err) => panic!("{path:?} file must be valid utf-8, but {err:?}")
+        Err(err) => panic!("{path:?} file must be valid utf-8, but {err:?}"),
     }
     // This should return Err since the data in the file cannot be interpreted as
     // VoltMetadata
@@ -98,7 +98,7 @@ async fn test_load_volt() {
 
     let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
-        Err(error) => panic!("{}", error)
+        Err(error) => panic!("{}", error),
     };
 
     let wasm_path = parent_path
@@ -150,7 +150,7 @@ async fn test_load_volt() {
             icon_themes:  Some(icon_themes_pathes),
             dir:          parent_path.canonicalize().ok(),
             activation:   None,
-            config:       None
+            config:       None,
         }
     );
 
@@ -158,7 +158,7 @@ async fn test_load_volt() {
 
     let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
-        Err(error) => panic!("{}", error)
+        Err(error) => panic!("{}", error),
     };
 
     let wasm_path = parent_path
@@ -210,7 +210,7 @@ async fn test_load_volt() {
             icon_themes:  Some(icon_themes_pathes),
             dir:          parent_path.canonicalize().ok(),
             activation:   None,
-            config:       None
+            config:       None,
         }
     );
 
@@ -218,7 +218,7 @@ async fn test_load_volt() {
 
     let volt_metadata = match load_volt(&parent_path).await {
         Ok(volt_metadata) => volt_metadata,
-        Err(error) => panic!("{}", error)
+        Err(error) => panic!("{}", error),
     };
 
     assert_eq!(
@@ -236,7 +236,7 @@ async fn test_load_volt() {
             icon_themes:  Some(Vec::new()),
             dir:          parent_path.canonicalize().ok(),
             activation:   None,
-            config:       None
+            config:       None,
         }
     );
 }

@@ -45,7 +45,7 @@ use core::{borrow::Borrow, cmp::Ordering, fmt, hash, ops::Deref, str};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CharBuffer {
     len: usize,
-    buf: [u8; 4]
+    buf: [u8; 4],
 }
 
 /// The type of error returned when the conversion from [`prim@str`], [`String`]
@@ -506,7 +506,7 @@ macro_rules! impl_try_from {
                 let mut chars = str.chars();
                 match (chars.next(), chars.next()) {
                     (Some(char), None) => Ok(Self::new(char)),
-                    _ => Err(CharBufferTryFromError(()))
+                    _ => Err(CharBufferTryFromError(())),
                 }
             }
         }
@@ -634,7 +634,7 @@ fn test_char_buffer() {
     let mut string = String::from(
         "
     This is some text. Это некоторый текст. Αυτό είναι κάποιο κείμενο. \
-         這是一些文字。"
+         這是一些文字。",
     );
     #[cfg(not(miri))]
     let mut string = String::from(
@@ -846,83 +846,83 @@ fn test_char_buffer() {
       ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
       ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛           └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
 
-"
+",
     );
 
     match CharBuffer::try_from(string.as_str()) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(string.as_mut_str()) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(&string) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(&mut string) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(string.clone()) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     let mut some_box: Box<str> = Box::from(string.clone());
 
     match CharBuffer::try_from(&some_box) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(&mut some_box) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(some_box) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     let mut some_arc: Arc<str> = Arc::from(string.clone());
 
     match CharBuffer::try_from(&some_arc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(&mut some_arc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(some_arc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     let mut some_rc: Rc<str> = Rc::from(string.clone());
 
     match CharBuffer::try_from(&some_rc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(&mut some_rc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     match CharBuffer::try_from(some_rc) {
         Ok(_) => panic!("This should fail because of long string"),
-        Err(_) => {}
+        Err(_) => {},
     }
 
     let hash_builder = std::collections::hash_map::RandomState::default();
@@ -930,7 +930,7 @@ fn test_char_buffer() {
     fn make_hash<Q, S>(hash_builder: &S, val: &Q) -> u64
     where
         Q: std::hash::Hash + ?Sized,
-        S: core::hash::BuildHasher {
+        S: core::hash::BuildHasher, {
         hash_builder.hash_one(val)
     }
 
@@ -995,14 +995,14 @@ fn test_char_buffer() {
                 assert_eq!(char_buf, char_string.as_str());
                 assert_eq!(char_string.as_str(), char_buf);
             },
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(char_string.as_mut_str()) {
             Ok(char_buf) => {
                 assert_eq!(char_buf, char_string.as_mut_str());
                 assert_eq!(char_string.as_mut_str(), char_buf);
             },
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
 
         match CharBuffer::try_from(&char_string) {
@@ -1010,66 +1010,66 @@ fn test_char_buffer() {
                 assert_eq!(char_buf, &char_string);
                 assert_eq!(&char_string, char_buf);
             },
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(&mut char_string) {
             Ok(char_buf) => {
                 assert_eq!(char_buf, &mut char_string);
                 assert_eq!(&mut char_string, char_buf);
             },
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(char_string.clone()) {
             Ok(char_buf) => {
                 assert_eq!(char_buf, char_string);
                 assert_eq!(char_string, char_buf);
             },
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
 
         let mut some_box: Box<str> = Box::from(char_string.clone());
 
         match CharBuffer::try_from(&some_box) {
             Ok(char_buf) => assert_eq!(char_buf, some_box.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(&mut some_box) {
             Ok(char_buf) => assert_eq!(char_buf, some_box.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(some_box) {
             Ok(char_buf) => assert_eq!(char_buf, char_string),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
 
         let mut some_arc: Arc<str> = Arc::from(char_string.clone());
 
         match CharBuffer::try_from(&some_arc) {
             Ok(char_buf) => assert_eq!(char_buf, some_arc.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(&mut some_arc) {
             Ok(char_buf) => assert_eq!(char_buf, some_arc.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(some_arc) {
             Ok(char_buf) => assert_eq!(char_buf, char_string),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
 
         let mut some_rc: Rc<str> = Rc::from(char_string.clone());
 
         match CharBuffer::try_from(&some_rc) {
             Ok(char_buf) => assert_eq!(char_buf, some_rc.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(&mut some_rc) {
             Ok(char_buf) => assert_eq!(char_buf, some_rc.as_ref()),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
         match CharBuffer::try_from(some_rc) {
             Ok(char_buf) => assert_eq!(char_buf, char_string),
-            Err(_) => panic!("This should not fail because of single char")
+            Err(_) => panic!("This should not fail because of single char"),
         }
     }
 }

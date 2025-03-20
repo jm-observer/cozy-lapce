@@ -12,7 +12,7 @@ use std::{
     hash::{Hash, Hasher},
     mem,
     path::Path,
-    sync::{Arc, atomic::AtomicUsize}
+    sync::{Arc, atomic::AtomicUsize},
 };
 
 use ahash::RandomState;
@@ -21,7 +21,7 @@ use hashbrown::raw::RawTable;
 use itertools::Itertools;
 use lapce_xi_rope::{
     Interval, Rope,
-    spans::{Spans, SpansBuilder}
+    spans::{Spans, SpansBuilder},
 };
 use log::error;
 use slotmap::{DefaultKey as LayerId, HopSlotMap};
@@ -33,9 +33,9 @@ use self::{
     highlight::{
         Highlight, HighlightConfiguration, HighlightEvent, HighlightIter,
         HighlightIterLayer, IncludedChildren, LocalScope, get_highlight_config,
-        intersect_ranges
+        intersect_ranges,
     },
-    util::RopeProvider
+    util::RopeProvider,
 };
 use crate::{
     LineStyle,
@@ -43,9 +43,9 @@ use crate::{
     lens::{Lens, LensBuilder},
     lines::{
         buffer::{Buffer, rope_text::RopeText},
-        util::{matching_bracket_general, matching_pair_direction}
+        util::{matching_bracket_general, matching_pair_direction},
     },
-    syntax::highlight::{InjectionLanguageMarker, SCOPES}
+    syntax::highlight::{InjectionLanguageMarker, SCOPES},
 };
 
 pub mod edit;
@@ -59,7 +59,7 @@ const TREE_SITTER_MATCH_LIMIT: u32 = 256;
 
 pub struct TsParser {
     parser:      tree_sitter::Parser,
-    pub cursors: Vec<QueryCursor>
+    pub cursors: Vec<QueryCursor>,
 }
 
 thread_local! {
@@ -79,7 +79,7 @@ pub enum Error {
     #[error("Invalid language")]
     InvalidLanguage,
     #[error("Unknown error")]
-    Unknown
+    Unknown,
 }
 
 #[derive(Clone, Debug)]
@@ -92,7 +92,7 @@ pub enum NodeType {
     RightCurly,
     Pair,
     Code,
-    Dummy
+    Dummy,
 }
 
 impl NodeType {
@@ -104,7 +104,7 @@ impl NodeType {
             NodeType::RightBracket => Some("]".to_string()),
             NodeType::LeftCurly => Some("{".to_string()),
             NodeType::RightCurly => Some("}".to_string()),
-            NodeType::Pair | NodeType::Code | NodeType::Dummy => None
+            NodeType::Pair | NodeType::Code | NodeType::Dummy => None,
         }
     }
 }
@@ -112,7 +112,7 @@ impl NodeType {
 #[derive(Clone, Debug)]
 pub enum BracketParserMode {
     Parsing,
-    NoParsing
+    NoParsing,
 }
 
 #[derive(Clone, Debug)]
@@ -120,7 +120,7 @@ pub struct ASTNode {
     pub tt:       NodeType,
     pub len:      usize,
     pub children: Vec<ASTNode>,
-    pub level:    usize
+    pub level:    usize,
 }
 
 impl ASTNode {
@@ -129,7 +129,7 @@ impl ASTNode {
             tt:       NodeType::Dummy,
             len:      0,
             children: vec![],
-            level:    0
+            level:    0,
         }
     }
 
@@ -138,7 +138,7 @@ impl ASTNode {
             tt,
             len,
             children: vec![],
-            level: 0
+            level: 0,
         }
     }
 }
@@ -159,7 +159,7 @@ pub struct BracketParser {
     mode:            BracketParserMode,
     noparsing_token: Vec<char>,
     pub active:      bool,
-    pub limit:       u64
+    pub limit:       u64,
 }
 
 impl BracketParser {
@@ -174,13 +174,13 @@ impl BracketParser {
                 ('{', ASTNode::new_with_type(NodeType::LeftCurly, 1)),
                 ('}', ASTNode::new_with_type(NodeType::RightCurly, 1)),
                 ('[', ASTNode::new_with_type(NodeType::LeftBracket, 1)),
-                (']', ASTNode::new_with_type(NodeType::RightBracket, 1))
+                (']', ASTNode::new_with_type(NodeType::RightBracket, 1)),
             ]),
             bracket_pos: HashMap::new(),
             mode: BracketParserMode::Parsing,
             noparsing_token: vec!['\'', '"', '`'],
             active,
-            limit
+            limit,
         }
     }
 
@@ -195,7 +195,7 @@ impl BracketParser {
     pub fn update_code(
         &mut self,
         buffer: &Buffer,
-        syntax: Option<&Syntax>
+        syntax: Option<&Syntax>,
     ) -> Result<()> {
         let palette = vec![
             "bracket.color.1".to_string(),
@@ -221,7 +221,7 @@ impl BracketParser {
                             &mut 0,
                             &mut 0,
                             &mut bracket_pos,
-                            &palette
+                            &palette,
                         );
                         self.bracket_pos = bracket_pos;
                     }
@@ -236,7 +236,7 @@ impl BracketParser {
                     &mut pos_vec,
                     &mut 0usize,
                     &mut 0usize,
-                    &palette
+                    &palette,
                 );
                 if buffer.is_empty() {
                     return Ok(());
@@ -247,7 +247,7 @@ impl BracketParser {
                         start:    col,
                         end:      col + 1,
                         fg_color: Some(color.clone()),
-                        text:     bracket
+                        text:     bracket,
                     };
                     match self.bracket_pos.entry(line) {
                         Entry::Vacant(v) => _ = v.insert(vec![line_style.clone()]),
@@ -348,7 +348,7 @@ impl BracketParser {
                         Self::patch_len(n);
                         len += n.len;
                     },
-                    _ => break
+                    _ => break,
                 }
             }
             ast.len = len;
@@ -360,7 +360,7 @@ impl BracketParser {
         pos_vec: &mut Vec<(usize, String, Option<String>)>,
         index: &mut usize,
         level: &mut usize,
-        palette: &Vec<String>
+        palette: &Vec<String>,
     ) {
         if !ast.children.is_empty() {
             for n in ast.children.iter() {
@@ -371,7 +371,7 @@ impl BracketParser {
                         pos_vec.push((
                             *index,
                             palette[*level % palette.len()].clone(),
-                            n.tt.bracket()
+                            n.tt.bracket(),
                         ));
                         *level += 1;
                         *index += 1;
@@ -384,14 +384,14 @@ impl BracketParser {
                             pos_vec.push((
                                 *index,
                                 "bracket.unpaired".to_string(),
-                                n.tt.bracket()
+                                n.tt.bracket(),
                             ));
                         } else {
                             *level = new_level;
                             pos_vec.push((
                                 *index,
                                 palette[*level % palette.len()].clone(),
-                                n.tt.bracket()
+                                n.tt.bracket(),
                             ));
                         }
                         *index += 1;
@@ -400,7 +400,7 @@ impl BracketParser {
                     NodeType::Pair => {
                         Self::highlight_pos(n, pos_vec, index, level, palette)
                     },
-                    _ => break
+                    _ => break,
                 }
             }
         }
@@ -416,7 +416,7 @@ pub struct LanguageLayer {
     pub ranges:      Vec<tree_sitter::Range>,
     pub depth:       usize,
     _parent:         Option<LayerId>,
-    rev:             u64
+    rev:             u64,
 }
 
 /// This PartialEq implementation only checks if that
@@ -451,7 +451,7 @@ impl LanguageLayer {
         parser: &mut Parser,
         source: &Rope,
         had_edits: bool,
-        cancellation_flag: &AtomicUsize
+        cancellation_flag: &AtomicUsize,
     ) -> Result<(), Error> {
         parser
             .set_included_ranges(&self.ranges)
@@ -475,7 +475,7 @@ impl LanguageLayer {
                         &[]
                     }
                 },
-                had_edits.then_some(()).and(self.tree.as_ref())
+                had_edits.then_some(()).and(self.tree.as_ref()),
             )
             .ok_or(Error::Cancelled)?;
         self.tree = Some(tree);
@@ -486,13 +486,13 @@ impl LanguageLayer {
 #[derive(Clone)]
 pub struct SyntaxLayers {
     layers: HopSlotMap<LayerId, LanguageLayer>,
-    root:   LayerId
+    root:   LayerId,
 }
 impl SyntaxLayers {
     pub fn new_empty(
         config: Arc<HighlightConfiguration>,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) -> SyntaxLayers {
         Self::new(None, config, grammars_directory, queries_directory)
     }
@@ -501,7 +501,7 @@ impl SyntaxLayers {
         source: Option<&Rope>,
         config: Arc<HighlightConfiguration>,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) -> SyntaxLayers {
         let root_layer = LanguageLayer {
             tree: None,
@@ -511,10 +511,10 @@ impl SyntaxLayers {
                 start_byte:  0,
                 end_byte:    usize::MAX,
                 start_point: Point::new(0, 0),
-                end_point:   Point::new(usize::MAX, usize::MAX)
+                end_point:   Point::new(usize::MAX, usize::MAX),
             }],
             _parent: None,
-            rev: 0
+            rev: 0,
         };
 
         let mut layers = HopSlotMap::default();
@@ -531,7 +531,7 @@ impl SyntaxLayers {
                 None,
                 &cancel_flag,
                 grammars_directory,
-                queries_directory
+                queries_directory,
             ) {
                 error!("{:?}", err);
             }
@@ -549,7 +549,7 @@ impl SyntaxLayers {
         syntax_edits: Option<&[SyntaxEdit]>,
         cancellation_flag: &AtomicUsize,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) -> Result<(), Error> {
         let mut queue = VecDeque::new();
         queue.push_back(self.root);
@@ -562,7 +562,7 @@ impl SyntaxLayers {
                 InjectionLanguageMarker::Filename(path) => {
                     LapceLanguage::from_path_raw(path)
                 },
-                InjectionLanguageMarker::Shebang(id) => LapceLanguage::from_name(id)
+                InjectionLanguageMarker::Shebang(id) => LapceLanguage::from_name(id),
             };
             language
                 .map(|x| {
@@ -633,7 +633,7 @@ impl SyntaxLayers {
                                 + (range.start_byte - edit.old_end_byte);
                             range.start_point = point_add(
                                 edit.new_end_position,
-                                point_sub(range.start_point, edit.old_end_position)
+                                point_sub(range.start_point, edit.old_end_position),
                             );
 
                             range.end_byte = edit
@@ -641,7 +641,7 @@ impl SyntaxLayers {
                                 .saturating_add(range.end_byte - edit.old_end_byte);
                             range.end_point = point_add(
                                 edit.new_end_position,
-                                point_sub(range.end_point, edit.old_end_position)
+                                point_sub(range.end_point, edit.old_end_position),
                             );
                         }
                         // if the edit starts in the space before and
@@ -656,7 +656,7 @@ impl SyntaxLayers {
                                 .saturating_add(edit.new_end_byte);
                             range.end_point = point_add(
                                 edit.new_end_position,
-                                point_sub(range.end_point, edit.old_end_position)
+                                point_sub(range.end_point, edit.old_end_position),
                             );
                         }
                         // If the edit is an insertion at the start of
@@ -673,7 +673,7 @@ impl SyntaxLayers {
                                 .saturating_add(edit.new_end_byte);
                             range.end_point = point_add(
                                 edit.new_end_position,
-                                point_sub(range.end_point, edit.old_end_position)
+                                point_sub(range.end_point, edit.old_end_position),
                             );
                         }
                     }
@@ -719,7 +719,7 @@ impl SyntaxLayers {
                     &mut ts_parser.parser,
                     source,
                     had_edits,
-                    cancellation_flag
+                    cancellation_flag,
                 )?;
                 layer.rev = new_rev;
 
@@ -731,7 +731,7 @@ impl SyntaxLayers {
                     let matches = cursor.matches(
                         &layer.config.injections_query,
                         tree.root_node(),
-                        RopeProvider(source)
+                        RopeProvider(source),
                     );
                     let mut combined_injections =
                         vec![
@@ -745,13 +745,13 @@ impl SyntaxLayers {
                             match layer.config.injection_for_match(
                                 &layer.config.injections_query,
                                 &mat,
-                                source
+                                source,
                             ) {
                                 Ok(rs) => rs,
                                 Err(err) => {
                                     error!("{err:?}");
                                     continue;
-                                }
+                                },
                             };
 
                         // in case this is a combined injection save
@@ -793,7 +793,7 @@ impl SyntaxLayers {
                                     let ranges = intersect_ranges(
                                         &layer.ranges,
                                         &[content_node],
-                                        included_children
+                                        included_children,
                                     );
 
                                     if !ranges.is_empty() {
@@ -808,7 +808,7 @@ impl SyntaxLayers {
                                 },
                                 Err(err) => {
                                     error!("{:?}", err);
-                                }
+                                },
                             }
                         }
                     }
@@ -824,7 +824,7 @@ impl SyntaxLayers {
                                     let ranges = intersect_ranges(
                                         &layer.ranges,
                                         &content_nodes,
-                                        included_children
+                                        included_children,
                                     );
                                     if !ranges.is_empty() {
                                         injections.push((config, ranges));
@@ -832,7 +832,7 @@ impl SyntaxLayers {
                                 },
                                 Err(err) => {
                                     error!("{:?}", err);
-                                }
+                                },
                             }
                         }
                     }
@@ -847,7 +847,7 @@ impl SyntaxLayers {
                             depth,
                             ranges,
                             _parent: Some(layer_id),
-                            rev: 0
+                            rev: 0,
                         };
 
                         // Find an identical existing layer
@@ -890,7 +890,7 @@ impl SyntaxLayers {
         &'a self,
         source: &'a Rope,
         range: Option<std::ops::Range<usize>>,
-        cancellation_flag: Option<&'a AtomicUsize>
+        cancellation_flag: Option<&'a AtomicUsize>,
     ) -> impl Iterator<Item = Result<HighlightEvent, Error>> + 'a {
         let mut layers = self
             .layers
@@ -920,7 +920,7 @@ impl SyntaxLayers {
                     .captures(
                         &layer.config.query,
                         layer.try_tree()?.root_node(),
-                        RopeProvider(source)
+                        RopeProvider(source),
                     )
                     .peekable();
 
@@ -932,13 +932,13 @@ impl SyntaxLayers {
                     scope_stack: vec![LocalScope {
                         inherits:   false,
                         range:      0..usize::MAX,
-                        local_defs: Vec::new()
+                        local_defs: Vec::new(),
                     }],
                     cursor,
                     _tree: None,
                     captures: RefCell::new(captures),
                     config: layer.config.as_ref(), // TODO: just reuse `layer`
-                    depth: layer.depth             // TODO: just reuse `layer`
+                    depth: layer.depth,            // TODO: just reuse `layer`
                 })
             })
             .collect::<Vec<_>>();
@@ -952,7 +952,7 @@ impl SyntaxLayers {
             iter_count: 0,
             layers,
             next_event: None,
-            last_highlight_range: None
+            last_highlight_range: None,
         };
         result.sort_layers();
         result
@@ -970,7 +970,7 @@ pub struct Syntax {
     pub line_height:  usize,
     pub lens_height:  usize,
     pub styles:       Option<Spans<String>>,
-    pub cancel_flag:  Arc<AtomicUsize>
+    pub cancel_flag:  Arc<AtomicUsize>,
 }
 
 impl std::fmt::Debug for Syntax {
@@ -991,7 +991,7 @@ impl Syntax {
     pub fn init(
         path: &Path,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) -> Syntax {
         let language = LapceLanguage::from_path(path);
         Syntax::from_language(language, grammars_directory, queries_directory)
@@ -1001,14 +1001,14 @@ impl Syntax {
         Self::from_language(
             LapceLanguage::PlainText,
             grammars_directory,
-            queries_directory
+            queries_directory,
         )
     }
 
     pub fn from_language(
         language: LapceLanguage,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) -> Syntax {
         let highlight =
             get_highlight_config(language, grammars_directory, queries_directory)
@@ -1025,7 +1025,7 @@ impl Syntax {
             lens_height: 0,
             normal_lines: Vec::new(),
             styles: None,
-            cancel_flag: Arc::new(AtomicUsize::new(0))
+            cancel_flag: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -1035,11 +1035,11 @@ impl Syntax {
         new_text: Rope,
         edits: Option<&[SyntaxEdit]>,
         grammars_directory: &Path,
-        queries_directory: &Path
+        queries_directory: &Path,
     ) {
         let layers = match &mut self.layers {
             Some(layers) => layers,
-            None => return
+            None => return,
         };
         let edits = edits.filter(|edits| new_rev == self.rev + edits.len() as u64);
         if let Err(err) = layers.update(
@@ -1049,7 +1049,7 @@ impl Syntax {
             edits,
             &self.cancel_flag,
             grammars_directory,
-            queries_directory
+            queries_directory,
         ) {
             error!("{:?}", err);
         }
@@ -1066,7 +1066,7 @@ impl Syntax {
                 .highlight_iter(
                     &new_text,
                     Some(0..new_text.len()),
-                    Some(&self.cancel_flag)
+                    Some(&self.cancel_flag),
                 )
                 .flatten()
             {
@@ -1076,7 +1076,7 @@ impl Syntax {
                             if let Some(hl) = SCOPES.get(hl.0) {
                                 highlights.add_span(
                                     Interval::new(start, end),
-                                    hl.to_string()
+                                    hl.to_string(),
                                 );
                             }
                         }
@@ -1084,7 +1084,7 @@ impl Syntax {
                     HighlightEvent::HighlightStart(hl) => {
                         current_hl = Some(hl);
                     },
-                    HighlightEvent::HighlightEnd => current_hl = None
+                    HighlightEvent::HighlightEnd => current_hl = None,
                 }
             }
 
@@ -1106,7 +1106,7 @@ impl Syntax {
             new_text.line_of_offset(new_text.len()) + 1,
             self.line_height,
             self.lens_height,
-            &normal_lines
+            &normal_lines,
         );
 
         self.rev = new_rev;
@@ -1121,7 +1121,7 @@ impl Syntax {
             self.text.line_of_offset(self.text.len()) + 1,
             line_height,
             lens_height,
-            &self.normal_lines
+            &self.normal_lines,
         );
         self.line_height = line_height;
         self.lens_height = lens_height;
@@ -1131,7 +1131,7 @@ impl Syntax {
         total_lines: usize,
         line_height: usize,
         lens_height: usize,
-        normal_lines: &[usize]
+        normal_lines: &[usize],
     ) -> Lens {
         let mut builder = LensBuilder::new();
         let mut current_line = 0;
@@ -1179,7 +1179,7 @@ impl Syntax {
         &self,
         offset: usize,
         previous: bool,
-        tag: &str
+        tag: &str,
     ) -> Option<usize> {
         let tree = self.layers.as_ref()?.try_tree()?;
         let node = tree
@@ -1208,7 +1208,7 @@ impl Syntax {
         &self,
         node: Node,
         previous: bool,
-        tag: &str
+        tag: &str,
     ) -> Option<usize> {
         let mut node = node;
         while let Some(sibling) = if previous {
@@ -1257,7 +1257,7 @@ impl Syntax {
 
     pub fn find_enclosing_parentheses(
         &self,
-        offset: usize
+        offset: usize,
     ) -> Option<(usize, usize)> {
         if offset >= self.text.len() {
             return None;

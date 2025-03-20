@@ -8,22 +8,22 @@ use floem::{
     peniko::{Color, color::Rgba8},
     prelude::text_input,
     reactive::{
-        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal
+        ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal,
     },
     style::{AlignItems, CursorStyle, Position, Style},
     text::Style as FontStyle,
     views::{
         Container, Decorators, container, dyn_stack, label, scroll, stack,
-        virtual_stack
-    }
+        virtual_stack,
+    },
 };
 use lapce_core::{
     icon::LapceIcons,
-    panel::{PanelContainerPosition, PanelSection}
+    panel::{PanelContainerPosition, PanelSection},
 };
 use lapce_rpc::{
     file::{FileNodeViewData, FileNodeViewKind, Naming},
-    source_control::FileDiffKind
+    source_control::FileDiffKind,
 };
 
 use super::{data::FileExplorerData, node::FileNodeVirtualList};
@@ -36,7 +36,7 @@ use crate::{
     plugin::PluginData,
     source_control::SourceControlData,
     svg,
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 /// Blends `foreground` with `background`.
@@ -56,14 +56,14 @@ fn blend_colors(background: Color, foreground: Color) -> Color {
         r: foreground_r,
         g: foreground_g,
         b: foreground_b,
-        a
+        a,
     } = foreground.to_rgba8();
     let a: u16 = a.into();
 
     let [r, g, b] = [
         [background_r, foreground_r],
         [background_g, foreground_g],
-        [background_b, foreground_b]
+        [background_b, foreground_b],
     ]
     .map(|x| x.map(u16::from))
     .map(|[b, f]| (a * f + (255 - a) * b) / 255)
@@ -73,7 +73,7 @@ fn blend_colors(background: Color, foreground: Color) -> Color {
 
 pub fn file_explorer_panel(
     window_tab_data: WindowWorkspaceData,
-    position: PanelContainerPosition
+    position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let data = window_tab_data.file_explorer.clone();
@@ -88,9 +88,9 @@ pub fn file_explorer_panel(
             move |s| {
                 s.apply_if(
                     !config.signal(|x| x.ui.open_editors_visible.signal()).get(),
-                    |s| s.hide()
+                    |s| s.hide(),
                 )
-            }
+            },
         )
         .add(
             "File Explorer",
@@ -98,7 +98,7 @@ pub fn file_explorer_panel(
                 .style(|s| s.size_full()),
             window_tab_data
                 .panel
-                .section_open(PanelSection::FileExplorer)
+                .section_open(PanelSection::FileExplorer),
         )
         .build()
         .debug_name("File Explorer Panel")
@@ -141,7 +141,7 @@ fn initialize_naming_editor(data: &FileExplorerData, text: &str) {
 fn file_node_text_color(
     config: WithLapceConfig,
     node: FileNodeViewData,
-    source_control: SourceControlData
+    source_control: SourceControlData,
 ) -> Color {
     let diff = source_control.file_diffs.with(|file_diffs| {
         let FileNodeViewKind::Path(path) = &node.kind else {
@@ -164,7 +164,7 @@ fn file_node_text_color(
         },
         Some(FileDiffKind::Added) => LapceColor::SOURCE_CONTROL_ADDED,
         Some(FileDiffKind::Deleted) => LapceColor::SOURCE_CONTROL_REMOVED,
-        None => LapceColor::PANEL_FOREGROUND
+        None => LapceColor::PANEL_FOREGROUND,
     };
 
     config.with_color(color)
@@ -173,7 +173,7 @@ fn file_node_text_color(
 fn file_node_text_view(
     data: FileExplorerData,
     node: FileNodeViewData,
-    source_control: SourceControlData
+    source_control: SourceControlData,
 ) -> impl View {
     let config = data.common.config;
     let ui_line_height = data.common.ui_line_height;
@@ -193,7 +193,7 @@ fn file_node_text_view(
                             .color(file_node_text_color(
                                 config,
                                 node.clone(),
-                                source_control.clone()
+                                source_control.clone(),
                             ))
                             .padding_right(5.0)
                             .selectable(false)
@@ -203,12 +203,12 @@ fn file_node_text_view(
                             s.height(ui_line_height.get())
                                 .color(
                                     config.with_color(
-                                        LapceColor::PANEL_FOREGROUND_DIM
-                                    )
+                                        LapceColor::PANEL_FOREGROUND_DIM,
+                                    ),
                                 )
                                 .selectable(false)
-                        }
-                    )
+                        },
+                    ),
                 ))
             } else {
                 container(
@@ -222,10 +222,10 @@ fn file_node_text_view(
                             .color(file_node_text_color(
                                 config,
                                 node.clone(),
-                                source_control.clone()
+                                source_control.clone(),
                             ))
                             .selectable(false)
-                    })
+                    }),
                 )
             }
         },
@@ -249,7 +249,7 @@ fn file_node_text_view(
             }
 
             file_node_input_view(data, err.clone())
-        }
+        },
     }
 }
 
@@ -298,13 +298,13 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                                     .color(LapceColor::ERROR_LENS_ERROR_BACKGROUND),
                                 config
                                     .color(LapceColor::ERROR_LENS_ERROR_FOREGROUND),
-                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                                config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                             )
                         });
 
                     let background_color = blend_colors(
                         editor_background_color.get(),
-                        error_background_color.get()
+                        error_background_color.get(),
                     );
 
                     s.position(Position::Absolute)
@@ -313,9 +313,9 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
                         .color(error_fg.get())
                         .background(background_color)
                         .z_index(100)
-                })
+                }),
             ))
-            .style(|s| s.flex_grow(1.0))
+            .style(|s| s.flex_grow(1.0)),
         )
     } else {
         container(text_input_view)
@@ -325,7 +325,7 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
 
 fn file_explorer_view(
     data: FileExplorerData,
-    source_control: SourceControlData
+    source_control: SourceControlData,
 ) -> impl View {
     let root = data.root;
     let ui_line_height = data.common.ui_line_height;
@@ -357,7 +357,7 @@ fn file_explorer_view(
                     svg(move || {
                         let svg_str = match open {
                             true => LapceIcons::ITEM_OPENED,
-                            false => LapceIcons::ITEM_CLOSED
+                            false => LapceIcons::ITEM_CLOSED,
                         };
                         config.with_ui_svg(svg_str)
                     })
@@ -365,7 +365,7 @@ fn file_explorer_view(
                         let (size, color) = config.signal(|config| {
                             (
                                 config.ui.icon_size.signal(),
-                                config.color(LapceColor::LAPCE_ICON_ACTIVE)
+                                config.color(LapceColor::LAPCE_ICON_ACTIVE),
                             )
                         });
                         let size = size.get() as f32;
@@ -388,7 +388,7 @@ fn file_explorer_view(
                             if is_dir {
                                 let svg_str = match open {
                                     true => LapceIcons::DIRECTORY_OPENED,
-                                    false => LapceIcons::DIRECTORY_CLOSED
+                                    false => LapceIcons::DIRECTORY_CLOSED,
                                 };
                                 config.with_ui_svg(svg_str)
                             } else if let Some(path) = kind.path() {
@@ -402,7 +402,7 @@ fn file_explorer_view(
                                 (
                                     config.ui.icon_size.signal(),
                                     config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                                    config.icon_theme.signal()
+                                    config.icon_theme.signal(),
                                 )
                             });
                             let file_svg = kind_for_style
@@ -418,7 +418,7 @@ fn file_explorer_view(
                                 })
                         })
                     },
-                    file_node_text_view(data, node, source_control.clone())
+                    file_node_text_view(data, node, source_control.clone()),
                 ))
                 .style({
                     let kind = kind.clone();
@@ -429,7 +429,7 @@ fn file_explorer_view(
                             .align_items(AlignItems::Center)
                             .hover(|s| {
                                 s.background(config.with_color(
-                                    LapceColor::PANEL_HOVERED_BACKGROUND
+                                    LapceColor::PANEL_HOVERED_BACKGROUND,
                                 ))
                                 .cursor(CursorStyle::Pointer)
                             })
@@ -437,9 +437,9 @@ fn file_explorer_view(
                                 select.get().map(|x| x == kind).unwrap_or_default(),
                                 |x| {
                                     x.background(config.with_color(
-                                        LapceColor::PANEL_CURRENT_BACKGROUND
+                                        LapceColor::PANEL_CURRENT_BACKGROUND,
                                     ))
-                                }
+                                },
                             )
                     }
                 })
@@ -475,14 +475,14 @@ fn file_explorer_view(
                                     aux_click_data.middle_click(&aux_click_path);
                                 }
                             }
-                        }
+                        },
                     )
                 } else {
                     view
                 }
-            }
+            },
         )
-        .style(|s| s.absolute().flex_col().min_width_full())
+        .style(|s| s.absolute().flex_col().min_width_full()),
     )
     .style(|s| s.absolute().size_full().line_height(1.8))
     .on_secondary_click_stop(move |_| {
@@ -501,9 +501,9 @@ fn file_explorer_view(
             Some(
                 (
                     0.0,
-                    line * line_height - scroll_rect.get_untracked().height() / 2.0
+                    line * line_height - scroll_rect.get_untracked().height() / 2.0,
                 )
-                    .into()
+                    .into(),
             )
         } else {
             None
@@ -527,7 +527,7 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
         let (confirmed, editor_tab_id) = editor_tab.with_untracked(|editor_tab| {
             (
                 editor_tab.active_child().confirmed_mut(),
-                editor_tab.editor_tab_manage_id
+                editor_tab.editor_tab_manage_id,
             )
         });
         let child_for_close = child.clone();
@@ -548,13 +548,13 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                         editor_tab.with_untracked(|t| t.editor_tab_manage_id);
                     internal_command.send(InternalCommand::EditorTabChildClose {
                         editor_tab_id,
-                        child: child_for_close.clone()
+                        child: child_for_close.clone(),
                     });
                 },
                 || false,
                 || false,
                 || "Close",
-                config
+                config,
             )
             .on_event_stop(EventListener::PointerEnter, move |_| {
                 hovered.set(true);
@@ -569,20 +569,20 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     let size = config.with_icon_size() as f32;
                     s.size(size, size)
                         .apply_opt(info.with(|info| info.color), |s, c| s.color(c))
-                }
+                },
             ))
             .style(|s| s.padding_horiz(6.0)),
             label(move || info.with(|info| info.name.clone())).style(move |s| {
                 s.apply_if(!info.with(|info| info.confirmed.get()), |s| {
                     s.font_style(FontStyle::Italic)
                 })
-            })
+            }),
         ))
         .style(move |s| {
             let (hbg, cbg) = config.signal(|config| {
                 (
                     config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                    config.color(LapceColor::PANEL_CURRENT_BACKGROUND)
+                    config.color(LapceColor::PANEL_CURRENT_BACKGROUND),
                 )
             });
             s.items_center()
@@ -591,7 +591,7 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     active_editor_tab.get() == Some(editor_tab_id)
                         && editor_tab.with(|editor_tab| editor_tab.active)
                             == child_index.get(),
-                    |s| s.background(cbg.get())
+                    |s| s.background(cbg.get()),
                 )
                 .hover(|s| s.background(hbg.get()))
         })
@@ -622,16 +622,16 @@ fn open_editors_view(window_tab_data: WindowWorkspaceData) -> impl View {
                                 plugin.clone(),
                                 editor_tab,
                                 child_index,
-                                child_id
+                                child_id,
                             )
-                        }
+                        },
                     )
-                    .style(|s| s.flex_col().width_pct(100.0))
+                    .style(|s| s.flex_col().width_pct(100.0)),
                 ))
                 .style(|s| s.flex_col())
-            }
+            },
         )
-        .style(|s| s.flex_col().width_pct(100.0))
+        .style(|s| s.flex_col().width_pct(100.0)),
     )
     .style(|s| s.absolute().size_full().line_height(1.8))
     .debug_name("Open Editors")

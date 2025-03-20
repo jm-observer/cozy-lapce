@@ -8,7 +8,7 @@ pub enum Command {
     Move(MoveCommand),
     Scroll(ScrollCommand),
     MotionMode(MotionModeCommand),
-    MultiSelection(MultiSelectionCommand)
+    MultiSelection(MultiSelectionCommand),
 }
 
 impl Command {
@@ -18,7 +18,7 @@ impl Command {
             Command::Move(cmd) => cmd.get_message(),
             Command::Scroll(cmd) => cmd.get_message(),
             Command::MotionMode(cmd) => cmd.get_message(),
-            Command::MultiSelection(cmd) => cmd.get_message()
+            Command::MultiSelection(cmd) => cmd.get_message(),
         }
     }
 
@@ -28,7 +28,7 @@ impl Command {
             Command::Move(cmd) => cmd.into(),
             Command::Scroll(cmd) => cmd.into(),
             Command::MotionMode(cmd) => cmd.into(),
-            Command::MultiSelection(cmd) => cmd.into()
+            Command::MultiSelection(cmd) => cmd.into(),
         }
     }
 }
@@ -36,5 +36,5 @@ impl Command {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandExecuted {
     Yes,
-    No
+    No,
 }

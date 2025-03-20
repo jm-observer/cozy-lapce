@@ -9,8 +9,8 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{Thickness, VerticalScrollAsHorizontal, scroll},
-        stack, tab
-    }
+        stack, tab,
+    },
 };
 use lapce_core::{icon::LapceIcons, id::TerminalTabId, panel::PanelKind};
 
@@ -21,14 +21,14 @@ use crate::{
     listener::Listener,
     svg,
     terminal::{data::TerminalData, panel::TerminalPanelData, view::terminal_view},
-    window_workspace::{Focus, WindowWorkspaceData}
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 
 pub fn terminal_panel(window_tab_data: WindowWorkspaceData) -> impl View {
     let focus = window_tab_data.common.focus;
     stack((
         terminal_tab_header(window_tab_data.clone()),
-        terminal_tab_content(window_tab_data.clone())
+        terminal_tab_content(window_tab_data.clone()),
     ))
     .on_event_cont(EventListener::PointerDown, move |_| {
         if focus.get_untracked() != Focus::Panel(PanelKind::Terminal) {
@@ -74,8 +74,8 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                     move |s| {
                                         let size = config.with_icon_size() as f32;
                                         s.size(size, size).color(palette::css::GREEN)
-                                    }
-                                )
+                                    },
+                                ),
                             )
                             .style(|s| s.padding_horiz(10.0).padding_vert(12.0)),
                             label(title).style(|s| {
@@ -93,7 +93,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                 || false,
                                 || false,
                                 || "Close",
-                                config
+                                config,
                             )
                             .style(|s| s.margin_horiz(6.0)),
                             empty().style(move |s| {
@@ -102,13 +102,13 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                     .height(header_height.get() - 15.0)
                                     .border_right(1.0)
                                     .border_color(
-                                        config.with_color(LapceColor::LAPCE_BORDER)
+                                        config.with_color(LapceColor::LAPCE_BORDER),
                                     )
-                            })
+                            }),
                         ))
                         .style(move |s| {
                             s.items_center().width(200.0).border_color(
-                                config.with_color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER),
                             )
                         })
                     })
@@ -121,7 +121,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                         2.0
                                     } else {
                                         0.0
-                                    }
+                                    },
                                 )
                                 .border_color(config.with_color(
                                     if focus.get()
@@ -130,13 +130,13 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                                         LapceColor::LAPCE_TAB_ACTIVE_UNDERLINE
                                     } else {
                                         LapceColor::LAPCE_TAB_INACTIVE_UNDERLINE
-                                    }
+                                    },
                                 ))
                         })
                     })
                     .style(|s| {
                         s.absolute().padding_horiz(3.0).size_pct(100.0, 100.0)
-                    })
+                    }),
                 ))
                 .on_event_cont(
                     EventListener::PointerDown,
@@ -149,9 +149,9 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                             });
                             local_terminal.update_debug_active_term();
                         }
-                    }
+                    },
                 )
-            }
+            },
         ))
         .on_resize(move |rect| {
             if rect.size() != scroll_size.get_untracked() {
@@ -178,7 +178,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
             || false,
             || false,
             || "New Terminal",
-            config
+            config,
         ))
         .on_resize(move |rect| {
             let width = rect.size().width;
@@ -186,7 +186,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
                 icon_width.set(width);
             }
         })
-        .style(|s| s.padding_horiz(10))
+        .style(|s| s.padding_horiz(10)),
     ))
     .on_resize(move |rect| {
         let size = rect.size();
@@ -205,7 +205,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
         let (caret_color, bg) = config.signal(|config| {
             (
                 config.color(LapceColor::LAPCE_BORDER),
-                config.color(LapceColor::PANEL_BACKGROUND)
+                config.color(LapceColor::PANEL_BACKGROUND),
             )
         });
         s.width_pct(100.0)
@@ -218,7 +218,7 @@ fn terminal_tab_header(window_tab_data: WindowWorkspaceData) -> impl View {
 
 fn terminal_tab_split(
     terminal_panel_data: TerminalPanelData,
-    terminal: TerminalData
+    terminal: TerminalData,
 ) -> impl View {
     let internal_command = terminal_panel_data.common.internal_command;
     let workspace = terminal_panel_data.workspace.clone();
@@ -230,7 +230,7 @@ fn terminal_tab_split(
             terminal_panel_data,
             internal_command,
             workspace.clone(),
-            terminal.clone()
+            terminal.clone(),
         );
         let view_id = terminal_view.id();
         let have_task = terminal.data.with_untracked(|x| x.run_debug.is_some());
@@ -270,7 +270,7 @@ fn terminal_tab_content(window_tab_data: WindowWorkspaceData) -> impl View {
         },
         move || terminal.tab_infos.with(|info| info.tabs.clone()),
         |tab| tab.term_id,
-        move |tab| terminal_tab_split(terminal.clone(), tab)
+        move |tab| terminal_tab_split(terminal.clone(), tab),
     )
     .style(|s| s.size_pct(100.0, 100.0))
     .debug_name("terminal_tab_content")
@@ -279,7 +279,7 @@ fn terminal_tab_content(window_tab_data: WindowWorkspaceData) -> impl View {
 fn tab_secondary_click(
     internal_command: Listener<InternalCommand>,
     view_id: ViewId,
-    terminal_id: TerminalTabId
+    terminal_id: TerminalTabId,
 ) {
     let mut menu = Menu::new("");
     menu = menu
@@ -292,7 +292,7 @@ fn tab_secondary_click(
         .entry(MenuItem::new("Clear All").action(move || {
             internal_command.send(InternalCommand::ClearTerminalBuffer {
                 view_id,
-                terminal_id
+                terminal_id,
             });
         }));
     show_context_menu(menu, None);

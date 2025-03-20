@@ -6,8 +6,8 @@ use floem::{
     style::CursorStyle,
     views::{
         Decorators, VirtualVector, container, empty, label, scroll, stack,
-        virtual_stack
-    }
+        virtual_stack,
+    },
 };
 use lapce_core::{icon::LapceIcons, panel::PanelContainerPosition};
 use lsp_types::{CallHierarchyItem, Range};
@@ -18,7 +18,7 @@ use crate::{
     config::color::LapceColor,
     editor::location::EditorLocation,
     svg,
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 #[derive(Clone, Debug)]
@@ -26,7 +26,7 @@ pub struct CallHierarchyData {
     pub root:           RwSignal<CallHierarchyItemData>,
     pub root_id:        ViewId,
     // pub common: Rc<CommonData>,
-    pub scroll_to_line: Option<f64>
+    pub scroll_to_line: Option<f64>,
 }
 
 impl TabHead for CallHierarchyData {}
@@ -39,7 +39,7 @@ pub struct CallHierarchyItemData {
     pub from_range: Range,
     pub init:       bool,
     pub open:       RwSignal<bool>,
-    pub children:   RwSignal<Vec<RwSignal<CallHierarchyItemData>>>
+    pub children:   RwSignal<Vec<RwSignal<CallHierarchyItemData>>>,
 }
 
 impl CallHierarchyItemData {
@@ -55,7 +55,7 @@ impl CallHierarchyItemData {
 
     pub fn find_by_id(
         root: RwSignal<CallHierarchyItemData>,
-        view_id: ViewId
+        view_id: ViewId,
     ) -> Option<RwSignal<CallHierarchyItemData>> {
         if root.get_untracked().view_id == view_id {
             Some(root)
@@ -74,7 +74,7 @@ fn get_children(
     next: &mut usize,
     min: usize,
     max: usize,
-    level: usize
+    level: usize,
 ) -> Vec<(usize, usize, RwSignal<CallHierarchyItemData>)> {
     let mut children = Vec::new();
     if *next >= min && *next < max {
@@ -96,7 +96,7 @@ fn get_children(
 }
 
 pub struct VirtualList {
-    root: Option<RwSignal<CallHierarchyItemData>>
+    root: Option<RwSignal<CallHierarchyItemData>>,
 }
 
 impl VirtualList {
@@ -116,7 +116,7 @@ impl VirtualVector<(usize, usize, RwSignal<CallHierarchyItemData>)> for VirtualL
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>
+        range: std::ops::Range<usize>,
     ) -> impl Iterator<Item = (usize, usize, RwSignal<CallHierarchyItemData>)> {
         if let Some(root) = &self.root {
             let min = range.start;
@@ -131,12 +131,12 @@ impl VirtualVector<(usize, usize, RwSignal<CallHierarchyItemData>)> for VirtualL
 
 pub fn show_hierarchy_panel(
     window_tab_data: WindowWorkspaceData,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     stack((
         common_tab_header(
             window_tab_data.clone(),
-            window_tab_data.main_split.hierarchy.clone()
+            window_tab_data.main_split.hierarchy.clone(),
         ),
         _show_hierarchy_panel(window_tab_data.clone(), _position, move || {
             VirtualList::new(
@@ -144,17 +144,17 @@ pub fn show_hierarchy_panel(
                     .main_split
                     .hierarchy
                     .get_active_content()
-                    .map(|x| x.root)
+                    .map(|x| x.root),
             )
         })
-        .debug_name("show hierarchy panel")
+        .debug_name("show hierarchy panel"),
     ))
     .style(|x| x.flex_col().width_full().height_full())
 }
 pub fn _show_hierarchy_panel(
     window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,
-    each_fn: impl Fn() -> VirtualList + 'static
+    each_fn: impl Fn() -> VirtualList + 'static,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let ui_line_height = window_tab_data.common.ui_line_height;

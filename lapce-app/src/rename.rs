@@ -1,13 +1,13 @@
 use std::{path::PathBuf, rc::Rc};
 
 use doc::lines::{
-    command::FocusCommand, editor_command::CommandExecuted, mode::Mode
+    command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
 };
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, batch},
 };
 use lapce_rpc::proxy::ProxyResponse;
 use lsp_types::Position;
@@ -15,7 +15,7 @@ use lsp_types::Position;
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     keypress::{KeyPressFocus, condition::Condition},
-    window_workspace::{CommonData, Focus}
+    window_workspace::{CommonData, Focus},
 };
 
 #[derive(Clone, Debug)]
@@ -26,7 +26,7 @@ pub struct RenameData {
     pub position:    RwSignal<Position>,
     pub path:        RwSignal<PathBuf>,
     pub layout_rect: RwSignal<Rect>,
-    pub common:      Rc<CommonData>
+    pub common:      Rc<CommonData>,
 }
 
 impl KeyPressFocus for RenameData {
@@ -42,7 +42,7 @@ impl KeyPressFocus for RenameData {
         &self,
         _command: &LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         if let CommandKind::Focus(cmd) = &_command.kind {
             self.run_focus_command(cmd);
@@ -69,7 +69,7 @@ impl RenameData {
             layout_rect,
             path,
             common,
-            name_str
+            name_str,
         }
     }
 
@@ -78,7 +78,7 @@ impl RenameData {
         path: PathBuf,
         placeholder: String,
         start: usize,
-        position: Position
+        position: Position,
     ) {
         batch(|| {
             self.name_str.set(placeholder);
@@ -98,7 +98,7 @@ impl RenameData {
             FocusCommand::ConfirmRename => {
                 self.confirm();
             },
-            _ => return CommandExecuted::No
+            _ => return CommandExecuted::No,
         }
         CommandExecuted::Yes
     }
@@ -130,7 +130,7 @@ impl RenameData {
                 new_name.to_string(),
                 move |(_, result)| {
                     send(result);
-                }
+                },
             );
         }
         self.cancel();

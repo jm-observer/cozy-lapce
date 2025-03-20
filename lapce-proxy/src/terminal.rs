@@ -5,20 +5,20 @@ use std::{
     num::NonZeroUsize,
     path::PathBuf,
     sync::Arc,
-    time::Duration
+    time::Duration,
 };
 
 use alacritty_terminal::{
     event::{OnResize, WindowSize},
     event_loop::Msg,
-    tty::{self, EventedPty, EventedReadWrite, Options, Shell, setup_env}
+    tty::{self, EventedPty, EventedReadWrite, Options, Shell, setup_env},
 };
 use anyhow::{Result, bail};
 use crossbeam_channel::{Receiver, Sender};
 use directories::BaseDirs;
 use lapce_rpc::{
     core::CoreRpcHandler,
-    terminal::{TermId, TerminalProfile}
+    terminal::{TermId, TerminalProfile},
 };
 use log::info;
 use polling::PollMode;
@@ -37,7 +37,7 @@ const PTY_CHILD_EVENT_TOKEN: usize = 1;
 
 #[derive(Default)]
 pub struct Terminals {
-    terminals: HashMap<TermId, (u64, TerminalSender)>
+    terminals: HashMap<TermId, (u64, TerminalSender)>,
 }
 
 impl Terminals {
@@ -49,7 +49,7 @@ impl Terminals {
     pub fn remove(
         &mut self,
         id: TermId,
-        remove_raw_id: u64
+        remove_raw_id: u64,
     ) -> Option<TerminalSender> {
         info!("Terminals remove id={id:?}");
         if let Some((raw_id, sender)) = self.terminals.remove(&id) {
@@ -94,19 +94,19 @@ impl Terminals {
 pub struct TerminalSender {
     term_id: TermId,
     tx:      Sender<Msg>,
-    poller:  Arc<polling::Poller>
+    poller:  Arc<polling::Poller>,
 }
 
 impl TerminalSender {
     pub fn new(
         term_id: TermId,
         tx: Sender<Msg>,
-        poller: Arc<polling::Poller>
+        poller: Arc<polling::Poller>,
     ) -> Self {
         Self {
             term_id,
             tx,
-            poller
+            poller,
         }
     }
 
@@ -126,7 +126,7 @@ pub struct Terminal {
     pub(crate) pty:    alacritty_terminal::tty::Pty,
     rx:                Receiver<Msg>,
     pub tx:            Sender<Msg>,
-    shell:             Option<Shell>
+    shell:             Option<Shell>,
 }
 
 impl Terminal {
@@ -135,7 +135,7 @@ impl Terminal {
         term_id: TermId,
         profile: TerminalProfile,
         width: usize,
-        height: usize
+        height: usize,
     ) -> Result<Terminal> {
         let poll = polling::Poller::new()?.into();
         let shell = Terminal::program(&profile);
@@ -143,7 +143,7 @@ impl Terminal {
             shell:             shell.clone(),
             working_directory: Terminal::workdir(&profile),
             hold:              false,
-            env:               profile.environment.unwrap_or_default()
+            env:               profile.environment.unwrap_or_default(),
         };
 
         setup_env();
@@ -155,13 +155,13 @@ impl Terminal {
             num_lines:   height as u16,
             num_cols:    width as u16,
             cell_width:  1,
-            cell_height: 1
+            cell_height: 1,
         };
         let pty = match alacritty_terminal::tty::new(&options, size, 0) {
             Ok(pty) => pty,
             Err(err) => {
                 bail!("{}: {:?}", err.to_string(), shell);
-            }
+            },
         };
 
         let (tx, rx) = crossbeam_channel::unbounded();
@@ -173,7 +173,7 @@ impl Terminal {
             pty,
             tx,
             rx,
-            shell
+            shell,
         })
     }
 
@@ -203,7 +203,7 @@ impl Terminal {
             if let Err(err) = self.poller.wait(&mut events, timeout) {
                 match err.kind() {
                     ErrorKind::Interrupted => continue,
-                    _ => panic!("EventLoop polling error: {err:?}")
+                    _ => panic!("EventLoop polling error: {err:?}"),
                 }
             }
 
@@ -292,7 +292,7 @@ impl Terminal {
                             }
                         }
                     },
-                    _ => ()
+                    _ => (),
                 }
             }
 
@@ -321,7 +321,7 @@ impl Terminal {
             match msg {
                 Msg::Input(input) => state.write_list.push_back(input),
                 Msg::Shutdown => return false,
-                Msg::Resize(size) => self.pty.on_resize(size)
+                Msg::Resize(size) => self.pty.on_resize(size),
             }
         }
 
@@ -332,7 +332,7 @@ impl Terminal {
     fn pty_read(
         &mut self,
         core_rpc: &CoreRpcHandler,
-        buf: &mut [u8]
+        buf: &mut [u8],
     ) -> io::Result<usize> {
         let mut total = 0;
         loop {
@@ -348,8 +348,8 @@ impl Terminal {
                     ErrorKind::Interrupted | ErrorKind::WouldBlock => {
                         break;
                     },
-                    _ => return Err(err)
-                }
+                    _ => return Err(err),
+                },
             }
         }
         Ok(total)
@@ -379,9 +379,9 @@ impl Terminal {
                             ErrorKind::Interrupted | ErrorKind::WouldBlock => {
                                 break 'write_many;
                             },
-                            _ => return Err(err)
+                            _ => return Err(err),
                         }
-                    }
+                    },
                 }
             }
         }
@@ -399,7 +399,7 @@ impl Terminal {
                 },
                 Err(err) => {
                     log::error!("{:?}", err);
-                }
+                },
             }
         }
 
@@ -421,7 +421,7 @@ impl Terminal {
 
 struct Writing {
     source:  Cow<'static, [u8]>,
-    written: usize
+    written: usize,
 }
 
 impl Writing {
@@ -429,7 +429,7 @@ impl Writing {
     fn new(c: Cow<'static, [u8]>) -> Writing {
         Writing {
             source:  c,
-            written: 0
+            written: 0,
         }
     }
 
@@ -452,7 +452,7 @@ impl Writing {
 #[derive(Default)]
 pub struct State {
     write_list: VecDeque<Cow<'static, [u8]>>,
-    writing:    Option<Writing>
+    writing:    Option<Writing>,
 }
 
 impl State {

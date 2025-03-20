@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     future::Future,
     ops::{AddAssign, Range},
-    thread
+    thread,
 };
 
 use ansi_to_style::TextStyle;
@@ -13,14 +13,14 @@ use floem::{
     kurbo::Point,
     peniko::Color,
     prelude::{RwSignal, SignalGet, SignalUpdate, VirtualVector},
-    reactive::{Scope, batch}
+    reactive::{Scope, batch},
 };
 use lapce_xi_rope::Rope;
 use log::error;
 
 use crate::{
     channel::{ExtChannel, create_signal_from_channel},
-    views::panel::{DisplayId, DocManager, DocStyle, Hyperlink, TextSrc}
+    views::panel::{DisplayId, DocManager, DocStyle, Hyperlink, TextSrc},
 };
 
 pub fn ranges_overlap(r1: &Range<usize>, r2: &Range<usize>) -> Option<Range<usize>> {
@@ -43,7 +43,7 @@ pub struct TreePanelData {
     pub cx:         Scope,
     pub node:       RwSignal<TreeNode>,
     pub doc:        DocManager,
-    pub left_width: RwSignal<f64>
+    pub left_width: RwSignal<f64>,
 }
 
 impl TreePanelData {
@@ -54,14 +54,14 @@ impl TreePanelData {
             cx,
             children: vec![],
             open: cx.create_rw_signal(true),
-            level: cx.create_rw_signal(Level::None)
+            level: cx.create_rw_signal(Level::None),
         });
         let left_width = cx.create_rw_signal(200.0);
         Self {
             cx,
             node,
             doc,
-            left_width
+            left_width,
         }
     }
 
@@ -70,7 +70,7 @@ impl TreePanelData {
         F: Fn(ExtChannel<crate::views::tree_with_panel::data::StyledText>) -> Fut
             + Send
             + 'static,
-        Fut: Future<Output = anyhow::Result<()>> {
+        Fut: Future<Output = anyhow::Result<()>>, {
         let (read_signal, channel, send) =
             create_signal_from_channel::<StyledText>(self.cx);
         let data = self.clone();
@@ -94,11 +94,11 @@ impl TreePanelData {
     pub fn run_with_sync_task<F>(&self, f: F)
     where
         F: Fn(
-                ExtChannel<crate::views::tree_with_panel::data::StyledText>
+                ExtChannel<crate::views::tree_with_panel::data::StyledText>,
             ) -> anyhow::Result<()>
             + Sync
             + Send
-            + 'static {
+            + 'static, {
         let (read_signal, channel, send) =
             create_signal_from_channel::<StyledText>(self.cx);
         let data = self.clone();
@@ -126,7 +126,7 @@ impl TreePanelData {
 async fn async_main_run<F, Fut>(channel: ExtChannel<StyledText>, f: F)
 where
     F: Fn(ExtChannel<StyledText>) -> Fut,
-    Fut: Future<Output = anyhow::Result<()>> {
+    Fut: Future<Output = anyhow::Result<()>>, {
     if let Err(err) = f(channel).await {
         error!("{:?}", err);
     }
@@ -135,7 +135,7 @@ where
 #[derive(Clone)]
 pub struct StyledLines {
     pub text_src: TextSrc,
-    pub lines:    Vec<(String, Vec<TextStyle>, Vec<Hyperlink>)>
+    pub lines:    Vec<(String, Vec<TextStyle>, Vec<Hyperlink>)>,
 }
 
 #[derive(Clone, Debug)]
@@ -143,7 +143,7 @@ pub struct VisualLine {
     pub pos_y:      f64,
     pub line_index: usize,
     pub hyperlinks: Vec<(Point, Point, Color)>,
-    pub text:       RefCell<TextLayout>
+    pub text:       RefCell<TextLayout>,
 }
 
 #[derive(Clone)]
@@ -151,7 +151,7 @@ pub struct StyledText {
     pub id:          TextSrc,
     pub level:       Level,
     pub styled_text: ansi_to_style::TextWithStyle,
-    pub hyperlink:   Vec<Hyperlink>
+    pub hyperlink:   Vec<Hyperlink>,
 }
 
 impl StyledText {
@@ -203,7 +203,7 @@ impl StyledText {
                         italic:    x.italic,
                         underline: x.underline,
                         bg_color:  x.bg_color,
-                        fg_color:  x.fg_color
+                        fg_color:  x.fg_color,
                     })
                 })
                 .collect();
@@ -215,7 +215,7 @@ impl StyledText {
         }
         Ok(StyledLines {
             text_src: self.id,
-            lines
+            lines,
         })
     }
 }
@@ -226,14 +226,14 @@ pub struct TreeNode {
     pub display_id: DisplayId,
     pub children:   Vec<TreeNode>,
     pub level:      RwSignal<Level>,
-    pub open:       RwSignal<bool>
+    pub open:       RwSignal<bool>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TreeNodeData {
     pub display_id: DisplayId,
     pub open:       RwSignal<bool>,
-    pub level:      RwSignal<Level>
+    pub level:      RwSignal<Level>,
 }
 
 #[derive(Clone, Debug, Copy)]
@@ -241,7 +241,7 @@ pub struct TreeNodeData {
 pub enum Level {
     None,
     Warn,
-    Error
+    Error,
 }
 
 impl Level {
@@ -273,7 +273,7 @@ impl TreeNodeData {
             Level::Warn | Level::Error => {
                 // warning.svg
                 r#"<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.56 1h.88l6.54 12.26-.44.74H1.44L1 13.26 7.56 1zM8 2.28L2.28 13H13.7L8 2.28zM8.625 12v-1h-1.25v1h1.25zm-1.25-2V6h1.25v4h-1.25z"/></svg>"#
-            }
+            },
         }
     }
 
@@ -281,7 +281,7 @@ impl TreeNodeData {
         match self.level.get() {
             Level::None => None,
             Level::Warn => Some(Color::from_rgb8(255, 204, 102)),
-            Level::Error => Some(Color::from_rgb8(255, 153, 153))
+            Level::Error => Some(Color::from_rgb8(255, 153, 153)),
         }
     }
 }
@@ -307,13 +307,13 @@ impl TreeNode {
                         display_id: id,
                         level:      self.cx.create_rw_signal(level),
                         open:       self.cx.create_rw_signal(true),
-                        children:   vec![]
+                        children:   vec![],
                     })
                 }
             },
             DisplayId::CrateFile { crate_name, .. } => {
                 let crate_id = DisplayId::Crate {
-                    crate_name: crate_name.clone()
+                    crate_name: crate_name.clone(),
                 };
                 self.add_child(crate_id.clone(), level);
                 if let Some(carte_item) =
@@ -329,11 +329,11 @@ impl TreeNode {
                             display_id: id,
                             level:      self.cx.create_rw_signal(level),
                             open:       self.cx.create_rw_signal(false),
-                            children:   vec![]
+                            children:   vec![],
                         })
                     }
                 }
-            }
+            },
         }
     }
 
@@ -341,7 +341,7 @@ impl TreeNode {
         TreeNodeData {
             display_id: self.display_id.clone(),
             open:       self.open,
-            level:      self.level
+            level:      self.level,
         }
     }
 
@@ -361,7 +361,7 @@ impl TreeNode {
         min: usize,
         max: usize,
         index: &mut usize,
-        level: usize
+        level: usize,
     ) -> Vec<(usize, usize, TreeNodeData)> {
         let mut children_data = Vec::new();
         if min <= *index && *index <= max {
@@ -387,7 +387,7 @@ impl VirtualVector<(usize, usize, TreeNodeData)> for TreeNode {
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>
+        range: std::ops::Range<usize>,
     ) -> impl Iterator<Item = (usize, usize, TreeNodeData)> {
         let min = range.start;
         let max = range.end;

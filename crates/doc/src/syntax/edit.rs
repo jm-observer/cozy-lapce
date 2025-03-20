@@ -2,14 +2,14 @@ use anyhow::Result;
 use lapce_xi_rope::{
     Rope, RopeDelta, RopeInfo,
     delta::InsertDelta,
-    multiset::{CountMatcher, Subset}
+    multiset::{CountMatcher, Subset},
 };
 use log::error;
 use tree_sitter::Point;
 
 use crate::lines::buffer::{
     InsertsValueIter,
-    rope_text::{RopeText, RopeTextRef}
+    rope_text::{RopeText, RopeTextRef},
 };
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ impl SyntaxEdit {
     pub fn from_factored_delta(
         text: &Rope,
         ins_delta: &InsertDelta<RopeInfo>,
-        deletes: &Subset
+        deletes: &Subset,
     ) -> Result<SyntaxEdit> {
         let deletes = deletes.transform_expand(&ins_delta.inserted_subset());
 
@@ -52,7 +52,7 @@ impl SyntaxEdit {
                 Err(err) => {
                     error!("{err:?}");
                     None
-                }
+                },
             })
             .collect();
         delete_edits.reverse();
@@ -72,7 +72,7 @@ fn point_at_offset(text: &Rope, offset: usize) -> Result<Point> {
 fn traverse(point: Point, text: &str) -> Point {
     let Point {
         mut row,
-        mut column
+        mut column,
     } = point;
 
     for ch in text.chars() {
@@ -89,7 +89,7 @@ fn traverse(point: Point, text: &str) -> Point {
 pub fn create_insert_edit(
     old_text: &Rope,
     start: usize,
-    inserted: &Rope
+    inserted: &Rope,
 ) -> Result<tree_sitter::InputEdit> {
     let start_position = point_at_offset(old_text, start)?;
     Ok(tree_sitter::InputEdit {
@@ -100,15 +100,15 @@ pub fn create_insert_edit(
         old_end_position: start_position,
         new_end_position: traverse(
             start_position,
-            &inserted.slice_to_cow(0..inserted.len())
-        )
+            &inserted.slice_to_cow(0..inserted.len()),
+        ),
     })
 }
 
 pub fn create_delete_edit(
     old_text: &Rope,
     start: usize,
-    end: usize
+    end: usize,
 ) -> Result<tree_sitter::InputEdit> {
     let start_position = point_at_offset(old_text, start)?;
     let end_position = point_at_offset(old_text, end)?;
@@ -122,6 +122,6 @@ pub fn create_delete_edit(
 
         start_position,
         old_end_position: end_position,
-        new_end_position: start_position
+        new_end_position: start_position,
     })
 }

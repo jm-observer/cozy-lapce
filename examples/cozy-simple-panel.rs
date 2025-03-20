@@ -5,8 +5,8 @@ use cozy_floem::{
     channel::ExtChannel,
     views::{
         panel::{DocManager, DocStyle, ErrLevel, TextSrc, panel},
-        tree_with_panel::data::{Level, StyledText, TreePanelData}
-    }
+        tree_with_panel::data::{Level, StyledText, TreePanelData},
+    },
 };
 use floem::{
     View,
@@ -14,7 +14,7 @@ use floem::{
     peniko::Color,
     prelude::Decorators,
     reactive::Scope,
-    text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, Weight}
+    text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, Weight},
 };
 use log::LevelFilter::Info;
 
@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
         "panel",
         "error,cozy_simple_panel=debug,cozy_floem=debug",
         Info,
-        false
+        false,
     )
     .build();
 
@@ -40,7 +40,7 @@ fn app_view(simple_doc: DocManager) -> impl View {
     view.on_key_up(
         Key::Named(NamedKey::F11),
         |m| m.is_empty(),
-        move |_| id.inspect()
+        move |_| id.inspect(),
     )
 }
 
@@ -68,7 +68,7 @@ async fn init_content(mut channel: ExtChannel<StyledText>) -> anyhow::Result<()>
         );
         let line = StyledText {
             id:          TextSrc::StdErr {
-                level: ErrLevel::Error
+                level: ErrLevel::Error,
             },
             level:       Level::Error,
             styled_text: ansi_to_style::TextWithStyle {
@@ -79,10 +79,10 @@ async fn init_content(mut channel: ExtChannel<StyledText>) -> anyhow::Result<()>
                     italic:    false,
                     underline: false,
                     bg_color:  None,
-                    fg_color:  Some(Color::from_rgba8(214, 214, 51, 255))
-                }]
+                    fg_color:  Some(Color::from_rgba8(214, 214, 51, 255)),
+                }],
             },
-            hyperlink:   vec![]
+            hyperlink:   vec![],
         };
         channel.send(line);
         tokio::time::sleep(Duration::from_millis(800)).await;

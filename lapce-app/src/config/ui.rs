@@ -60,7 +60,7 @@ pub struct UIConfig {
     pub tab_close_button: TabCloseButton,
 
     #[field_names(desc = "Display the Open Editors section in the explorer")]
-    pub open_editors_visible: bool
+    pub open_editors_visible: bool,
 }
 
 #[derive(
@@ -80,7 +80,7 @@ pub enum TabCloseButton {
     Left,
     #[default]
     Right,
-    Off
+    Off,
 }
 
 #[derive(
@@ -99,7 +99,7 @@ pub enum TabCloseButton {
 pub enum TabSeparatorHeight {
     #[default]
     Content,
-    Full
+    Full,
 }
 
 impl UIConfig {

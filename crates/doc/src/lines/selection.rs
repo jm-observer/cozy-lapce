@@ -17,7 +17,7 @@ pub enum InsertDrift {
     /// possible.
     Outside,
     /// Indicates to do whatever the `after` bool says to do
-    Default
+    Default,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub struct SelRegion {
     /// Horizontal rules for multiple selection
     pub horiz:             Option<ColPosition>,
     pub start_cursor_affi: Option<CursorAffinity>,
-    pub end_cursor_affi:   Option<CursorAffinity>
+    pub end_cursor_affi:   Option<CursorAffinity>,
 }
 
 /// A selection holding one or more [`SelRegion`].
@@ -38,7 +38,7 @@ pub struct SelRegion {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Selection {
     regions:       Vec<SelRegion>,
-    last_inserted: usize
+    last_inserted: usize,
 }
 
 impl AsRef<Selection> for Selection {
@@ -55,7 +55,7 @@ impl SelRegion {
             end,
             horiz,
             start_cursor_affi: None,
-            end_cursor_affi: None
+            end_cursor_affi: None,
         }
     }
 
@@ -68,7 +68,7 @@ impl SelRegion {
             end:               offset,
             horiz:             None,
             start_cursor_affi: None,
-            end_cursor_affi:   None
+            end_cursor_affi:   None,
         }
     }
 
@@ -155,7 +155,7 @@ impl Selection {
     pub fn new() -> Selection {
         Selection {
             regions:       Vec::new(),
-            last_inserted: 0
+            last_inserted: 0,
         }
     }
 
@@ -164,7 +164,7 @@ impl Selection {
     pub fn caret(offset: usize) -> Selection {
         Selection {
             regions:       vec![SelRegion::caret(offset)],
-            last_inserted: 0
+            last_inserted: 0,
         }
     }
 
@@ -176,7 +176,7 @@ impl Selection {
             end,
             horiz: None,
             start_cursor_affi: None,
-            end_cursor_affi: None
+            end_cursor_affi: None,
         })
     }
 
@@ -185,7 +185,7 @@ impl Selection {
     pub fn sel_region(region: SelRegion) -> Self {
         Self {
             regions:       vec![region],
-            last_inserted: 0
+            last_inserted: 0,
         }
     }
 
@@ -526,7 +526,7 @@ impl Selection {
         &self,
         delta: &RopeDelta,
         after: bool,
-        drift: InsertDrift
+        drift: InsertDrift,
     ) -> Selection {
         let mut result = Selection::new();
         let mut transformer = Transformer::new(delta);
@@ -540,13 +540,13 @@ impl Selection {
                 (InsertDrift::Outside, false) => {
                     (is_region_forward, !is_region_forward)
                 },
-                _ => (after, after)
+                _ => (after, after),
             };
 
             let new_region = SelRegion::new(
                 transformer.transform(region.start, start_after),
                 transformer.transform(region.end, end_after),
-                None
+                None,
             );
             result.add_region(new_region);
         }
@@ -580,7 +580,7 @@ impl Selection {
         }
         match self.regions.binary_search_by(|r| r.max().cmp(&offset)) {
             Ok(ix) => ix,
-            Err(ix) => ix
+            Err(ix) => ix,
         }
     }
 
@@ -593,7 +593,7 @@ impl Selection {
             .binary_search_by(|r| r.min().cmp(&(offset + 1)))
         {
             Ok(ix) => ix,
-            Err(ix) => ix
+            Err(ix) => ix,
         }
     }
 }
@@ -612,7 +612,7 @@ fn remove_n_at<T>(v: &mut Vec<T>, index: usize, n: usize) {
         Ordering::Greater => {
             v.drain(index..index + n);
         },
-        _ => ()
+        _ => (),
     };
 }
 
@@ -621,7 +621,7 @@ mod test {
     use crate::lines::{
         buffer::Buffer,
         edit::EditType,
-        selection::{InsertDrift, SelRegion, Selection}
+        selection::{InsertDrift, SelRegion, Selection},
     };
 
     #[test]

@@ -3,11 +3,12 @@ pub mod update_lines;
 use std::{
     cell::RefMut,
     fmt::{Debug, Formatter},
+    ops::RangeInclusive,
 };
-use std::ops::RangeInclusive;
-use floem::peniko::Color;
+
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
+    peniko::Color,
     text::{HitPoint, HitPosition},
 };
 use lapce_xi_rope::Interval;
@@ -35,12 +36,12 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginLine {
-    pub line_index: usize,
+    pub line_index:        usize,
     /// [start_offset...end_offset)
-    pub start_offset: usize,
-    pub len: usize,
-    pub phantom: PhantomTextLine,
-    pub semantic_styles: Vec<NewLineStyle>,
+    pub start_offset:      usize,
+    pub len:               usize,
+    pub phantom:           PhantomTextLine,
+    pub semantic_styles:   Vec<NewLineStyle>,
     pub diagnostic_styles: Vec<NewLineStyle>,
 }
 
@@ -95,13 +96,13 @@ impl OriginLine {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct OriginFoldedLine {
-    pub line_index: usize,
+    pub line_index:         usize,
     /// origin_line_start..=origin_line_end
-    pub origin_line_start: usize,
+    pub origin_line_start:  usize,
     /// origin_line_start..=origin_line_end
-    pub origin_line_end: usize,
-    pub origin_interval: Interval,
-    pub last_line: bool,
+    pub origin_line_end:    usize,
+    pub origin_interval:    Interval,
+    pub last_line:          bool,
     pub(crate) text_layout: TextLayoutLine,
 }
 
@@ -464,6 +465,7 @@ impl OriginFoldedLine {
         self.text_layout
             .init_document_highlight(highlight, fg_color, line_height);
     }
+
     pub fn init_extra_style(&mut self) {
         self.text_layout.init_extra_style()
     }
@@ -492,15 +494,13 @@ impl Debug for OriginFoldedLine {
 }
 
 #[derive(Clone, Debug)]
-pub struct   VisualLine {
+pub struct VisualLine {
     /// 视觉行的索引，包括diff的空行
-    pub line_index:                   usize,
-    pub line_ty:              LineTy,
+    pub line_index: usize,
+    pub line_ty:    LineTy,
 }
 
-impl VisualLine {
-
-}
+impl VisualLine {}
 
 #[derive(Clone, Debug)]
 pub enum LineTy {
@@ -510,6 +510,6 @@ pub enum LineTy {
     OriginText {
         /// 原始合并行的索引
         origin_folded_line_index: usize,
-        line_range_inclusive: RangeInclusive<usize>,
-    }
+        line_range_inclusive:     RangeInclusive<usize>,
+    },
 }

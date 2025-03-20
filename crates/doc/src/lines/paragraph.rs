@@ -8,7 +8,7 @@ pub enum CharClassification {
     /// Line feed (`\n`)
     Lf,
     /// Includes letters and all of non-ascii unicode
-    Other
+    Other,
 }
 
 /// A word boundary can be the start of a word, its end or both for
@@ -23,7 +23,7 @@ enum ParagraphBoundary {
     End,
     /// Both start and end boundaries (when we have only one empty
     /// line)
-    Both
+    Both,
 }
 
 impl ParagraphBoundary {
@@ -45,7 +45,7 @@ impl ParagraphBoundary {
 /// by parahraphs boundaries.
 /// Boundaries can be the start of a word, its end, punctuation etc.
 pub struct ParagraphCursor<'a> {
-    pub(crate) inner: Cursor<'a, RopeInfo>
+    pub(crate) inner: Cursor<'a, RopeInfo>,
 }
 
 impl<'a> ParagraphCursor<'a> {
@@ -58,7 +58,7 @@ impl<'a> ParagraphCursor<'a> {
         if let (Some(ch1), Some(ch2), Some(ch3)) = (
             self.inner.prev_codepoint(),
             self.inner.prev_codepoint(),
-            self.inner.prev_codepoint()
+            self.inner.prev_codepoint(),
         ) {
             let mut prop1 = get_char_property(ch1);
             let mut prop2 = get_char_property(ch2);
@@ -85,7 +85,7 @@ impl<'a> ParagraphCursor<'a> {
         if let (Some(ch1), Some(ch2), Some(ch3)) = (
             self.inner.next_codepoint(),
             self.inner.next_codepoint(),
-            self.inner.next_codepoint()
+            self.inner.next_codepoint(),
         ) {
             let mut prop1 = get_char_property(ch1);
             let mut prop2 = get_char_property(ch2);
@@ -113,7 +113,7 @@ pub fn get_char_property(codepoint: char) -> CharClassification {
     match codepoint {
         '\r' => CharClassification::Cr,
         '\n' => CharClassification::Lf,
-        _ => CharClassification::Other
+        _ => CharClassification::Other,
     }
 }
 
@@ -121,7 +121,7 @@ fn classify_boundary(
     before_prev: CharClassification,
     prev: CharClassification,
     next: CharClassification,
-    after_next: CharClassification
+    after_next: CharClassification,
 ) -> ParagraphBoundary {
     use self::{CharClassification::*, ParagraphBoundary::*};
 
@@ -131,6 +131,6 @@ fn classify_boundary(
         (Lf, Cr, Lf, Other) => Start,
         (Other, Lf, Lf, _) => End,
         (Other, Cr, Lf, Cr) => End,
-        _ => Interior
+        _ => Interior,
     }
 }

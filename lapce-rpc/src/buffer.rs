@@ -14,11 +14,11 @@ impl BufferId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewBufferResponse {
-    pub content: String
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BufferHeadResponse {
     pub version: String,
-    pub content: String
+    pub content: String,
 }

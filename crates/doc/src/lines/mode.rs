@@ -8,7 +8,7 @@ pub enum MotionMode {
     Delete { count: usize },
     Yank { count: usize },
     Indent,
-    Outdent
+    Outdent,
 }
 
 impl MotionMode {
@@ -17,7 +17,7 @@ impl MotionMode {
             MotionMode::Delete { count } => *count,
             MotionMode::Yank { count } => *count,
             MotionMode::Indent => 1,
-            MotionMode::Outdent => 1
+            MotionMode::Outdent => 1,
         }
     }
 }
@@ -39,7 +39,7 @@ pub enum VisualMode {
     #[default]
     Normal,
     Linewise,
-    Blockwise
+    Blockwise,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Copy, PartialOrd, Ord)]
@@ -47,7 +47,7 @@ pub enum Mode {
     Normal,
     Insert,
     Visual(VisualMode),
-    Terminal
+    Terminal,
 }
 
 bitflags! {
@@ -66,7 +66,7 @@ impl From<Mode> for Modes {
             Mode::Normal => Self::NORMAL,
             Mode::Insert => Self::INSERT,
             Mode::Visual(_) => Self::VISUAL,
-            Mode::Terminal => Self::TERMINAL
+            Mode::Terminal => Self::TERMINAL,
         }
     }
 }
@@ -81,7 +81,7 @@ impl Modes {
                 'n' | 'N' => this.set(Self::NORMAL, true),
                 'v' | 'V' => this.set(Self::VISUAL, true),
                 't' | 'T' => this.set(Self::TERMINAL, true),
-                _ => {}
+                _ => {},
             }
         }
 
@@ -95,7 +95,7 @@ impl std::fmt::Display for Modes {
             (Self::INSERT, 'i'),
             (Self::NORMAL, 'n'),
             (Self::VISUAL, 'v'),
-            (Self::TERMINAL, 't')
+            (Self::TERMINAL, 't'),
         ];
         for (bit, chr) in bits {
             if self.contains(bit) {

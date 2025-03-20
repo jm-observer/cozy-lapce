@@ -7,12 +7,12 @@ use floem::{
     reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
-        Decorators, container, label, scroll, stack, text_input, virtual_stack
-    }
+        Decorators, container, label, scroll, stack, text_input, virtual_stack,
+    },
 };
 use lapce_core::{
     icon::LapceIcons,
-    panel::{PanelContainerPosition, PanelKind}
+    panel::{PanelContainerPosition, PanelKind},
 };
 use lapce_rpc::proxy::SearchMatch;
 use lapce_xi_rope::find::CaseMatching;
@@ -26,12 +26,12 @@ use crate::{
     global_search::{GlobalSearchData, SearchItem},
     listener::Listener,
     svg,
-    window_workspace::{Focus, WindowWorkspaceData}
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 
 pub fn global_search_panel(
     window_tab_data: WindowWorkspaceData,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     let global_search = window_tab_data.global_search.clone();
     let config = global_search.common.config;
@@ -63,14 +63,14 @@ pub fn global_search_panel(
                     move || {
                         let new = match case_matching.get_untracked() {
                             CaseMatching::Exact => CaseMatching::CaseInsensitive,
-                            CaseMatching::CaseInsensitive => CaseMatching::Exact
+                            CaseMatching::CaseInsensitive => CaseMatching::Exact,
                         };
                         case_matching.set(new);
                     },
                     move || case_matching.get() == CaseMatching::Exact,
                     || false,
                     || "Case Sensitive",
-                    config
+                    config,
                 )
                 .style(|s| s.padding_vert(4.0)),
                 clickable_icon(
@@ -83,7 +83,7 @@ pub fn global_search_panel(
                     move || whole_word.get(),
                     || false,
                     || "Whole Word",
-                    config
+                    config,
                 )
                 .style(|s| s.padding_left(6.0)),
                 clickable_icon(
@@ -96,9 +96,9 @@ pub fn global_search_panel(
                     move || is_regex.get(),
                     || false,
                     || "Use Regex",
-                    config
+                    config,
                 )
-                .style(|s| s.padding_left(6.0))
+                .style(|s| s.padding_left(6.0)),
             ))
             .on_event_cont(EventListener::PointerDown, move |_| {
                 focus.set(Focus::Panel(PanelKind::Search));
@@ -110,10 +110,10 @@ pub fn global_search_panel(
                     .border(1.0)
                     .border_radius(6.0)
                     .border_color(config.with_color(LapceColor::LAPCE_BORDER))
-            })
+            }),
         )
         .style(|s| s.width_pct(100.0).padding(10.0)),
-        search_result(global_search, internal_command, config)
+        search_result(global_search, internal_command, config),
     ))
     .style(|s| s.absolute().size_pct(100.0, 100.0).flex_col())
     .debug_name("Global Search Panel")
@@ -122,7 +122,7 @@ pub fn global_search_panel(
 fn search_result(
     global_search_data: GlobalSearchData,
     internal_command: Listener<InternalCommand>,
-    config: WithLapceConfig
+    config: WithLapceConfig,
 ) -> impl View {
     container({
         scroll({
@@ -134,18 +134,18 @@ fn search_result(
                         expanded,
                         file_name,
                         folder,
-                        path
+                        path,
                     } => container(result_fold(
                         config,
                         expanded,
                         file_name,
                         folder,
-                        path.clone()
+                        path.clone(),
                     )),
                     SearchItem::Item { path, m } => {
                         container(result_item(config, path, m, internal_command))
                     },
-                }
+                },
             )
             .style(|s| s.flex_col().min_width_pct(100.0).line_height(1.8))
         })
@@ -158,7 +158,7 @@ fn result_item(
     config: WithLapceConfig,
     path: PathBuf,
     m: SearchMatch,
-    internal_command: Listener<InternalCommand>
+    internal_command: Listener<InternalCommand>,
 ) -> impl View {
     let line_number = m.line;
     let start = m.start;
@@ -191,13 +191,13 @@ fn result_item(
             ((start as i32 + offset) as usize..(end as i32 + offset) as usize)
                 .collect()
         },
-        move || config.with_color(LapceColor::EDITOR_FOCUS)
+        move || config.with_color(LapceColor::EDITOR_FOCUS),
     )
     .style(move |s| {
         let (hbg, icon_size) = config.signal(|config| {
             (
                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
-                config.ui.icon_size.signal()
+                config.ui.icon_size.signal(),
             )
         });
         let icon_size = icon_size.get() as f32;
@@ -209,12 +209,12 @@ fn result_item(
             location: EditorLocation {
                 path:               path.clone(),
                 position:           Some(EditorPosition::Line(
-                    line_number.saturating_sub(1)
+                    line_number.saturating_sub(1),
                 )),
                 scroll_offset:      None,
                 ignore_unconfirmed: false,
-                same_editor_tab:    false
-            }
+                same_editor_tab:    false,
+            },
         });
     })
 }
@@ -224,7 +224,7 @@ fn result_fold(
     expanded: RwSignal<bool>,
     file_name: String,
     folder: String,
-    path: PathBuf
+    path: PathBuf,
 ) -> impl View {
     let style_path = path.clone();
     stack((
@@ -239,7 +239,7 @@ fn result_fold(
             let (border_color, size) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                    config.ui.icon_size.signal()
+                    config.ui.icon_size.signal(),
                 )
             });
             let size = size.get() as f32;
@@ -269,9 +269,9 @@ fn result_fold(
                 s.color(config.with_color(LapceColor::EDITOR_DIM))
                     .min_width(0.0)
                     .text_ellipsis()
-            })
+            }),
         ))
-        .style(move |s| s.min_width(0.0).items_center())
+        .style(move |s| s.min_width(0.0).items_center()),
     ))
     .on_click_stop(move |_| {
         expanded.update(|expanded| *expanded = !*expanded);
@@ -282,7 +282,7 @@ fn result_fold(
             .items_center()
             .hover(|s| {
                 s.cursor(CursorStyle::Pointer).background(
-                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                    config.with_color(LapceColor::PANEL_HOVERED_BACKGROUND),
                 )
             })
     })

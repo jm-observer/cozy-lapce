@@ -2,7 +2,7 @@
 pub enum LinePosition {
     First,
     Last,
-    Line(usize)
+    Line(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -25,7 +25,7 @@ pub enum Movement {
     PreviousUnmatched(char),
     MatchPairs,
     ParagraphForward,
-    ParagraphBackward
+    ParagraphBackward,
 }
 
 impl PartialEq for Movement {
@@ -69,7 +69,7 @@ impl Movement {
         index: usize,
         len: usize,
         count: usize,
-        wrapping: bool
+        wrapping: bool,
     ) -> usize {
         if len == 0 {
             return 0;
@@ -88,12 +88,12 @@ impl Movement {
                 // Selects the nth line
                 LinePosition::Line(n) => (*n).min(last),
                 LinePosition::First => 0,
-                LinePosition::Last => last
+                LinePosition::Last => last,
             },
 
             Movement::ParagraphForward => 0,
             Movement::ParagraphBackward => 0,
-            _ => index
+            _ => index,
         }
     }
 }

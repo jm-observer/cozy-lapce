@@ -7,13 +7,13 @@ use lapce_core::{
     debug::RunDebugMode,
     id::*,
     main_split::{SplitDirection, SplitMoveDirection, TabCloseKind},
-    workspace::LapceWorkspace
+    workspace::LapceWorkspace,
 };
 use lapce_rpc::{
     dap_types::{DapId, RunDebugConfig},
     plugin::{PluginId, VoltID},
     proxy::ProxyStatus,
-    terminal::TerminalProfile
+    terminal::TerminalProfile,
 };
 use log::LevelFilter;
 use lsp_types::{CodeActionOrCommand, Position, WorkspaceEdit};
@@ -23,13 +23,13 @@ use strum_macros::{Display, EnumIter, EnumMessage, EnumString, IntoStaticStr};
 
 use crate::{
     alert::AlertButton, doc::Doc, editor::location::EditorLocation,
-    editor_tab::EditorTabChildId
+    editor_tab::EditorTabChildId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LapceCommand {
     pub kind: CommandKind,
-    pub data: Option<Value>
+    pub data: Option<Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,7 +40,7 @@ pub enum CommandKind {
     Scroll(ScrollCommand),
     Focus(FocusCommand),
     MotionMode(MotionModeCommand),
-    MultiSelection(MultiSelectionCommand)
+    MultiSelection(MultiSelectionCommand),
 }
 
 impl CommandKind {
@@ -52,7 +52,7 @@ impl CommandKind {
             CommandKind::Scroll(cmd) => cmd.get_detailed_message(),
             CommandKind::Focus(cmd) => cmd.get_detailed_message(),
             CommandKind::MotionMode(cmd) => cmd.get_detailed_message(),
-            CommandKind::MultiSelection(cmd) => cmd.get_detailed_message()
+            CommandKind::MultiSelection(cmd) => cmd.get_detailed_message(),
         }
     }
 
@@ -64,7 +64,7 @@ impl CommandKind {
             CommandKind::Scroll(cmd) => cmd.into(),
             CommandKind::Focus(cmd) => cmd.into(),
             CommandKind::MotionMode(cmd) => cmd.into(),
-            CommandKind::MultiSelection(cmd) => cmd.into()
+            CommandKind::MultiSelection(cmd) => cmd.into(),
         }
     }
 }
@@ -89,7 +89,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in LapceWorkbenchCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::Workbench(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -97,7 +97,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in EditCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::Edit(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -105,7 +105,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in MoveCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::Move(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -113,7 +113,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in ScrollCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::Scroll(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -121,7 +121,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in FocusCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::Focus(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -129,7 +129,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in MotionModeCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::MotionMode(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -137,7 +137,7 @@ pub fn lapce_internal_commands() -> IndexMap<String, LapceCommand> {
     for c in MultiSelectionCommand::iter() {
         let command = LapceCommand {
             kind: CommandKind::MultiSelection(c.clone()),
-            data: None
+            data: None,
         };
         commands.insert(c.to_string(), command);
     }
@@ -616,62 +616,62 @@ pub enum LapceWorkbenchCommand {
 pub enum InternalCommand {
     ReloadConfig,
     OpenFile {
-        path: PathBuf
+        path: PathBuf,
     },
     OpenAndConfirmedFile {
-        path: PathBuf
+        path: PathBuf,
     },
     OpenFileInNewTab {
-        path: PathBuf
+        path: PathBuf,
     },
     MakeConfirmed,
     OpenFileChanges {
-        path: PathBuf
+        path: PathBuf,
     },
     ReloadFileExplorer,
     /// Test whether a file/directory can be created at that path
     TestPathCreation {
-        new_path: PathBuf
+        new_path: PathBuf,
     },
     FinishRenamePath {
         current_path: PathBuf,
-        new_path:     PathBuf
+        new_path:     PathBuf,
     },
     FinishNewNode {
         is_dir: bool,
-        path:   PathBuf
+        path:   PathBuf,
     },
     FinishDuplicate {
         source: PathBuf,
-        path:   PathBuf
+        path:   PathBuf,
     },
     GoToLocation {
-        location: EditorLocation
+        location: EditorLocation,
     },
     JumpToLocation {
-        location: EditorLocation
+        location: EditorLocation,
     },
     PaletteReferences {
-        references: Vec<EditorLocation>
+        references: Vec<EditorLocation>,
     },
     SaveJumpLocation {
         path:          PathBuf,
         offset:        usize,
-        scroll_offset: Vec2
+        scroll_offset: Vec2,
     },
     Split {
         direction:     SplitDirection,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     },
     SplitMove {
         direction:     SplitMoveDirection,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     },
     SplitExchange {
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     },
     NewTerminal {
-        profile: Option<TerminalProfile>
+        profile: Option<TerminalProfile>,
     },
     // SplitTerminal {
     //     term_id: TermId,
@@ -686,127 +686,127 @@ pub enum InternalCommand {
     //     term_id: TermId,
     // },
     EditorTabClose {
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     },
     EditorTabChildClose {
         editor_tab_id: EditorTabManageId,
-        child:         EditorTabChildId
+        child:         EditorTabChildId,
     },
     EditorTabCloseByKind {
         editor_tab_id: EditorTabManageId,
         child:         EditorTabChildId,
-        kind:          TabCloseKind
+        kind:          TabCloseKind,
     },
     ShowCodeActions {
         offset:       usize,
         mouse_click:  bool,
         plugin_id:    PluginId,
-        code_actions: im::Vector<CodeActionOrCommand>
+        code_actions: im::Vector<CodeActionOrCommand>,
     },
     RunCodeAction {
         plugin_id: PluginId,
-        action:    CodeActionOrCommand
+        action:    CodeActionOrCommand,
     },
     ApplyWorkspaceEdit {
-        edit: WorkspaceEdit
+        edit: WorkspaceEdit,
     },
     RunAndDebug {
         mode:   RunDebugMode,
-        config: RunDebugConfig
+        config: RunDebugConfig,
     },
     StartRename {
         path:        PathBuf,
         placeholder: String,
         start:       usize,
-        position:    Position
+        position:    Position,
     },
     Search {
-        pattern: Option<String>
+        pattern: Option<String>,
     },
     FindEditorReceiveChar {
-        s: String
+        s: String,
     },
     ReplaceEditorReceiveChar {
-        s: String
+        s: String,
     },
     FindEditorCommand {
         command: LapceCommand,
         count:   Option<usize>,
-        mods:    Modifiers
+        mods:    Modifiers,
     },
     ReplaceEditorCommand {
         command: LapceCommand,
         count:   Option<usize>,
-        mods:    Modifiers
+        mods:    Modifiers,
     },
     FocusEditorTab {
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     },
 
     SetColorTheme {
         name: String,
         /// Whether to save the theme to the config file
-        save: bool
+        save: bool,
     },
     SetIconTheme {
         name: String,
         /// Whether to save the theme to the config file
-        save: bool
+        save: bool,
     },
     SetModal {
-        modal: bool
+        modal: bool,
     },
     UpdateLogLevel {
-        level: LevelFilter
+        level: LevelFilter,
     },
     OpenWebUri {
-        uri: String
+        uri: String,
     },
     ShowAlert {
         title:   String,
         msg:     String,
-        buttons: Vec<AlertButton>
+        buttons: Vec<AlertButton>,
     },
     HideAlert,
     SaveScratchDoc {
-        doc: Rc<Doc>
+        doc: Rc<Doc>,
     },
     SaveScratchDoc2 {
-        doc: Rc<Doc>
+        doc: Rc<Doc>,
     },
     UpdateProxyStatus {
-        status: ProxyStatus
+        status: ProxyStatus,
     },
     DapFrameScopes {
         dap_id:   DapId,
-        frame_id: usize
+        frame_id: usize,
     },
     OpenVoltView {
-        volt_id: VoltID
+        volt_id: VoltID,
     },
     ResetBlinkCursor,
     BlinkCursor,
     OpenDiffFiles {
         left_path:  PathBuf,
-        right_path: PathBuf
+        right_path: PathBuf,
     },
     ExecuteProcess {
         program:   String,
-        arguments: Vec<String>
+        arguments: Vec<String>,
     },
     CallHierarchyIncoming {
         root_id: ViewId,
-        item_id: ViewId
+        item_id: ViewId,
     },
     ClearTerminalBuffer {
         view_id:     ViewId,
-        terminal_id: TerminalTabId
+        terminal_id: TerminalTabId,
     },
     StopTerminal {
-        terminal_id: TerminalTabId
+        terminal_id: TerminalTabId,
     },
     RestartTerminal {
-        terminal_id: TerminalTabId
+        terminal_id: TerminalTabId,
     },
     DocumentHighlight,
 }
@@ -814,17 +814,17 @@ pub enum InternalCommand {
 #[derive(Clone)]
 pub enum WindowCommand {
     SetWorkspace {
-        workspace: LapceWorkspace
+        workspace: LapceWorkspace,
     },
     CloseWorkspaceTab {
-        index: Option<usize>
+        index: Option<usize>,
     },
     NewWorkspaceTab {
         workspace: LapceWorkspace,
-        end:       bool
+        end:       bool,
     },
     NextWorkspaceTab,
     PreviousWorkspaceTab,
     NewWindow,
-    CloseWindow
+    CloseWindow,
 }

@@ -9,7 +9,7 @@ use lapce_core::directory::Directory;
 use lapce_rpc::{
     RequestId,
     plugin::{VoltInfo, VoltMetadata},
-    style::SemanticStyles
+    style::SemanticStyles,
 };
 use lapce_xi_rope::spans::Spans;
 use parking_lot::Mutex;
@@ -20,7 +20,7 @@ use crate::{
     db::{LapceDb, SaveEvent},
     local_task::handler::LocalTaskHandler,
     markdown::MarkdownContent,
-    plugin::{VoltIcon, VoltsInfo}
+    plugin::{VoltIcon, VoltsInfo},
 };
 
 pub trait LocalCallback: Send + FnOnce((u64, Result<LocalResponse>)) {}
@@ -28,20 +28,20 @@ pub trait LocalCallback: Send + FnOnce((u64, Result<LocalResponse>)) {}
 impl<F: Send + FnOnce((u64, Result<LocalResponse>))> LocalCallback for F {}
 
 enum LocalResponseHandler {
-    Callback(Box<dyn LocalCallback>) // Chan(Sender<(u64, Result<LocalResponse>)>)
+    Callback(Box<dyn LocalCallback>), // Chan(Sender<(u64, Result<LocalResponse>)>)
 }
 
 impl LocalResponseHandler {
     fn invoke(self, id: u64, result: Result<LocalResponse>) {
         match self {
-            LocalResponseHandler::Callback(f) => f((id, result)) /* LocalResponseHandler::Chan(tx) => {
-                                                                  *     if let
-                                                                  * Err(err) =
-                                                                  * tx.send((id,
-                                                                  * result)) {
-                                                                  *         log::error!("{:?}", err);
-                                                                  *     }
-                                                                  * }, */
+            LocalResponseHandler::Callback(f) => f((id, result)), /* LocalResponseHandler::Chan(tx) => {
+                                                                   *     if let
+                                                                   * Err(err) =
+                                                                   * tx.send((id,
+                                                                   * result)) {
+                                                                   *         log::error!("{:?}", err);
+                                                                   *     }
+                                                                   * }, */
         }
     }
 }
@@ -49,82 +49,82 @@ impl LocalResponseHandler {
 pub enum LocalRpc {
     Request {
         id:      RequestId,
-        request: LocalRequest
+        request: LocalRequest,
     },
     Notification {
-        notification: LocalNotification
-    } // Shutdown
+        notification: LocalNotification,
+    }, // Shutdown
 }
 
 #[derive(Debug)]
 pub enum LocalRequest {
     FindAllVolts {
-        extra_plugin_paths: Arc<Vec<PathBuf>>
+        extra_plugin_paths: Arc<Vec<PathBuf>>,
     },
     SpansBuilder {
         len:       usize,
         styles:    SemanticStyles,
-        result_id: Option<String>
+        result_id: Option<String>,
     },
     InstallVolt {
-        info: VoltInfo
+        info: VoltInfo,
     },
     QueryVoltInfo {
-        meta: VoltMetadata
+        meta: VoltMetadata,
     },
     QueryVolts {
         query:  String,
-        offset: usize
+        offset: usize,
     },
     LoadIcon {
-        info: VoltInfo
+        info: VoltInfo,
     },
     UninstallVolt {
-        dir: PathBuf
+        dir: PathBuf,
     },
     DownloadVoltReadme {
-        info: VoltInfo
+        info: VoltInfo,
     },
-    FindGrammar
+    FindGrammar,
 }
 pub enum LocalResponse {
     FindAllVolts {
-        volts: Vec<VoltMetadata>
+        volts: Vec<VoltMetadata>,
     },
     SpansBuilder {
         styles:    Spans<String>,
-        result_id: Option<String>
+        result_id: Option<String>,
     },
     InstallVolt {
         volt: VoltMetadata,
-        icon: Option<Vec<u8>>
+        icon: Option<Vec<u8>>,
     },
     QueryVoltInfo {
-        info: VoltInfo
+        info: VoltInfo,
     },
     QueryVolts {
-        volts: VoltsInfo
+        volts: VoltsInfo,
     },
     LoadIcon {
-        icon: VoltIcon
+        icon: VoltIcon,
     },
     UninstallVolt,
     DownloadVoltReadme {
-        readme: Vec<MarkdownContent>
+        readme: Vec<MarkdownContent>,
     },
     FindGrammar {
-        updated: bool
-    }
+        updated: bool,
+    },
 }
 
 pub enum LocalNotification {
-    DbSaveEvent(SaveEvent)
+    DbSaveEvent(SaveEvent),
 }
 
 pub fn new_local_handler(
     directory: Directory,
     config: LapceConfig,
-    db: Arc<LapceDb>
+    db: Arc<LapceDb>,
 ) -> Result<LocalTaskRequester> {
     let (tx, rx) = crossbeam_channel::unbounded();
     let pending = Arc::new(Mutex::new(HashMap::new()));
@@ -133,7 +133,7 @@ pub fn new_local_handler(
         config,
         pending,
         directory,
-        db
+        db,
     };
     start_proxy(_handler, rx)?;
     Ok(requester)
@@ -141,7 +141,7 @@ pub fn new_local_handler(
 
 fn start_proxy(
     _handler: LocalTaskHandler,
-    rx: Receiver<LocalRpc>
+    rx: Receiver<LocalRpc>,
 ) -> Result<thread::JoinHandle<()>> {
     Ok(thread::Builder::new()
         .name("Local Task Handler".to_string())

@@ -2,7 +2,7 @@ use std::{
     hash::{Hash, Hasher},
     ops::{AddAssign, Range},
     path::PathBuf,
-    rc::Rc
+    rc::Rc,
 };
 
 use doc::lines::{editor_command::CommandExecuted, mode::Mode};
@@ -10,7 +10,7 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
-    views::VirtualVector
+    views::VirtualVector,
 };
 use indexmap::IndexMap;
 use lapce_core::workspace::LapceWorkspace;
@@ -20,14 +20,14 @@ use crate::{
     command::{CommandKind, LapceWorkbenchCommand},
     keypress::{KeyPressFocus, condition::Condition},
     main_split::MainSplitData,
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 
 #[derive(Clone)]
 pub struct SearchMatchData {
     pub expanded:    RwSignal<bool>,
     pub matches:     RwSignal<im::Vector<SearchMatch>>,
-    pub line_height: Memo<f64>
+    pub line_height: Memo<f64>,
 }
 
 impl SearchMatchData {
@@ -47,7 +47,7 @@ impl SearchMatchData {
         min: usize,
         max: usize,
         path: PathBuf,
-        workspace: &LapceWorkspace
+        workspace: &LapceWorkspace,
     ) -> Vec<SearchItem> {
         let mut children = Vec::new();
         if *next >= min && *next < max {
@@ -63,7 +63,7 @@ impl SearchMatchData {
                     if *next >= min && *next < max {
                         children.push(SearchItem::Item {
                             path: path.clone(),
-                            m:    child.clone()
+                            m:    child.clone(),
                         });
                         next.add_assign(1);
                     } else if *next > max {
@@ -100,7 +100,7 @@ impl SearchMatchData {
             expanded: self.expanded,
             file_name,
             folder,
-            path
+            path,
         }
     }
 }
@@ -111,12 +111,12 @@ pub enum SearchItem {
         expanded:  RwSignal<bool>,
         file_name: String,
         folder:    String,
-        path:      PathBuf
+        path:      PathBuf,
     },
     Item {
         path: PathBuf,
-        m:    SearchMatch
-    }
+        m:    SearchMatch,
+    },
 }
 
 impl PartialEq for SearchItem {
@@ -128,7 +128,7 @@ impl PartialEq for SearchItem {
                     path: other_path,
                     expanded: other_expanded,
                     ..
-                }
+                },
             ) => {
                 expanded.get_untracked() == other_expanded.get_untracked()
                     && path == other_path
@@ -137,10 +137,10 @@ impl PartialEq for SearchItem {
                 SearchItem::Item { path, m },
                 SearchItem::Item {
                     path: other_path,
-                    m: other_m
-                }
+                    m: other_m,
+                },
             ) => path == other_path && m == other_m,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -155,7 +155,7 @@ impl Hash for SearchItem {
             SearchItem::Item { path, m } => {
                 m.hash(state);
                 path.hash(state);
-            }
+            },
         }
     }
 }
@@ -165,7 +165,7 @@ pub struct GlobalSearchData {
     pub search_result: RwSignal<IndexMap<PathBuf, SearchMatchData>>,
     pub search_str:    RwSignal<String>,
     pub main_split:    MainSplitData,
-    pub common:        Rc<CommonData>
+    pub common:        Rc<CommonData>,
 }
 
 impl KeyPressFocus for GlobalSearchData {
@@ -181,7 +181,7 @@ impl KeyPressFocus for GlobalSearchData {
         &self,
         _command: &crate::command::LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         // match &_command.kind {
         //     CommandKind::Workbench(_cmd) => {
@@ -229,7 +229,7 @@ impl VirtualVector<SearchItem> for GlobalSearchData {
                 min,
                 max,
                 path,
-                &self.common.workspace
+                &self.common.workspace,
             ));
             if next >= max {
                 break;
@@ -250,7 +250,7 @@ impl GlobalSearchData {
             search_result,
             main_split,
             common,
-            search_str
+            search_str,
         };
 
         {
@@ -282,7 +282,7 @@ impl GlobalSearchData {
                     is_regex,
                     move |(_, result)| {
                         send(result);
-                    }
+                    },
                 );
             });
         }
@@ -318,7 +318,7 @@ impl GlobalSearchData {
                                     .common
                                     .scope
                                     .create_rw_signal(im::Vector::new()),
-                                line_height: self.common.ui_line_height
+                                line_height: self.common.ui_line_height,
                             }
                         });
 
@@ -326,7 +326,7 @@ impl GlobalSearchData {
 
                     (path, match_data)
                 })
-                .collect()
+                .collect(),
         );
     }
 

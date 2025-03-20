@@ -5,7 +5,7 @@ use log::error;
 use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
     chars::{char_is_line_ending, char_is_whitespace},
-    selection::Selection
+    selection::Selection,
 };
 
 /// Enum representing indentation style.
@@ -14,7 +14,7 @@ use crate::lines::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum IndentStyle {
     Tabs,
-    Spaces(u8)
+    Spaces(u8),
 }
 
 impl std::fmt::Display for IndentStyle {
@@ -62,7 +62,7 @@ impl IndentStyle {
             IndentStyle::Spaces(n) => {
                 debug_assert!(n > 0 && n <= Self::LONGEST_INDENT.len() as u8);
                 "    "
-            }
+            },
         }
     }
 }
@@ -70,7 +70,7 @@ impl IndentStyle {
 pub fn create_edit<'s>(
     buffer: &Buffer,
     offset: usize,
-    indent: &'s str
+    indent: &'s str,
 ) -> Result<(Selection, &'s str)> {
     let indent = if indent.starts_with('\t') {
         indent
@@ -84,14 +84,14 @@ pub fn create_edit<'s>(
 pub fn create_outdent<'s>(
     buffer: &Buffer,
     offset: usize,
-    indent: &'s str
+    indent: &'s str,
 ) -> Option<(Selection, &'s str)> {
     let (_, col) = match buffer.offset_to_line_col(offset) {
         Ok(rs) => rs,
         Err(err) => {
             error!("{err:?}");
             return None;
-        }
+        },
     };
     if col == 0 {
         return None;
@@ -125,7 +125,7 @@ pub fn auto_detect_indent_style(document_text: &Rope) -> Option<IndentStyle> {
         // Loop through the lines, checking for and recording
         // indentation increases as we go.
         let Ok(offset) = document_text.offset_of_line(
-            document_text.line_of_offset(document_text.len()).min(1000)
+            document_text.line_of_offset(document_text.len()).min(1000),
         ) else {
             error!("offset_of_line fail");
             return None;
@@ -145,7 +145,7 @@ pub fn auto_detect_indent_style(document_text: &Rope) -> Option<IndentStyle> {
                     prev_line_is_tabs = false;
                     prev_line_leading_count = 0;
                     continue;
-                }
+                },
             };
 
             // Count the line's total leading tab/space characters.
@@ -167,7 +167,7 @@ pub fn auto_detect_indent_style(document_text: &Rope) -> Option<IndentStyle> {
                     // Ignore blank lines.
                     c if char_is_line_ending(c) => continue 'outer,
 
-                    _ => break
+                    _ => break,
                 }
 
                 // Bound the worst-case execution time for weird text
@@ -228,7 +228,7 @@ pub fn auto_detect_indent_style(document_text: &Rope) -> Option<IndentStyle> {
     if indent_freq >= 1 && (indent_freq_2 as f64 / indent_freq as f64) < 0.66 {
         Some(match indent {
             0 => IndentStyle::Tabs,
-            _ => IndentStyle::Spaces(indent as u8)
+            _ => IndentStyle::Spaces(indent as u8),
         })
     } else {
         None

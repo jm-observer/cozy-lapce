@@ -6,8 +6,7 @@ use lapce_xi_rope::spans::Spans;
 use lsp_types::Diagnostic;
 use serde::{Deserialize, Serialize};
 
-use crate::lines::{layout::TextLayout};
-use crate::lines::diff::DiffResult;
+use crate::lines::{diff::DiffResult, layout::TextLayout};
 
 pub mod language;
 pub mod lens;
@@ -20,23 +19,22 @@ pub mod config;
 pub struct DiagnosticData {
     pub expanded:         RwSignal<bool>,
     pub diagnostics:      RwSignal<im::Vector<Diagnostic>>,
-    pub diagnostics_span: RwSignal<Spans<Diagnostic>>
+    pub diagnostics_span: RwSignal<Spans<Diagnostic>>,
 }
 
 #[derive(Clone, Debug)]
 pub enum EditorViewKind {
     Normal,
     Diff {
-        is_right:bool,
-        changes: Vec<DiffResult>
-    }
+        is_right: bool,
+        changes:  Vec<DiffResult>,
+    },
 }
 
 impl EditorViewKind {
     pub fn is_normal(&self) -> bool {
         matches!(self, EditorViewKind::Normal)
     }
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -44,7 +42,7 @@ pub struct LineStyle {
     pub start:    usize,
     pub end:      usize,
     pub text:     Option<String>,
-    pub fg_color: Option<String>
+    pub fg_color: Option<String>,
 }
 
 /// Hit position but decides whether it should go to the next line
@@ -56,7 +54,7 @@ pub struct LineStyle {
 pub fn hit_position_aff(
     this: &mut RefMut<TextLayout>,
     idx: usize,
-    before: bool
+    before: bool,
 ) -> HitPosition {
     let mut last_line = 0;
     let mut last_end: usize = 0;
@@ -68,7 +66,7 @@ pub fn hit_position_aff(
         line:          0,
         point:         Point::ZERO,
         glyph_ascent:  0.0,
-        glyph_descent: 0.0
+        glyph_descent: 0.0,
     };
     for (line, run) in this.layout_runs().enumerate() {
         if run.line_i > last_line {
@@ -120,7 +118,7 @@ pub fn hit_position_aff(
                 line,
                 point: Point::new(glyph.x as f64, run.line_y as f64),
                 glyph_ascent: run.max_ascent as f64,
-                glyph_descent: run.max_descent as f64
+                glyph_descent: run.max_descent as f64,
             };
             if (glyph.start + offset..glyph.end + offset).contains(&idx) {
                 return last_position;
@@ -140,6 +138,6 @@ pub fn hit_position_aff(
         line:          0,
         point:         Point::ZERO,
         glyph_ascent:  0.0,
-        glyph_descent: 0.0
+        glyph_descent: 0.0,
     }
 }

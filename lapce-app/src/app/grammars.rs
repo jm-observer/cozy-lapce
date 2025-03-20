@@ -59,7 +59,7 @@ pub async fn find_grammar_release() -> Result<ReleaseInfo> {
 }
 pub async fn fetch_grammars(
     release: &ReleaseInfo,
-    grammars_directory: &Path
+    grammars_directory: &Path,
 ) -> Result<bool> {
     // let dir = Directory::grammars_directory().await
     //     .ok_or_else(|| anyhow!("can't get grammars directory"))?;
@@ -74,7 +74,7 @@ pub async fn fetch_grammars(
 }
 pub async fn fetch_queries(
     release: &ReleaseInfo,
-    queries_directory: &Path
+    queries_directory: &Path,
 ) -> Result<bool> {
     // let dir = Directory::queries_directory()
     //     .ok_or_else(|| anyhow!("can't get queries directory"))?;
@@ -90,7 +90,7 @@ pub async fn fetch_queries(
 async fn download_release(
     dir: &Path,
     release: &ReleaseInfo,
-    file_name: &str
+    file_name: &str,
 ) -> Result<bool> {
     use tokio::fs;
     if !dir.exists() {

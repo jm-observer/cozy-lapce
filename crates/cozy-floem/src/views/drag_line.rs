@@ -3,9 +3,9 @@ use floem::{
     event::{Event, EventListener},
     kurbo::Point,
     prelude::{
-        Decorators, RwSignal, SignalGet, SignalUpdate, create_rw_signal, empty
+        Decorators, RwSignal, SignalGet, SignalUpdate, create_rw_signal, empty,
     },
-    style::CursorStyle
+    style::CursorStyle,
 };
 
 pub fn x_drag_line(left_width: RwSignal<f64>) -> impl View {

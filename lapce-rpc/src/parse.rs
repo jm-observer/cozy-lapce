@@ -13,7 +13,7 @@ pub enum Call<N, R> {
     /// An id and an RPC Request
     Request(RequestId, R),
     /// An RPC Notification
-    Notification(N)
+    Notification(N),
 }
 
 impl RpcObject {
@@ -28,17 +28,17 @@ impl RpcObject {
     pub fn into_rpc<N, R>(self) -> Result<Call<N, R>>
     where
         N: DeserializeOwned,
-        R: DeserializeOwned {
+        R: DeserializeOwned, {
         let id = self.get_id();
         match id {
             Some(id) => match serde_json::from_value::<R>(self.0) {
                 Ok(resp) => Ok(Call::Request(id, resp)),
-                Err(err) => Err(anyhow!(err))
+                Err(err) => Err(anyhow!(err)),
             },
             None => {
                 let result = serde_json::from_value::<N>(self.0)?;
                 Ok(Call::Notification(result))
-            }
+            },
         }
     }
 
@@ -63,7 +63,7 @@ impl RpcObject {
                     .and_then(|obj| obj.remove("error"))
                     .unwrap();
                 Ok(Err(error))
-            }
+            },
         }
     }
 }

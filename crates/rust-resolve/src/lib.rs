@@ -5,7 +5,7 @@ use ansi_to_style::parse_byte;
 use cargo_metadata::{CompilerMessage, Message, diagnostic::DiagnosticLevel};
 use cozy_floem::views::{
     panel::{ErrLevel, Hyperlink, TextSrc},
-    tree_with_panel::data::{Level, StyledText}
+    tree_with_panel::data::{Level, StyledText},
 };
 use log::warn;
 
@@ -15,23 +15,23 @@ fn resolve_stderr(line: &str) -> StyledText {
         if styled_text.text.as_str().trim_start().starts_with("error") {
             (
                 TextSrc::StdErr {
-                    level: ErrLevel::Error
+                    level: ErrLevel::Error,
                 },
-                Level::Error
+                Level::Error,
             )
         } else {
             (
                 TextSrc::StdErr {
-                    level: ErrLevel::Other
+                    level: ErrLevel::Other,
                 },
-                Level::None
+                Level::None,
             )
         };
     StyledText {
         id: text_src,
         level,
         styled_text,
-        hyperlink: vec![]
+        hyperlink: vec![],
     }
 }
 
@@ -45,29 +45,29 @@ fn resolve_stdout(line: &str) -> Option<StyledText> {
                             Level::Error
                         },
                         DiagnosticLevel::Warning => Level::Warn,
-                        _ => Level::None
+                        _ => Level::None,
                     };
 
                     let styled_text = parse_byte(rendered.as_bytes());
                     let package_id = msg.package_id.clone();
                     let hyperlink = resolve_hyperlink_from_message(
                         &msg,
-                        styled_text.text.as_str()
+                        styled_text.text.as_str(),
                     );
                     let file = hyperlink.iter().find_map(|x| match x {
                         Hyperlink::File { src, .. } => Some(src.clone()),
-                        Hyperlink::Url { .. } => None
+                        Hyperlink::Url { .. } => None,
                     });
                     let text_src = TextSrc::StdOut {
                         package_id,
                         crate_name: msg.target.name,
-                        file
+                        file,
                     };
                     return Some(StyledText {
                         id: text_src,
                         level,
                         styled_text,
-                        hyperlink
+                        hyperlink,
                     });
                 }
             },
@@ -88,7 +88,7 @@ fn resolve_stdout(line: &str) -> Option<StyledText> {
             },
             val => {
                 log::debug!("??????????: {:?}", val);
-            }
+            },
         }
     } else {
         log::debug!("Non-JSON stdout: {}", line);
@@ -98,7 +98,7 @@ fn resolve_stdout(line: &str) -> Option<StyledText> {
 
 fn resolve_hyperlink_from_message(
     msg: &CompilerMessage,
-    text: &str
+    text: &str,
 ) -> Vec<Hyperlink> {
     let mut file_hyper: Vec<Hyperlink> = msg
         .message
@@ -112,7 +112,7 @@ fn resolve_hyperlink_from_message(
                     range:  index..index + full_info.len(),
                     src:    x.file_name.clone(),
                     line:   x.line_start,
-                    column: Some(x.column_start)
+                    column: Some(x.column_start),
                 })
             } else {
                 warn!("not found: {full_info}");
@@ -125,7 +125,7 @@ fn resolve_hyperlink_from_message(
             Hyperlink::Url {
                 range: index..index + x.code.len(),
                 // todo
-                url:   "".to_string()
+                url:   "".to_string(),
             }
         })
     }) {

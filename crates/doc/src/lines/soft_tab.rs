@@ -6,7 +6,7 @@ use lapce_xi_rope::Rope;
 pub enum SnapDirection {
     Left,
     Right,
-    Nearest
+    Nearest,
 }
 
 /// If the cursor is inside a soft tab at the start of the line, snap it to the
@@ -16,7 +16,7 @@ pub fn snap_to_soft_tab(
     text: &Rope,
     offset: usize,
     direction: SnapDirection,
-    tab_width: usize
+    tab_width: usize,
 ) -> anyhow::Result<usize> {
     // Fine which line we're on.
     let line = text.line_of_offset(offset);
@@ -31,7 +31,7 @@ pub fn snap_to_soft_tab(
             offset_within_line,
             start_line_offset,
             direction,
-            tab_width
+            tab_width,
         ))
 }
 
@@ -43,7 +43,7 @@ pub fn snap_to_soft_tab_line_col(
     line: usize,
     col: usize,
     direction: SnapDirection,
-    tab_width: usize
+    tab_width: usize,
 ) -> Result<usize> {
     // Get the offset to the start of the line.
     let start_line_offset = text.offset_of_line(line)?;
@@ -53,7 +53,7 @@ pub fn snap_to_soft_tab_line_col(
         col,
         start_line_offset,
         direction,
-        tab_width
+        tab_width,
     ))
 }
 
@@ -67,7 +67,7 @@ fn snap_to_soft_tab_logic(
     offset_or_col: usize,
     start_line_offset: usize,
     direction: SnapDirection,
-    tab_width: usize
+    tab_width: usize,
 ) -> usize {
     assert!(tab_width >= 1);
 
@@ -83,7 +83,7 @@ fn snap_to_soft_tab_logic(
     let bias = match direction {
         SnapDirection::Left => 0,
         SnapDirection::Right => tab_width - 1,
-        SnapDirection::Nearest => tab_width / 2
+        SnapDirection::Nearest => tab_width / 2,
     };
 
     ((offset_or_col + bias) / tab_width) * tab_width
@@ -151,7 +151,7 @@ mod tests {
             (18, 18, 18, 18),
             (19, 19, 19, 19),
             (20, 20, 20, 20),
-            (21, 21, 21, 21)
+            (21, 21, 21, 21),
         ];
 
         for test_case in test_cases {
@@ -223,7 +223,7 @@ mod tests {
             (4, 6, 4, 8, 8),
             (4, 7, 4, 8, 8),
             (4, 8, 8, 8, 8),
-            (4, 9, 9, 9, 9)
+            (4, 9, 9, 9, 9),
         ];
 
         for test_case in test_cases {

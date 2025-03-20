@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,
-    str::FromStr
+    str::FromStr,
 };
 
 use floem::{peniko::Color, prelude::palette};
@@ -16,7 +16,7 @@ pub enum ThemeColorPreference {
     Light,
     Dark,
     HighContrastDark,
-    HighContrastLight
+    HighContrastLight,
 }
 
 /// Holds all the resolved theme variables
@@ -35,7 +35,7 @@ pub struct ThemeColor {
     // pub color_preference: ThemeColorPreference,
     pub base:   ThemeBaseColor,
     pub syntax: HashMap<String, Color>,
-    pub ui:     HashMap<String, Color>
+    pub ui:     HashMap<String, Color>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -85,7 +85,7 @@ impl ThemeBaseConfig {
                         "Failed to resolve color theme variable ({key}: {value}): \
                          {err}"
                     );
-                }
+                },
             }
         }
 
@@ -97,7 +97,7 @@ impl ThemeBaseConfig {
         defaults: &'a ThemeBaseConfig,
         key: &str,
         value: &'a str,
-        i: usize
+        i: usize,
     ) -> Result<Option<&'a str>, LoadThemeError> {
         let Some(value) = value.strip_prefix('$') else {
             return Ok(Some(value));
@@ -105,7 +105,7 @@ impl ThemeBaseConfig {
 
         if i > THEME_RECURSION_LIMIT {
             return Err(LoadThemeError::RecursionLimitReached {
-                variable_name: key.to_string()
+                variable_name: key.to_string(),
             });
         }
 
@@ -113,7 +113,7 @@ impl ThemeBaseConfig {
             self.get(value)
                 .or_else(|| defaults.get(value))
                 .ok_or_else(|| LoadThemeError::VariableNotFound {
-                    variable_name: key.to_string()
+                    variable_name: key.to_string(),
                 })?;
 
         self.resolve_variable(defaults, value, target, i + 1)
@@ -139,14 +139,14 @@ pub struct ColorThemeConfig {
     pub high_contrast: Option<bool>,
     pub base:          ThemeBaseConfig,
     pub syntax:        BTreeMap<String, String>,
-    pub ui:            BTreeMap<String, String>
+    pub ui:            BTreeMap<String, String>,
 }
 
 impl ColorThemeConfig {
     fn resolve_color(
         colors: &BTreeMap<String, String>,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>
+        default: Option<&HashMap<String, Color>>,
     ) -> HashMap<String, Color> {
         colors
             .iter()
@@ -159,7 +159,7 @@ impl ColorThemeConfig {
                         Err(err) => {
                             error!("[{name}] [{hex}] {err:?}");
                             None
-                        }
+                        },
                     }
                 };
 
@@ -177,7 +177,7 @@ impl ColorThemeConfig {
     pub(super) fn resolve_ui_color(
         &self,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>
+        default: Option<&HashMap<String, Color>>,
     ) -> HashMap<String, Color> {
         Self::resolve_color(&self.ui, base, default)
     }
@@ -185,7 +185,7 @@ impl ColorThemeConfig {
     pub(super) fn resolve_syntax_color(
         &self,
         base: &ThemeBaseColor,
-        default: Option<&HashMap<String, Color>>
+        default: Option<&HashMap<String, Color>>,
     ) -> HashMap<String, Color> {
         Self::resolve_color(&self.syntax, base, default)
     }
@@ -227,7 +227,7 @@ color-preference = "dark"
         let test_theme_cfg = Config::builder()
             .add_source(config::File::from_str(
                 test_theme_str,
-                config::FileFormat::Toml
+                config::FileFormat::Toml,
             ))
             .build()
             .unwrap();

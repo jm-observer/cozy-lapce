@@ -4,8 +4,8 @@ use doc::{language::LapceLanguage, syntax::Syntax};
 use floem::{
     prelude::Color,
     text::{
-        Attrs, AttrsList, FamilyOwned, LineHeightValue, Style, TextLayout, Weight
-    }
+        Attrs, AttrsList, FamilyOwned, LineHeightValue, Style, TextLayout, Weight,
+    },
 };
 use lapce_core::directory::Directory;
 use lapce_xi_rope::Rope;
@@ -18,7 +18,7 @@ use smallvec::SmallVec;
 pub enum MarkdownContent {
     Text(TextLayout),
     Image { url: String, title: String },
-    Separator
+    Separator,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -31,7 +31,7 @@ pub fn parse_markdown(
     style_colors: &HashMap<String, Color>,
     font_size: f32,
     markdown_blockquote: Color,
-    editor_link: Color
+    editor_link: Color,
 ) -> Vec<MarkdownContent> {
     let mut res = Vec::new();
     let mut current_text = String::new();
@@ -56,7 +56,7 @@ pub fn parse_markdown(
             | Options::ENABLE_FOOTNOTES
             | Options::ENABLE_STRIKETHROUGH
             | Options::ENABLE_TASKLISTS
-            | Options::ENABLE_HEADING_ATTRIBUTES
+            | Options::ENABLE_HEADING_ATTRIBUTES,
     );
     let mut last_text = CowStr::from("");
     // Whether we should add a newline on the next entry
@@ -88,7 +88,7 @@ pub fn parse_markdown(
                         &code_font_family,
                         font_size,
                         markdown_blockquote,
-                        editor_link
+                        editor_link,
                     ) {
                         attr_list
                             .add_span(start_offset..pos.max(start_offset), attrs);
@@ -114,7 +114,7 @@ pub fn parse_markdown(
                                 &last_text,
                                 start_offset,
                                 directory,
-                                style_colors
+                                style_colors,
                             );
                             builder_dirty = true;
                         },
@@ -122,7 +122,7 @@ pub fn parse_markdown(
                             link_type: _,
                             dest_url: dest,
                             title,
-                            id: _
+                            id: _,
                         } => {
                             // TODO: Are there any link types that would change how
                             // the image is rendered?
@@ -130,7 +130,7 @@ pub fn parse_markdown(
                             if builder_dirty {
                                 let text_layout = TextLayout::new_with_text(
                                     &current_text,
-                                    attr_list
+                                    attr_list,
                                 );
                                 res.push(MarkdownContent::Text(text_layout));
                                 attr_list = AttrsList::new(default_attrs);
@@ -141,13 +141,13 @@ pub fn parse_markdown(
 
                             res.push(MarkdownContent::Image {
                                 url:   dest.to_string(),
-                                title: title.to_string()
+                                title: title.to_string(),
                             });
                         },
                         _ => {
                             // Presumably?
                             builder_dirty = true;
-                        }
+                        },
                     }
                 } else {
                     log::warn!("Unbalanced markdown tag")
@@ -167,7 +167,7 @@ pub fn parse_markdown(
             Event::Code(text) => {
                 attr_list.add_span(
                     pos..pos + text.len(),
-                    default_attrs.family(&code_font_family)
+                    default_attrs.family(&code_font_family),
                 );
                 current_text.push_str(&text);
                 pos += text.len();
@@ -180,7 +180,7 @@ pub fn parse_markdown(
                     pos..pos + text.len(),
                     default_attrs
                         .family(&code_font_family)
-                        .color(markdown_blockquote)
+                        .color(markdown_blockquote),
                 );
                 current_text.push_str(&text);
                 pos += text.len();
@@ -201,7 +201,7 @@ pub fn parse_markdown(
             Event::TaskListMarker(_text) => {},
             Event::InlineHtml(_) => {}, // TODO(panekj): Implement
             Event::InlineMath(_) => {}, // TODO(panekj): Implement
-            Event::DisplayMath(_) => {} // TODO(panekj): Implement
+            Event::DisplayMath(_) => {}, // TODO(panekj): Implement
         }
     }
 
@@ -219,7 +219,7 @@ fn attribute_for_tag<'a>(
     code_font_family: &'a [FamilyOwned],
     font_size: f32,
     markdown_blockquote: Color,
-    editor_link: Color
+    editor_link: Color,
 ) -> Option<Attrs<'a>> {
     use pulldown_cmark::HeadingLevel;
     match tag {
@@ -227,7 +227,7 @@ fn attribute_for_tag<'a>(
             level,
             id: _,
             classes: _,
-            attrs: _
+            attrs: _,
         } => {
             // The size calculations are based on the em values given at
             // https://drafts.csswg.org/css2/#html-stylesheet
@@ -237,7 +237,7 @@ fn attribute_for_tag<'a>(
                 HeadingLevel::H3 => 1.17,
                 HeadingLevel::H4 => 1.0,
                 HeadingLevel::H5 => 0.83,
-                HeadingLevel::H6 => 0.75
+                HeadingLevel::H6 => 0.75,
             };
             let font_size = font_scale * font_size;
             Some(default_attrs.font_size(font_size).weight(Weight::BOLD))
@@ -245,7 +245,7 @@ fn attribute_for_tag<'a>(
         Tag::BlockQuote(_block_quote) => Some(
             default_attrs
                 .style(Style::Italic)
-                .color(markdown_blockquote)
+                .color(markdown_blockquote),
         ),
         Tag::CodeBlock(_) => Some(default_attrs.family(code_font_family)),
         Tag::Emphasis => Some(default_attrs.style(Style::Italic)),
@@ -255,13 +255,13 @@ fn attribute_for_tag<'a>(
             link_type: _,
             dest_url: _,
             title: _,
-            id: _
+            id: _,
         } => {
             // TODO: Link support
             Some(default_attrs.color(editor_link))
         },
         // All other tags are currently ignored
-        _ => None
+        _ => None,
     }
 }
 
@@ -293,13 +293,13 @@ pub fn highlight_as_code(
     text: &str,
     start_offset: usize,
     directory: &Directory,
-    style_colors: &HashMap<String, Color>
+    style_colors: &HashMap<String, Color>,
 ) {
     let syntax = language.map(|x| {
         Syntax::from_language(
             x,
             &directory.grammars_directory,
-            &directory.queries_directory
+            &directory.queries_directory,
         )
     });
 
@@ -310,7 +310,7 @@ pub fn highlight_as_code(
                 Rope::from(text),
                 None,
                 &directory.grammars_directory,
-                &directory.queries_directory
+                &directory.queries_directory,
             );
             syntax.styles
         })
@@ -321,7 +321,7 @@ pub fn highlight_as_code(
             if let Some(color) = style_colors.get(fg) {
                 attr_list.add_span(
                     start_offset + range.start..start_offset + range.end,
-                    default_attrs.color(*color)
+                    default_attrs.color(*color),
                 );
             } else {
                 warn!("fg {} is not found color", fg);
@@ -338,7 +338,7 @@ pub fn from_marked_string(
     style_colors: &HashMap<String, Color>,
     font_size: f32,
     markdown_blockquote: Color,
-    editor_link: Color
+    editor_link: Color,
 ) -> Vec<MarkdownContent> {
     match text {
         MarkedString::String(text) => parse_markdown(
@@ -350,7 +350,7 @@ pub fn from_marked_string(
             style_colors,
             font_size,
             markdown_blockquote,
-            editor_link
+            editor_link,
         ),
         // This is a short version of a code block
         MarkedString::LanguageString(code) => {
@@ -365,24 +365,24 @@ pub fn from_marked_string(
                 style_colors,
                 font_size,
                 markdown_blockquote,
-                editor_link
+                editor_link,
             )
-        }
+        },
     }
 }
 
 pub fn from_plaintext(
     text: &str,
     line_height: f64,
-    font_size: f32
+    font_size: f32,
 ) -> Vec<MarkdownContent> {
     let text_layout = TextLayout::new_with_text(
         text,
         AttrsList::new(
             Attrs::new()
                 .font_size(font_size)
-                .line_height(LineHeightValue::Normal(line_height as f32))
-        )
+                .line_height(LineHeightValue::Normal(line_height as f32)),
+        ),
     );
     vec![MarkdownContent::Text(text_layout)]
 }

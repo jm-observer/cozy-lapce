@@ -1,7 +1,7 @@
 use std::{
     iter::{Filter, Peekable},
     ops::Range,
-    slice::Iter
+    slice::Iter,
 };
 
 use serde::{Deserialize, Serialize};
@@ -11,15 +11,14 @@ use crate::lines::buffer::diff::DiffLines;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DiffInfo {
     pub is_right: bool,
-    pub changes:  Vec<DiffLines>
+    pub changes:  Vec<DiffLines>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum DiffResult {
     /// 对方新增/已方删除
     Empty { lines: Range<usize> },
     /// 双方修改
-    Changed {
-        lines: Range<usize> }
+    Changed { lines: Range<usize> },
 }
 
 pub fn is_empty(rs: &&DiffResult) -> bool {
@@ -33,7 +32,7 @@ impl DiffResult {
     pub fn line(&self) -> &Range<usize> {
         match self {
             DiffResult::Empty { lines: line } => line,
-            DiffResult::Changed { lines: line, .. } => line
+            DiffResult::Changed { lines: line, .. } => line,
         }
     }
 
@@ -46,14 +45,14 @@ impl DiffResult {
                     None
                 }
             },
-            DiffResult::Changed { .. } => None
+            DiffResult::Changed { .. } => None,
         }
     }
 
     pub fn is_diff(&self, line: &usize) -> bool {
         match self {
             DiffResult::Empty { .. } => false,
-            DiffResult::Changed { lines, .. } => lines.contains(line)
+            DiffResult::Changed { lines, .. } => lines.contains(line),
         }
     }
 }
@@ -78,14 +77,14 @@ impl DiffInfo {
                     DiffLines::Left(diff) => {
                         next_left_change_line = Some(diff.clone());
                         diff_tys.push(DiffResult::Changed {
-                            lines: diff.clone()
+                            lines: diff.clone(),
                         });
                         if let Some(DiffLines::Right(right_diff)) = changes.peek() {
                             // edit
                             if diff.len() < right_diff.len() {
                                 diff_tys.push(DiffResult::Empty {
                                     lines: diff.end
-                                        ..diff.end + right_diff.len() - diff.len()
+                                        ..diff.end + right_diff.len() - diff.len(),
                                 });
                             }
                             changes.next();
@@ -97,13 +96,13 @@ impl DiffInfo {
                     DiffLines::Right(diff) => {
                         diff_tys.push(match &next_left_change_line {
                             None => DiffResult::Empty {
-                                lines: 0..diff.len()
+                                lines: 0..diff.len(),
                             },
                             Some(lines) => DiffResult::Empty {
-                                lines: lines.end..lines.end + diff.len()
-                            }
+                                lines: lines.end..lines.end + diff.len(),
+                            },
                         });
-                    }
+                    },
                 }
             } else {
                 break;
@@ -127,23 +126,23 @@ impl DiffInfo {
                             // edit
                             changes.next();
                             diff_tys.push(DiffResult::Changed {
-                                lines: diff.clone()
+                                lines: diff.clone(),
                             });
                             if diff.len() < left_diff.len() {
                                 diff_tys.push(DiffResult::Empty {
                                     lines: diff.end
-                                        ..diff.end + left_diff.len() - diff.len()
+                                        ..diff.end + left_diff.len() - diff.len(),
                                 });
                             }
                             next_right_change_line = Some(diff.clone());
                         } else {
                             diff_tys.push(match &next_right_change_line {
                                 None => DiffResult::Empty {
-                                    lines: 0..left_diff.len()
+                                    lines: 0..left_diff.len(),
                                 },
                                 Some(lines) => DiffResult::Empty {
-                                    lines: lines.end..lines.end + left_diff.len()
-                                }
+                                    lines: lines.end..lines.end + left_diff.len(),
+                                },
                             })
                         }
                     },
@@ -153,13 +152,13 @@ impl DiffInfo {
                     DiffLines::Right(diff) => {
                         diff_tys.push(match &next_right_change_line {
                             None => DiffResult::Changed {
-                                lines: 0..diff.len()
+                                lines: 0..diff.len(),
                             },
                             Some(lines) => DiffResult::Changed {
-                                lines: lines.end..lines.end + diff.len()
-                            }
+                                lines: lines.end..lines.end + diff.len(),
+                            },
                         });
-                    }
+                    },
                 }
             } else {
                 break;
@@ -173,7 +172,7 @@ impl DiffInfo {
 
 pub fn is_diff(
     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    line: usize
+    line: usize,
 ) -> bool {
     loop {
         if let Some(diff) = changes.peek() {
@@ -191,7 +190,7 @@ pub fn is_diff(
 
 pub fn advance(
     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    line_index: usize
+    line_index: usize,
 ) {
     if let Some(diff) = changes.peek() {
         if diff.line().end <= line_index {
@@ -202,7 +201,7 @@ pub fn advance(
 
 pub fn consume_line(
     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    line_index: usize
+    line_index: usize,
 ) -> Option<Range<usize>> {
     if let Some(diff) = changes.peek() {
         diff.consume_line(&line_index)
@@ -212,8 +211,8 @@ pub fn consume_line(
 }
 
 // pub fn consume_lines_until_enough(
-//     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-//     end_index: usize
+//     changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) ->
+// bool>>,     end_index: usize
 // ) -> usize {
 //     let mut index = 0;
 //     let mut line = 0;

@@ -3,7 +3,7 @@ use std::{
     fmt::Write,
     path::Path,
     str::FromStr,
-    sync::LazyLock
+    sync::LazyLock,
 };
 
 use log::{debug, error, warn};
@@ -15,7 +15,7 @@ use crate::{LineStyle, syntax::highlight::HighlightIssue};
 
 pub enum Indent {
     Space(u8),
-    Tab
+    Tab,
 }
 
 impl Indent {
@@ -38,7 +38,7 @@ impl Indent {
                     "\u{0020}\u{0020}\u{0020}\u{0020}\u{0020}\\
                      u{0020}\u{0020}\u{0020}"
                 },
-            }
+            },
         }
     }
 }
@@ -55,7 +55,7 @@ macro_rules! comment_properties {
 
             multi_line_start:  None,
             multi_line_end:    None,
-            multi_line_prefix: None
+            multi_line_prefix: None,
         }
     };
     ($s:expr) => {
@@ -65,7 +65,7 @@ macro_rules! comment_properties {
 
             multi_line_start:  None,
             multi_line_end:    None,
-            multi_line_prefix: None
+            multi_line_prefix: None,
         }
     };
     ($s:expr, $e:expr) => {
@@ -75,7 +75,7 @@ macro_rules! comment_properties {
 
             multi_line_start:  None,
             multi_line_end:    None,
-            multi_line_prefix: None
+            multi_line_prefix: None,
         }
     };
     ($sl_s:expr, $sl_e:expr, $ml_s:expr, $ml_e:expr) => {
@@ -85,7 +85,7 @@ macro_rules! comment_properties {
 
             multi_line_start:  Some($sl_s),
             multi_line_end:    None,
-            multi_line_prefix: Some($sl_e)
+            multi_line_prefix: Some($sl_e),
         }
     };
 }
@@ -110,7 +110,7 @@ pub struct SyntaxProperties {
     /// `["py"]` for python, `["rs"]` for rust, for example.
     extensions:  &'static [&'static str],
     /// Tree-sitter properties
-    tree_sitter: TreeSitterProperties
+    tree_sitter: TreeSitterProperties,
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug, PartialOrd, Ord, Default)]
@@ -139,7 +139,7 @@ struct TreeSitterProperties {
     /// `DEFAULT_CODE_GLANCE_IGNORE_LIST`.
     code_glance:    (&'static [&'static str], &'static [&'static str]),
     /// the tree-sitter tag names that can be put in sticky headers
-    sticky_headers: &'static [&'static str]
+    sticky_headers: &'static [&'static str],
 }
 
 impl TreeSitterProperties {
@@ -148,7 +148,7 @@ impl TreeSitterProperties {
         grammar_fn:     None,
         query:          None,
         code_glance:    (DEFAULT_CODE_GLANCE_LIST, DEFAULT_CODE_GLANCE_IGNORE_LIST),
-        sticky_headers: &[]
+        sticky_headers: &[],
     };
 }
 
@@ -163,7 +163,7 @@ struct CommentProperties {
     /// lines. "#" for python, "//" for rust for example.
     multi_line_start:  Option<&'static str>,
     multi_line_end:    Option<&'static str>,
-    multi_line_prefix: Option<&'static str>
+    multi_line_prefix: Option<&'static str>,
 }
 
 /// NOTE: Keep the enum variants "fieldless" so they can cast to usize
@@ -441,7 +441,7 @@ pub enum LapceLanguage {
     #[strum(message = "YAML")]
     Yaml,
     #[strum(message = "Zig")]
-    Zig
+    Zig,
 }
 
 /// NOTE: Elements in the array must be in the same order as the enum
@@ -455,7 +455,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["txt"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     // Languages
     SyntaxProperties {
@@ -464,7 +464,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Adl,
@@ -472,7 +472,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Agda,
@@ -480,7 +480,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Astro,
@@ -488,7 +488,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Bash,
@@ -496,7 +496,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["bash"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Bass,
@@ -504,7 +504,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Beancount,
@@ -512,7 +512,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Bibtex,
@@ -520,7 +520,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Bitbake,
@@ -528,7 +528,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Blade,
@@ -536,7 +536,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::C,
@@ -550,10 +550,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
-            sticky_headers: &["function_definition", "struct_specifier"]
-        }
+            sticky_headers: &["function_definition", "struct_specifier"],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Clojure,
@@ -567,10 +567,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             "cljd",
             "edn",
             "bb",
-            "clj_kondo"
+            "clj_kondo",
         ],
         comment:     comment_properties!(";"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Cmake,
@@ -584,10 +584,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
-            sticky_headers: &["function_definition"]
-        }
+            sticky_headers: &["function_definition"],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Comment,
@@ -595,7 +595,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Cpp,
@@ -609,14 +609,14 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
             sticky_headers: &[
                 "function_definition",
                 "class_specifier",
-                "struct_specifier"
-            ]
-        }
+                "struct_specifier",
+            ],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Csharp,
@@ -630,7 +630,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
             sticky_headers: &[
                 "interface_declaration",
@@ -642,9 +642,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
                 "namespace_declaration",
                 "constructor_declaration",
                 "destructor_declaration",
-                "method_declaration"
-            ]
-        }
+                "method_declaration",
+            ],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Css,
@@ -652,7 +652,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["css"],
         comment:     comment_properties!("/*", "*/"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Cue,
@@ -660,7 +660,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::D,
@@ -672,9 +672,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
             single_line_end:   None,
             multi_line_start:  Some("/+"),
             multi_line_prefix: None,
-            multi_line_end:    Some("+/")
+            multi_line_end:    Some("+/"),
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Dart,
@@ -687,7 +687,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
 
             multi_line_start:  Some("/*"),
             multi_line_prefix: None,
-            multi_line_end:    Some("*/")
+            multi_line_end:    Some("*/"),
         },
         tree_sitter: TreeSitterProperties {
             grammar:        None,
@@ -699,11 +699,11 @@ const LANGUAGES: &[SyntaxProperties] = &[
                     "program",
                     "import_or_export",
                     "comment",
-                    "documentation_comment"
-                ]
+                    "documentation_comment",
+                ],
             ),
-            sticky_headers: &["class_definition"]
-        }
+            sticky_headers: &["class_definition"],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Dhall,
@@ -711,7 +711,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Diff,
@@ -719,7 +719,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Dockerfile,
@@ -727,7 +727,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &["Dockerfile", "Containerfile"],
         extensions:  &["containerfile", "dockerfile"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Dot,
@@ -735,7 +735,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Elixir,
@@ -749,10 +749,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
-            sticky_headers: &["do_block"]
-        }
+            sticky_headers: &["do_block"],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Elm,
@@ -760,7 +760,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["elm"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Erlang,
@@ -768,7 +768,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["erl", "hrl"],
         comment:     comment_properties!("%"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::FSharp,
@@ -776,7 +776,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Fish,
@@ -784,7 +784,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["fish"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Fluent,
@@ -792,7 +792,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Forth,
@@ -800,7 +800,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Fortran,
@@ -808,7 +808,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Gitattributes,
@@ -816,7 +816,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GitCommit,
@@ -824,7 +824,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GitConfig,
@@ -832,7 +832,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[".gitconfig", ".git/config"],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GitRebase,
@@ -840,7 +840,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Gleam,
@@ -848,7 +848,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Glimmer,
@@ -856,7 +856,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["hbs"],
         comment:     comment_properties!("{{!", "!}}"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Glsl,
@@ -866,10 +866,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             "glsl", "cs", "vs", "gs", "fs", "csh", "vsh", "gsh", "fsh", "cshader",
             "vshader", "gshader", "fshader", "comp", "vert", "geom", "frag", "tesc",
             "tese", "mesh", "task", "rgen", "rint", "rahit", "rchit", "rmiss",
-            "rcall"
+            "rcall",
         ],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Gn,
@@ -877,7 +877,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Go,
@@ -895,12 +895,12 @@ const LANGUAGES: &[SyntaxProperties] = &[
                     "type_declaration",
                     "type_spec",
                     "interface_type",
-                    "method_spec_list"
+                    "method_spec_list",
                 ],
-                &["source_file", "comment", "line_comment"]
+                &["source_file", "comment", "line_comment"],
             ),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::GoMod,
@@ -908,7 +908,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GoTemplate,
@@ -916,7 +916,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GoWork,
@@ -924,7 +924,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::GraphQl,
@@ -932,7 +932,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Groovy,
@@ -940,7 +940,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Hare,
@@ -948,7 +948,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["ha"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Haskell,
@@ -956,7 +956,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["hs"],
         comment:     comment_properties!("--"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Haxe,
@@ -964,7 +964,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["hx"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Hcl,
@@ -972,7 +972,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["hcl", "tf"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Hosts,
@@ -980,7 +980,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Html,
@@ -988,7 +988,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["html", "htm"],
         comment:     comment_properties!("<!--", "-->"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Ini,
@@ -996,7 +996,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Java,
@@ -1004,7 +1004,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["java"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Javascript,
@@ -1017,8 +1017,8 @@ const LANGUAGES: &[SyntaxProperties] = &[
             grammar_fn:     None,
             query:          None,
             code_glance:    (&["source_file", "program"], &["source_file"]),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Jsdoc,
@@ -1026,7 +1026,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Json,
@@ -1034,7 +1034,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["json"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Json5,
@@ -1042,7 +1042,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Jsonnet,
@@ -1050,7 +1050,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Jsx,
@@ -1063,8 +1063,8 @@ const LANGUAGES: &[SyntaxProperties] = &[
             grammar_fn:     Some("javascript"),
             query:          Some("jsx"),
             code_glance:    (&["source_file", "program"], &["source_file"]),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Julia,
@@ -1076,9 +1076,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
             single_line_end:   None,
             multi_line_start:  Some("#="),
             multi_line_prefix: None,
-            multi_line_end:    Some("=#")
+            multi_line_end:    Some("=#"),
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Just,
@@ -1086,7 +1086,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &["justfile", "Justfile", ".justfile", ".Justfile"],
         extensions:  &["just"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Kdl,
@@ -1094,7 +1094,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Kotlin,
@@ -1107,9 +1107,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
 
             multi_line_start:  Some("/*"),
             multi_line_prefix: None,
-            multi_line_end:    Some("*/")
+            multi_line_end:    Some("*/"),
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Latex,
@@ -1117,7 +1117,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["tex"],
         comment:     comment_properties!("%"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Ld,
@@ -1125,7 +1125,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Llvm,
@@ -1133,7 +1133,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::LlvmMir,
@@ -1141,7 +1141,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Log,
@@ -1149,7 +1149,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &["log.txt"],
         extensions:  &["log"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Lua,
@@ -1157,7 +1157,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["lua"],
         comment:     comment_properties!("--"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Make,
@@ -1165,7 +1165,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Markdown,
@@ -1173,7 +1173,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["md"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::MarkdownInline,
@@ -1189,10 +1189,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          Some("markdown.inline"),
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Meson,
@@ -1200,7 +1200,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Nasm,
@@ -1208,7 +1208,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Nix,
@@ -1221,9 +1221,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
 
             multi_line_start:  Some("/*"),
             multi_line_prefix: None,
-            multi_line_end:    Some("*/")
+            multi_line_end:    Some("*/"),
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Nushell,
@@ -1231,7 +1231,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Ocaml,
@@ -1244,9 +1244,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
 
             multi_line_start:  Some("(*"),
             multi_line_prefix: Some("*"),
-            multi_line_end:    Some("*)")
+            multi_line_end:    Some("*)"),
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::OcamlInterface,
@@ -1254,7 +1254,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["mli"],
         comment:     comment_properties!("(*"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Odin,
@@ -1262,7 +1262,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::OpenCl,
@@ -1270,7 +1270,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Pascal,
@@ -1278,7 +1278,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Passwd,
@@ -1286,7 +1286,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Pem,
@@ -1294,7 +1294,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Php,
@@ -1314,7 +1314,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
                     "interface_declaration",
                     "declaration_list",
                     "method_declaration",
-                    "function_declaration"
+                    "function_declaration",
                 ],
                 &[
                     "program",
@@ -1325,11 +1325,11 @@ const LANGUAGES: &[SyntaxProperties] = &[
                     "use_declaration",
                     "const_declaration",
                     "property_declaration",
-                    "expression_statement"
-                ]
+                    "expression_statement",
+                ],
             ),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Pkl,
@@ -1337,7 +1337,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::PowerShell,
@@ -1349,9 +1349,9 @@ const LANGUAGES: &[SyntaxProperties] = &[
             single_line_end:   None,
             multi_line_start:  Some("<#"),
             multi_line_end:    Some("#>"),
-            multi_line_prefix: None
+            multi_line_prefix: None,
         },
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Prisma,
@@ -1359,7 +1359,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["prisma"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::ProtoBuf,
@@ -1367,7 +1367,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["proto"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Python,
@@ -1387,12 +1387,12 @@ const LANGUAGES: &[SyntaxProperties] = &[
                     "class",
                     "identifier",
                     "decorated_definition",
-                    "block"
+                    "block",
                 ],
-                &["source_file", "import_statement", "import_from_statement"]
+                &["source_file", "import_statement", "import_from_statement"],
             ),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Ql,
@@ -1400,7 +1400,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["ql"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::R,
@@ -1408,7 +1408,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["r"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Rcl,
@@ -1416,7 +1416,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Regex,
@@ -1424,7 +1424,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Rego,
@@ -1432,7 +1432,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Ron,
@@ -1440,7 +1440,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Rst,
@@ -1448,7 +1448,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Ruby,
@@ -1462,10 +1462,10 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 DEFAULT_CODE_GLANCE_LIST,
-                DEFAULT_CODE_GLANCE_IGNORE_LIST
+                DEFAULT_CODE_GLANCE_IGNORE_LIST,
             ),
-            sticky_headers: &["module", "class", "method", "do_block"]
-        }
+            sticky_headers: &["module", "class", "method", "do_block"],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Rust,
@@ -1479,15 +1479,15 @@ const LANGUAGES: &[SyntaxProperties] = &[
             query:          None,
             code_glance:    (
                 &["source_file", "impl_item", "trait_item", "declaration_list"],
-                &["source_file", "use_declaration", "line_comment"]
+                &["source_file", "use_declaration", "line_comment"],
             ),
             sticky_headers: &[
                 "struct_item",
                 "enum_item",
                 "function_item",
-                "impl_item"
-            ]
-        }
+                "impl_item",
+            ],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Scala,
@@ -1495,7 +1495,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Scheme,
@@ -1503,7 +1503,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["scm", "ss"],
         comment:     comment_properties!(";"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Scss,
@@ -1511,7 +1511,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["scss"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::ShellScript,
@@ -1519,7 +1519,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["sh"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Smithy,
@@ -1527,7 +1527,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Sql,
@@ -1535,7 +1535,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["sql"],
         comment:     comment_properties!("--"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::SshClientConfig,
@@ -1543,7 +1543,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Strace,
@@ -1551,7 +1551,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Svelte,
@@ -1559,7 +1559,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["svelte"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Sway,
@@ -1567,7 +1567,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Swift,
@@ -1575,7 +1575,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["swift"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Tcl,
@@ -1583,7 +1583,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["tcl"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Toml,
@@ -1591,7 +1591,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &["Cargo.lock"],
         extensions:  &["toml"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Tsx,
@@ -1604,8 +1604,8 @@ const LANGUAGES: &[SyntaxProperties] = &[
             grammar_fn:     Some("tsx"),
             query:          Some("tsx"),
             code_glance:    (&["source_file", "program"], &["source_file"]),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Typescript,
@@ -1618,8 +1618,8 @@ const LANGUAGES: &[SyntaxProperties] = &[
             grammar_fn:     Some("typescript"),
             query:          Some("typescript"),
             code_glance:    (&["source_file", "program"], &["source_file"]),
-            sticky_headers: &[]
-        }
+            sticky_headers: &[],
+        },
     },
     SyntaxProperties {
         id:          LapceLanguage::Typst,
@@ -1627,7 +1627,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Verilog,
@@ -1635,7 +1635,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &[],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Vue,
@@ -1643,7 +1643,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["vue"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Wasm,
@@ -1651,7 +1651,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["wasm"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Wgsl,
@@ -1659,7 +1659,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["wgsl"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Wit,
@@ -1667,7 +1667,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["wit"],
         comment:     comment_properties!(),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Xml,
@@ -1675,7 +1675,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["xml", "csproj"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Yaml,
@@ -1683,7 +1683,7 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["yml", "yaml"],
         comment:     comment_properties!("#"),
-        tree_sitter: TreeSitterProperties::DEFAULT
+        tree_sitter: TreeSitterProperties::DEFAULT,
     },
     SyntaxProperties {
         id:          LapceLanguage::Zig,
@@ -1691,8 +1691,8 @@ const LANGUAGES: &[SyntaxProperties] = &[
         files:       &[],
         extensions:  &["zig"],
         comment:     comment_properties!("//"),
-        tree_sitter: TreeSitterProperties::DEFAULT
-    }
+        tree_sitter: TreeSitterProperties::DEFAULT,
+    },
 ];
 
 impl LapceLanguage {
@@ -1732,7 +1732,7 @@ impl LapceLanguage {
             Err(e) => {
                 debug!("failed parsing `{name}` LapceLanguage: {e}");
                 None
-            }
+            },
         }
     }
 
@@ -1809,7 +1809,7 @@ impl LapceLanguage {
     pub(crate) fn walk_tree(
         &self,
         cursor: &mut TreeCursor,
-        normal_lines: &mut HashSet<usize>
+        normal_lines: &mut HashSet<usize>,
     ) {
         let (list, ignore_list) = self.properties().tree_sitter.code_glance;
         walk_tree(cursor, normal_lines, list, ignore_list);
@@ -1819,7 +1819,7 @@ impl LapceLanguage {
 pub fn load_grammar(
     grammar_name: &str,
     grammar_fn_name: &str,
-    path: &Path
+    path: &Path,
 ) -> Result<tree_sitter::Language, HighlightIssue> {
     let mut library_path = path.join(format!("libtree-sitter-{grammar_name}"));
     library_path.set_extension(std::env::consts::DLL_EXTENSION);
@@ -1844,7 +1844,7 @@ pub fn load_grammar(
             let err = format!("Failed to load '{}': '{e}'", library_path.display());
             error!("{}", err);
             return Err(HighlightIssue::Error(err));
-        }
+        },
     };
 
     let language_fn_name =
@@ -1852,7 +1852,7 @@ pub fn load_grammar(
     debug!("Loading grammar with address: '{language_fn_name}'");
     let language = unsafe {
         let language_fn: libloading::Symbol<
-            unsafe extern "C" fn() -> tree_sitter::Language
+            unsafe extern "C" fn() -> tree_sitter::Language,
         > = match library.get(language_fn_name.as_bytes()) {
             Ok(v) => v,
             Err(e) => {
@@ -1862,7 +1862,7 @@ pub fn load_grammar(
                     error!("Failed to drop loaded library: {e}");
                 };
                 return Err(HighlightIssue::Error(err));
-            }
+            },
         };
         language_fn()
     };
@@ -1881,7 +1881,7 @@ fn walk_tree(
     cursor: &mut TreeCursor,
     normal_lines: &mut HashSet<usize>,
     list: &[&str],
-    ignore_list: &[&str]
+    ignore_list: &[&str],
 ) {
     let node = cursor.node();
     let start_pos = node.start_position();
@@ -1906,18 +1906,18 @@ fn walk_tree(
 fn add_bracket_pos(
     bracket_pos: &mut HashMap<usize, Vec<LineStyle>>,
     start_pos: Point,
-    color: String
+    color: String,
 ) {
     // todo
     let line_style = LineStyle {
         start:    start_pos.column,
         end:      start_pos.column + 1,
         text:     None,
-        fg_color: Some(color)
+        fg_color: Some(color),
     };
     match bracket_pos.entry(start_pos.row) {
         Entry::Vacant(v) => _ = v.insert(vec![line_style]),
-        Entry::Occupied(mut o) => o.get_mut().push(line_style)
+        Entry::Occupied(mut o) => o.get_mut().push(line_style),
     }
 }
 
@@ -1926,7 +1926,7 @@ pub(crate) fn walk_tree_bracket_ast(
     level: &mut usize,
     counter: &mut usize,
     bracket_pos: &mut HashMap<usize, Vec<LineStyle>>,
-    palette: &Vec<String>
+    palette: &Vec<String>,
 ) {
     if cursor.node().kind().ends_with('(')
         || cursor.node().kind().ends_with('{')
@@ -1938,7 +1938,7 @@ pub(crate) fn walk_tree_bracket_ast(
         add_bracket_pos(
             bracket_pos,
             start_pos,
-            palette.get(*level % palette.len()).unwrap().clone()
+            palette.get(*level % palette.len()).unwrap().clone(),
         );
         *level += 1;
     } else if cursor.node().kind().ends_with(')')
@@ -1956,7 +1956,7 @@ pub(crate) fn walk_tree_bracket_ast(
             add_bracket_pos(
                 bracket_pos,
                 start_pos,
-                palette.get(*level % palette.len()).unwrap().clone()
+                palette.get(*level % palette.len()).unwrap().clone(),
             );
         }
     }

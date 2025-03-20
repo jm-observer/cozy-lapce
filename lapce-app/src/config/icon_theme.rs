@@ -1,6 +1,6 @@
 use std::{
     ffi::OsStr,
-    path::{Path, PathBuf}
+    path::{Path, PathBuf},
 };
 
 use indexmap::IndexMap;
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// all yielded items are `Some`, and all yielded items compare equal, else
 /// returns `None`.
 fn try_all_equal_value<T: PartialEq, I: IntoIterator<Item = Option<T>>>(
-    items: I
+    items: I,
 ) -> Option<T> {
     let mut items = items.into_iter();
     let first = items.next().flatten()?;
@@ -30,7 +30,7 @@ pub struct IconThemeConfig {
     pub ui:               IndexMap<String, String>,
     pub foldername:       IndexMap<String, String>,
     pub filename:         IndexMap<String, String>,
-    pub extension:        IndexMap<String, String>
+    pub extension:        IndexMap<String, String>,
 }
 
 impl IconThemeConfig {

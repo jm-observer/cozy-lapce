@@ -7,14 +7,14 @@ use log::info;
 use crate::lines::{
     cursor::{CursorAffinity, CursorMode},
     line::OriginFoldedLine,
-    phantom_text::Text
+    phantom_text::Text,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
     NoCode,
     Added,
-    Removed
+    Removed,
 }
 
 #[derive(Clone, PartialEq)]
@@ -26,7 +26,7 @@ pub struct DiffSection {
     /// to jumping over empty code sections.
     pub y_idx:  usize,
     pub height: usize,
-    pub kind:   DiffSectionKind
+    pub kind:   DiffSectionKind,
 }
 
 // TODO(minor): We have diff sections in screen lines because Lapce
@@ -49,19 +49,19 @@ pub struct ScreenLines {
     /// 滚动窗口
     pub base:          Rect,
     pub line_height:   f64,
-    pub buffer_len:    usize
+    pub buffer_len:    usize,
 }
 
 #[derive(Clone, Debug)]
 pub enum VisualLineInfo {
     OriginText {
-        text: VisualOriginText
+        text: VisualOriginText,
     },
     DiffDelete {
         /// 该视觉行所属折叠行（原始行）在窗口的y偏移（不是整个文档的y偏移）。
         /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
-        folded_line_y: f64
-    }
+        folded_line_y: f64,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -70,7 +70,7 @@ pub struct VisualOriginText {
     /// 若该折叠行（原始行）只有1行视觉行，则y=vline_y。行顶的y值！！！
     pub folded_line_y: f64,
     pub is_diff:       bool,
-    pub folded_line:   OriginFoldedLine
+    pub folded_line:   OriginFoldedLine,
 }
 // impl Hash for VisualLineInfo {
 //     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -88,23 +88,23 @@ impl VisualLineInfo {
     pub fn folded_line_y(&self) -> f64 {
         match self {
             VisualLineInfo::OriginText { text } => text.folded_line_y,
-            VisualLineInfo::DiffDelete { folded_line_y } => *folded_line_y
+            VisualLineInfo::DiffDelete { folded_line_y } => *folded_line_y,
         }
     }
 
     pub fn is_diff(&self) -> bool {
         match self {
             VisualLineInfo::OriginText {
-                text: VisualOriginText { is_diff, .. }
+                text: VisualOriginText { is_diff, .. },
             } => *is_diff,
-            VisualLineInfo::DiffDelete { .. } => false
+            VisualLineInfo::DiffDelete { .. } => false,
         }
     }
 
     pub fn is_diff_delete(&self) -> bool {
         match self {
             VisualLineInfo::OriginText { .. } => false,
-            VisualLineInfo::DiffDelete { .. } => true
+            VisualLineInfo::DiffDelete { .. } => true,
         }
     }
 }
@@ -153,7 +153,7 @@ impl ScreenLines {
 
 impl ScreenLines {
     pub fn first_end_folded_line(
-        &self
+        &self,
     ) -> Option<(&VisualOriginText, &VisualOriginText)> {
         let first = self.visual_lines.iter().find_map(|x| {
             if let VisualLineInfo::OriginText { text } = x {
@@ -171,7 +171,7 @@ impl ScreenLines {
         });
         match end {
             None => first.map(|x| (x, x)),
-            Some(end) => first.map(|x| (x, end))
+            Some(end) => first.map(|x| (x, end)),
         }
     }
 
@@ -179,7 +179,7 @@ impl ScreenLines {
         let (first, end) = self.first_end_folded_line()?;
         Some((
             first.folded_line.origin_line_start,
-            end.folded_line.origin_line_start
+            end.folded_line.origin_line_start,
         ))
     }
 
@@ -187,14 +187,14 @@ impl ScreenLines {
         let (first, end) = self.first_end_folded_line()?;
         Some((
             first.folded_line.origin_interval.start,
-            end.folded_line.origin_interval.end
+            end.folded_line.origin_interval.end,
         ))
     }
 
     /// 获取原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
     pub fn visual_line_info_for_origin_line(
         &self,
-        origin_line: usize
+        origin_line: usize,
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
@@ -205,7 +205,7 @@ impl ScreenLines {
                     Ordering::Equal => {
                         return Some(visual_line);
                     },
-                    _ => {}
+                    _ => {},
                 }
             }
         }
@@ -214,11 +214,13 @@ impl ScreenLines {
 
     pub fn visual_index_for_origin_line_num(
         &self,
-        line_index: usize
+        line_index: usize,
     ) -> Option<usize> {
         for (index, visual_line) in self.visual_lines.iter().enumerate() {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
-                if text.folded_line.origin_line_start <= line_index && line_index <= text.folded_line.origin_line_end {
+                if text.folded_line.origin_line_start <= line_index
+                    && line_index <= text.folded_line.origin_line_end
+                {
                     // index 从0开始，该函数是测算第几个，因此加1
                     return Some(index + 1);
                 } else if line_index < text.folded_line.origin_line_start {
@@ -232,7 +234,7 @@ impl ScreenLines {
     /// 获取折叠原始行的视觉行信息。为none则说明被折叠，或者没有在窗口范围
     pub fn visual_line_info_for_origin_folded_line(
         &self,
-        line_index: usize
+        line_index: usize,
     ) -> Option<&VisualLineInfo> {
         for visual_line in &self.visual_lines {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
@@ -249,7 +251,7 @@ impl ScreenLines {
     pub fn intersection_with_lines(
         &self,
         start_line_index: usize,
-        end_line_index: usize
+        end_line_index: usize,
     ) -> Option<(&VisualLineInfo, &VisualLineInfo)> {
         let (first_visual_line, last_visual_line) = self.first_end_folded_line()?;
 
@@ -264,13 +266,13 @@ impl ScreenLines {
         }
         Some((
             self.visual_line_info_for_origin_folded_line(start_line_index)?,
-            self.visual_line_info_for_origin_folded_line(end_line_index)?
+            self.visual_line_info_for_origin_folded_line(end_line_index)?,
         ))
     }
 
     pub fn visual_line_for_buffer_offset(
         &self,
-        buffer_offset: usize
+        buffer_offset: usize,
     ) -> Option<&VisualOriginText> {
         for visual_line in &self.visual_lines {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
@@ -290,7 +292,7 @@ impl ScreenLines {
 
     pub fn visual_line_info_of_buffer_offset(
         &self,
-        buffer_offset: usize
+        buffer_offset: usize,
     ) -> Result<Option<(&VisualOriginText, usize)>> {
         let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
@@ -306,7 +308,7 @@ impl ScreenLines {
 
     pub fn visual_position_of_buffer_offset(
         &self,
-        buffer_offset: usize
+        buffer_offset: usize,
     ) -> Result<Option<Point>> {
         let Some((vl, final_offset)) =
             self.visual_line_info_of_buffer_offset(buffer_offset)?
@@ -329,7 +331,7 @@ impl ScreenLines {
     pub fn cursor_position_of_buffer_offset(
         &self,
         buffer_offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<Option<Point>> {
         let Some((vl, final_offset)) =
             self.cursor_info_of_buffer_offset(buffer_offset, affinity)?
@@ -349,7 +351,7 @@ impl ScreenLines {
     pub fn cursor_info_of_buffer_offset(
         &self,
         buffer_offset: usize,
-        cursor_affinity: CursorAffinity
+        cursor_affinity: CursorAffinity,
     ) -> Result<Option<(&VisualOriginText, usize)>> {
         let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
@@ -374,7 +376,7 @@ impl ScreenLines {
             col_start + 1,
             self.line_height,
             folded_line_start.folded_line_y,
-            base
+            base,
         )))
     }
 
@@ -383,7 +385,7 @@ impl ScreenLines {
         start_offset: usize,
         end_offset: usize,
         mut start_affinity: Option<CursorAffinity>,
-        end_affinity: Option<CursorAffinity>
+        end_affinity: Option<CursorAffinity>,
     ) -> Result<Vec<Rect>> {
         let (mut start_offset, mut end_offset) = if start_offset > end_offset {
             (end_offset, start_offset)
@@ -398,7 +400,9 @@ impl ScreenLines {
             start_affinity = Some(CursorAffinity::Backward)
         }
         if end_offset >= end_line.folded_line.origin_interval.end {
-            let Some(last_origin_merge_col) = end_line.folded_line.last_origin_merge_col() else {
+            let Some(last_origin_merge_col) =
+                end_line.folded_line.last_origin_merge_col()
+            else {
                 bail!("get last_origin_merge_col failed");
             };
             end_offset = last_origin_merge_col;
@@ -406,7 +410,7 @@ impl ScreenLines {
         }
         let Some((vl_start, col_start)) = self.cursor_info_of_buffer_offset(
             start_offset,
-            start_affinity.unwrap_or_default()
+            start_affinity.unwrap_or_default(),
         )?
         else {
             return Ok(vec![]);
@@ -414,7 +418,7 @@ impl ScreenLines {
         let folded_line_start = &vl_start.folded_line;
         let Some((vl_end, col_end)) = self.cursor_info_of_buffer_offset(
             end_offset,
-            end_affinity.unwrap_or_default()
+            end_affinity.unwrap_or_default(),
         )?
         else {
             return Ok(vec![]);
@@ -423,7 +427,7 @@ impl ScreenLines {
 
         let Some((rs_start, rs_end)) = self.intersection_with_lines(
             folded_line_start.line_index,
-            folded_line_end.line_index
+            folded_line_end.line_index,
         ) else {
             return Ok(vec![]);
         };
@@ -434,19 +438,19 @@ impl ScreenLines {
                 col_end,
                 self.line_height,
                 rs_start.folded_line_y(),
-                base
+                base,
             );
             Ok(vec![rs])
         } else {
             let mut first = Vec::with_capacity(
-                folded_line_end.line_index + 1 - folded_line_start.line_index
+                folded_line_end.line_index + 1 - folded_line_start.line_index,
             );
             first.push(folded_line_start.line_scope(
                 col_start,
                 folded_line_start.len_without_rn(),
                 self.line_height,
                 rs_start.folded_line_y(),
-                base
+                base,
             ));
 
             for vl in &self.visual_lines {
@@ -463,7 +467,7 @@ impl ScreenLines {
                             text.folded_line.len_without_rn(),
                             self.line_height,
                             text.folded_line_y,
-                            base
+                            base,
                         );
                         first.push(selection)
                     }
@@ -474,7 +478,7 @@ impl ScreenLines {
                 col_end,
                 self.line_height,
                 rs_end.folded_line_y(),
-                base
+                base,
             );
             first.push(last);
             Ok(first)
@@ -483,7 +487,7 @@ impl ScreenLines {
 
     pub(crate) fn visual_line_of_point(
         &self,
-        point_y: f64
+        point_y: f64,
     ) -> Option<&VisualLineInfo> {
         for line in &self.visual_lines {
             let folded_line_y = line.folded_line_y();
@@ -494,19 +498,21 @@ impl ScreenLines {
         }
         None
     }
-    
+
     pub(crate) fn nearest_visual_line_of_point(
         &self,
-        point_y: f64
+        point_y: f64,
     ) -> Option<(&VisualOriginText, bool)> {
         let mut lines = self.visual_lines.iter().peekable();
         let mut prev_line = None;
         loop {
             if let Some(line) = lines.peek() {
-                if let VisualLineInfo::OriginText { text } = line  {
+                if let VisualLineInfo::OriginText { text } = line {
                     if point_y < text.folded_line_y {
                         return prev_line.map(|x| (x, false));
-                    } else if text.folded_line_y <= point_y && point_y < text.folded_line_y + self.line_height {
+                    } else if text.folded_line_y <= point_y
+                        && point_y < text.folded_line_y + self.line_height
+                    {
                         return Some((text, true));
                     } else {
                         prev_line = Some(text);
@@ -525,12 +531,12 @@ impl ScreenLines {
     pub fn buffer_offset_of_click(
         &self,
         _mode: &CursorMode,
-        point: Point
+        point: Point,
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
         let Some(info) = self.visual_line_of_point(point.y) else {
             return Ok(None);
         };
-        let VisualLineInfo::OriginText { text, .. } = info else { 
+        let VisualLineInfo::OriginText { text, .. } = info else {
             return Ok(None);
         };
         let info = &text.folded_line;
@@ -553,22 +559,22 @@ impl ScreenLines {
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Forward
+                                        CursorAffinity::Forward,
                                     )
                                 } else {
                                     (
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Backward
+                                        CursorAffinity::Backward,
                                     )
-                                }
+                                },
                             ));
                         } else if visual_char_offset == text.next_final_col() {
                             return Ok(Some((
                                 info.origin_interval.start + text.origin_merge_col,
                                 true,
-                                CursorAffinity::Forward
+                                CursorAffinity::Forward,
                             )));
                         }
                     },
@@ -582,11 +588,11 @@ impl ScreenLines {
                                     + text.origin_merge_col_start()
                                     + info.origin_interval.start,
                                 true,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         }
                     },
-                    Text::EmptyLine { .. } => break
+                    Text::EmptyLine { .. } => break,
                 }
             }
             bail!(
@@ -605,7 +611,7 @@ impl ScreenLines {
                 Text::Phantom { text } => (
                     text.origin_merge_col + info.origin_interval.start,
                     false,
-                    CursorAffinity::Forward
+                    CursorAffinity::Forward,
                 ),
                 Text::OriginText { .. } => {
                     // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
@@ -618,13 +624,13 @@ impl ScreenLines {
                             (
                                 info.origin_interval.end,
                                 false,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )
                         } else {
                             (
                                 info.origin_interval.end - line_ending_len,
                                 false,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )
                         }
                     }
@@ -638,13 +644,13 @@ impl ScreenLines {
             }))
         }
     }
-    
+
     pub fn nearest_buffer_offset_of_click(
         &self,
         _mode: &CursorMode,
-        point: Point
+        point: Point,
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
-        let Some( (text, inside)) = self.nearest_visual_line_of_point(point.y) else { 
+        let Some((text, inside)) = self.nearest_visual_line_of_point(point.y) else {
             return Ok(None);
         };
         let info = &text.folded_line;
@@ -671,22 +677,22 @@ impl ScreenLines {
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Forward
+                                        CursorAffinity::Forward,
                                     )
                                 } else {
                                     (
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Backward
+                                        CursorAffinity::Backward,
                                     )
-                                }
+                                },
                             ));
                         } else if visual_char_offset == text.next_final_col() {
                             return Ok(Some((
                                 info.origin_interval.start + text.origin_merge_col,
                                 true,
-                                CursorAffinity::Forward
+                                CursorAffinity::Forward,
                             )));
                         }
                     },
@@ -700,11 +706,11 @@ impl ScreenLines {
                                     + text.origin_merge_col_start()
                                     + info.origin_interval.start,
                                 true,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         }
                     },
-                    Text::EmptyLine { .. } => break
+                    Text::EmptyLine { .. } => break,
                 }
             }
             bail!(

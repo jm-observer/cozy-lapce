@@ -4,7 +4,7 @@ use floem::{
     keyboard::{Key, NamedKey},
     prelude::*,
     style::CursorStyle,
-    views::container
+    views::container,
 };
 
 fn app_view() -> impl IntoView {
@@ -35,7 +35,7 @@ fn app_view() -> impl IntoView {
         container(svg(svg_str("other")).style(move |s| {
             let size = 13.0;
             s.size(size, size)
-        }))
+        })),
     ))
     .style(|x| x.margin(100.0));
 
@@ -43,7 +43,7 @@ fn app_view() -> impl IntoView {
     view.on_key_up(
         Key::Named(NamedKey::F11),
         |m| m.is_empty(),
-        move |_| id.inspect()
+        move |_| id.inspect(),
     )
 }
 
@@ -64,6 +64,6 @@ fn svg_str(svg_name: &str) -> String {
         "debug" => fs::read_to_string("resources/svg/debug.svg").unwrap(),
         _ => {
             panic!()
-        }
+        },
     }
 }

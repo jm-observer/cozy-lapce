@@ -4,13 +4,13 @@ use std::cmp::Ordering;
 pub enum Position {
     Region { start: usize, end: usize },
     Caret(usize),
-    None
+    None,
 }
 
 #[derive(Clone, Debug)]
 pub struct Cursor {
     pub dragging: bool,
-    pub position: Position
+    pub position: Position,
 }
 
 impl Cursor {
@@ -18,7 +18,7 @@ impl Cursor {
         Some(match self.position {
             Position::Region { end, .. } => end,
             Position::Caret(offset) => offset,
-            Position::None => return None
+            Position::None => return None,
         })
     }
 
@@ -26,7 +26,7 @@ impl Cursor {
         Some(match self.position {
             Position::Region { start, .. } => start,
             Position::Caret(offset) => offset,
-            Position::None => return None
+            Position::None => return None,
         })
     }
 
@@ -35,7 +35,7 @@ impl Cursor {
             match start.cmp(&end) {
                 Ordering::Less => Some((start, end)),
                 Ordering::Equal => None,
-                Ordering::Greater => Some((end, start))
+                Ordering::Greater => Some((end, start)),
             }
         } else {
             None

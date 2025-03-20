@@ -1,7 +1,7 @@
 use std::{
     io::{BufRead, BufReader},
     process::Command,
-    thread
+    thread,
 };
 
 use anyhow::anyhow;
@@ -12,7 +12,7 @@ use crate::{resolve_stderr, resolve_stdout};
 
 pub fn run_command(
     mut command: Command,
-    mut channel: ExtChannel<StyledText>
+    mut channel: ExtChannel<StyledText>,
 ) -> anyhow::Result<()> {
     let mut child = command
         .stdout(std::process::Stdio::piped())

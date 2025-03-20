@@ -5,9 +5,9 @@ use std::{
     process::{Child, Command, Stdio},
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering}
+        atomic::{AtomicU64, Ordering},
     },
-    thread
+    thread,
 };
 
 use anyhow::{Result, anyhow};
@@ -25,9 +25,9 @@ use lapce_rpc::{
         SetBreakpointsResponse, Source, SourceBreakpoint, StackTrace,
         StackTraceArguments, StackTraceResponse, StepIn, StepInArguments, StepOut,
         StepOutArguments, Terminate, ThreadId, Threads, ThreadsResponse, Variable,
-        Variables, VariablesArguments, VariablesResponse
+        Variables, VariablesArguments, VariablesResponse,
     },
-    terminal::TermId
+    terminal::TermId,
 };
 use log::error;
 use parking_lot::Mutex;
@@ -35,7 +35,7 @@ use serde_json::Value;
 
 use super::{
     PluginCatalogRpcHandler,
-    psp::{ResponseHandler, RpcCallback}
+    psp::{ResponseHandler, RpcCallback},
 };
 
 pub struct DapClient {
@@ -48,7 +48,7 @@ pub struct DapClient {
     capabilities:       Option<DebuggerCapabilities>,
     terminated:         bool,
     disconnected:       bool,
-    restarted:          bool
+    restarted:          bool,
 }
 
 impl DapClient {
@@ -56,7 +56,7 @@ impl DapClient {
         dap_server: DapServer,
         config: RunDebugConfig,
         breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
-        plugin_rpc: PluginCatalogRpcHandler
+        plugin_rpc: PluginCatalogRpcHandler,
     ) -> Result<Self> {
         let dap_rpc = DapRpcHandler::new(config.dap_id);
 
@@ -70,7 +70,7 @@ impl DapClient {
             capabilities: None,
             terminated: false,
             disconnected: false,
-            restarted: false
+            restarted: false,
         })
     }
 
@@ -78,7 +78,7 @@ impl DapClient {
         dap_server: DapServer,
         config: RunDebugConfig,
         breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
-        plugin_rpc: PluginCatalogRpcHandler
+        plugin_rpc: PluginCatalogRpcHandler,
     ) -> Result<DapRpcHandler> {
         let mut dap = Self::new(dap_server, config, breakpoints, plugin_rpc)?;
         dap.start_process()?;
@@ -101,7 +101,7 @@ impl DapClient {
         let mut process = Self::process(
             &program,
             &self.dap_server.args,
-            self.dap_server.cwd.as_ref()
+            self.dap_server.cwd.as_ref(),
         )?;
         let stdin = process.stdin.take().unwrap();
         let stdout = process.stdout.take().unwrap();
@@ -151,13 +151,13 @@ impl DapClient {
                             plugin_rpc.core_rpc.log(
                                 lapce_rpc::core::LogLevel::Error,
                                 format!("dap server {program} stopped!"),
-                                None
+                                None,
                             );
 
                             dap_rpc.disconnected();
                             log::debug!("thread(read from dap) exited");
                             return;
-                        }
+                        },
                     };
                 }
             });
@@ -169,7 +169,7 @@ impl DapClient {
     fn process(
         server: &str,
         args: &[String],
-        cwd: Option<&PathBuf>
+        cwd: Option<&PathBuf>,
     ) -> Result<Child> {
         log::info!("{} {:?} {:?}", server, args, cwd);
         let mut process = Command::new(server);
@@ -185,7 +185,7 @@ impl DapClient {
         #[cfg(target_os = "windows")]
         std::os::windows::process::CommandExt::creation_flags(
             &mut process,
-            0x08000000
+            0x08000000,
         );
         let child = process
             .stdin(Stdio::piped())
@@ -212,12 +212,12 @@ impl DapClient {
                 self.term_id = Some(term_id);
                 let resp = RunInTerminalResponse {
                     process_id: None,
-                    shell_process_id
+                    shell_process_id,
                 };
                 let resp = serde_json::to_value(resp)?;
                 Ok(resp)
             },
-            _ => Err(anyhow!("not implemented"))
+            _ => Err(anyhow!("not implemented")),
         }
     }
 
@@ -230,12 +230,12 @@ impl DapClient {
                             self.plugin_rpc.core_rpc.dap_breakpoints_resp(
                                 self.config.dap_id,
                                 path,
-                                breakpoints.breakpoints.unwrap_or_default()
+                                breakpoints.breakpoints.unwrap_or_default(),
                             );
                         },
                         Err(err) => {
                             error!("{:?}", err);
-                        }
+                        },
                     }
                 }
                 // send dap configurations here
@@ -293,7 +293,7 @@ impl DapClient {
                     self.config.dap_id,
                     stopped.clone(),
                     stack_frames,
-                    vars
+                    vars,
                 );
 
                 // if all_threads_stopped {
@@ -332,7 +332,7 @@ impl DapClient {
             DapEvent::LoadedSource { .. } => {},
             DapEvent::Process(_) => {},
             DapEvent::Capabilities(_) => {},
-            DapEvent::Memory(_) => {}
+            DapEvent::Memory(_) => {},
         }
         Ok(())
     }
@@ -351,7 +351,7 @@ impl DapClient {
             supports_run_in_terminal_request: Some(true),
             supports_memory_references: Some(false),
             supports_progress_reporting: Some(false),
-            supports_invalidated_event: Some(false)
+            supports_invalidated_event: Some(false),
         };
 
         let resp = self
@@ -439,14 +439,14 @@ pub enum DapRpc {
     Stop,
     Restart(HashMap<PathBuf, Vec<SourceBreakpoint>>),
     // Shutdown,
-    Disconnected
+    Disconnected,
 }
 
 #[derive(Clone)]
 pub struct DebuggerData {
     pub debugger_type: String,
     pub program:       String,
-    pub args:          Option<Vec<String>>
+    pub args:          Option<Vec<String>>,
 }
 
 #[derive(Clone)]
@@ -459,7 +459,7 @@ pub struct DapRpcHandler {
     pub(crate) termain_process_tx: Sender<(TermId, Option<u32>)>,
     termain_process_rx: Receiver<(TermId, Option<u32>)>,
     seq_counter: Arc<AtomicU64>,
-    server_pending: Arc<Mutex<HashMap<u64, ResponseHandler<DapResponse, RpcError>>>>
+    server_pending: Arc<Mutex<HashMap<u64, ResponseHandler<DapResponse, RpcError>>>>,
 }
 
 impl DapRpcHandler {
@@ -477,7 +477,7 @@ impl DapRpcHandler {
             termain_process_tx,
             termain_process_rx,
             seq_counter: Arc::new(AtomicU64::new(0)),
-            server_pending: Arc::new(Mutex::new(HashMap::new()))
+            server_pending: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -493,7 +493,7 @@ impl DapRpcHandler {
                         success: result.is_ok(),
                         command: req.command.clone(),
                         message: result.as_ref().err().map(|e| e.to_string()),
-                        body: result.ok()
+                        body: result.ok(),
                     };
                     if let Err(err) = self.io_tx.send(DapPayload::Response(resp)) {
                         error!("{:?}", err);
@@ -526,7 +526,7 @@ impl DapRpcHandler {
                     // if let Err(err) = dap_client.check_restart() {
                     //     error!("{:?}", err);
                     // }
-                }
+                },
             }
             if dap_client.terminated {
                 break;
@@ -537,7 +537,7 @@ impl DapRpcHandler {
     fn request_async<R: Request>(
         &self,
         params: R::Arguments,
-        f: impl RpcCallback<R::Result, RpcError> + 'static
+        f: impl RpcCallback<R::Result, RpcError> + 'static,
     ) {
         self.request_common::<R>(
             R::COMMAND,
@@ -550,27 +550,27 @@ impl DapRpcHandler {
                                 serde_json::from_value(resp.body.into()).map_err(
                                     |e| RpcError {
                                         code:    0,
-                                        message: e.to_string()
-                                    }
+                                        message: e.to_string(),
+                                    },
                                 )
                             } else {
                                 Err(RpcError {
                                     code:    0,
-                                    message: resp.message.unwrap_or_default()
+                                    message: resp.message.unwrap_or_default(),
                                 })
                             }
                         },
-                        Err(e) => Err(e)
+                        Err(e) => Err(e),
                     };
                     Box::new(f).call(id, result);
-                }
-            ))
+                },
+            )),
         );
     }
 
     fn request<R: Request>(
         &self,
-        params: R::Arguments
+        params: R::Arguments,
     ) -> Result<R::Result, RpcError> {
         let (tx, rx) = crossbeam_channel::bounded(1);
         self.request_common::<R>(R::COMMAND, params, ResponseHandler::Chan(tx));
@@ -578,20 +578,20 @@ impl DapRpcHandler {
             .recv_timeout(std::time::Duration::from_secs(30))
             .map_err(|_| RpcError {
                 code:    0,
-                message: "io error".to_string()
+                message: "io error".to_string(),
             })?
             .1?;
         if resp.success {
             let resp: R::Result =
                 serde_json::from_value(resp.body.into()).map_err(|e| RpcError {
                     code:    0,
-                    message: e.to_string()
+                    message: e.to_string(),
                 })?;
             Ok(resp)
         } else {
             Err(RpcError {
                 code:    0,
-                message: resp.message.unwrap_or_default()
+                message: resp.message.unwrap_or_default(),
             })
         }
     }
@@ -600,7 +600,7 @@ impl DapRpcHandler {
         &self,
         command: &'static str,
         arguments: R::Arguments,
-        rh: ResponseHandler<DapResponse, RpcError>
+        rh: ResponseHandler<DapResponse, RpcError>,
     ) {
         let seq = self.seq_counter.fetch_add(1, Ordering::Relaxed);
         let arguments: Value = serde_json::to_value(arguments).unwrap();
@@ -612,7 +612,7 @@ impl DapRpcHandler {
         if let Err(err) = self.io_tx.send(DapPayload::Request(DapRequest {
             seq,
             command: command.to_string(),
-            arguments: Some(arguments)
+            arguments: Some(arguments),
         })) {
             error!("{:?}", err);
         }
@@ -646,11 +646,11 @@ impl DapRpcHandler {
                 DapPayload::Response(resp) => {
                     // log::info!("read Response from dap server: {resp:?}");
                     self.handle_server_response(resp);
-                }
+                },
             },
             Err(err) => {
                 error!("handle_server_message {err:?}");
-            }
+            },
         }
         terminated
     }
@@ -704,7 +704,7 @@ impl DapRpcHandler {
         &self,
         file: PathBuf,
         breakpoints: Vec<SourceBreakpoint>,
-        f: impl RpcCallback<SetBreakpointsResponse, RpcError> + 'static
+        f: impl RpcCallback<SetBreakpointsResponse, RpcError> + 'static,
     ) {
         let params = SetBreakpointsArguments {
             source:          Source {
@@ -715,10 +715,10 @@ impl DapRpcHandler {
                 origin:            None,
                 sources:           None,
                 adapter_data:      None,
-                checksums:         None
+                checksums:         None,
             },
             breakpoints:     Some(breakpoints),
-            source_modified: Some(false)
+            source_modified: Some(false),
         };
         self.request_async::<SetBreakpoints>(params, f);
     }
@@ -726,7 +726,7 @@ impl DapRpcHandler {
     pub fn set_breakpoints(
         &self,
         file: PathBuf,
-        breakpoints: Vec<SourceBreakpoint>
+        breakpoints: Vec<SourceBreakpoint>,
     ) -> Result<SetBreakpointsResponse> {
         let params = SetBreakpointsArguments {
             source:          Source {
@@ -737,10 +737,10 @@ impl DapRpcHandler {
                 origin:            None,
                 sources:           None,
                 adapter_data:      None,
-                checksums:         None
+                checksums:         None,
             },
             breakpoints:     Some(breakpoints),
-            source_modified: Some(false)
+            source_modified: Some(false),
         };
         let resp = self
             .request::<SetBreakpoints>(params)
@@ -793,7 +793,7 @@ impl DapRpcHandler {
     pub fn scopes_async(
         &self,
         frame_id: usize,
-        f: impl RpcCallback<ScopesResponse, RpcError> + 'static
+        f: impl RpcCallback<ScopesResponse, RpcError> + 'static,
     ) {
         let args = ScopesArguments { frame_id };
 
@@ -806,7 +806,7 @@ impl DapRpcHandler {
             filter: None,
             start: None,
             count: None,
-            format: None
+            format: None,
         };
 
         let response = self
@@ -818,14 +818,14 @@ impl DapRpcHandler {
     pub fn variables_async(
         &self,
         variables_reference: usize,
-        f: impl RpcCallback<VariablesResponse, RpcError> + 'static
+        f: impl RpcCallback<VariablesResponse, RpcError> + 'static,
     ) {
         let args = VariablesArguments {
             variables_reference,
             filter: None,
             start: None,
             count: None,
-            format: None
+            format: None,
         };
 
         self.request_async::<Variables>(args, f);
@@ -834,7 +834,7 @@ impl DapRpcHandler {
     pub fn next(&self, thread_id: ThreadId) {
         let args = NextArguments {
             thread_id,
-            granularity: None
+            granularity: None,
         };
 
         self.request_async::<Next>(args, move |_, _| {});
@@ -844,7 +844,7 @@ impl DapRpcHandler {
         let args = StepInArguments {
             thread_id,
             target_id: None,
-            granularity: None
+            granularity: None,
         };
 
         self.request_async::<StepIn>(args, move |_, _| {});
@@ -853,7 +853,7 @@ impl DapRpcHandler {
     pub fn step_out(&self, thread_id: ThreadId) {
         let args = StepOutArguments {
             thread_id,
-            granularity: None
+            granularity: None,
         };
 
         self.request_async::<StepOut>(args, move |_, _| {});

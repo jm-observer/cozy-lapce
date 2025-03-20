@@ -7,5 +7,5 @@ use serde::{Deserialize, Serialize};
 pub struct FileLine {
     pub path:     PathBuf,
     pub position: Position,
-    pub content:  String
+    pub content:  String,
 }

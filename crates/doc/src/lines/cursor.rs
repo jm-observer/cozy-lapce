@@ -7,7 +7,7 @@ use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
     mode::{Mode, MotionMode, VisualMode},
     register::RegisterData,
-    selection::{InsertDrift, SelRegion, Selection}
+    selection::{InsertDrift, SelRegion, Selection},
 };
 
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub enum ColPosition {
     FirstNonBlank,
     Start,
     End,
-    Col(usize)
+    Col(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -24,7 +24,7 @@ pub struct Cursor {
     pub horiz:              Option<ColPosition>,
     pub motion_mode:        Option<MotionMode>,
     pub history_selections: Vec<Selection>,
-    pub affinity:           CursorAffinity
+    pub affinity:           CursorAffinity,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -33,15 +33,15 @@ pub enum CursorMode {
     Visual {
         start: usize,
         end:   usize,
-        mode:  VisualMode
+        mode:  VisualMode,
     },
     /// 非vim模式下，默认
-    Insert(Selection)
+    Insert(Selection),
 }
 
 struct RegionsIter<'c> {
     cursor_mode: &'c CursorMode,
-    idx:         usize
+    idx:         usize,
 }
 
 impl Iterator for RegionsIter<'_> {
@@ -68,7 +68,7 @@ impl Iterator for RegionsIter<'_> {
                          ..
                      }| {
                         (start, end, start_cursor_affi, end_cursor_affi)
-                    }
+                    },
                 );
 
                 if next.is_some() {
@@ -76,14 +76,14 @@ impl Iterator for RegionsIter<'_> {
                 }
 
                 next
-            }
+            },
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         let total_len = match self.cursor_mode {
             CursorMode::Normal(_) | CursorMode::Visual { .. } => 1,
-            CursorMode::Insert(selection) => selection.len()
+            CursorMode::Insert(selection) => selection.len(),
         };
         let len = total_len - self.idx;
 
@@ -98,7 +98,7 @@ impl CursorMode {
         match &self {
             CursorMode::Normal(_) => Mode::Normal,
             CursorMode::Visual { mode, .. } => Mode::Visual(*mode),
-            CursorMode::Insert(_) => Mode::Insert
+            CursorMode::Insert(_) => Mode::Insert,
         }
     }
 
@@ -110,7 +110,7 @@ impl CursorMode {
         match &self {
             CursorMode::Normal(offset) => *offset,
             CursorMode::Visual { end, .. } => *end,
-            CursorMode::Insert(selection) => selection.get_cursor_offset()
+            CursorMode::Insert(selection) => selection.get_cursor_offset(),
         }
     }
 
@@ -125,13 +125,13 @@ impl CursorMode {
     }
 
     pub fn regions_iter(
-        &self
+        &self,
     ) -> impl ExactSizeIterator<
-        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)
+        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>),
     > + '_ {
         RegionsIter {
             cursor_mode: self,
-            idx:         0
+            idx:         0,
         }
     }
 }
@@ -168,20 +168,20 @@ pub enum CursorAffinity {
     Forward,
     /// `|<: String>`
     #[default]
-    Backward
+    Backward,
 }
 impl CursorAffinity {
     pub fn invert(&self) -> Self {
         match self {
             CursorAffinity::Forward => CursorAffinity::Backward,
-            CursorAffinity::Backward => CursorAffinity::Forward
+            CursorAffinity::Backward => CursorAffinity::Forward,
         }
     }
 
     pub fn forward(&self) -> bool {
         match self {
             CursorAffinity::Forward => true,
-            CursorAffinity::Backward => false
+            CursorAffinity::Backward => false,
         }
     }
 }
@@ -190,7 +190,7 @@ impl Cursor {
     pub fn new(
         mode: CursorMode,
         horiz: Option<ColPosition>,
-        motion_mode: Option<MotionMode>
+        motion_mode: Option<MotionMode>,
     ) -> Self {
         Self {
             mode,
@@ -199,14 +199,14 @@ impl Cursor {
             history_selections: Vec::new(),
             // It should appear before any inlay hints at the very
             // first position
-            affinity: CursorAffinity::Backward
+            affinity: CursorAffinity::Backward,
         }
     }
 
     pub fn is_block(&self) -> bool {
         match self.mode {
             CursorMode::Normal(_) | CursorMode::Visual { .. } => true,
-            CursorMode::Insert(_) => false
+            CursorMode::Insert(_) => false,
         }
     }
 
@@ -218,7 +218,7 @@ impl Cursor {
                 CursorMode::Insert(Selection::caret(0))
             },
             None,
-            None
+            None,
         )
     }
 
@@ -231,9 +231,9 @@ impl Cursor {
     }
 
     pub fn regions_iter(
-        &self
+        &self,
     ) -> impl ExactSizeIterator<
-        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)
+        Item = (usize, usize, Option<CursorAffinity>, Option<CursorAffinity>),
     > + '_ {
         self.mode.regions_iter()
     }
@@ -279,13 +279,13 @@ impl Cursor {
                     Err(err) => {
                         error!("{err:?}");
                         return;
-                    }
+                    },
                 };
                 self.mode = CursorMode::Normal(offset);
             },
             CursorMode::Insert(_) => {
                 self.mode = CursorMode::Insert(selection);
-            }
+            },
         }
     }
 
@@ -294,12 +294,12 @@ impl Cursor {
             CursorMode::Insert(selection) => selection.clone(),
             CursorMode::Normal(offset) => Selection::region(
                 *offset,
-                text.next_grapheme_offset(*offset, 1, text.len())
+                text.next_grapheme_offset(*offset, 1, text.len()),
             ),
             CursorMode::Visual { start, end, mode } => match mode {
                 VisualMode::Normal => Selection::region(
                     *start.min(end),
-                    text.next_grapheme_offset(*start.max(end), 1, text.len())
+                    text.next_grapheme_offset(*start.max(end), 1, text.len()),
                 ),
                 VisualMode::Linewise => {
                     let start_offset =
@@ -336,8 +336,8 @@ impl Cursor {
                         selection.add_region(SelRegion::new(left, right, None));
                     }
                     selection
-                }
-            }
+                },
+            },
         })
     }
 
@@ -355,14 +355,14 @@ impl Cursor {
                 self.mode = CursorMode::Visual {
                     start,
                     end,
-                    mode: *mode
+                    mode: *mode,
                 };
             },
             CursorMode::Insert(selection) => {
                 let selection =
                     selection.apply_delta(delta, true, InsertDrift::Default);
                 self.mode = CursorMode::Insert(selection);
-            }
+            },
         }
         self.horiz = None;
     }
@@ -395,7 +395,7 @@ impl Cursor {
                 let new_offset = text.next_grapheme_offset(*offset, 1, text.len());
                 (
                     text.slice_to_cow(*offset..new_offset).to_string(),
-                    VisualMode::Normal
+                    VisualMode::Normal,
                 )
             },
             CursorMode::Visual { start, end, mode } => match mode {
@@ -405,11 +405,11 @@ impl Cursor {
                             ..text.next_grapheme_offset(
                                 *start.max(end),
                                 1,
-                                text.len()
-                            )
+                                text.len(),
+                            ),
                     )
                     .to_string(),
-                    VisualMode::Normal
+                    VisualMode::Normal,
                 ),
                 VisualMode::Linewise => {
                     let start_offset =
@@ -418,7 +418,7 @@ impl Cursor {
                         .offset_of_line(text.line_of_offset(*start.max(end)) + 1)?;
                     (
                         text.slice_to_cow(start_offset..end_offset).to_string(),
-                        VisualMode::Linewise
+                        VisualMode::Linewise,
                     )
                 },
                 VisualMode::Blockwise => {
@@ -450,8 +450,8 @@ impl Cursor {
                         }
                     }
                     (lines.join("\n") + "\n", VisualMode::Blockwise)
-                }
-            }
+                },
+            },
         };
         Ok(RegisterData { content, mode })
     }
@@ -463,19 +463,19 @@ impl Cursor {
             CursorMode::Visual {
                 start,
                 end,
-                mode: _
+                mode: _,
             } => Some((*start, *end)),
             CursorMode::Insert(selection) => selection
                 .regions()
                 .first()
                 .map(|region| (region.start, region.end)),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn get_line_col_char(
         &self,
-        buffer: &Buffer
+        buffer: &Buffer,
     ) -> Result<Option<(usize, usize, usize)>> {
         Ok(match &self.mode {
             CursorMode::Normal(offset) => {
@@ -485,7 +485,7 @@ impl Cursor {
             CursorMode::Visual {
                 start,
                 end,
-                mode: _
+                mode: _,
             } => {
                 let v = buffer.offset_to_line_col(*start.min(end))?;
                 Some((v.0, v.1, *start))
@@ -499,14 +499,14 @@ impl Cursor {
                 let v = buffer.offset_to_line_col(x.start)?;
 
                 Some((v.0, v.1, x.start))
-            }
+            },
         })
     }
 
     pub fn get_selection_count(&self) -> usize {
         match &self.mode {
             CursorMode::Insert(selection) => selection.regions().len(),
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -519,7 +519,7 @@ impl Cursor {
         offset: usize,
         modify: bool,
         new_cursor: bool,
-        new_affinite: Option<CursorAffinity>
+        new_affinite: Option<CursorAffinity>,
     ) {
         info!(
             "cursor set_offset new_offset={offset} modify={modify} \
@@ -542,7 +542,7 @@ impl Cursor {
             CursorMode::Visual {
                 start: _,
                 end: _,
-                mode: _
+                mode: _,
             } => {
                 // todo
                 // if modify {
@@ -589,7 +589,7 @@ impl Cursor {
                 } else {
                     self.set_insert(Selection::caret(offset));
                 }
-            }
+            },
         }
     }
 
@@ -599,20 +599,20 @@ impl Cursor {
         end: usize,
         modify: bool,
         new_cursor: bool,
-        start_affinity: Option<CursorAffinity>
+        start_affinity: Option<CursorAffinity>,
     ) {
         match &self.mode {
             CursorMode::Normal(_offset) => {
                 self.mode = CursorMode::Visual {
                     start,
                     end: end - 1,
-                    mode: VisualMode::Normal
+                    mode: VisualMode::Normal,
                 };
             },
             CursorMode::Visual {
                 start: old_start,
                 end: old_end,
-                mode: _
+                mode: _,
             } => {
                 let forward = old_end >= old_start;
                 let new_start = (*old_start).min(*old_end).min(start).min(end - 1);
@@ -625,7 +625,7 @@ impl Cursor {
                 self.mode = CursorMode::Visual {
                     start: new_start,
                     end:   new_end,
-                    mode:  VisualMode::Normal
+                    mode:  VisualMode::Normal,
                 };
             },
             CursorMode::Insert(selection) => {
@@ -659,7 +659,7 @@ impl Cursor {
                     Selection::sel_region(new_region)
                 };
                 self.mode = CursorMode::Insert(new_selection);
-            }
+            },
         }
     }
 }
@@ -667,7 +667,7 @@ impl Cursor {
 pub fn get_first_selection_after(
     cursor: &Cursor,
     buffer: &Buffer,
-    delta: &RopeDelta
+    delta: &RopeDelta,
 ) -> Option<Cursor> {
     let mut transformer = Transformer::new(delta);
 
@@ -683,7 +683,7 @@ pub fn get_first_selection_after(
                     return None;
                 }
             },
-            lapce_xi_rope::DeltaElement::Insert(_) => {}
+            lapce_xi_rope::DeltaElement::Insert(_) => {},
         }
     }
 
@@ -698,7 +698,7 @@ pub fn get_first_selection_after(
         &mut del
             .complement_iter()
             .map(|s| transformer.transform(s.1, false))
-            .collect::<Vec<usize>>()
+            .collect::<Vec<usize>>(),
     );
     positions.sort_by_key(|p| {
         let p = *p as i32 - offset as i32;
@@ -718,11 +718,11 @@ pub fn get_first_selection_after(
                         Err(err) => {
                             error!("{err:?}");
                             return None;
-                        }
+                        },
                     };
                     CursorMode::Normal(offset)
                 },
-                CursorMode::Insert(_) => CursorMode::Insert(selection)
+                CursorMode::Insert(_) => CursorMode::Insert(selection),
             };
 
             Some(Cursor::new(cursor_mode, None, None))

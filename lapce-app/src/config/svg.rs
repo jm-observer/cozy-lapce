@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    path::{Path, PathBuf}
+    path::{Path, PathBuf},
 };
 
 use include_dir::{Dir, include_dir};
@@ -15,7 +15,7 @@ const LAPCE_ICONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/../icons/lapce");
 #[derive(Debug, Clone)]
 pub struct SvgStore {
     svgs:         HashMap<String, String>,
-    svgs_on_disk: HashMap<PathBuf, Option<String>>
+    svgs_on_disk: HashMap<PathBuf, Option<String>>,
 }
 
 impl Default for SvgStore {
@@ -31,7 +31,7 @@ impl SvgStore {
 
         Self {
             svgs,
-            svgs_on_disk: HashMap::new()
+            svgs_on_disk: HashMap::new(),
         }
     }
 

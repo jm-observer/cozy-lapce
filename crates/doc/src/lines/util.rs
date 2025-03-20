@@ -1,28 +1,30 @@
-use std::{cell::RefMut, collections::HashMap, str::FromStr};
-use std::iter::{Peekable};
-use std::vec::IntoIter;
+use std::{
+    cell::RefMut, collections::HashMap, iter::Peekable, str::FromStr, vec::IntoIter,
+};
+
 use floem::{peniko::Color, reactive::SignalGet};
 use log::error;
 use lsp_types::DocumentHighlight;
+
 use super::{
     layout::{LineExtraStyle, TextLayout},
-    phantom_text::{PhantomText, PhantomTextKind}
+    phantom_text::{PhantomText, PhantomTextKind},
 };
 use crate::{
     lines::{
         buffer::{Buffer, rope_text::RopeText},
         char_buffer::CharBuffer,
         text::PreeditData,
-        word::WordCursor
+        word::WordCursor,
     },
-    syntax::Syntax
+    syntax::Syntax,
 };
 
 pub fn preedit_phantom(
     preedit: &PreeditData,
     buffer: &Buffer,
     under_line: Option<Color>,
-    line: usize
+    line: usize,
 ) -> Option<PhantomText> {
     let preedit = preedit.preedit.get_untracked()?;
 
@@ -46,10 +48,9 @@ pub fn preedit_phantom(
         bg: None,
         under_line,
         col,
-        origin_merge_col: col
+        origin_merge_col: col,
     })
 }
-
 
 pub fn preedit_phantom_2(
     preedit: &PreeditData,
@@ -74,7 +75,7 @@ pub fn preedit_phantom_2(
         bg: None,
         under_line,
         col,
-        origin_merge_col: col
+        origin_merge_col: col,
     })
 }
 
@@ -93,7 +94,7 @@ pub fn push_strip_suffix(line_content_original: &str, rs: &mut String) {
 pub fn get_document_highlight(
     changes: &mut Peekable<IntoIter<DocumentHighlight>>,
     start_line: u32,
-    end_line: u32
+    end_line: u32,
 ) -> Vec<DocumentHighlight> {
     let mut highs = Vec::new();
     loop {
@@ -101,8 +102,11 @@ pub fn get_document_highlight(
             if high.range.start.line < start_line {
                 changes.next();
                 continue;
-            } else if start_line <= high.range.start.line && high.range.start.line <= end_line
-                && start_line <= high.range.end.line && high.range.end.line <= end_line{
+            } else if start_line <= high.range.start.line
+                && high.range.start.line <= end_line
+                && start_line <= high.range.end.line
+                && high.range.end.line <= end_line
+            {
                 highs.push(changes.next().unwrap());
                 continue;
             } else if end_line < high.range.start.line {
@@ -115,14 +119,15 @@ pub fn get_document_highlight(
     highs
 }
 
-
 pub fn extra_styles_for_range<'a>(
     text_layout: &'a mut RefMut<TextLayout>,
     start: usize,
     end: usize,
     bg_color: Option<Color>,
     under_line: Option<Color>,
-    wave_line: Option<Color>, line_height: Option<f64>, adjust_y: bool
+    wave_line: Option<Color>,
+    line_height: Option<f64>,
+    adjust_y: bool,
 ) -> impl Iterator<Item = LineExtraStyle> + 'a {
     let start_hit = text_layout.hit_position(start);
     let end_hit = text_layout.hit_position(end);
@@ -151,7 +156,8 @@ pub fn extra_styles_for_range<'a>(
                 return None;
             }
 
-            let height = line_height.unwrap_or((run.max_ascent + run.max_descent) as f64) ;
+            let height =
+                line_height.unwrap_or((run.max_ascent + run.max_descent) as f64);
             let y = if adjust_y {
                 run.line_y as f64 - run.max_ascent as f64
             } else {
@@ -165,7 +171,7 @@ pub fn extra_styles_for_range<'a>(
                 height,
                 bg_color,
                 under_line,
-                wave_line
+                wave_line,
             })
         })
 }
@@ -176,7 +182,7 @@ pub fn syntax_prev_unmatched(
     buffer: &Buffer,
     syntax: &Syntax,
     c: char,
-    offset: usize
+    offset: usize,
 ) -> Option<usize> {
     if syntax.layers.is_some() {
         syntax.find_tag(offset, true, &CharBuffer::new(c))
@@ -188,7 +194,7 @@ pub fn syntax_prev_unmatched(
 /// If the given character is a parenthesis, returns its matching bracket
 pub fn matching_bracket_general<R: ToStaticTextType>(char: char) -> Option<R>
 where
-    &'static str: ToStaticTextType<R> {
+    &'static str: ToStaticTextType<R>, {
     let pair = match char {
         '{' => "}",
         '}' => "{",
@@ -196,7 +202,7 @@ where
         ')' => "(",
         '[' => "]",
         ']' => "[",
-        _ => return None
+        _ => return None,
     };
     Some(pair.to_static())
 }
@@ -211,7 +217,7 @@ pub fn matching_pair_direction(c: char) -> Option<bool> {
         ')' => false,
         '[' => true,
         ']' => false,
-        _ => return None
+        _ => return None,
     })
 }
 
@@ -223,7 +229,7 @@ pub fn matching_char(c: char) -> Option<char> {
         ')' => '(',
         '[' => ']',
         ']' => '[',
-        _ => return None
+        _ => return None,
     })
 }
 

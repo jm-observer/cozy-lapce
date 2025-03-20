@@ -5,7 +5,7 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::atomic::{self}
+    sync::atomic::{self},
 };
 
 use anyhow::Result;
@@ -17,7 +17,7 @@ use doc::{
         buffer::{
             Buffer, InvalLines,
             diff::{DiffLines, rope_diff},
-            rope_text::{RopeText, RopeTextVal}
+            rope_text::{RopeText, RopeTextVal},
         },
         char_buffer::CharBuffer,
         command::EditCommand,
@@ -31,20 +31,20 @@ use doc::{
         selection::{InsertDrift, Selection},
         style::EditorStyle,
         text::PreeditData,
-        word::WordCursor
+        word::WordCursor,
     },
-    syntax::{BracketParser, Syntax, edit::SyntaxEdit}
+    syntax::{BracketParser, Syntax, edit::SyntaxEdit},
 };
 use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch},
-    text::FamilyOwned
+    text::FamilyOwned,
 };
 use itertools::Itertools;
 use lapce_core::{
-    debug::LapceBreakpoint, doc::DocContent, id::EditorId, workspace::LapceWorkspace
+    debug::LapceBreakpoint, doc::DocContent, id::EditorId, workspace::LapceWorkspace,
 };
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
@@ -58,7 +58,7 @@ use crate::{
     editor::{
         EditorData,
         floem_editor::{CommonAction, Editor},
-        location::{EditorLocation, EditorPosition}
+        location::{EditorLocation, EditorPosition},
     },
     find::{Find, FindProgress, FindResult},
     history::DocumentHistory,
@@ -66,9 +66,9 @@ use crate::{
     local_task::{LocalRequest, LocalResponse},
     main_split::Editors,
     panel::document_symbol::{
-        DocumentSymbolViewData, SymbolData, SymbolInformationItemData
+        DocumentSymbolViewData, SymbolData, SymbolInformationItemData,
     },
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 // #[derive(Clone, Debug)]
 // pub struct DiagnosticData {
@@ -80,7 +80,7 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorDiagnostic {
     pub range:      Option<(usize, usize)>,
-    pub diagnostic: Diagnostic
+    pub diagnostic: Diagnostic,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -88,7 +88,7 @@ pub struct DocInfo {
     pub workspace:     LapceWorkspace,
     pub path:          PathBuf,
     pub scroll_offset: (f64, f64),
-    pub cursor_offset: usize
+    pub cursor_offset: usize,
 }
 
 /// (Offset -> (Plugin the code actions are from, Code Actions))
@@ -128,7 +128,7 @@ pub struct Doc {
 
     pub document_symbol_data: DocumentSymbolViewData,
 
-    pub lines: DocLinesManager // pub screen_lines: RwSignal<ScreenLines>,
+    pub lines: DocLinesManager, // pub screen_lines: RwSignal<ScreenLines>,
 }
 
 impl Doc {
@@ -138,7 +138,7 @@ impl Doc {
         diagnostics: DiagnosticData,
         editors: Editors,
         common: Rc<CommonData>,
-        doc_content: DocContent
+        doc_content: DocContent,
     ) -> Self {
         let editor_id = EditorId::next();
         let queries_directory = common.directory.queries_directory.clone();
@@ -149,7 +149,7 @@ impl Doc {
                 (
                     config.get_doc_editor_config(),
                     config.editor.bracket_pair_colorization,
-                    config.editor.bracket_colorization_limit
+                    config.editor.bracket_colorization_limit,
                 )
             });
         let viewport = Rect::ZERO;
@@ -163,14 +163,14 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 bracket_pair_colorization,
-                bracket_colorization_limit
+                bracket_colorization_limit,
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
             // kind,
-            Some(path.clone())
+            Some(path.clone()),
         )
         .unwrap();
         let config = common.config;
@@ -206,7 +206,7 @@ impl Doc {
             document_symbol_data: DocumentSymbolViewData::new(cx),
             // folding_ranges: cx.create_rw_signal(FoldingRanges::default()),
             // semantic_previous_rs_id: cx.create_rw_signal(None),
-            lines
+            lines,
         }
     }
 
@@ -214,7 +214,7 @@ impl Doc {
         cx: Scope,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>
+        name: Option<String>,
     ) -> Doc {
         Self::new_content(cx, DocContent::Local, editors, common, name)
     }
@@ -224,7 +224,7 @@ impl Doc {
         content: DocContent,
         editors: Editors,
         common: Rc<CommonData>,
-        name: Option<String>
+        name: Option<String>,
     ) -> Self {
         let editor_id = EditorId::next();
         let cx = cx.create_child();
@@ -233,7 +233,7 @@ impl Doc {
                 (
                     config.get_doc_editor_config(),
                     config.editor.bracket_pair_colorization,
-                    config.editor.bracket_colorization_limit
+                    config.editor.bracket_colorization_limit,
                 )
             });
         let viewport = Rect::ZERO;
@@ -241,11 +241,11 @@ impl Doc {
         let diagnostics = DiagnosticData {
             expanded:         cx.create_rw_signal(true),
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
+            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
         };
         let syntax = Syntax::plaintext(
             &common.directory.grammars_directory,
-            &common.directory.queries_directory
+            &common.directory.queries_directory,
         );
         let buffer = Buffer::new("");
         // let kind = cx.create_rw_signal(EditorViewKind::Normal);
@@ -257,13 +257,13 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 bracket_pair_colorization,
-                bracket_colorization_limit
+                bracket_colorization_limit,
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
-            None
+            None,
         )
         .unwrap();
         let config = common.config;
@@ -293,7 +293,7 @@ impl Doc {
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
-            lines
+            lines,
         }
     }
 
@@ -301,7 +301,7 @@ impl Doc {
         cx: Scope,
         content: DocContent,
         editors: Editors,
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Self {
         let editor_id = EditorId::next();
         let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
@@ -309,19 +309,19 @@ impl Doc {
                 (
                     config.get_doc_editor_config(),
                     config.editor.bracket_pair_colorization,
-                    config.editor.bracket_colorization_limit
+                    config.editor.bracket_colorization_limit,
                 )
             });
         let syntax = if let DocContent::History(history) = &content {
             Syntax::init(
                 &history.path,
                 &common.directory.grammars_directory,
-                &common.directory.queries_directory
+                &common.directory.queries_directory,
             )
         } else {
             Syntax::plaintext(
                 &common.directory.grammars_directory,
-                &common.directory.queries_directory
+                &common.directory.queries_directory,
             )
         };
         // let lines = cx.create_rw_signal(Lines::new(cx));
@@ -330,7 +330,7 @@ impl Doc {
         let diagnostics = DiagnosticData {
             expanded:         cx.create_rw_signal(true),
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build())
+            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
         };
         let buffer = Buffer::new("");
         // let kind = cx.create_rw_signal(EditorViewKind::Normal);
@@ -342,13 +342,13 @@ impl Doc {
             BracketParser::new(
                 String::new(),
                 bracket_pair_colorization,
-                bracket_colorization_limit
+                bracket_colorization_limit,
             ),
             viewport,
             editor_style,
             rw_config,
             buffer,
-            None
+            None,
         )
         .unwrap();
         let config = common.config;
@@ -392,7 +392,7 @@ impl Doc {
             // lines,
             // viewport,
             // editor_style,
-            lines
+            lines,
         }
     }
 
@@ -410,7 +410,7 @@ impl Doc {
         self: &Rc<Doc>,
         cx: Scope,
         is_local: bool,
-        view_kind: EditorViewKind
+        view_kind: EditorViewKind,
     ) -> Editor {
         let common = &self.common;
         let modal = common.config.with_untracked(|x| x.core.modal) && !is_local;
@@ -454,7 +454,7 @@ impl Doc {
             if let Err(err) = x.set_syntax(Syntax::from_language(
                 language,
                 &self.common.directory.grammars_directory,
-                &self.common.directory.queries_directory
+                &self.common.directory.queries_directory,
             )) {
                 error!("{:?}", err);
             }
@@ -517,7 +517,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
         self.apply_deltas(&[delta]);
     }
@@ -531,7 +531,7 @@ impl Doc {
     pub fn do_insert(
         &self,
         cursor: &mut Cursor,
-        s: &str
+        s: &str,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only()) {
             return Vec::new();
@@ -545,7 +545,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return vec![];
-            }
+            },
         };
         self.apply_deltas(&deltas);
         deltas
@@ -554,7 +554,7 @@ impl Doc {
     pub fn do_raw_edit(
         &self,
         edits: &[(Selection, &str)],
-        edit_type: EditType
+        edit_type: EditType,
     ) -> Option<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only()) {
             return None;
@@ -569,7 +569,7 @@ impl Doc {
             Err(err) => {
                 error!("{err:?}");
                 return None;
-            }
+            },
         };
         self.apply_deltas(&[(text.clone(), delta.clone(), inval_lines.clone())]);
         Some((text, delta, inval_lines))
@@ -581,7 +581,7 @@ impl Doc {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool
+        smart_tab: bool,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only())
             && !cmd.not_changing_buffer()
@@ -600,7 +600,7 @@ impl Doc {
             Some(Err(err)) => {
                 error!("{err:?}");
                 return vec![];
-            }
+            },
         };
         if !deltas.is_empty() {
             self.apply_deltas(&deltas);
@@ -620,7 +620,7 @@ impl Doc {
                     self.common.proxy.update(
                         path.clone(),
                         delta.clone(),
-                        rev + i as u64 + 1
+                        rev + i as u64 + 1,
                     );
                 }
             });
@@ -637,7 +637,7 @@ impl Doc {
                     Err(err) => {
                         error!("{err:?}");
                         None
-                    }
+                    },
                 }
             })
             .collect();
@@ -734,7 +734,7 @@ impl Doc {
                 },
                 None => {
                     error!("None");
-                }
+                },
             };
         });
 
@@ -753,7 +753,7 @@ impl Doc {
                 text,
                 edits.as_deref(),
                 &grammars_directory,
-                &queries_directory
+                &queries_directory,
             );
             send(syntax);
         });
@@ -819,7 +819,7 @@ impl Doc {
                     Some(Err(err)) => {
                         error!("{err:?}");
                     },
-                    _ => {}
+                    _ => {},
                 }
             }
         });
@@ -841,13 +841,13 @@ impl Doc {
                         LocalRequest::SpansBuilder {
                             styles,
                             result_id,
-                            len
+                            len,
                         },
                         move |(_id, rs)| match rs {
                             Ok(response) => {
                                 if let LocalResponse::SpansBuilder {
                                     styles,
-                                    result_id
+                                    result_id,
                                 } = response
                                 {
                                     send((Some(styles), result_id));
@@ -855,8 +855,8 @@ impl Doc {
                             },
                             Err(err) => {
                                 error!("{err:?}")
-                            }
-                        }
+                            },
+                        },
                     );
                 } else {
                     send((None, None));
@@ -895,14 +895,14 @@ impl Doc {
                             }
                             let rs = match doc.lines.with_untracked(|b| {
                                 b.buffer().offset_of_line(
-                                    codelens.range.start.line as usize
+                                    codelens.range.start.line as usize,
                                 )
                             }) {
                                 Ok(rs) => rs,
                                 Err(err) => {
                                     error!("{err:?}");
                                     continue;
-                                }
+                                },
                             };
                             let entry = code_lens
                                 .entry(codelens.range.start.line as usize)
@@ -941,10 +941,10 @@ impl Doc {
                                     .into_iter()
                                     .map(|x| {
                                         cx.create_rw_signal(
-                                            SymbolInformationItemData::from((x, cx))
+                                            SymbolInformationItemData::from((x, cx)),
                                         )
                                     })
-                                    .collect()
+                                    .collect(),
                             };
                         let symbol_new = Some(SymbolData::new(items, path, cx));
                         doc.document_symbol_data.virtual_list.update(|symbol| {
@@ -1011,12 +1011,12 @@ impl Doc {
                         Err(err) => {
                             error!("{err:?}");
                             continue;
-                        }
+                        },
                     }
                     .min(len);
                     hints_span.add_span(
                         Interval::new(offset, (offset + 1).min(len)),
-                        hint
+                        hint,
                     );
                 }
                 let hints = hints_span.build();
@@ -1096,7 +1096,7 @@ impl Doc {
         &self,
         completion_lens: String,
         line: usize,
-        col: usize
+        col: usize,
     ) {
         self.lines.update(|x| {
             if let Err(err) = x.set_completion_lens(completion_lens, line, col) {
@@ -1137,8 +1137,8 @@ impl Doc {
                                     Err(err) => {
                                         error!("{err:?}");
                                         None
-                                    }
-                                }
+                                    },
+                                },
                             )
                             .collect();
                     });
@@ -1185,7 +1185,7 @@ impl Doc {
         let search = self.common.find.search_string.get_untracked();
         let search = match search {
             Some(search) => search,
-            None => return
+            None => return,
         };
         if search.content.is_empty() {
             return;
@@ -1206,19 +1206,19 @@ impl Doc {
                 occurrences.regions().is_empty(),
                 &path,
                 find_rev_signal.get_untracked() == find_rev,
-                triggered_by_changes.get_untracked()
+                triggered_by_changes.get_untracked(),
             ) {
                 triggered_by_changes.set(false);
                 common.internal_command.send(InternalCommand::GoToLocation {
                     location: EditorLocation {
                         path:               path.clone(),
                         position:           Some(EditorPosition::Offset(
-                            occurrences.regions()[0].start
+                            occurrences.regions()[0].start,
                         )),
                         scroll_offset:      None,
                         ignore_unconfirmed: false,
-                        same_editor_tab:    false
-                    }
+                        same_editor_tab:    false,
+                    },
                 });
             }
             find_result.occurrences.set(occurrences);
@@ -1238,7 +1238,7 @@ impl Doc {
                 case_matching,
                 whole_words,
                 true,
-                &mut occurrences
+                &mut occurrences,
             );
             send(occurrences);
         });
@@ -1257,7 +1257,7 @@ impl Doc {
                 Err(err) => {
                     error!("{err:?}");
                     return None;
-                }
+                },
             };
             self.lines.with_untracked(|x| {
                 x.syntax.sticky_headers(offset).map(|offsets| {
@@ -1297,7 +1297,7 @@ impl Doc {
                         let hisotry = DocumentHistory::new(
                             path.clone(),
                             "head".to_string(),
-                            &content
+                            &content,
                         );
                         histories.update(|histories| {
                             histories.insert("head".to_string(), hisotry);
@@ -1375,7 +1375,7 @@ impl Doc {
                         Some(Err(err)) => {
                             error!("{err:?}");
                         },
-                        _ => {}
+                        _ => {},
                     }
                 }
             });
@@ -1390,7 +1390,7 @@ impl Doc {
         &self,
         inline_completion: String,
         line: usize,
-        col: usize
+        col: usize,
     ) {
         // TODO: more granular invalidation
         batch(|| {
@@ -1488,9 +1488,6 @@ impl Doc {
                 new_offset.unwrap_or(offset)
             }
         })
-
-
-
     }
 
     pub fn find_matching_pair(&self, offset: usize) -> usize {
@@ -1516,7 +1513,7 @@ impl Doc {
         ed: &Editor,
         cmd: &Command,
         count: Option<usize>,
-        modifiers: Modifiers
+        modifiers: Modifiers,
     ) -> CommandExecuted {
         let Some(editor_data) = self.editor_data(ed.id()) else {
             return CommandExecuted::No;
@@ -1525,7 +1522,7 @@ impl Doc {
         let cmd = CommandKind::from(cmd.clone());
         let cmd = LapceCommand {
             kind: cmd,
-            data: None
+            data: None,
         };
         editor_data.run_command(&cmd, count, modifiers)
     }
@@ -1563,7 +1560,7 @@ impl Doc {
     // }
     pub fn font_family(
         &self,
-        _line: usize
+        _line: usize,
     ) -> std::borrow::Cow<[floem::text::FamilyOwned]> {
         // TODO: cache this
         Cow::Owned(self.common.config.with_untracked(|config| {
@@ -1600,7 +1597,7 @@ impl CommonAction for Doc {
         motion_mode: MotionMode,
         range: Range<usize>,
         is_vertical: bool,
-        register: &mut Register
+        register: &mut Register,
     ) {
         let deltas = match self.lines.try_update(move |lines| {
             lines.execute_motion_mode(
@@ -1608,7 +1605,7 @@ impl CommonAction for Doc {
                 motion_mode,
                 range,
                 is_vertical,
-                register
+                register,
             )
         }) {
             None => {
@@ -1619,7 +1616,7 @@ impl CommonAction for Doc {
             Some(Err(err)) => {
                 error!("{err:?}");
                 return;
-            }
+            },
         };
         self.apply_deltas(&deltas);
     }
@@ -1631,7 +1628,7 @@ impl CommonAction for Doc {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool
+        smart_tab: bool,
     ) -> bool {
         let deltas = Doc::do_edit(self, cursor, cmd, modal, register, smart_tab);
         !deltas.is_empty()

@@ -10,11 +10,11 @@ use floem::{
     peniko::kurbo::Rect,
     reactive::{Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith},
     style::{CursorStyle, Style},
-    views::{Decorators, container, dyn_stack, label, scroll, stack, text}
+    views::{Decorators, container, dyn_stack, label, scroll, stack, text},
 };
 use lapce_core::{
     icon::LapceIcons,
-    panel::{PanelContainerPosition, PanelKind, PanelSection}
+    panel::{PanelContainerPosition, PanelKind, PanelSection},
 };
 use lapce_rpc::source_control::FileDiff;
 use log::error;
@@ -27,11 +27,11 @@ use crate::{
     settings::checkbox,
     source_control::SourceControlData,
     svg,
-    window_workspace::{Focus, WindowWorkspaceData}
+    window_workspace::{Focus, WindowWorkspaceData},
 };
 pub fn source_control_panel(
     window_tab_data: WindowWorkspaceData,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     let scope = window_tab_data.scope;
     let config = window_tab_data.common.config;
@@ -65,7 +65,7 @@ pub fn source_control_panel(
                             editor.get_untracked(),
                             debug_breakline,
                             is_active,
-                            "source control"
+                            "source control",
                         )
                         .style(|x| x.width_pct(100.0).min_width(100.0)),
                         label(|| "Commit Message".to_string()).style(move |s| {
@@ -73,7 +73,7 @@ pub fn source_control_panel(
                                 config.signal(|config| {
                                     (
                                         config.color(LapceColor::EDITOR_DIM),
-                                        config.editor.line_height.signal()
+                                        config.editor.line_height.signal(),
                                     )
                                 });
                             s.absolute()
@@ -82,7 +82,7 @@ pub fn source_control_panel(
                                 .color(caret_color.get())
                                 .apply_if(!is_empty.get(), |s| s.hide())
                                 .selectable(false)
-                        })
+                        }),
                     ))
                     .style(|s| {
                         s.absolute()
@@ -116,7 +116,7 @@ pub fn source_control_panel(
                             if let Event::PointerUp(pointer_event) = event {
                                 editor.get_untracked().pointer_up(&pointer_event);
                             }
-                        }
+                        },
                     )
                 })
                 .on_move(move |pos| {
@@ -143,7 +143,7 @@ pub fn source_control_panel(
                             Err(err) => {
                                 error!("{}", err.to_string());
                                 None
-                            }
+                            },
                         })
                     {
                         let rect =
@@ -188,7 +188,7 @@ pub fn source_control_panel(
                 let (caret_color, bg) = config.signal(|config| {
                     (
                         config.color(LapceColor::LAPCE_BORDER),
-                        config.color(LapceColor::EDITOR_BACKGROUND)
+                        config.color(LapceColor::EDITOR_BACKGROUND),
                     )
                 });
                 s.width_pct(100.0)
@@ -211,8 +211,8 @@ pub fn source_control_panel(
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
-                                )
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
+                                ),
                             )
                         });
                         s.margin_top(10.0)
@@ -228,16 +228,16 @@ pub fn source_control_panel(
                             .active(|s| s.background(abg.get()))
                             .selectable(false)
                     })
-            }
+            },
         ))
         .style(|s| s.flex_col().width_pct(100.0).padding(10.0)),
         foldable_panel_section(
             text("Changes"),
             file_diffs_view(source_control, scope),
             window_tab_data.panel.section_open(PanelSection::Changes),
-            config
+            config,
         )
-        .style(|s| s.flex_col().size_pct(100.0, 100.0))
+        .style(|s| s.flex_col().size_pct(100.0, 100.0)),
     ))
     .on_event_stop(EventListener::PointerDown, move |_| {
         if focus.get_untracked() != Focus::Panel(PanelKind::SourceControl) {
@@ -332,7 +332,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                         FileDiff::Modified(_) => LapceIcons::SCM_DIFF_MODIFIED,
                         FileDiff::Added(_) => LapceIcons::SCM_DIFF_ADDED,
                         FileDiff::Deleted(_) => LapceIcons::SCM_DIFF_REMOVED,
-                        FileDiff::Renamed(_, _) => LapceIcons::SCM_DIFF_RENAMED
+                        FileDiff::Renamed(_, _) => LapceIcons::SCM_DIFF_RENAMED,
                     };
                     config.with_ui_svg(svg)
                 })
@@ -358,11 +358,11 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                     .padding_right(20.0)
                     .items_center()
                     .justify_end()
-            })
+            }),
         ))
         .on_click_stop(move |_| {
             internal_command.send(InternalCommand::OpenFileChanges {
-                path: path_for_click.clone()
+                path: path_for_click.clone(),
             });
         })
         .on_event_cont(EventListener::PointerDown, move |event| {
@@ -371,9 +371,9 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
             let discard = move || {
                 lapce_command.send(LapceCommand {
                     kind: CommandKind::Workbench(
-                        LapceWorkbenchCommand::SourceControlDiscardTargetFileChanges
+                        LapceWorkbenchCommand::SourceControlDiscardTargetFileChanges,
                     ),
-                    data: Some(serde_json::json!(diff_for_menu.clone()))
+                    data: Some(serde_json::json!(diff_for_menu.clone())),
                 });
             };
 
@@ -389,7 +389,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
             let (size, color) = config.signal(|config| {
                 (
                     config.ui.icon_size.signal(),
-                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND)
+                    config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                 )
             });
             let size = size.get() as f32;
@@ -408,7 +408,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
                 |(path, (diff, checked))| {
                     (path.to_path_buf(), diff.clone(), *checked)
                 },
-                view_fn
+                view_fn,
             )
             .style(|s| s.line_height(1.6).flex_col().width_pct(100.0))
         })

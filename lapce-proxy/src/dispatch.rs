@@ -4,17 +4,17 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering}
+        atomic::{AtomicU64, Ordering},
     },
     thread,
-    time::Duration
+    time::Duration,
 };
 
 use alacritty_terminal::{event::WindowSize, event_loop::Msg};
 use anyhow::{Context, Result, anyhow};
 use crossbeam_channel::Sender;
 use git2::{
-    DiffOptions, ErrorCode::NotFound, Oid, Repository, build::CheckoutBuilder
+    DiffOptions, ErrorCode::NotFound, Oid, Repository, build::CheckoutBuilder,
 };
 use grep_matcher::Matcher;
 use grep_regex::RegexMatcherBuilder;
@@ -29,17 +29,17 @@ use lapce_rpc::{
     file_line::FileLine,
     proxy::{
         ProxyHandler, ProxyNotification, ProxyRequest, ProxyResponse,
-        ProxyRpcHandler, SearchMatch
+        ProxyRpcHandler, SearchMatch,
     },
     source_control::{DiffInfo, FileDiff},
-    style::{LineStyle, SemanticStyles}
+    style::{LineStyle, SemanticStyles},
 };
 use lapce_xi_rope::Rope;
 use log::{debug, error};
 use lsp_types::{
     CancelParams, MessageType, NumberOrString, Position, Range, ShowMessageParams,
     TextDocumentItem, Url,
-    notification::{Cancel, Notification}
+    notification::{Cancel, Notification},
 };
 use parking_lot::Mutex;
 
@@ -47,7 +47,7 @@ use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
     terminal::{Terminal, TerminalSender, Terminals},
-    watcher::{FileWatcher, Notify, WatchToken}
+    watcher::{FileWatcher, Notify, WatchToken},
 };
 
 const OPEN_FILE_EVENT_TOKEN: WatchToken = WatchToken(1);
@@ -63,7 +63,7 @@ pub struct Dispatcher {
     file_watcher:  FileWatcher,
     window_id:     usize,
     tab_id:        usize,
-    directory:     Directory
+    directory:     Directory,
 }
 
 impl ProxyHandler for Dispatcher {
@@ -85,7 +85,7 @@ impl ProxyHandler for Dispatcher {
                             Ok(content) => {
                                 self.core_rpc.open_file_changed(
                                     path,
-                                    FileChanged::Change(content)
+                                    FileChanged::Change(content),
                                 );
                             },
                             Err(err) => {
@@ -93,7 +93,7 @@ impl ProxyHandler for Dispatcher {
                                     "Failed to re-read file after change \
                                      notification: {err}"
                                 );
-                            }
+                            },
                         }
                     }
                 } else {
@@ -119,7 +119,7 @@ impl ProxyHandler for Dispatcher {
                     rev,
                     delta,
                     old_text,
-                    buffer.rope.clone()
+                    buffer.rope.clone(),
                 );
             },
             UpdatePluginConfigs { configs } => {
@@ -130,7 +130,7 @@ impl ProxyHandler for Dispatcher {
             NewTerminal {
                 term_id,
                 raw_id,
-                profile
+                profile,
             } => {
                 let mut terminal =
                     match Terminal::new(raw_id, term_id, profile, 50, 10) {
@@ -139,7 +139,7 @@ impl ProxyHandler for Dispatcher {
                             self.core_rpc
                                 .terminal_launch_failed(term_id, e.to_string());
                             return;
-                        }
+                        },
                     };
 
                 #[allow(unused)]
@@ -172,7 +172,7 @@ impl ProxyHandler for Dispatcher {
             TerminalWrite {
                 term_id,
                 raw_id,
-                content
+                content,
             } => {
                 if let Some(tx) = self.terminals.get(term_id, raw_id) {
                     tx.send(Msg::Input(content.into_bytes().into()));
@@ -181,14 +181,14 @@ impl ProxyHandler for Dispatcher {
             TerminalResize {
                 term_id,
                 width,
-                height
+                height,
             } => {
                 if let Some(tx) = self.terminals.get_without_raw(term_id) {
                     let size = WindowSize {
                         num_lines:   height as u16,
                         num_cols:    width as u16,
                         cell_width:  1,
-                        cell_height: 1
+                        cell_height: 1,
                     };
 
                     tx.send(Msg::Resize(size));
@@ -196,7 +196,7 @@ impl ProxyHandler for Dispatcher {
             },
             DapStart {
                 config,
-                breakpoints
+                breakpoints,
             } => {
                 if let Err(err) = self.catalog_rpc.dap_start(config, breakpoints) {
                     log::error!("{:?}", err);
@@ -205,7 +205,7 @@ impl ProxyHandler for Dispatcher {
             DapProcessId {
                 dap_id,
                 process_id,
-                term_id
+                term_id,
             } => {
                 if let Err(err) =
                     self.catalog_rpc.dap_process_id(dap_id, process_id, term_id)
@@ -250,7 +250,7 @@ impl ProxyHandler for Dispatcher {
             },
             DapRestart {
                 config,
-                breakpoints
+                breakpoints,
             } => {
                 if let Err(err) = self.catalog_rpc.dap_restart(config, breakpoints) {
                     log::error!("{:?}", err);
@@ -259,7 +259,7 @@ impl ProxyHandler for Dispatcher {
             DapSetBreakpoints {
                 dap_id,
                 path,
-                breakpoints
+                breakpoints,
             } => {
                 if let Err(err) =
                     self.catalog_rpc
@@ -277,10 +277,10 @@ impl ProxyHandler for Dispatcher {
                                 "Git Commit failure".to_owned(),
                                 ShowMessageParams {
                                     typ:     MessageType::ERROR,
-                                    message: e.to_string()
-                                }
+                                    message: e.to_string(),
+                                },
                             );
-                        }
+                        },
                     }
                 }
             },
@@ -288,7 +288,7 @@ impl ProxyHandler for Dispatcher {
                 if let Some(workspace) = self.workspace.as_ref() {
                     match git_checkout(workspace, &reference) {
                         Ok(()) => (),
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e:?}"),
                     }
                 }
             },
@@ -296,10 +296,10 @@ impl ProxyHandler for Dispatcher {
                 if let Some(workspace) = self.workspace.as_ref() {
                     match git_discard_files_changes(
                         workspace,
-                        files.iter().map(AsRef::as_ref)
+                        files.iter().map(AsRef::as_ref),
                     ) {
                         Ok(()) => (),
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e:?}"),
                     }
                 }
             },
@@ -307,7 +307,7 @@ impl ProxyHandler for Dispatcher {
                 if let Some(workspace) = self.workspace.as_ref() {
                     match git_discard_workspace_changes(workspace) {
                         Ok(()) => (),
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e:?}"),
                     }
                 }
             },
@@ -315,7 +315,7 @@ impl ProxyHandler for Dispatcher {
                 if let Some(workspace) = self.workspace.as_ref() {
                     match git_init(workspace) {
                         Ok(()) => (),
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e:?}"),
                     }
                 }
             },
@@ -324,14 +324,14 @@ impl ProxyHandler for Dispatcher {
                     None,
                     Cancel::METHOD,
                     CancelParams {
-                        id: NumberOrString::Number(id)
+                        id: NumberOrString::Number(id),
                     },
                     None,
                     None,
-                    false
+                    false,
                 );
             },
-            RustBuild { .. } => {}
+            RustBuild { .. } => {},
         }
     }
 
@@ -348,13 +348,13 @@ impl ProxyHandler for Dispatcher {
                     buffer.language_id.to_string(),
                     buffer.rev as i32,
                     content.clone(),
-                    id
+                    id,
                 );
                 self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
                 self.buffers.insert(path, buffer);
                 self.respond_rpc(
                     id,
-                    Ok(ProxyResponse::NewBufferResponse { content, read_only })
+                    Ok(ProxyResponse::NewBufferResponse { content, read_only }),
                 );
             },
             BufferHead { path } => {
@@ -363,18 +363,18 @@ impl ProxyHandler for Dispatcher {
                     if let Ok((_blob_id, content)) = result {
                         Ok(ProxyResponse::BufferHeadResponse {
                             version: "head".to_string(),
-                            content
+                            content,
                         })
                     } else {
                         Err(RpcError {
                             code:    0,
-                            message: "can't get file head".to_string()
+                            message: "can't get file head".to_string(),
                         })
                     }
                 } else {
                     Err(RpcError {
                         code:    0,
-                        message: "no workspace set".to_string()
+                        message: "no workspace set".to_string(),
                     })
                 };
                 self.respond_rpc(id, result);
@@ -383,7 +383,7 @@ impl ProxyHandler for Dispatcher {
                 pattern,
                 case_sensitive,
                 whole_word,
-                is_regex
+                is_regex,
             } => {
                 static WORKER_ID: AtomicU64 = AtomicU64::new(0);
                 let our_id = WORKER_ID.fetch_add(1, Ordering::SeqCst) + 1;
@@ -411,20 +411,20 @@ impl ProxyHandler for Dispatcher {
                                 .chain(
                                     buffers.iter().flat_map(|p| {
                                         ignore::Walk::new(p).flatten()
-                                    })
+                                    }),
                                 )
                                 .map(|p| p.into_path()),
                             &pattern,
                             case_sensitive,
                             whole_word,
-                            is_regex
-                        )
+                            is_regex,
+                        ),
                     );
                 });
             },
             CompletionResolve {
                 plugin_id,
-                completion_item
+                completion_item,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.completion_resolve(
@@ -433,18 +433,18 @@ impl ProxyHandler for Dispatcher {
                     move |result| {
                         let result = result.map(|item| {
                             ProxyResponse::CompletionResolveResponse {
-                                item: Box::new(item)
+                                item: Box::new(item),
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetHover {
                 request_id,
                 path,
-                position
+                position,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.hover(
@@ -456,7 +456,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetSignature { .. } => {},
@@ -471,7 +471,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GitGetRemoteFileUrl { file } => {
@@ -479,16 +479,16 @@ impl ProxyHandler for Dispatcher {
                     match git_get_remote_file_url(workspace, &file) {
                         Ok(s) => self.proxy_rpc.handle_response(
                             id,
-                            Ok(ProxyResponse::GitGetRemoteFileUrl { file_url: s })
+                            Ok(ProxyResponse::GitGetRemoteFileUrl { file_url: s }),
                         ),
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e:?}"),
                     }
                 }
             },
             GetDefinition {
                 request_id,
                 path,
-                position
+                position,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.get_definition(
@@ -498,18 +498,18 @@ impl ProxyHandler for Dispatcher {
                         let result = result.map(|definition| {
                             ProxyResponse::GetDefinitionResponse {
                                 request_id,
-                                definition
+                                definition,
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetTypeDefinition {
                 request_id,
                 path,
-                position
+                position,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.get_type_definition(
@@ -519,12 +519,12 @@ impl ProxyHandler for Dispatcher {
                         let result = result.map(|definition| {
                             ProxyResponse::GetTypeDefinition {
                                 request_id,
-                                definition
+                                definition,
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             ShowCallHierarchy { path, position } => {
@@ -538,7 +538,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             DocumentHighlight { path, position } => {
@@ -552,12 +552,12 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             CallHierarchyIncoming {
                 path,
-                call_hierarchy_item
+                call_hierarchy_item,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.call_hierarchy_incoming(
@@ -569,7 +569,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetInlayHints { path } => {
@@ -580,11 +580,11 @@ impl ProxyHandler for Dispatcher {
                     Err(err) => {
                         error!("{err:?}");
                         return;
-                    }
+                    },
                 };
                 let range = Range {
                     start: Position::new(0, 0),
-                    end
+                    end,
                 };
                 self.catalog_rpc.get_inlay_hints(
                     &path,
@@ -594,13 +594,13 @@ impl ProxyHandler for Dispatcher {
                             .map(|hints| ProxyResponse::GetInlayHints { hints });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetInlineCompletions {
                 path,
                 position,
-                trigger_kind
+                trigger_kind,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.get_inline_completions(
@@ -613,7 +613,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetSemanticTokens { path } => {
@@ -628,7 +628,7 @@ impl ProxyHandler for Dispatcher {
                 let handle_tokens = move |_,
                                           result: Result<
                     (Vec<LineStyle>, Option<String>),
-                    RpcError
+                    RpcError,
                 >| {
                     match result {
                         Ok((styles, result_id)) => {
@@ -639,15 +639,15 @@ impl ProxyHandler for Dispatcher {
                                         rev,
                                         path: local_path,
                                         styles,
-                                        len
+                                        len,
                                     },
-                                    result_id
-                                })
+                                    result_id,
+                                }),
                             );
                         },
                         Err(e) => {
                             proxy_rpc.handle_response(id, Err(e));
-                        }
+                        },
                     }
                 };
 
@@ -661,19 +661,19 @@ impl ProxyHandler for Dispatcher {
                                 plugin_id,
                                 result,
                                 text,
-                                Box::new(handle_tokens)
+                                Box::new(handle_tokens),
                             );
                         },
                         Err(e) => {
                             proxy_rpc.handle_response(id, Err(e));
-                        }
+                        },
                     },
-                    id
+                    id,
                 );
             },
             GetSemanticTokensDelta {
                 path,
-                previous_result_id
+                previous_result_id,
             } => {
                 // let buffer = self.buffers.get(&path).unwrap();
                 // let text = buffer.rope.clone();
@@ -722,15 +722,15 @@ impl ProxyHandler for Dispatcher {
                         },
                         Err(e) => {
                             proxy_rpc.handle_response(id, Err(e));
-                        }
+                        },
                     },
-                    id
+                    id,
                 );
             },
             GetCodeActions {
                 path,
                 position,
-                diagnostics
+                diagnostics,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.get_code_actions(
@@ -743,7 +743,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetDocumentSymbols { path } => {
@@ -755,7 +755,7 @@ impl ProxyHandler for Dispatcher {
                             .map(|resp| ProxyResponse::GetDocumentSymbols { resp });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetWorkspaceSymbols { query } => {
@@ -768,7 +768,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetDocumentFormatting { path } => {
@@ -781,7 +781,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             PrepareRename { path, position } => {
@@ -794,13 +794,13 @@ impl ProxyHandler for Dispatcher {
                             result.map(|resp| ProxyResponse::PrepareRename { resp });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             Rename {
                 path,
                 position,
-                new_name
+                new_name,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.rename(
@@ -812,7 +812,7 @@ impl ProxyHandler for Dispatcher {
                             result.map(|edit| ProxyResponse::Rename { edit });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetFiles { .. } => {
@@ -837,7 +837,7 @@ impl ProxyHandler for Dispatcher {
                             _ => ignore::WalkBuilder::new(&workspace)
                                 .parents(false)
                                 .require_git(false)
-                                .build()
+                                .build(),
                         };
 
                         let mut items = Vec::new();
@@ -863,7 +863,7 @@ impl ProxyHandler for Dispatcher {
                         uri:         Url::from_file_path(path).unwrap(),
                         language_id: buffer.language_id.to_string(),
                         version:     buffer.rev as i32,
-                        text:        buffer.get_document()
+                        text:        buffer.get_document(),
                     })
                     .collect();
                 let resp = ProxyResponse::GetOpenFilesContentResponse { items };
@@ -884,7 +884,7 @@ impl ProxyHandler for Dispatcher {
                                             open:                false,
                                             read:                false,
                                             children:            HashMap::new(),
-                                            children_open_count: 0
+                                            children_open_count: 0,
                                         })
                                         .ok()
                                 })
@@ -896,7 +896,7 @@ impl ProxyHandler for Dispatcher {
                         })
                         .map_err(|e| RpcError {
                             code:    0,
-                            message: e.to_string()
+                            message: e.to_string(),
                         });
                     proxy_rpc.handle_response(id, result);
                 });
@@ -904,7 +904,7 @@ impl ProxyHandler for Dispatcher {
             Save {
                 rev,
                 path,
-                create_parents
+                create_parents,
             } => {
                 let buffer = self.buffers.get_mut(&path).unwrap();
                 let result = buffer
@@ -916,7 +916,7 @@ impl ProxyHandler for Dispatcher {
                     })
                     .map_err(|e| RpcError {
                         code:    0,
-                        message: e.to_string()
+                        message: e.to_string(),
                     });
                 self.respond_rpc(id, result);
             },
@@ -925,7 +925,7 @@ impl ProxyHandler for Dispatcher {
                 path,
                 rev,
                 content,
-                create_parents
+                create_parents,
             } => {
                 let mut buffer = Buffer::new(buffer_id, path.clone());
                 buffer.rope = Rope::from(content);
@@ -935,7 +935,7 @@ impl ProxyHandler for Dispatcher {
                     .map(|_| ProxyResponse::Success {})
                     .map_err(|e| RpcError {
                         code:    0,
-                        message: e.to_string()
+                        message: e.to_string(),
                     });
                 self.buffers.insert(path, buffer);
                 self.respond_rpc(id, result);
@@ -953,7 +953,7 @@ impl ProxyHandler for Dispatcher {
                     .map(|_| ProxyResponse::Success {})
                     .map_err(|e| RpcError {
                         code:    0,
-                        message: e.to_string()
+                        message: e.to_string(),
                     });
                 self.respond_rpc(id, result);
             },
@@ -962,7 +962,7 @@ impl ProxyHandler for Dispatcher {
                     .map(|_| ProxyResponse::Success {})
                     .map_err(|e| RpcError {
                         code:    0,
-                        message: e.to_string()
+                        message: e.to_string(),
                     });
                 self.respond_rpc(id, result);
             },
@@ -971,13 +971,13 @@ impl ProxyHandler for Dispatcher {
                     .map(|_| ProxyResponse::Success {})
                     .map_err(|e| RpcError {
                         code:    0,
-                        message: e.to_string()
+                        message: e.to_string(),
                     });
                 self.respond_rpc(id, result);
             },
             DuplicatePath {
                 existing_path,
-                new_path
+                new_path,
             } => {
                 // We first check if the destination already exists, because copy can
                 // overwrite it and that's not the default behavior
@@ -985,14 +985,14 @@ impl ProxyHandler for Dispatcher {
                 let result = if new_path.exists() {
                     Err(RpcError {
                         code:    0,
-                        message: format!("{new_path:?} already exists")
+                        message: format!("{new_path:?} already exists"),
                     })
                 } else {
                     if let Some(parent) = new_path.parent() {
                         if let Err(error) = std::fs::create_dir_all(parent) {
                             let result = Err(RpcError {
                                 code:    0,
-                                message: error.to_string()
+                                message: error.to_string(),
                             });
                             self.respond_rpc(id, result);
                             return;
@@ -1002,7 +1002,7 @@ impl ProxyHandler for Dispatcher {
                         .map(|_| ProxyResponse::Success {})
                         .map_err(|e| RpcError {
                             code:    0,
-                            message: e.to_string()
+                            message: e.to_string(),
                         })
                 };
                 self.respond_rpc(id, result);
@@ -1134,12 +1134,12 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             CodeActionResolve {
                 action_item,
-                plugin_id
+                plugin_id,
             } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.action_resolve(
@@ -1148,12 +1148,12 @@ impl ProxyHandler for Dispatcher {
                     move |result| {
                         let result = result.map(|item| {
                             ProxyResponse::CodeActionResolveResponse {
-                                item: Box::new(item)
+                                item: Box::new(item),
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             DapVariable { dap_id, reference } => {
@@ -1165,10 +1165,10 @@ impl ProxyHandler for Dispatcher {
                         proxy_rpc.handle_response(
                             id,
                             result.map(|resp| ProxyResponse::DapVariableResponse {
-                                varialbes: resp
-                            })
+                                varialbes: resp,
+                            }),
                         );
-                    }
+                    },
                 );
             },
             DapGetScopes { dap_id, frame_id } => {
@@ -1180,10 +1180,10 @@ impl ProxyHandler for Dispatcher {
                         proxy_rpc.handle_response(
                             id,
                             result.map(|resp| ProxyResponse::DapGetScopesResponse {
-                                scopes: resp
-                            })
+                                scopes: resp,
+                            }),
                         );
-                    }
+                    },
                 );
             },
             GetCodeLens { path } => {
@@ -1196,7 +1196,7 @@ impl ProxyHandler for Dispatcher {
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             LspFoldingRange { path } => {
@@ -1207,12 +1207,12 @@ impl ProxyHandler for Dispatcher {
                         let result = result.map(|resp| {
                             ProxyResponse::LspFoldingRangeResponse {
                                 plugin_id,
-                                resp
+                                resp,
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GetCodeLensResolve { code_lens, path } => {
@@ -1224,12 +1224,12 @@ impl ProxyHandler for Dispatcher {
                         let result = result.map(|resp| {
                             ProxyResponse::GetCodeLensResolveResponse {
                                 plugin_id,
-                                resp
+                                resp,
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             GotoImplementation { path, position } => {
@@ -1241,12 +1241,12 @@ impl ProxyHandler for Dispatcher {
                         let result = result.map(|resp| {
                             ProxyResponse::GotoImplementationResponse {
                                 plugin_id,
-                                resp
+                                resp,
                             }
                         });
                         proxy_rpc.handle_response(id, result);
                     },
-                    id
+                    id,
                 );
             },
             ReferencesResolve { items } => {
@@ -1267,7 +1267,7 @@ impl ProxyHandler for Dispatcher {
                         Some(FileLine {
                             path,
                             position: location.range.start,
-                            content
+                            content,
                         })
                     })
                     .collect();
@@ -1300,7 +1300,7 @@ impl ProxyHandler for Dispatcher {
                 request_id,
                 path,
                 input,
-                position
+                position,
             } => {
                 self.catalog_rpc
                     .completion(request_id, id, &path, input, position);
@@ -1308,7 +1308,7 @@ impl ProxyHandler for Dispatcher {
             SignatureHelp {
                 request_id,
                 path,
-                position
+                position,
             } => {
                 self.catalog_rpc
                     .signature_help(request_id, id, &path, position);
@@ -1319,7 +1319,7 @@ impl ProxyHandler for Dispatcher {
                 extra_plugin_paths,
                 plugin_configurations,
                 window_id,
-                tab_id
+                tab_id,
             } => {
                 self.window_id = window_id;
                 self.tab_id = tab_id;
@@ -1327,7 +1327,7 @@ impl ProxyHandler for Dispatcher {
                 self.file_watcher.notify(FileWatchNotifier::new(
                     self.workspace.clone(),
                     self.core_rpc.clone(),
-                    self.proxy_rpc.clone()
+                    self.proxy_rpc.clone(),
                 ));
                 if let Some(workspace) = self.workspace.as_ref() {
                     self.file_watcher
@@ -1345,12 +1345,12 @@ impl ProxyHandler for Dispatcher {
                         extra_plugin_paths,
                         plugin_configurations,
                         plugin_rpc.clone(),
-                        directory
+                        directory,
                     );
                     plugin_rpc.mainloop(&mut plugin);
                 });
                 self.core_rpc.notification(CoreNotification::ProxyStatus {
-                    status: lapce_rpc::proxy::ProxyStatus::Connected
+                    status: lapce_rpc::proxy::ProxyStatus::Connected,
                 });
 
                 // send home directory for initinal filepicker dir
@@ -1359,7 +1359,7 @@ impl ProxyHandler for Dispatcher {
                 if let Some(dirs) = dirs {
                     self.core_rpc.home_dir(dirs.home_dir().into());
                 }
-            }
+            },
         }
     }
 }
@@ -1368,7 +1368,7 @@ impl Dispatcher {
     pub fn new(
         core_rpc: CoreRpcHandler,
         proxy_rpc: ProxyRpcHandler,
-        directory: Directory
+        directory: Directory,
     ) -> Self {
         let plugin_rpc =
             PluginCatalogRpcHandler::new(core_rpc.clone(), proxy_rpc.clone());
@@ -1385,7 +1385,7 @@ impl Dispatcher {
             file_watcher,
             window_id: 1,
             tab_id: 1,
-            directory
+            directory,
         }
     }
 
@@ -1405,7 +1405,7 @@ struct FileWatchNotifier {
     proxy_rpc:                   ProxyRpcHandler,
     workspace:                   Option<PathBuf>,
     workspace_fs_change_handler: Arc<Mutex<Option<Sender<bool>>>>,
-    last_diff:                   Arc<Mutex<DiffInfo>>
+    last_diff:                   Arc<Mutex<DiffInfo>>,
 }
 
 impl Notify for FileWatchNotifier {
@@ -1418,14 +1418,14 @@ impl FileWatchNotifier {
     fn new(
         workspace: Option<PathBuf>,
         core_rpc: CoreRpcHandler,
-        proxy_rpc: ProxyRpcHandler
+        proxy_rpc: ProxyRpcHandler,
     ) -> Self {
         let notifier = Self {
             workspace,
             core_rpc,
             proxy_rpc,
             workspace_fs_change_handler: Arc::new(Mutex::new(None)),
-            last_diff: Arc::new(Mutex::new(DiffInfo::default()))
+            last_diff: Arc::new(Mutex::new(DiffInfo::default())),
         };
 
         if let Some(workspace) = notifier.workspace.clone() {
@@ -1447,7 +1447,7 @@ impl FileWatchNotifier {
             match token {
                 OPEN_FILE_EVENT_TOKEN => self.handle_open_file_fs_event(event),
                 WORKSPACE_EVENT_TOKEN => self.handle_workspace_fs_event(event),
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -1461,7 +1461,7 @@ impl FileWatchNotifier {
                     if let Some(path_str) = path_str.strip_prefix(PREFIX) {
                         let path = PathBuf::from(path_str);
                         self.proxy_rpc.notification(
-                            ProxyNotification::OpenFileChanged { path }
+                            ProxyNotification::OpenFileChanged { path },
                         );
                         continue;
                     }
@@ -1478,7 +1478,7 @@ impl FileWatchNotifier {
             | notify::EventKind::Remove(_)
             | notify::EventKind::Modify(notify::event::ModifyKind::Name(_)) => true,
             notify::EventKind::Modify(_) => false,
-            _ => return
+            _ => return,
         };
 
         let mut handler = self.workspace_fs_change_handler.lock();
@@ -1538,7 +1538,7 @@ pub struct DiffHunk {
     pub old_lines: u32,
     pub new_start: u32,
     pub new_lines: u32,
-    pub header:    String
+    pub header:    String,
 }
 
 fn git_init(workspace_path: &Path) -> Result<()> {
@@ -1551,7 +1551,7 @@ fn git_init(workspace_path: &Path) -> Result<()> {
 fn git_commit(
     workspace_path: &Path,
     message: &str,
-    diffs: Vec<FileDiff>
+    diffs: Vec<FileDiff>,
 ) -> Result<()> {
     let repo = Repository::discover(workspace_path)?;
     let mut index = repo.index()?;
@@ -1566,7 +1566,7 @@ fn git_commit(
             },
             FileDiff::Deleted(p) => {
                 index.remove_path(p.strip_prefix(workspace_path)?)?;
-            }
+            },
         }
     }
     index.write()?;
@@ -1587,7 +1587,7 @@ fn git_commit(
                 &signature,
                 message,
                 &tree,
-                &parents_refs
+                &parents_refs,
             )?;
             Ok(())
         },
@@ -1598,8 +1598,8 @@ fn git_commit(
             _ => Err(anyhow!(
                 "Error while creating commit's signature: {}",
                 e.message()
-            ))
-        }
+            )),
+        },
     }
 }
 
@@ -1613,7 +1613,7 @@ fn git_checkout(workspace_path: &Path, reference: &str) -> Result<()> {
 
 fn git_discard_files_changes<'a>(
     workspace_path: &Path,
-    files: impl Iterator<Item = &'a Path>
+    files: impl Iterator<Item = &'a Path>,
 ) -> Result<()> {
     let repo = Repository::discover(workspace_path)?;
 
@@ -1653,25 +1653,25 @@ fn git_discard_workspace_changes(workspace_path: &Path) -> Result<()> {
 
 fn git_delta_format(
     workspace_path: &Path,
-    delta: &git2::DiffDelta
+    delta: &git2::DiffDelta,
 ) -> Option<(git2::Delta, git2::Oid, PathBuf)> {
     match delta.status() {
         git2::Delta::Added | git2::Delta::Untracked => Some((
             git2::Delta::Added,
             delta.new_file().id(),
-            delta.new_file().path().map(|p| workspace_path.join(p))?
+            delta.new_file().path().map(|p| workspace_path.join(p))?,
         )),
         git2::Delta::Deleted => Some((
             git2::Delta::Deleted,
             delta.old_file().id(),
-            delta.old_file().path().map(|p| workspace_path.join(p))?
+            delta.old_file().path().map(|p| workspace_path.join(p))?,
         )),
         git2::Delta::Modified => Some((
             git2::Delta::Modified,
             delta.new_file().id(),
-            delta.new_file().path().map(|p| workspace_path.join(p))?
+            delta.new_file().path().map(|p| workspace_path.join(p))?,
         )),
-        _ => None
+        _ => None,
     }
 }
 
@@ -1679,7 +1679,7 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
     let repo = Repository::discover(workspace_path).ok()?;
     let name = match repo.head() {
         Ok(head) => head.shorthand()?.to_string(),
-        _ => "(No branch)".to_owned()
+        _ => "(No branch)".to_owned(),
     };
 
     let mut branches = Vec::new();
@@ -1702,8 +1702,8 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
             Some(
                 diff_options
                     .include_untracked(true)
-                    .recurse_untracked_dirs(true)
-            )
+                    .recurse_untracked_dirs(true),
+            ),
         )
         .ok()?;
     for delta in diff.deltas() {
@@ -1714,7 +1714,7 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
 
     let oid = match repo.revparse_single("HEAD^{tree}") {
         Ok(obj) => obj.id(),
-        _ => Oid::zero()
+        _ => Oid::zero(),
     };
 
     let cached_diff = repo
@@ -1748,7 +1748,7 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
     for (added_index, deleted_index) in renames.iter() {
         file_diffs.push(FileDiff::Renamed(
             deltas[*added_index].2.clone(),
-            deltas[*deleted_index].2.clone()
+            deltas[*deleted_index].2.clone(),
         ));
     }
     for (i, delta) in deltas.iter().enumerate() {
@@ -1759,7 +1759,7 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
             git2::Delta::Added => FileDiff::Added(delta.2.clone()),
             git2::Delta::Deleted => FileDiff::Deleted(delta.2.clone()),
             git2::Delta::Modified => FileDiff::Modified(delta.2.clone()),
-            _ => continue
+            _ => continue,
         };
         file_diffs.push(diff);
     }
@@ -1767,13 +1767,13 @@ fn git_diff_new(workspace_path: &Path) -> Option<DiffInfo> {
         FileDiff::Modified(p)
         | FileDiff::Added(p)
         | FileDiff::Renamed(p, _)
-        | FileDiff::Deleted(p) => p.clone()
+        | FileDiff::Deleted(p) => p.clone(),
     });
     Some(DiffInfo {
         head: name,
         branches,
         tags,
-        diffs: file_diffs
+        diffs: file_diffs,
     })
 }
 
@@ -1796,7 +1796,7 @@ fn git_get_remote_file_url(workspace_path: &Path, file: &Path) -> Result<String>
     let target_remote = repo.find_remote(
         repo.branch_upstream_remote(head.name().unwrap())?
             .as_str()
-            .unwrap()
+            .unwrap(),
     )?;
 
     // Grab URL part of remote
@@ -1809,7 +1809,7 @@ fn git_get_remote_file_url(workspace_path: &Path, file: &Path) -> Result<String>
         Err(_) => {
             // Parse URL as ssh
             Url::parse(&format!("ssh://{}", remote.replacen(':', "/", 1)))?
-        }
+        },
     };
 
     // Get host part
@@ -1843,7 +1843,7 @@ fn search_in_path(
     pattern: &str,
     case_sensitive: bool,
     whole_word: bool,
-    is_regex: bool
+    is_regex: bool,
 ) -> Result<ProxyResponse, RpcError> {
     let mut matches = IndexMap::new();
     let mut matcher = RegexMatcherBuilder::new();
@@ -1855,7 +1855,7 @@ fn search_in_path(
     };
     let matcher = matcher.map_err(|_| RpcError {
         code:    0,
-        message: "can't build matcher".to_string()
+        message: "can't build matcher".to_string(),
     })?;
     let mut searcher = SearcherBuilder::new().build();
 
@@ -1863,7 +1863,7 @@ fn search_in_path(
         if current_id.load(Ordering::SeqCst) != id {
             return Err(RpcError {
                 code:    0,
-                message: "expired search job".to_string()
+                message: "expired search job".to_string(),
             });
         }
 
@@ -1904,10 +1904,10 @@ fn search_in_path(
                         line:         lnum as usize,
                         start:        mymatch.start(),
                         end:          mymatch.end(),
-                        line_content: line
+                        line_content: line,
                     });
                     Ok(true)
-                })
+                }),
             ) {
                 {
                     log::error!("{:?}", err);

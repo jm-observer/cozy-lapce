@@ -7,12 +7,12 @@ use floem::{
     prelude::text_input,
     reactive::{
         Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_effect,
-        create_memo, create_rw_signal, create_signal
+        create_memo, create_rw_signal, create_signal,
     },
     style::CursorStyle,
     views::{
-        Decorators, container, dyn_stack, label, scroll, stack, text, virtual_stack
-    }
+        Decorators, container, dyn_stack, label, scroll, stack, text, virtual_stack,
+    },
 };
 use itertools::Itertools;
 
@@ -21,21 +21,21 @@ use crate::{
     config::{WithLapceConfig, color::LapceColor},
     keypress::{
         KeyPressData,
-        keymap::{KeyMap, KeyMapPress}
+        keymap::{KeyMap, KeyMapPress},
     },
-    window_workspace::{CommonData, WindowWorkspaceData}
+    window_workspace::{CommonData, WindowWorkspaceData},
 };
 
 #[derive(Clone)]
 pub struct KeymapPicker {
     cmd:    RwSignal<Option<LapceCommand>>,
     keymap: RwSignal<Option<KeyMap>>,
-    keys:   RwSignal<Vec<(KeyMapPress, bool)>>
+    keys:   RwSignal<Vec<(KeyMapPress, bool)>>,
 }
 
 pub fn keymap_view(
     common: Rc<CommonData>,
-    window_tab_data: WindowWorkspaceData
+    window_tab_data: WindowWorkspaceData,
 ) -> impl View {
     let config = common.config;
     let keypress = common.keypress;
@@ -45,7 +45,7 @@ pub fn keymap_view(
     let picker = KeymapPicker {
         cmd:    create_rw_signal(None),
         keymap: create_rw_signal(None),
-        keys:   create_rw_signal(Vec::new())
+        keys:   create_rw_signal(Vec::new()),
     };
 
     // let cx = Scope::current();
@@ -103,15 +103,15 @@ pub fn keymap_view(
                 .sorted_by(|x, y| {
                     match (
                         x.1.as_ref().and_then(|x| x.key.first()),
-                        y.1.as_ref().and_then(|x| x.key.first())
+                        y.1.as_ref().and_then(|x| x.key.first()),
                     ) {
                         (Some(x_key), Some(y_key)) => x_key.cmp(y_key),
                         (Some(_), None) => Ordering::Greater,
                         (None, Some(_)) => Ordering::Less,
-                        _ => Ordering::Equal
+                        _ => Ordering::Equal,
                     }
                 })
-                .collect::<im::Vector<(LapceCommand, Option<KeyMap>)>>()
+                .collect::<im::Vector<(LapceCommand, Option<KeyMap>)>>(),
         };
         items.extend(keypress.commands_without_keymap.iter().filter_map(|cmd| {
             let match_pattern = cmd.kind.str().replace('_', " ").contains(&pattern)
@@ -141,7 +141,7 @@ pub fn keymap_view(
                         cmd.kind
                             .desc()
                             .map(|desc| desc.to_string())
-                            .unwrap_or_else(|| cmd.kind.str().replace('_', " "))
+                            .unwrap_or_else(|| cmd.kind.str().replace('_', " ")),
                     )
                     .style(|s| {
                         s.text_ellipsis()
@@ -150,7 +150,7 @@ pub fn keymap_view(
                             .min_width(0.0)
                             .padding_horiz(10.0)
                             .size_pct(100.0, 100.0)
-                    })
+                    }),
                 )
                 .style(move |s| {
                     s.height_pct(100.0)
@@ -186,10 +186,10 @@ pub fn keymap_view(
                                     .border(1.0)
                                     .border_radius(3.0)
                                     .border_color(
-                                        config.with_color(LapceColor::LAPCE_BORDER)
+                                        config.with_color(LapceColor::LAPCE_BORDER),
                                     )
                             })
-                        }
+                        },
                     )
                     .style(move |s| {
                         s.items_center()
@@ -198,7 +198,7 @@ pub fn keymap_view(
                             .height_pct(100.0)
                             .border_right(1.0)
                             .border_color(
-                                config.with_color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER),
                             )
                     })
                     .debug_name("keymaps")
@@ -209,7 +209,7 @@ pub fn keymap_view(
                         (Modes::INSERT, "Insert"),
                         (Modes::NORMAL, "Normal"),
                         (Modes::VISUAL, "Visual"),
-                        (Modes::TERMINAL, "Terminal")
+                        (Modes::TERMINAL, "Terminal"),
                     ];
                     let modes = keymap
                         .as_ref()
@@ -236,10 +236,10 @@ pub fn keymap_view(
                                     .border(1.0)
                                     .border_radius(3.0)
                                     .border_color(
-                                        config.with_color(LapceColor::LAPCE_BORDER)
+                                        config.with_color(LapceColor::LAPCE_BORDER),
                                     )
                             })
-                        }
+                        },
                     )
                     .style(move |s| {
                         s.items_center()
@@ -248,7 +248,7 @@ pub fn keymap_view(
                             .height_pct(100.0)
                             .border_right(1.0)
                             .border_color(
-                                config.with_color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER),
                             )
                             .apply_if(!modal.get(), |s| s.hide())
                     })
@@ -258,7 +258,7 @@ pub fn keymap_view(
                         keymap
                             .as_ref()
                             .and_then(|keymap| keymap.when.clone())
-                            .unwrap_or_default()
+                            .unwrap_or_default(),
                     )
                     .style(|s| {
                         s.text_ellipsis()
@@ -267,14 +267,14 @@ pub fn keymap_view(
                             .min_width(0.0)
                             .padding_horiz(10.0)
                             .size_pct(100.0, 100.0)
-                    })
+                    }),
                 )
                 .style(move |s| {
                     s.height_pct(100.0)
                         .min_width(0.0)
                         .flex_basis(0.0)
                         .flex_grow(1.0)
-                })
+                }),
             ))
             .on_click_stop(move |_| {
                 let keymap = if let Some(keymap) = local_keymap.clone() {
@@ -284,7 +284,7 @@ pub fn keymap_view(
                         command: local_cmd.kind.str().to_string(),
                         key:     Vec::new(),
                         modes:   Modes::empty(),
-                        when:    None
+                        when:    None,
                     }
                 };
                 picker.keymap.set(Some(keymap));
@@ -297,7 +297,7 @@ pub fn keymap_view(
                 let (bg, border_color) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_CURRENT_LINE),
-                        config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::LAPCE_BORDER),
                     )
                 });
                 s.items_center()
@@ -326,7 +326,7 @@ pub fn keymap_view(
                         .border_color(config.with_color(LapceColor::LAPCE_BORDER))
                     // }).pointer_down(move || {
                     //     focus.set(Focus::Panel(PanelKind::Plugin));
-                })
+                }),
         )
         .style(|s| s.padding_bottom(10.0).width_pct(100.0)),
         stack((
@@ -372,13 +372,13 @@ pub fn keymap_view(
                     .min_width(0.0)
                     .flex_basis(0.0)
                     .flex_grow(1.0)
-            })
+            }),
         ))
         .style(move |s| {
             let (bg, border_color) = config.signal(|config| {
                 (
                     config.color(LapceColor::EDITOR_CURRENT_LINE),
-                    config.color(LapceColor::LAPCE_BORDER)
+                    config.color(LapceColor::LAPCE_BORDER),
                 )
             });
             s.font_bold()
@@ -397,16 +397,16 @@ pub fn keymap_view(
                     key_map_items,
                     |(i, (cmd, keymap)): &(
                         usize,
-                        (LapceCommand, Option<KeyMap>)
+                        (LapceCommand, Option<KeyMap>),
                     )| { (*i, cmd.kind.str(), keymap.clone()) },
-                    view_fn
+                    view_fn,
                 )
-                .style(|s| s.flex_col().width_pct(100.0))
+                .style(|s| s.flex_col().width_pct(100.0)),
             )
-            .style(|s| s.absolute().size_pct(100.0, 100.0))
+            .style(|s| s.absolute().size_pct(100.0, 100.0)),
         )
         .style(|s| s.width_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
-        keyboard_picker_view(picker, common.ui_line_height, config, common)
+        keyboard_picker_view(picker, common.ui_line_height, config, common),
     ))
     .style(|s| {
         s.absolute()
@@ -423,7 +423,7 @@ fn keyboard_picker_view(
     picker: KeymapPicker,
     ui_line_height: Memo<f64>,
     config: WithLapceConfig,
-    common: Rc<CommonData>
+    common: Rc<CommonData>,
 ) -> impl View {
     let picker_cmd = picker.cmd;
     let view = container(
@@ -461,16 +461,16 @@ fn keyboard_picker_view(
                             .border(1.0)
                             .border_radius(6.0)
                             .border_color(
-                                config.with_color(LapceColor::LAPCE_BORDER)
+                                config.with_color(LapceColor::LAPCE_BORDER),
                             )
                     })
-                }
+                },
             )
             .style(move |s| {
                 let (bg, border_color) = config.signal(|config| {
                     (
                         config.color(LapceColor::EDITOR_CURRENT_LINE),
-                        config.color(LapceColor::LAPCE_BORDER)
+                        config.color(LapceColor::LAPCE_BORDER),
                     )
                 });
                 s.items_center()
@@ -491,8 +491,8 @@ fn keyboard_picker_view(
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
-                                )
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
+                                ),
                             )
                         });
                         s.width(100.0)
@@ -517,7 +517,7 @@ fn keyboard_picker_view(
                                     .iter()
                                     .map(|(key, _)| key.clone())
                                     .collect::<Vec<KeyMapPress>>(),
-                                common.clone()
+                                common.clone(),
                             );
                         }
                     }),
@@ -528,8 +528,8 @@ fn keyboard_picker_view(
                                 config.color(LapceColor::LAPCE_BORDER),
                                 config.color(LapceColor::PANEL_HOVERED_BACKGROUND),
                                 config.color(
-                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND
-                                )
+                                    LapceColor::PANEL_HOVERED_ACTIVE_BACKGROUND,
+                                ),
                             )
                         });
                         s.margin_left(20.0)
@@ -546,7 +546,7 @@ fn keyboard_picker_view(
                     })
                     .on_click_stop(move |_| {
                         picker.keymap.set(None);
-                    })
+                    }),
             ))
             .style(move |s| {
                 s.items_center()
@@ -554,14 +554,14 @@ fn keyboard_picker_view(
                     .width_pct(100.0)
                     .margin_top(20.0)
                     .border_color(config.with_color(LapceColor::LAPCE_BORDER))
-            })
+            }),
         ))
         .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
             let (lb, hbg) = config.signal(|config| {
                 (
                     config.color(LapceColor::LAPCE_BORDER),
-                    config.color(LapceColor::PANEL_BACKGROUND)
+                    config.color(LapceColor::PANEL_BACKGROUND),
                 )
             });
             s.items_center()
@@ -572,7 +572,7 @@ fn keyboard_picker_view(
                 .border_radius(6.0)
                 .border_color(lb.get())
                 .background(hbg.get())
-        })
+        }),
     )
     .keyboard_navigable()
     .on_event_stop(EventListener::KeyDown, move |event| {
@@ -626,14 +626,14 @@ fn keyboard_picker_view(
 pub enum KeyMapOrder {
     #[default]
     None,
-    OrderKey
+    OrderKey,
 }
 
 impl KeyMapOrder {
     pub fn update(&mut self) {
         match self {
             KeyMapOrder::None => *self = Self::OrderKey,
-            KeyMapOrder::OrderKey => *self = Self::None
+            KeyMapOrder::OrderKey => *self = Self::None,
         }
     }
 }

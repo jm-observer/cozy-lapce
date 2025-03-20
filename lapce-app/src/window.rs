@@ -7,9 +7,9 @@ use floem::{
     peniko::kurbo::{Point, Size},
     reactive::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith,
-        use_context
+        use_context,
     },
-    window::WindowId
+    window::WindowId,
 };
 use lapce_core::{directory::Directory, workspace::LapceWorkspace};
 use log::error;
@@ -24,7 +24,7 @@ use crate::{
     listener::Listener,
     local_task::LocalTaskRequester,
     update::ReleaseInfo,
-    window_workspace::{CommonData, Focus, SignalManager, WindowWorkspaceData}
+    window_workspace::{CommonData, Focus, SignalManager, WindowWorkspaceData},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub struct WindowInfo {
     pub pos:       Point,
     pub maximised: bool,
     #[serde(default)]
-    pub workspace: LapceWorkspace
+    pub workspace: LapceWorkspace,
 }
 
 #[derive(Clone)]
@@ -49,7 +49,7 @@ pub struct WindowCommonData {
     // the value to be update by curosr blinking
     pub hide_cursor:              RwSignal<bool>,
     pub app_view_id:              RwSignal<ViewId>,
-    pub extra_plugin_paths:       Arc<Vec<PathBuf>>
+    pub extra_plugin_paths:       Arc<Vec<PathBuf>>,
 }
 
 /// `WindowData` is the application model for a top-level window.
@@ -78,7 +78,7 @@ pub struct WindowData {
     pub ime_enabled:  RwSignal<bool>,
     pub common:       Rc<WindowCommonData>,
     pub directory:    Directory,
-    pub local_task:   LocalTaskRequester /* pub watcher:      Arc<RwLock<notify::RecommendedWatcher>> */
+    pub local_task:   LocalTaskRequester, /* pub watcher:      Arc<RwLock<notify::RecommendedWatcher>> */
 }
 
 impl WindowData {
@@ -93,7 +93,7 @@ impl WindowData {
         app_command: Listener<AppCommand>,
         directory: &Directory,
         local_task: LocalTaskRequester,
-        config: RwSignal<LapceConfig> /* watcher: Arc<RwLock<notify::RecommendedWatcher>> */
+        config: RwSignal<LapceConfig>, /* watcher: Arc<RwLock<notify::RecommendedWatcher>> */
     ) -> Result<Self> {
         let cx = Scope::new();
         // let config =
@@ -121,7 +121,7 @@ impl WindowData {
             // cursor_blink_timer,
             hide_cursor,
             app_view_id,
-            extra_plugin_paths
+            extra_plugin_paths,
         });
 
         //
@@ -144,7 +144,7 @@ impl WindowData {
             common.clone(),
             directory,
             local_task.clone(),
-            config
+            config,
         )?);
 
         // for w in info.tabs.workspaces {
@@ -184,7 +184,7 @@ impl WindowData {
             ime_enabled: cx.create_rw_signal(false),
             common,
             directory: directory.clone(),
-            local_task // watcher
+            local_task, // watcher
         };
 
         {
@@ -217,7 +217,7 @@ impl WindowData {
             &LapceWorkspace::default(),
             &[],
             &self.common.extra_plugin_paths,
-            &self.directory
+            &self.directory,
         );
         self.config.set(config);
         self.window_tabs.with_untracked(|x| x.reload_config());
@@ -240,7 +240,7 @@ impl WindowData {
                     self.common.clone(),
                     &self.directory,
                     self.local_task.clone(),
-                    self.config
+                    self.config,
                 )?;
 
                 self.window_tabs.set(window_tab);
@@ -248,7 +248,7 @@ impl WindowData {
             },
             WindowCommand::NewWorkspaceTab {
                 workspace,
-                end: _end
+                end: _end,
             } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
                 db.update_recent_workspace(&workspace, &self.local_task);
@@ -260,7 +260,7 @@ impl WindowData {
                     self.common.clone(),
                     &self.directory,
                     self.local_task.clone(),
-                    self.config
+                    self.config,
                 )?;
                 self.window_tabs.set(window_tab);
                 // let active = self.active.get_untracked();
@@ -343,7 +343,7 @@ impl WindowData {
             WindowCommand::CloseWindow => {
                 self.app_command
                     .send(AppCommand::CloseWindow(self.window_id));
-            }
+            },
         }
         self.app_command.send(AppCommand::SaveApp);
         Ok(())
@@ -360,7 +360,7 @@ impl WindowData {
             size: self.common.size.get_untracked(),
             pos: self.position.get_untracked(),
             maximised: false,
-            workspace
+            workspace,
         }
     }
 
@@ -391,7 +391,7 @@ pub struct CursorBlink {
     pub hide_cursor:    RwSignal<bool>,
     pub blink_timer:    RwSignal<TimerToken>,
     pub blink_interval: RwSignal<u64>,
-    pub common_data:    Rc<CommonData>
+    pub common_data:    Rc<CommonData>,
 }
 
 impl CursorBlink {
@@ -418,7 +418,7 @@ impl CursorBlink {
                     }
                     if should_blink(
                         info.common_data.focus,
-                        info.common_data.keyboard_focus
+                        info.common_data.keyboard_focus,
                     ) {
                         info.common_data
                             .internal_command
@@ -447,7 +447,7 @@ impl CursorBlink {
 
 pub fn should_blink(
     _focus: SignalManager<Focus>,
-    _keyboard_focus: RwSignal<Option<ViewId>>
+    _keyboard_focus: RwSignal<Option<ViewId>>,
 ) -> bool {
     let Some(focus) = _focus.try_get_untracked() else {
         return false;

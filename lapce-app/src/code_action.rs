@@ -2,12 +2,12 @@ use std::rc::Rc;
 
 use doc::lines::{
     command::FocusCommand, editor_command::CommandExecuted, mode::Mode,
-    movement::Movement
+    movement::Movement,
 };
 use floem::{
     keyboard::Modifiers,
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
 };
 use lapce_rpc::plugin::PluginId;
 use lsp_types::CodeActionOrCommand;
@@ -15,13 +15,13 @@ use lsp_types::CodeActionOrCommand;
 use crate::{
     command::{CommandKind, InternalCommand, LapceWorkbenchCommand},
     keypress::{KeyPressFocus, condition::Condition},
-    window_workspace::{CommonData, Focus}
+    window_workspace::{CommonData, Focus},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CodeActionStatus {
     Inactive,
-    Active
+    Active,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -29,14 +29,14 @@ pub struct ScoredCodeActionItem {
     pub item:      CodeActionOrCommand,
     pub plugin_id: PluginId,
     pub score:     i64,
-    pub indices:   Vec<usize>
+    pub indices:   Vec<usize>,
 }
 
 impl ScoredCodeActionItem {
     pub fn title(&self) -> &str {
         match &self.item {
             CodeActionOrCommand::Command(c) => &c.title,
-            CodeActionOrCommand::CodeAction(c) => &c.title
+            CodeActionOrCommand::CodeAction(c) => &c.title,
         }
     }
 }
@@ -52,7 +52,7 @@ pub struct CodeActionData {
     pub filtered_items: im::Vector<ScoredCodeActionItem>,
     pub layout_rect:    Rect,
     pub mouse_click:    bool,
-    pub common:         Rc<CommonData>
+    pub common:         Rc<CommonData>,
 }
 
 impl KeyPressFocus for CodeActionData {
@@ -68,7 +68,7 @@ impl KeyPressFocus for CodeActionData {
         &self,
         command: &crate::command::LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         match &command.kind {
             CommandKind::Workbench(_cmd) => {
@@ -83,7 +83,7 @@ impl KeyPressFocus for CodeActionData {
                 self.run_focus_command(cmd);
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {}
+            CommandKind::MultiSelection(_) => {},
         }
         CommandExecuted::Yes
     }
@@ -106,7 +106,7 @@ impl CodeActionData {
             filtered_items: im::Vector::new(),
             layout_rect: Rect::ZERO,
             mouse_click: false,
-            common
+            common,
         };
 
         {
@@ -152,7 +152,7 @@ impl CodeActionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -171,7 +171,7 @@ impl CodeActionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -181,7 +181,7 @@ impl CodeActionData {
         plugin_id: PluginId,
         code_actions: im::Vector<CodeActionOrCommand>,
         offset: usize,
-        mouse_click: bool
+        mouse_click: bool,
     ) {
         self.active.set(0);
         self.status.set(CodeActionStatus::Active);
@@ -194,7 +194,7 @@ impl CodeActionData {
                 item: code_action,
                 plugin_id,
                 score: 0,
-                indices: Vec::new()
+                indices: Vec::new(),
             })
             .collect();
         self.filtered_items = self.items.clone();
@@ -212,7 +212,7 @@ impl CodeActionData {
                 .internal_command
                 .send(InternalCommand::RunCodeAction {
                     plugin_id: item.plugin_id,
-                    action:    item.item.clone()
+                    action:    item.item.clone(),
                 });
         }
         self.cancel();
@@ -238,7 +238,7 @@ impl CodeActionData {
             FocusCommand::ListSelect => {
                 self.select();
             },
-            _ => return CommandExecuted::No
+            _ => return CommandExecuted::No,
         }
         CommandExecuted::Yes
     }

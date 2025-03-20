@@ -6,7 +6,7 @@ use floem::{
     peniko::Color,
     prelude::{SignalWith, palette},
     reactive::{ReadSignal, Scope},
-    text::FamilyOwned
+    text::FamilyOwned,
 };
 use lapce_core::icon::LapceIcons;
 use log::error;
@@ -21,13 +21,13 @@ use crate::config::{
     editor::{ClickMode, EditorConfig, WrapStyle},
     icon_theme::IconThemeConfig,
     svg::SvgStore,
-    ui::{TabCloseButton, TabSeparatorHeight, UIConfig}
+    ui::{TabCloseButton, TabSeparatorHeight, UIConfig},
 };
 
 #[derive(Debug, Clone, Default)]
 pub struct ThemeColorSignal {
     pub syntax: HashMap<String, SignalManager<Color>>,
-    pub ui:     HashMap<String, SignalManager<Color>>
+    pub ui:     HashMap<String, SignalManager<Color>>,
 }
 
 impl ThemeColorSignal {
@@ -118,7 +118,7 @@ pub struct EditorConfigSignal {
     pub diff_context_lines: SignalManager<i32>,
     pub bracket_pair_colorization: SignalManager<bool>,
     pub bracket_colorization_limit: SignalManager<u64>,
-    pub files_exclude: SignalManager<String>
+    pub files_exclude: SignalManager<String>,
 }
 
 impl EditorConfigSignal {
@@ -127,8 +127,8 @@ impl EditorConfigSignal {
             cx,
             (
                 FamilyOwned::parse_list(&config.font_family).collect(),
-                config.font_family.clone()
-            )
+                config.font_family.clone(),
+            ),
         );
         let font_size = SignalManager::new(cx, config.font_size());
         let code_glance_font_size =
@@ -263,14 +263,14 @@ impl EditorConfigSignal {
             diff_context_lines,
             bracket_pair_colorization,
             bracket_colorization_limit,
-            files_exclude
+            files_exclude,
         }
     }
 
     pub fn update(&mut self, config: &EditorConfig) {
         self.font_family.update_and_trigger_if_not_equal((
             FamilyOwned::parse_list(&config.font_family).collect(),
-            config.font_family.clone()
+            config.font_family.clone(),
         ));
         self.font_size
             .update_and_trigger_if_not_equal(config.font_size());
@@ -314,7 +314,7 @@ impl EditorConfigSignal {
             .update_and_trigger_if_not_equal(config.hover_delay);
         self.modal_mode_relative_line_numbers
             .update_and_trigger_if_not_equal(
-                config.modal_mode_relative_line_numbers
+                config.modal_mode_relative_line_numbers,
             );
         self.format_on_save
             .update_and_trigger_if_not_equal(config.format_on_save);
@@ -348,7 +348,7 @@ impl EditorConfigSignal {
             .update_and_trigger_if_not_equal(config.enable_inline_completion);
         self.completion_lens_font_family
             .update_and_trigger_if_not_equal(
-                config.completion_lens_font_family.clone()
+                config.completion_lens_font_family.clone(),
             );
         self.completion_lens_font_size
             .update_and_trigger_if_not_equal(config.completion_lens_font_size);
@@ -395,7 +395,7 @@ pub struct UiConfigSignal {
     pub tab_close_button: SignalManager<TabCloseButton>,
     pub tab_separator_height: SignalManager<TabSeparatorHeight>,
     pub trim_search_results_whitespace: SignalManager<bool>,
-    pub open_editors_visible: SignalManager<bool>
+    pub open_editors_visible: SignalManager<bool>,
 }
 
 impl UiConfigSignal {
@@ -405,7 +405,7 @@ impl UiConfigSignal {
             SignalManager::new(cx, config.font_size());
         let font_family = SignalManager::new(
             cx,
-            (config.font_family(), config.font_family.clone())
+            (config.font_family(), config.font_family.clone()),
         );
         let header_height: SignalManager<usize> =
             SignalManager::new(cx, config.header_height());
@@ -434,7 +434,7 @@ impl UiConfigSignal {
             tab_close_button,
             tab_separator_height,
             trim_search_results_whitespace,
-            open_editors_visible
+            open_editors_visible,
         }
     }
 
@@ -444,7 +444,7 @@ impl UiConfigSignal {
             .update_and_trigger_if_not_equal(config.font_size());
         self.font_family.update_and_trigger_if_not_equal((
             config.font_family(),
-            config.font_family.clone()
+            config.font_family.clone(),
         ));
         self.header_height
             .update_and_trigger_if_not_equal(config.header_height());
@@ -469,7 +469,7 @@ impl UiConfigSignal {
 pub struct IconThemeConfigSignal {
     pub icon_theme:        IconThemeConfig,
     pub svg_store:         Arc<RwLock<SvgStore>>,
-    pub icon_active_color: Color
+    pub icon_active_color: Color,
 }
 
 impl PartialEq for IconThemeConfigSignal {
@@ -539,7 +539,7 @@ impl IconThemeConfigSignal {
             SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
             SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
             SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
-            _ => return None
+            _ => return None,
         };
 
         Some(self.ui_svg(kind_str))
@@ -553,7 +553,7 @@ pub struct CoreConfigSignal {
     pub icon_theme: SignalManager<String>,
     pub custom_titlebar: SignalManager<bool>,
     pub file_explorer_double_click: SignalManager<bool>,
-    pub auto_reload_plugin: SignalManager<bool>
+    pub auto_reload_plugin: SignalManager<bool>,
 }
 
 impl CoreConfigSignal {
@@ -565,9 +565,9 @@ impl CoreConfigSignal {
             custom_titlebar: SignalManager::new(cx, config.custom_titlebar),
             file_explorer_double_click: SignalManager::new(
                 cx,
-                config.file_explorer_double_click
+                config.file_explorer_double_click,
             ),
-            auto_reload_plugin: SignalManager::new(cx, config.auto_reload_plugin)
+            auto_reload_plugin: SignalManager::new(cx, config.auto_reload_plugin),
         }
     }
 
@@ -595,7 +595,7 @@ pub struct LapceConfigSignal {
     pub editor:        EditorConfigSignal,
     pub icon_theme:    SignalManager<IconThemeConfigSignal>,
     pub svg_store:     Arc<RwLock<SvgStore>>,
-    pub core:          CoreConfigSignal
+    pub core:          CoreConfigSignal,
 }
 
 impl LapceConfigSignal {
@@ -610,7 +610,7 @@ impl LapceConfigSignal {
         let icon_theme = crate::config::signal::IconThemeConfigSignal {
             icon_theme: config.icon_theme.clone(),
             svg_store: svg_store.clone(),
-            icon_active_color
+            icon_active_color,
         };
         let icon_theme = SignalManager::new(cx, icon_theme);
         let core = CoreConfigSignal::init(cx, &config.core);
@@ -622,7 +622,7 @@ impl LapceConfigSignal {
             editor,
             svg_store,
             icon_theme,
-            core
+            core,
         }
     }
 
@@ -631,9 +631,8 @@ impl LapceConfigSignal {
         let icon_theme = IconThemeConfigSignal {
             icon_theme: config.icon_theme.clone(),
             svg_store: self.svg_store.clone(),
-            icon_active_color
+            icon_active_color,
         };
-
 
         self.color.update(config);
         self.ui.update(&config.ui);
@@ -648,7 +647,7 @@ impl LapceConfigSignal {
             None => {
                 error!("Failed to find key: {name}");
                 self.default_color.signal()
-            }
+            },
         }
     }
 
@@ -658,7 +657,7 @@ impl LapceConfigSignal {
             None => {
                 error!("Failed to find key: {name}");
                 self.default_color.val().clone()
-            }
+            },
         }
     }
 
@@ -690,7 +689,7 @@ impl LapceConfigSignal {
             SymbolKind::OPERATOR => "",
             SymbolKind::TYPE_PARAMETER => "",
             SymbolKind::STRING => "string",
-            _ => return None
+            _ => return None,
         };
 
         self.style_color(theme_str)
@@ -698,7 +697,7 @@ impl LapceConfigSignal {
 
     pub fn completion_color(
         &self,
-        kind: Option<CompletionItemKind>
+        kind: Option<CompletionItemKind>,
     ) -> Option<ReadSignal<Color>> {
         let kind = kind?;
         let theme_str = match kind {
@@ -716,7 +715,7 @@ impl LapceConfigSignal {
             CompletionItemKind::INTERFACE => "interface",
             CompletionItemKind::SNIPPET => "snippet",
             CompletionItemKind::MODULE => "builtinType",
-            _ => "string"
+            _ => "string",
         };
 
         self.style_color(theme_str)
@@ -725,7 +724,7 @@ impl LapceConfigSignal {
     pub fn ui_svg(&self, key: &'static str) -> UiSvgSignal {
         UiSvgSignal {
             key,
-            signal: self.icon_theme.signal()
+            signal: self.icon_theme.signal(),
         }
     }
 
@@ -753,7 +752,7 @@ impl LapceConfigSignal {
             SymbolKind::STRING => LapceIcons::SYMBOL_KIND_STRING,
             SymbolKind::STRUCT => LapceIcons::SYMBOL_KIND_STRUCT,
             SymbolKind::VARIABLE => LapceIcons::SYMBOL_KIND_VARIABLE,
-            _ => return None
+            _ => return None,
         };
 
         Some(self.ui_svg(kind_str))
@@ -770,7 +769,7 @@ impl LapceConfigSignal {
 
 pub struct UiSvgSignal {
     key:    &'static str,
-    signal: ReadSignal<IconThemeConfigSignal>
+    signal: ReadSignal<IconThemeConfigSignal>,
 }
 impl UiSvgSignal {
     pub fn get(&self) -> String {

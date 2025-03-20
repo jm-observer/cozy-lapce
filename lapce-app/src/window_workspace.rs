@@ -186,47 +186,47 @@ impl DragContent {
 
 #[derive(Clone)]
 pub struct WorkProgress {
-    pub token: ProgressToken,
-    pub title: String,
-    pub message: Option<String>,
+    pub token:      ProgressToken,
+    pub title:      String,
+    pub message:    Option<String>,
     pub percentage: Option<u32>,
 }
 
 #[derive(Clone)]
 pub struct CommonData {
-    pub workspace: LapceWorkspace,
-    pub scope: Scope,
-    pub focus: SignalManager<Focus>,
-    pub keypress: RwSignal<KeyPressData>,
-    pub completion: RwSignal<CompletionData>,
-    pub inline_completion: RwSignal<InlineCompletionData>,
-    pub hover: HoverData,
-    pub register: RwSignal<Register>,
-    pub find: Find,
-    pub workbench_size: RwSignal<Size>,
-    pub window_origin: RwSignal<Point>,
-    pub internal_command: Listener<InternalCommand>,
-    pub lapce_command: Listener<LapceCommand>,
-    pub workbench_command: Listener<LapceWorkbenchCommand>,
-    pub term_tx: Sender<(TermId, TermEvent)>,
-    pub term_notification_tx: Sender<TermNotification>,
-    pub proxy: ProxyRpcHandler,
-    pub local_task: LocalTaskRequester,
-    pub view_id: RwSignal<ViewId>,
-    pub ui_line_height: Memo<f64>,
-    pub dragging: RwSignal<Option<DragContent>>,
-    pub config: WithLapceConfig,
-    pub proxy_status: RwSignal<Option<ProxyStatus>>,
-    pub mouse_hover_timer: RwSignal<TimerToken>,
+    pub workspace:             LapceWorkspace,
+    pub scope:                 Scope,
+    pub focus:                 SignalManager<Focus>,
+    pub keypress:              RwSignal<KeyPressData>,
+    pub completion:            RwSignal<CompletionData>,
+    pub inline_completion:     RwSignal<InlineCompletionData>,
+    pub hover:                 HoverData,
+    pub register:              RwSignal<Register>,
+    pub find:                  Find,
+    pub workbench_size:        RwSignal<Size>,
+    pub window_origin:         RwSignal<Point>,
+    pub internal_command:      Listener<InternalCommand>,
+    pub lapce_command:         Listener<LapceCommand>,
+    pub workbench_command:     Listener<LapceWorkbenchCommand>,
+    pub term_tx:               Sender<(TermId, TermEvent)>,
+    pub term_notification_tx:  Sender<TermNotification>,
+    pub proxy:                 ProxyRpcHandler,
+    pub local_task:            LocalTaskRequester,
+    pub view_id:               RwSignal<ViewId>,
+    pub ui_line_height:        Memo<f64>,
+    pub dragging:              RwSignal<Option<DragContent>>,
+    pub config:                WithLapceConfig,
+    pub proxy_status:          RwSignal<Option<ProxyStatus>>,
+    pub mouse_hover_timer:     RwSignal<TimerToken>,
     pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
     // the current focused view which will receive keyboard events
-    pub keyboard_focus: RwSignal<Option<ViewId>>,
-    pub window_common: Rc<WindowCommonData>,
-    pub directory: Directory,
-    pub offset_line_from_top: RwSignal<Option<Option<usize>>>,
-    pub sync_document_symbol: RwSignal<bool>,
+    pub keyboard_focus:        RwSignal<Option<ViewId>>,
+    pub window_common:         Rc<WindowCommonData>,
+    pub directory:             Directory,
+    pub offset_line_from_top:  RwSignal<Option<Option<usize>>>,
+    pub sync_document_symbol:  RwSignal<bool>,
     pub document_highlight_id: RwSignal<u64>,
-    pub find_view_id:      RwSignal<Option<ViewId>>,
+    pub find_view_id:          RwSignal<Option<ViewId>>,
 }
 
 impl std::fmt::Debug for CommonData {
@@ -239,37 +239,37 @@ impl std::fmt::Debug for CommonData {
 
 #[derive(Clone)]
 pub struct WindowWorkspaceData {
-    pub scope: Scope,
-    pub window_tab_id: WindowTabId,
-    pub workspace: LapceWorkspace,
-    pub palette: PaletteData,
-    pub main_split: MainSplitData,
-    pub file_explorer: FileExplorerData,
-    pub panel: PanelData,
-    pub terminal: TerminalPanelData,
-    pub plugin: PluginData,
-    pub code_action: RwSignal<CodeActionData>,
-    pub code_lens: RwSignal<Option<ViewId>>,
-    pub source_control: SourceControlData,
-    pub rename: RenameData,
-    pub global_search: GlobalSearchData,
-    pub about_data: AboutData,
-    pub alert_data: AlertBoxData,
-    pub layout_rect: RwSignal<Rect>,
-    pub title_height: RwSignal<f64>,
-    pub status_height: RwSignal<f64>,
-    pub proxy: ProxyData,
-    pub set_config: WriteSignal<LapceConfig>,
-    pub update_in_progress: RwSignal<bool>,
-    pub progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>,
-    pub messages: RwSignal<Vec<(String, ShowMessageParams)>>,
-    pub common: Rc<CommonData>,
+    pub scope:                     Scope,
+    pub window_tab_id:             WindowTabId,
+    pub workspace:                 LapceWorkspace,
+    pub palette:                   PaletteData,
+    pub main_split:                MainSplitData,
+    pub file_explorer:             FileExplorerData,
+    pub panel:                     PanelData,
+    pub terminal:                  TerminalPanelData,
+    pub plugin:                    PluginData,
+    pub code_action:               RwSignal<CodeActionData>,
+    pub code_lens:                 RwSignal<Option<ViewId>>,
+    pub source_control:            SourceControlData,
+    pub rename:                    RenameData,
+    pub global_search:             GlobalSearchData,
+    pub about_data:                AboutData,
+    pub alert_data:                AlertBoxData,
+    pub layout_rect:               RwSignal<Rect>,
+    pub title_height:              RwSignal<f64>,
+    pub status_height:             RwSignal<f64>,
+    pub proxy:                     ProxyData,
+    pub set_config:                WriteSignal<LapceConfig>,
+    pub update_in_progress:        RwSignal<bool>,
+    pub progresses:                RwSignal<IndexMap<ProgressToken, WorkProgress>>,
+    pub messages:                  RwSignal<Vec<(String, ShowMessageParams)>>,
+    pub common:                    Rc<CommonData>,
     pub document_symbol_scroll_to: RwSignal<Option<f64>>,
-    pub build_data: TreePanelData,
-    pub cursor_blink: CursorBlink,
-    pub keymap_query: RwSignal<String>,
-    pub setting_query: RwSignal<String>,
-    pub theme_query: RwSignal<String>,
+    pub build_data:                TreePanelData,
+    pub cursor_blink:              CursorBlink,
+    pub keymap_query:              RwSignal<String>,
+    pub setting_query:             RwSignal<String>,
+    pub theme_query:               RwSignal<String>,
 }
 
 impl std::fmt::Debug for WindowWorkspaceData {
@@ -289,11 +289,11 @@ impl KeyPressFocus for WindowWorkspaceData {
         match condition {
             Condition::PanelFocus => {
                 matches!(self.common.focus.get_untracked(), Focus::Panel(_))
-            }
+            },
             Condition::SourceControlFocus => {
                 self.common.focus.get_untracked()
                     == Focus::Panel(PanelKind::SourceControl)
-            }
+            },
             _ => false,
         }
     }
@@ -309,47 +309,47 @@ impl KeyPressFocus for WindowWorkspaceData {
                 if let Err(err) = self.run_workbench_command(cmd.clone(), None) {
                     error!("{err:?}");
                 }
-            }
+            },
             CommandKind::Focus(cmd) => {
                 if self.common.focus.get_untracked() == Focus::Workbench {
                     match cmd {
                         FocusCommand::SplitClose => {
                             self.main_split.editor_tab_child_close_active();
-                        }
+                        },
                         FocusCommand::SplitVertical => {
                             self.main_split.split_active(SplitDirection::Vertical);
-                        }
+                        },
                         FocusCommand::SplitHorizontal => {
                             self.main_split.split_active(SplitDirection::Horizontal);
-                        }
+                        },
                         FocusCommand::SplitRight => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Right);
-                        }
+                        },
                         FocusCommand::SplitLeft => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Left);
-                        }
+                        },
                         FocusCommand::SplitUp => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Up);
-                        }
+                        },
                         FocusCommand::SplitDown => {
                             self.main_split
                                 .split_move_active(SplitMoveDirection::Down);
-                        }
+                        },
                         FocusCommand::SplitExchange => {
                             self.main_split.split_exchange_active();
-                        }
+                        },
                         _ => {
                             return CommandExecuted::No;
-                        }
+                        },
                     }
                 }
-            }
+            },
             _ => {
                 return CommandExecuted::No;
-            }
+            },
         }
 
         CommandExecuted::Yes
@@ -482,7 +482,7 @@ impl WindowWorkspaceData {
             offset_line_from_top: cx.create_rw_signal(None),
             sync_document_symbol: cx.create_rw_signal(true),
             document_highlight_id: cx.create_rw_signal(0),
-            find_view_id: cx.create_rw_signal(None)
+            find_view_id: cx.create_rw_signal(None),
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -500,13 +500,13 @@ impl WindowWorkspaceData {
             let root_split_data = {
                 let cx = cx.create_child();
                 let root_split_data = SplitData {
-                    scope: cx,
-                    parent_split: None,
-                    split_id: root_split,
-                    children: Vec::new(),
-                    direction: SplitDirection::Horizontal,
+                    scope:         cx,
+                    parent_split:  None,
+                    split_id:      root_split,
+                    children:      Vec::new(),
+                    direction:     SplitDirection::Horizontal,
                     window_origin: Point::ZERO,
-                    layout_rect: Rect::ZERO,
+                    layout_rect:   Rect::ZERO,
                 };
                 cx.create_rw_signal(root_split_data)
             };
@@ -544,18 +544,18 @@ impl WindowWorkspaceData {
                     .get_panel_orders()
                     .unwrap_or_else(|_| default_panel_order());
                 PanelData {
-                    panels: cx.create_rw_signal(panel_order),
-                    styles: cx.create_rw_signal(i.panel.styles.clone()),
-                    size: cx.create_rw_signal(i.panel.size.clone()),
+                    panels:         cx.create_rw_signal(panel_order),
+                    styles:         cx.create_rw_signal(i.panel.styles.clone()),
+                    size:           cx.create_rw_signal(i.panel.size.clone()),
                     available_size: panel_available_size,
-                    sections: cx.create_rw_signal(
+                    sections:       cx.create_rw_signal(
                         i.panel
                             .sections
                             .iter()
                             .map(|(key, value)| (*key, cx.create_rw_signal(*value)))
                             .collect(),
                     ),
-                    common: common.clone(),
+                    common:         common.clone(),
                 }
             })
             .unwrap_or_else(|| {
@@ -618,10 +618,10 @@ impl WindowWorkspaceData {
                         match notification {
                             TermNotification::SetTitle { term_id, title } => {
                                 terminal.set_title(term_id, title);
-                            }
+                            },
                             TermNotification::RequestPaint => {
                                 view_id.get_untracked().request_paint();
-                            }
+                            },
                         }
                     }
                 });
@@ -811,7 +811,7 @@ impl WindowWorkspaceData {
                 if let Err(err) = self.run_workbench_command(command, cmd.data) {
                     error!("{err:?}");
                 }
-            }
+            },
             CommandKind::Scroll(_)
             | CommandKind::Focus(_)
             | CommandKind::Edit(_)
@@ -825,9 +825,9 @@ impl WindowWorkspaceData {
                 } else {
                     // TODO: dispatch to current focused view?
                 }
-            }
-            CommandKind::MotionMode(_) => {}
-            CommandKind::MultiSelection(_) => {}
+            },
+            CommandKind::MotionMode(_) => {},
+            CommandKind::MultiSelection(_) => {},
         }
     }
 
@@ -2323,7 +2323,7 @@ impl WindowWorkspaceData {
         match rpc {
             CoreNotification::ProxyStatus { status } => {
                 self.common.proxy_status.set(Some(status.to_owned()));
-            }
+            },
             CoreNotification::DiffInfo { diff } => {
                 self.source_control.branch.set(diff.head.clone());
                 self.source_control
@@ -2350,7 +2350,7 @@ impl WindowWorkspaceData {
                 for (_, doc) in docs {
                     doc.retrieve_head();
                 }
-            }
+            },
             CoreNotification::CompletionResponse {
                 request_id,
                 input,
@@ -2371,7 +2371,7 @@ impl WindowWorkspaceData {
                     completion
                         .update_document_completion(&editor_data, cursor_offset);
                 }
-            }
+            },
             CoreNotification::PublishDiagnostics {
                 diagnostics: diagnostic_params,
             } => {
@@ -2397,7 +2397,7 @@ impl WindowWorkspaceData {
                     .set(diagnostics);
 
                 let doc_content = DocContent::File {
-                    path: path.clone(),
+                    path:      path.clone(),
                     read_only: false,
                 };
 
@@ -2410,7 +2410,7 @@ impl WindowWorkspaceData {
                     // warn!("PublishDiagnostics docs {:?}", path);
                     doc.init_diagnostics();
                 }
-            }
+            },
             CoreNotification::ServerStatus { params } => {
                 if params.is_ok() {
                     // todo filter by language
@@ -2427,7 +2427,7 @@ impl WindowWorkspaceData {
                         }
                     });
                 }
-            }
+            },
             CoreNotification::TerminalProcessStopped { term_id, exit_code } => {
                 info!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
                 if let Err(err) = self
@@ -2448,10 +2448,10 @@ impl WindowWorkspaceData {
                     }
                     self.common.focus.set(Focus::Workbench);
                 }
-            }
+            },
             CoreNotification::TerminalLaunchFailed { term_id, error } => {
                 self.terminal.launch_failed(term_id, error);
-            }
+            },
             CoreNotification::DapRunInTerminal { config } => {
                 let dap_id = config.dap_id;
                 if let Some(dap_data) = self
@@ -2493,13 +2493,13 @@ impl WindowWorkspaceData {
                 } else {
                     error!("no found dap_data {dap_id:?}");
                 }
-            }
+            },
             CoreNotification::TerminalProcessId {
                 term_id,
                 process_id,
             } => {
                 self.terminal.set_process_id(term_id, *process_id);
-            }
+            },
             CoreNotification::DapStopped {
                 dap_id,
                 stopped,
@@ -2509,13 +2509,13 @@ impl WindowWorkspaceData {
                 self.show_panel(PanelKind::Debug);
                 self.terminal
                     .dap_stopped(dap_id, stopped, stack_frames, variables);
-            }
+            },
             CoreNotification::OpenPaths { paths } => {
                 self.open_paths(paths);
-            }
+            },
             CoreNotification::DapContinued { dap_id } => {
                 self.terminal.dap_continued(dap_id);
-            }
+            },
             CoreNotification::DapBreakpointsResp {
                 path, breakpoints, ..
             } => {
@@ -2553,22 +2553,22 @@ impl WindowWorkspaceData {
                         }
                     }
                 });
-            }
+            },
             CoreNotification::OpenFileChanged { path, content } => {
                 self.main_split.open_file_changed(path, content);
-            }
+            },
             CoreNotification::VoltInstalled { volt, icon } => {
                 self.plugin.volt_installed(volt, icon);
-            }
+            },
             CoreNotification::VoltRemoved { volt, .. } => {
                 self.plugin.volt_removed(volt);
-            }
+            },
             CoreNotification::WorkDoneProgress { progress } => {
                 self.update_progress(progress);
-            }
+            },
             CoreNotification::ShowMessage { title, message } => {
                 self.show_message(title, message);
-            }
+            },
             CoreNotification::Log {
                 level,
                 message,
@@ -2582,46 +2582,46 @@ impl WindowWorkspaceData {
                 match level {
                     LogLevel::Trace => {
                         log!(target: &target, Level::Trace, "{}", message);
-                    }
+                    },
                     LogLevel::Debug => {
                         log!(target: &target, Level::Debug, "{}", message);
-                    }
+                    },
                     LogLevel::Info => {
                         log!(target: &target, Level::Info, "{}", message);
-                    }
+                    },
                     LogLevel::Warn => {
                         log!(target: &target, Level::Warn, "{}", message);
-                    }
+                    },
                     LogLevel::Error => {
                         log!(target: &target, Level::Error, "{}", message);
-                    }
+                    },
                 }
-            }
+            },
             CoreNotification::LogMessage { message, target } => {
                 use lsp_types::MessageType;
                 match message.typ {
                     MessageType::ERROR => {
                         error!("{} {}", target, message.message)
-                    }
+                    },
                     MessageType::WARNING => {
                         warn!("{} {}", target, message.message)
-                    }
+                    },
                     MessageType::INFO => {
                         info!("{} {}", target, message.message)
-                    }
+                    },
                     MessageType::DEBUG => {
                         debug!("{} {}", target, message.message)
-                    }
+                    },
                     MessageType::LOG => {
                         trace!("{} {}", target, message.message)
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
+            },
             CoreNotification::WorkspaceFileChange => {
                 self.file_explorer.reload();
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -2638,21 +2638,21 @@ impl WindowWorkspaceData {
             Focus::CodeAction => {
                 let code_action = self.code_action.get_untracked();
                 Some(keypress.key_down(event, &code_action))
-            }
+            },
             Focus::Rename => Some(keypress.key_down(event, &self.rename)),
             Focus::AboutPopup => Some(keypress.key_down(event, &self.about_data)),
             Focus::Panel(PanelKind::Terminal) => {
                 self.terminal.key_down(event, &keypress)
-            }
+            },
             Focus::Panel(PanelKind::Search) => {
                 Some(keypress.key_down(event, &self.global_search))
-            }
+            },
             Focus::Panel(PanelKind::Plugin) => {
                 Some(keypress.key_down(event, &self.plugin))
-            }
+            },
             Focus::Panel(PanelKind::SourceControl) => {
                 Some(keypress.key_down(event, &self.source_control))
-            }
+            },
             _ => None,
         };
 
@@ -2678,8 +2678,8 @@ impl WindowWorkspaceData {
             .cloned()
             .unwrap();
         WorkspaceInfo {
-            split: main_split_data.get_untracked().split_info(self),
-            panel: self.panel.panel_info(),
+            split:       main_split_data.get_untracked().split_info(self),
+            panel:       self.panel.panel_info(),
             breakpoints: self
                 .terminal
                 .debug
@@ -2726,9 +2726,9 @@ impl WindowWorkspaceData {
         // top right corner of word
         let mut origin = window_origin
             + Vec2::new(
-            point_below.x - viewport.x0 - offset,
-            (point_above.y - viewport.y0) - hover_size.height + offset,
-        );
+                point_below.x - viewport.x0 - offset,
+                (point_above.y - viewport.y0) - hover_size.height + offset,
+            );
         if origin.y < 0.0 {
             // bottom right corner of word
             origin.y = window_origin.y + point_below.y - viewport.y0 - offset;
@@ -2776,9 +2776,9 @@ impl WindowWorkspaceData {
 
         let mut origin = window_origin
             + Vec2::new(
-            point_below.x - viewport.x0 - line_height - 5.0,
-            point_below.y - viewport.y0,
-        );
+                point_below.x - viewport.x0 - line_height - 5.0,
+                point_below.y - viewport.y0,
+            );
         if origin.y + completion_size.height > tab_size.height {
             origin.y = window_origin.y + (point_above.y - viewport.y0)
                 - completion_size.height;
@@ -2823,13 +2823,13 @@ impl WindowWorkspaceData {
 
         let mut origin = window_origin
             + Vec2::new(
-            if code_action.mouse_click {
-                0.0
-            } else {
-                point_below.x - viewport.x0
-            },
-            point_below.y - viewport.y0,
-        );
+                if code_action.mouse_click {
+                    0.0
+                } else {
+                    point_below.x - viewport.x0
+                },
+                point_below.y - viewport.y0,
+            );
 
         if origin.y + code_action_size.height > tab_size.height {
             origin.y = origin.y - line_height - code_action_size.height;
@@ -2931,10 +2931,10 @@ impl WindowWorkspaceData {
                 // Some panels don't accept focus (yet). Fall back to visibility
                 // check in those cases.
                 self.panel.is_panel_visible(&kind)
-            }
+            },
             PanelKind::Terminal | PanelKind::SourceControl | PanelKind::Search => {
                 self.is_panel_focused(kind)
-            }
+            },
         };
         if should_hide {
             self.hide_panel(kind);
@@ -2973,9 +2973,9 @@ impl WindowWorkspaceData {
     pub fn show_panel(&self, kind: PanelKind) {
         if kind == PanelKind::Terminal
             && self
-            .terminal
-            .tab_infos
-            .with_untracked(|info| info.tabs.is_empty())
+                .terminal
+                .tab_infos
+                .with_untracked(|info| info.tabs.is_empty())
         {
             self.terminal.new_tab(
                 self.common
@@ -3003,7 +3003,7 @@ impl WindowWorkspaceData {
         match mode {
             RunDebugMode::Run => {
                 self.run_program_in_terminal(cx, &mode, &config, false);
-            }
+            },
             RunDebugMode::Debug => {
                 let dap_id = config.dap_id;
                 let dap_data = DapData::new(cx, dap_id, None, self.common.clone());
@@ -3018,7 +3018,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            }
+            },
         }
     }
 
@@ -3101,7 +3101,7 @@ impl WindowWorkspaceData {
                 run_debug.created = Instant::now();
                 run_debug.is_prelaunch = true;
                 terminal.new_process(Some(run_debug));
-            }
+            },
             RunDebugMode::Debug => {
                 let config = run_debug.origin_config.clone();
                 let dap_id = config.dap_id;
@@ -3126,7 +3126,7 @@ impl WindowWorkspaceData {
                 if !self.panel.is_panel_visible(&PanelKind::Debug) {
                     self.panel.show_panel(&PanelKind::Debug);
                 }
-            }
+            },
         }
         Ok(())
     }
@@ -3139,11 +3139,11 @@ impl WindowWorkspaceData {
             self.common.window_common.window_command.send(
                 WindowCommand::NewWorkspaceTab {
                     workspace: LapceWorkspace {
-                        kind: self.workspace.kind.clone(),
-                        path: Some(folder.path.clone()),
+                        kind:      self.workspace.kind.clone(),
+                        path:      Some(folder.path.clone()),
                         last_open: 0,
                     },
-                    end: false,
+                    end:       false,
                 },
             );
         }
@@ -3151,7 +3151,7 @@ impl WindowWorkspaceData {
         for file in files {
             let position = file.linecol.map(|pos| {
                 EditorPosition::Position(lsp_types::Position {
-                    line: pos.line.saturating_sub(1) as u32,
+                    line:      pos.line.saturating_sub(1) as u32,
                     character: pos.column.saturating_sub(1) as u32,
                 })
             });
@@ -3185,15 +3185,15 @@ impl WindowWorkspaceData {
             lsp_types::ProgressParamsValue::WorkDone(progress) => match progress {
                 lsp_types::WorkDoneProgress::Begin(progress) => {
                     let progress = WorkProgress {
-                        token: token.clone(),
-                        title: progress.title.clone(),
-                        message: progress.message.clone(),
+                        token:      token.clone(),
+                        title:      progress.title.clone(),
+                        message:    progress.message.clone(),
                         percentage: progress.percentage,
                     };
                     self.progresses.update(|p| {
                         p.insert(token, progress);
                     });
-                }
+                },
                 lsp_types::WorkDoneProgress::Report(report) => {
                     self.progresses.update(|p| {
                         if let Some(progress) = p.get_mut(&token) {
@@ -3201,12 +3201,12 @@ impl WindowWorkspaceData {
                             progress.percentage = report.percentage;
                         }
                     })
-                }
+                },
                 lsp_types::WorkDoneProgress::End(_) => {
                     self.progresses.update(|p| {
                         p.swap_remove(&token);
                     });
-                }
+                },
             },
         }
     }
@@ -3313,11 +3313,11 @@ impl WindowWorkspaceData {
                             })
                         });
                     }
-                }
+                },
                 Err(err) => {
                     log::error!("{:?}", err);
-                }
-                Ok(_) => {}
+                },
+                Ok(_) => {},
             },
         );
         self.common.proxy.call_hierarchy_incoming(
@@ -3340,7 +3340,7 @@ impl WindowWorkspaceData {
                 SplitContentInfo::EditorTab(
                     editor_tab_data.get_untracked().tab_info(self),
                 )
-            }
+            },
             SplitContent::Split(split_id) => {
                 let split_data = self
                     .main_split
@@ -3350,7 +3350,7 @@ impl WindowWorkspaceData {
                     .cloned()
                     .unwrap();
                 SplitContentInfo::Split(split_data.get_untracked().split_info(self))
-            }
+            },
         }
     }
 }
@@ -3360,9 +3360,9 @@ fn open_uri(path: &Path) {
     match open::that(path) {
         Ok(_) => {
             debug!("opened active file: {path:?}");
-        }
+        },
         Err(e) => {
             error!("failed to open active file: {path:?}, error: {e}");
-        }
+        },
     }
 }

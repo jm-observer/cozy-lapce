@@ -3,7 +3,7 @@ use std::{fmt::Display, str::FromStr};
 use doc::lines::mode::Modes;
 use floem::{
     keyboard::{Key, KeyCode, Modifiers, NamedKey, PhysicalKey},
-    pointer::MouseButton
+    pointer::MouseButton,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -11,7 +11,7 @@ pub enum KeymapMatch {
     Full(String),
     Multiple(Vec<String>),
     Prefix,
-    None
+    None,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -19,14 +19,14 @@ pub struct KeyMap {
     pub key:     Vec<KeyMapPress>,
     pub modes:   Modes,
     pub when:    Option<String>,
-    pub command: String
+    pub command: String,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Ord, PartialOrd)]
 pub enum KeyMapKey {
     Pointer(MouseButton),
     Logical(Key),
-    Physical(PhysicalKey)
+    Physical(PhysicalKey),
 }
 
 impl std::hash::Hash for KeyMapKey {
@@ -34,7 +34,7 @@ impl std::hash::Hash for KeyMapKey {
         match self {
             Self::Pointer(btn) => (*btn as u8).hash(state),
             Self::Logical(key) => key.hash(state),
-            Self::Physical(physical) => physical.hash(state)
+            Self::Physical(physical) => physical.hash(state),
         }
     }
 }
@@ -42,7 +42,7 @@ impl std::hash::Hash for KeyMapKey {
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Ord, PartialOrd)]
 pub struct KeyMapPress {
     pub key:  KeyMapKey,
-    pub mods: Modifiers
+    pub mods: Modifiers,
 }
 
 impl KeyMapPress {
@@ -101,7 +101,7 @@ impl KeyMapPress {
             let keyname = match std::env::consts::OS {
                 "macos" => "Cmd+",
                 "windows" => "Win+",
-                _ => "Meta+"
+                _ => "Meta+",
             };
             keys.push_str(keyname);
         }
@@ -122,7 +122,7 @@ impl KeyMapPress {
                 } else {
                     match k.rsplit_once('+') {
                         Some(pair) => pair,
-                        None => ("", k)
+                        None => ("", k),
                     }
                 };
 
@@ -132,7 +132,7 @@ impl KeyMapPress {
                         // Skip past unrecognized key definitions
                         log::warn!("Unrecognized key: {key}");
                         return None;
-                    }
+                    },
                 };
 
                 let mut mods = Modifiers::empty();
@@ -144,7 +144,7 @@ impl KeyMapPress {
                         "alt" => mods.set(Modifiers::ALT, true),
                         "altgr" => mods.set(Modifiers::ALTGR, true),
                         "" => (),
-                        other => log::warn!("Invalid key modifier: {}", other)
+                        other => log::warn!("Invalid key modifier: {}", other),
                     }
                 }
 
@@ -233,7 +233,7 @@ impl FromStr for KeyMapKey {
                         "unrecognized physical key code {}",
                         &s[1..s.len() - 2]
                     ));
-                }
+                },
             };
             KeyMapKey::Physical(PhysicalKey::Code(code))
         } else {
@@ -306,7 +306,7 @@ impl FromStr for KeyMapKey {
                 "f12" => Key::Named(NamedKey::F12),
                 "mediastop" => Key::Named(NamedKey::MediaStop),
                 "open" => Key::Named(NamedKey::Open),
-                _ => Key::Character(s.to_lowercase().into())
+                _ => Key::Character(s.to_lowercase().into()),
             };
             KeyMapKey::Logical(key)
         };
@@ -595,7 +595,7 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::Meta) => match std::env::consts::OS {
                         "macos" => f.write_str("Cmd"),
                         "windows" => f.write_str("Win"),
-                        _ => f.write_str("Meta")
+                        _ => f.write_str("Meta"),
                     },
                     PhysicalKey::Code(KeyCode::Hyper) => f.write_str("Hyper"),
                     PhysicalKey::Code(KeyCode::Turbo) => f.write_str("Turbo"),
@@ -648,7 +648,7 @@ impl Display for KeyMapKey {
                     PhysicalKey::Code(KeyCode::F33) => f.write_str("F33"),
                     PhysicalKey::Code(KeyCode::F34) => f.write_str("F34"),
                     PhysicalKey::Code(KeyCode::F35) => f.write_str("F35"),
-                    _ => f.write_str("Unidentified")
+                    _ => f.write_str("Unidentified"),
                 }?;
                 f.write_str("]")
             },
@@ -688,16 +688,16 @@ impl Display for KeyMapKey {
                     NamedKey::F10 => f.write_str("F10"),
                     NamedKey::F11 => f.write_str("F11"),
                     NamedKey::F12 => f.write_str("F12"),
-                    _ => f.write_str("Unidentified")
+                    _ => f.write_str("Unidentified"),
                 },
                 Key::Character(s) => f.write_str(s),
                 Key::Unidentified(_) => f.write_str("Unidentified"),
-                Key::Dead(_) => f.write_str("dead")
+                Key::Dead(_) => f.write_str("dead"),
             },
             Self::Pointer(MouseButton::Auxiliary) => f.write_str("MouseMiddle"),
             Self::Pointer(MouseButton::X2) => f.write_str("MouseForward"),
             Self::Pointer(MouseButton::X1) => f.write_str("MouseBackward"),
-            Self::Pointer(_) => f.write_str("MouseUnimplemented")
+            Self::Pointer(_) => f.write_str("MouseUnimplemented"),
         }
     }
 }

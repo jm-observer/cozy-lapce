@@ -2,8 +2,8 @@ use cozy_floem::{
     channel::ExtChannel,
     views::{
         panel::{DocManager, DocStyle, panel},
-        tree_with_panel::data::{StyledText, TreePanelData}
-    }
+        tree_with_panel::data::{StyledText, TreePanelData},
+    },
 };
 use floem::{
     Application, View,
@@ -12,7 +12,7 @@ use floem::{
     prelude::Decorators,
     reactive::Scope,
     views::stack,
-    window::WindowConfig
+    window::WindowConfig,
 };
 use log::{LevelFilter::Info, error};
 use rust_resolve::async_command::run_command;
@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
         "panel",
         "warn,rust_resolve=debug,cozy_rust_panel=debug,cozy_floem=debug",
         Info,
-        false
+        false,
     )
     .build();
 
@@ -44,7 +44,7 @@ fn app_view(simple_doc: DocManager) -> impl View {
     view.on_key_up(
         Key::Named(NamedKey::F11),
         |m| m.is_empty(),
-        move |_| id.inspect()
+        move |_| id.inspect(),
     )
 }
 
@@ -70,7 +70,7 @@ async fn _run(channel: ExtChannel<StyledText>) -> anyhow::Result<()> {
         "--package",
         "check",
         "--bin",
-        "check"
+        "check",
     ]);
     run_command(command, channel).await?;
     Ok(())

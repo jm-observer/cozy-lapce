@@ -1,17 +1,17 @@
 use floem::{
     View,
     prelude::{
-        Decorators, SignalGet, SignalUpdate, container, scroll, stack, virtual_stack
+        Decorators, SignalGet, SignalUpdate, container, scroll, stack, virtual_stack,
     },
     style::{AlignItems, FlexDirection},
-    views::static_label
+    views::static_label,
 };
 
 use crate::views::{
     drag_line::x_drag_line,
     panel::panel,
     svg_from_fn,
-    tree_with_panel::data::{Level, TreePanelData}
+    tree_with_panel::data::{Level, TreePanelData},
 };
 
 pub fn tree_with_panel(data: TreePanelData) -> impl View {
@@ -29,7 +29,7 @@ pub fn tree_with_panel(data: TreePanelData) -> impl View {
         }),
         x_drag_line(left_width)
             .style(move |s| s.width(6.0).height_full().margin_left(-6.0)),
-        panel(doc).style(|x| x.flex_grow(1.).height_full())
+        panel(doc).style(|x| x.flex_grow(1.).height_full()),
     ))
 }
 fn view_tree(data: TreePanelData) -> impl View {

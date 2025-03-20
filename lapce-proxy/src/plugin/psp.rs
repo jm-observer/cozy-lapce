@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     path::{Path, PathBuf},
     sync::Arc,
-    thread
+    thread,
 };
 
 use anyhow::{Result, anyhow};
@@ -16,43 +16,58 @@ use lapce_rpc::{
     RpcError,
     core::{CoreRpcHandler, ServerStatusParams},
     plugin::{PluginId, VoltID},
-    style::{LineStyle, Style}
+    style::{LineStyle, Style},
 };
 use lapce_xi_rope::{Rope, RopeDelta};
 use log::{debug, error};
-use lsp_types::{CancelParams, CodeActionProviderCapability, DidChangeTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, FoldingRangeProviderCapability, HoverProviderCapability, ImplementationProviderCapability, InitializeResult, LogMessageParams, MessageType, OneOf, ProgressParams, PublishDiagnosticsParams, Range, Registration, RegistrationParams, SemanticTokens, SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensServerCapabilities, ServerCapabilities, ShowMessageParams, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentSaveRegistrationOptions, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncSaveOptions, VersionedTextDocumentIdentifier, notification::{
-    Cancel, DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument,
-    Initialized, LogMessage, Notification, Progress, PublishDiagnostics,
-    ShowMessage
-}, request::{
-    CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
-    CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
-    DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition,
-    GotoImplementation, GotoTypeDefinition, HoverRequest, Initialize,
-    InlayHintRequest, InlineCompletionRequest, PrepareRenameRequest, References,
-    RegisterCapability, Rename, ResolveCompletionItem, SelectionRangeRequest,
-    SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
-    SignatureHelpRequest, WorkDoneProgressCreate, WorkspaceSymbolRequest, DocumentHighlightRequest
-}};
+use lsp_types::{
+    CancelParams, CodeActionProviderCapability, DidChangeTextDocumentParams,
+    DidSaveTextDocumentParams, DocumentSelector, FoldingRangeProviderCapability,
+    HoverProviderCapability, ImplementationProviderCapability, InitializeResult,
+    LogMessageParams, MessageType, OneOf, ProgressParams, PublishDiagnosticsParams,
+    Range, Registration, RegistrationParams, SemanticTokens,
+    SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensServerCapabilities, ServerCapabilities, ShowMessageParams,
+    TextDocumentContentChangeEvent, TextDocumentIdentifier,
+    TextDocumentSaveRegistrationOptions, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextDocumentSyncSaveOptions,
+    VersionedTextDocumentIdentifier,
+    notification::{
+        Cancel, DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument,
+        Initialized, LogMessage, Notification, Progress, PublishDiagnostics,
+        ShowMessage,
+    },
+    request::{
+        CallHierarchyIncomingCalls, CallHierarchyPrepare, CodeActionRequest,
+        CodeActionResolveRequest, CodeLensRequest, CodeLensResolve, Completion,
+        DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
+        Formatting, GotoDefinition, GotoImplementation, GotoTypeDefinition,
+        HoverRequest, Initialize, InlayHintRequest, InlineCompletionRequest,
+        PrepareRenameRequest, References, RegisterCapability, Rename,
+        ResolveCompletionItem, SelectionRangeRequest,
+        SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
+        SignatureHelpRequest, WorkDoneProgressCreate, WorkspaceSymbolRequest,
+    },
+};
 use parking_lot::Mutex;
 use psp_types::{
     ExecuteProcess, ExecuteProcessParams, ExecuteProcessResult,
     RegisterDebuggerType, RegisterDebuggerTypeParams, Request, SendLspNotification,
     SendLspNotificationParams, SendLspRequest, SendLspRequestParams,
     SendLspRequestResult, StartLspServer, StartLspServerParams,
-    StartLspServerResult
+    StartLspServerResult,
 };
 use serde::Serialize;
 use serde_json::Value;
 
 use super::{
     PluginCatalogRpcHandler,
-    lsp::{DocumentFilter, LspClient}
+    lsp::{DocumentFilter, LspClient},
 };
 
 pub enum ResponseHandler<Resp, Error> {
     Chan(Sender<(Id, Result<Resp, Error>)>),
-    Callback(Box<dyn RpcCallback<Resp, Error>>)
+    Callback(Box<dyn RpcCallback<Resp, Error>>),
 }
 
 impl<Resp, Error> ResponseHandler<Resp, Error> {
@@ -63,7 +78,7 @@ impl<Resp, Error> ResponseHandler<Resp, Error> {
                     log::error!("{:?}", err);
                 }
             },
-            ResponseHandler::Callback(f) => f.call(id, result)
+            ResponseHandler::Callback(f) => f.call(id, result),
         }
     }
 }
@@ -94,7 +109,7 @@ pub enum PluginHandlerNotification {
     InitializeResult(InitializeResult),
     Shutdown,
 
-    SpawnedPluginLoaded { plugin_id: PluginId }
+    SpawnedPluginLoaded { plugin_id: PluginId },
 }
 
 pub enum PluginServerRpc {
@@ -106,30 +121,30 @@ pub enum PluginServerRpc {
         params:      Params,
         language_id: Option<String>,
         path:        Option<PathBuf>,
-        rh:          ResponseHandler<Value, RpcError>
+        rh:          ResponseHandler<Value, RpcError>,
     },
     ServerNotification {
         method:      Cow<'static, str>,
         params:      Params,
         language_id: Option<String>,
-        path:        Option<PathBuf>
+        path:        Option<PathBuf>,
     },
     HostRequest {
         id:     Id,
         method: String,
         params: Params,
-        resp:   ResponseSender
+        resp:   ResponseSender,
     },
     HostNotification {
         method: String,
         params: Params,
-        from:   String
+        from:   String,
     },
     DidSaveTextDocument {
         language_id:   String,
         path:          PathBuf,
         text_document: TextDocumentIdentifier,
-        text:          Rope
+        text:          Rope,
     },
     DidChangeTextDocument {
         language_id: String,
@@ -140,16 +155,16 @@ pub enum PluginServerRpc {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>
-            )>
-        >
+                Option<TextDocumentContentChangeEvent>,
+            )>,
+        >,
     },
     FormatSemanticTokens {
         id:     u64,
         tokens: SemanticTokens,
         text:   Rope,
-        f:      Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
-    }
+        f:      Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
+    },
 }
 
 #[derive(Clone)]
@@ -160,12 +175,12 @@ pub struct PluginServerRpcHandler {
     rpc_tx:         Sender<PluginServerRpc>,
     rpc_rx:         Receiver<PluginServerRpc>,
     io_tx:          Sender<JsonRpc>,
-    server_pending: Arc<Mutex<HashMap<Id, ResponseHandler<Value, RpcError>>>>
+    server_pending: Arc<Mutex<HashMap<Id, ResponseHandler<Value, RpcError>>>>,
 }
 
 #[derive(Clone)]
 pub struct ResponseSender {
-    tx: Sender<Result<Value, RpcError>>
+    tx: Sender<Result<Value, RpcError>>,
 }
 impl ResponseSender {
     pub fn new(tx: Sender<Result<Value, RpcError>>) -> Self {
@@ -175,7 +190,7 @@ impl ResponseSender {
     pub fn send(&self, result: impl Serialize) {
         let result = serde_json::to_value(result).map_err(|e| RpcError {
             code:    0,
-            message: e.to_string()
+            message: e.to_string(),
         });
         if let Err(err) = self.tx.send(result) {
             log::error!("{:?}", err);
@@ -191,7 +206,7 @@ impl ResponseSender {
     pub fn send_err(&self, code: i64, message: impl Into<String>) {
         if let Err(err) = self.tx.send(Err(RpcError {
             code,
-            message: message.into()
+            message: message.into(),
         })) {
             log::error!("{:?}", err);
         }
@@ -202,32 +217,32 @@ pub trait PluginServerHandler {
     fn document_supported(
         &mut self,
         language_id: Option<&str>,
-        path: Option<&Path>
+        path: Option<&Path>,
     ) -> bool;
     fn method_registered(&mut self, method: &str) -> bool;
     fn handle_host_notification(
         &mut self,
         method: String,
         params: Params,
-        from: String
+        from: String,
     );
     fn handle_host_request(
         &mut self,
         id: Id,
         method: String,
         params: Params,
-        chan: ResponseSender
+        chan: ResponseSender,
     );
     fn handle_handler_notification(
         &mut self,
-        notification: PluginHandlerNotification
+        notification: PluginHandlerNotification,
     );
     fn handle_did_save_text_document(
         &self,
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope
+        text: Rope,
     );
     fn handle_did_change_text_document(
         &mut self,
@@ -239,16 +254,16 @@ pub trait PluginServerHandler {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>
-            )>
-        >
+                Option<TextDocumentContentChangeEvent>,
+            )>,
+        >,
     );
     fn format_semantic_tokens(
         &self,
         id: u64,
         tokens: SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
     );
 }
 
@@ -258,7 +273,7 @@ impl PluginServerRpcHandler {
         spawned_by: Option<PluginId>,
         plugin_id: Option<PluginId>,
         io_tx: Sender<JsonRpc>,
-        id: u64
+        id: u64,
     ) -> Self {
         let (rpc_tx, rpc_rx) = crossbeam_channel::unbounded();
 
@@ -269,7 +284,7 @@ impl PluginServerRpcHandler {
             rpc_tx,
             rpc_rx,
             io_tx,
-            server_pending: Arc::new(Mutex::new(HashMap::new()))
+            server_pending: Arc::new(Mutex::new(HashMap::new())),
         };
 
         rpc.initialize(id);
@@ -278,7 +293,7 @@ impl PluginServerRpcHandler {
 
     fn initialize(&self, id: u64) {
         self.handle_rpc(PluginServerRpc::Handler(
-            PluginHandlerNotification::Initialize(id)
+            PluginHandlerNotification::Initialize(id),
         ));
     }
 
@@ -287,7 +302,7 @@ impl PluginServerRpcHandler {
         id: Id,
         method: &str,
         params: Params,
-        rh: ResponseHandler<Value, RpcError>
+        rh: ResponseHandler<Value, RpcError>,
     ) {
         {
             let mut pending = self.server_pending.lock();
@@ -322,7 +337,7 @@ impl PluginServerRpcHandler {
         params: P,
         language_id: Option<String>,
         path: Option<PathBuf>,
-        check: bool
+        check: bool,
     ) {
         let params = Params::from(serde_json::to_value(params).unwrap());
         let method = method.into();
@@ -332,7 +347,7 @@ impl PluginServerRpcHandler {
                 method,
                 params,
                 language_id,
-                path
+                path,
             }) {
                 log::error!("{:?}", err);
             }
@@ -354,7 +369,7 @@ impl PluginServerRpcHandler {
         language_id: Option<String>,
         path: Option<PathBuf>,
         check: bool,
-        id: u64
+        id: u64,
     ) -> Result<Value, RpcError> {
         let (tx, rx) = crossbeam_channel::bounded(1);
         self.server_request_common(
@@ -364,12 +379,12 @@ impl PluginServerRpcHandler {
             path,
             check,
             id,
-            ResponseHandler::Chan(tx)
+            ResponseHandler::Chan(tx),
         );
         rx.recv()
             .map_err(|_| RpcError {
                 code:    0,
-                message: "io error".to_string()
+                message: "io error".to_string(),
             })?
             .1
     }
@@ -383,7 +398,7 @@ impl PluginServerRpcHandler {
         path: Option<PathBuf>,
         check: bool,
         id: u64,
-        f: impl RpcCallback<Value, RpcError> + 'static
+        f: impl RpcCallback<Value, RpcError> + 'static,
     ) {
         self.server_request_common(
             method.into(),
@@ -392,7 +407,7 @@ impl PluginServerRpcHandler {
             path,
             check,
             id,
-            ResponseHandler::Callback(Box::new(f))
+            ResponseHandler::Callback(Box::new(f)),
         );
     }
 
@@ -405,7 +420,7 @@ impl PluginServerRpcHandler {
         path: Option<PathBuf>,
         check: bool,
         id: u64,
-        rh: ResponseHandler<Value, RpcError>
+        rh: ResponseHandler<Value, RpcError>,
     ) {
         let params = Params::from(serde_json::to_value(params).unwrap());
         if check {
@@ -415,7 +430,7 @@ impl PluginServerRpcHandler {
                 params,
                 language_id,
                 path,
-                rh
+                rh,
             }) {
                 log::error!("{:?}", err);
             }
@@ -433,7 +448,7 @@ impl PluginServerRpcHandler {
     pub fn shutdown(&self) {
         // to kill lsp
         self.handle_rpc(PluginServerRpc::Handler(
-            PluginHandlerNotification::Shutdown
+            PluginHandlerNotification::Shutdown,
         ));
         // to end PluginServerRpcHandler::mainloop
         self.handle_rpc(PluginServerRpc::Shutdown);
@@ -441,7 +456,7 @@ impl PluginServerRpcHandler {
 
     pub fn mainloop<H>(&self, handler: &mut H)
     where
-        H: PluginServerHandler {
+        H: PluginServerHandler, {
         for msg in &self.rpc_rx {
             match msg {
                 PluginServerRpc::ServerRequest {
@@ -450,7 +465,7 @@ impl PluginServerRpcHandler {
                     params,
                     language_id,
                     path,
-                    rh
+                    rh,
                 } => {
                     if handler
                         .document_supported(language_id.as_deref(), path.as_deref())
@@ -463,8 +478,8 @@ impl PluginServerRpcHandler {
                             id,
                             Err(RpcError {
                                 code:    0,
-                                message: "server not capable".to_string()
-                            })
+                                message: "server not capable".to_string(),
+                            }),
                         );
                     }
                 },
@@ -472,7 +487,7 @@ impl PluginServerRpcHandler {
                     method,
                     params,
                     language_id,
-                    path
+                    path,
                 } => {
                     if handler
                         .document_supported(language_id.as_deref(), path.as_deref())
@@ -485,14 +500,14 @@ impl PluginServerRpcHandler {
                     id,
                     method,
                     params,
-                    resp
+                    resp,
                 } => {
                     handler.handle_host_request(id, method, params, resp);
                 },
                 PluginServerRpc::HostNotification {
                     method,
                     params,
-                    from
+                    from,
                 } => {
                     handler.handle_host_notification(method, params, from);
                 },
@@ -500,13 +515,13 @@ impl PluginServerRpcHandler {
                     language_id,
                     path,
                     text_document,
-                    text
+                    text,
                 } => {
                     handler.handle_did_save_text_document(
                         language_id,
                         path,
                         text_document,
-                        text
+                        text,
                     );
                 },
                 PluginServerRpc::DidChangeTextDocument {
@@ -515,7 +530,7 @@ impl PluginServerRpcHandler {
                     delta,
                     text,
                     new_text,
-                    change
+                    change,
                 } => {
                     handler.handle_did_change_text_document(
                         language_id,
@@ -523,14 +538,14 @@ impl PluginServerRpcHandler {
                         delta,
                         text,
                         new_text,
-                        change
+                        change,
                     );
                 },
                 PluginServerRpc::FormatSemanticTokens {
                     id,
                     tokens,
                     text,
-                    f
+                    f,
                 } => {
                     handler.format_semantic_tokens(id, tokens, text, f);
                 },
@@ -539,7 +554,7 @@ impl PluginServerRpcHandler {
                 },
                 PluginServerRpc::Shutdown => {
                     return;
-                }
+                },
             }
         }
     }
@@ -548,7 +563,7 @@ impl PluginServerRpcHandler {
 pub fn handle_plugin_server_message(
     server_rpc: &PluginServerRpcHandler,
     message: &str,
-    from: &str
+    from: &str,
 ) -> Option<JsonRpc> {
     match JsonRpc::parse(message) {
         Ok(value @ JsonRpc::Request(_)) => {
@@ -558,7 +573,7 @@ pub fn handle_plugin_server_message(
                 id:     id.clone(),
                 method: value.get_method().unwrap().to_string(),
                 params: value.get_params().unwrap(),
-                resp:   ResponseSender::new(tx)
+                resp:   ResponseSender::new(tx),
             };
             server_rpc.handle_rpc(rpc);
             let result = rx.recv().unwrap();
@@ -569,9 +584,9 @@ pub fn handle_plugin_server_message(
                     jsonrpc_lite::Error {
                         code:    e.code,
                         message: e.message,
-                        data:    None
-                    }
-                )
+                        data:    None,
+                    },
+                ),
             };
             Some(resp)
         },
@@ -579,7 +594,7 @@ pub fn handle_plugin_server_message(
             let rpc = PluginServerRpc::HostNotification {
                 method: value.get_method().unwrap().to_string(),
                 params: value.get_params().unwrap(),
-                from:   from.to_string()
+                from:   from.to_string(),
             };
             server_rpc.handle_rpc(rpc);
             None
@@ -595,26 +610,26 @@ pub fn handle_plugin_server_message(
                 value.get_id().unwrap(),
                 Err(RpcError {
                     code:    error.code,
-                    message: error.message.clone()
-                })
+                    message: error.message.clone(),
+                }),
             );
             None
         },
         Err(err) => {
             eprintln!("parse error {err} message {message}");
             None
-        }
+        },
     }
 }
 
 struct SaveRegistration {
     include_text: bool,
-    filters:      Vec<DocumentFilter>
+    filters:      Vec<DocumentFilter>,
 }
 
 #[derive(Default)]
 struct ServerRegistrations {
-    save: Option<SaveRegistration>
+    save: Option<SaveRegistration>,
 }
 
 pub struct PluginHostHandler {
@@ -631,7 +646,7 @@ pub struct PluginHostHandler {
 
     /// Language servers that this plugin has spawned.  
     /// Note that these plugin ids could be 'dead' if the LSP died/exited.  
-    spawned_lsp: HashMap<PluginId, SpawnedLspInfo>
+    spawned_lsp: HashMap<PluginId, SpawnedLspInfo>,
 }
 
 impl PluginHostHandler {
@@ -644,7 +659,7 @@ impl PluginHostHandler {
         document_selector: DocumentSelector,
         core_rpc: CoreRpcHandler,
         server_rpc: PluginServerRpcHandler,
-        catalog_rpc: PluginCatalogRpcHandler
+        catalog_rpc: PluginCatalogRpcHandler,
     ) -> Self {
         let document_selector = document_selector
             .iter()
@@ -661,14 +676,14 @@ impl PluginHostHandler {
             server_rpc,
             server_capabilities: ServerCapabilities::default(),
             server_registrations: ServerRegistrations::default(),
-            spawned_lsp: HashMap::new()
+            spawned_lsp: HashMap::new(),
         }
     }
 
     pub fn document_supported(
         &self,
         language_id: Option<&str>,
-        path: Option<&Path>
+        path: Option<&Path>,
     ) -> bool {
         match language_id {
             Some(language_id) => {
@@ -688,7 +703,7 @@ impl PluginHostHandler {
                 }
                 false
             },
-            None => true
+            None => true,
         }
     }
 
@@ -718,7 +733,7 @@ impl PluginHostHandler {
                                 .map(|kind| kind != TextDocumentSyncKind::NONE)
                         })
                         .unwrap_or(false),
-                    None => false
+                    None => false,
                 }
             },
             DidChangeTextDocument::METHOD => {
@@ -730,7 +745,7 @@ impl PluginHostHandler {
                         .change
                         .map(|kind| kind != TextDocumentSyncKind::NONE)
                         .unwrap_or(false),
-                    None => false
+                    None => false,
                 }
             },
             SignatureHelpRequest::METHOD => {
@@ -742,7 +757,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .map(|c| match c {
                     HoverProviderCapability::Simple(is_capable) => *is_capable,
-                    HoverProviderCapability::Options(_) => true
+                    HoverProviderCapability::Options(_) => true,
                 })
                 .unwrap_or(false),
             GotoDefinition::METHOD => self
@@ -751,7 +766,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .map(|d| match d {
                     OneOf::Left(is_capable) => *is_capable,
-                    OneOf::Right(_) => true
+                    OneOf::Right(_) => true,
                 })
                 .unwrap_or(false),
             GotoTypeDefinition::METHOD => {
@@ -763,7 +778,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .map(|r| match r {
                     OneOf::Left(is_capable) => *is_capable,
-                    OneOf::Right(_) => true
+                    OneOf::Right(_) => true,
                 })
                 .unwrap_or(false),
             GotoImplementation::METHOD => self
@@ -777,7 +792,7 @@ impl PluginHostHandler {
                     ImplementationProviderCapability::Options(_) => {
                         // todo
                         false
-                    }
+                    },
                 })
                 .unwrap_or(false),
             FoldingRangeRequest::METHOD => self
@@ -793,7 +808,7 @@ impl PluginHostHandler {
                     FoldingRangeProviderCapability::Options(_) => {
                         // todo
                         true
-                    }
+                    },
                 })
                 .unwrap_or(false),
             CodeActionRequest::METHOD => self
@@ -802,7 +817,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .map(|a| match a {
                     CodeActionProviderCapability::Simple(is_capable) => *is_capable,
-                    CodeActionProviderCapability::Options(_) => true
+                    CodeActionProviderCapability::Options(_) => true,
                 })
                 .unwrap_or(false),
             Formatting::METHOD => self
@@ -811,7 +826,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .map(|f| match f {
                     OneOf::Left(is_capable) => *is_capable,
-                    OneOf::Right(_) => true
+                    OneOf::Right(_) => true,
                 })
                 .unwrap_or(false),
             SemanticTokensFullRequest::METHOD => {
@@ -875,10 +890,11 @@ impl PluginHostHandler {
             CallHierarchyIncomingCalls::METHOD => {
                 self.server_capabilities.call_hierarchy_provider.is_some()
             },
-            DocumentHighlightRequest::METHOD => {
-                self.server_capabilities.document_highlight_provider.is_some()
-            },
-            _ => false
+            DocumentHighlightRequest::METHOD => self
+                .server_capabilities
+                .document_highlight_provider
+                .is_some(),
+            _ => false,
         }
     }
 
@@ -890,7 +906,7 @@ impl PluginHostHandler {
                 .as_ref()
                 .and_then(|sync| match sync {
                     TextDocumentSyncCapability::Kind(_) => None,
-                    TextDocumentSyncCapability::Options(options) => Some(options)
+                    TextDocumentSyncCapability::Options(options) => Some(options),
                 })
                 .and_then(|o| o.save.as_ref())
                 .map(|o| match o {
@@ -946,7 +962,7 @@ impl PluginHostHandler {
                                 .map(DocumentFilter::from_lsp_filter_loose)
                                 .collect()
                         })
-                        .unwrap_or_default()
+                        .unwrap_or_default(),
                 });
             },
             _ => {
@@ -954,7 +970,7 @@ impl PluginHostHandler {
                     "don't handle register capability for {}",
                     registration.method
                 );
-            }
+            },
         }
         Ok(())
     }
@@ -964,7 +980,7 @@ impl PluginHostHandler {
         _id: Id,
         method: String,
         params: Params,
-        resp: ResponseSender
+        resp: ResponseSender,
     ) {
         if let Err(err) = self.process_request(method, params, resp.clone()) {
             resp.send_err(0, err.to_string());
@@ -975,7 +991,7 @@ impl PluginHostHandler {
         &mut self,
         method: String,
         params: Params,
-        resp: ResponseSender
+        resp: ResponseSender,
     ) -> Result<()> {
         match method.as_str() {
             WorkDoneProgressCreate::METHOD => {
@@ -997,7 +1013,7 @@ impl PluginHostHandler {
                 resp.send(ExecuteProcessResult {
                     success: output.status.success(),
                     stdout:  Some(output.stdout),
-                    stderr:  Some(output.stderr)
+                    stderr:  Some(output.stderr),
                 });
             },
             RegisterDebuggerType::METHOD => {
@@ -1006,7 +1022,7 @@ impl PluginHostHandler {
                 self.catalog_rpc.register_debugger_type(
                     params.debugger_type,
                     params.program,
-                    params.args
+                    params.args,
                 );
                 resp.send_null();
             },
@@ -1036,7 +1052,7 @@ impl PluginHostHandler {
                         params.server_uri,
                         params.server_args,
                         params.options,
-                        0
+                        0,
                     ) {
                         log::error!("{:?}", err);
                     }
@@ -1063,7 +1079,7 @@ impl PluginHostHandler {
                     params,
                     None,
                     None,
-                    false
+                    false,
                 );
             },
             SendLspRequest::METHOD => {
@@ -1099,12 +1115,12 @@ impl PluginHostHandler {
                             },
                             Err(err) => {
                                 resp.send_err(err.code, err.message);
-                            }
+                            },
                         }
-                    }
+                    },
                 )
             },
-            _ => return Err(anyhow!("request not supported"))
+            _ => return Err(anyhow!("request not supported")),
         }
 
         Ok(())
@@ -1114,7 +1130,7 @@ impl PluginHostHandler {
         &mut self,
         method: String,
         params: Params,
-        from: String
+        from: String,
     ) -> Result<()> {
         match method.as_str() {
             // TODO: remove this after the next release and once we convert all the
@@ -1130,7 +1146,7 @@ impl PluginHostHandler {
                     Some(format!(
                         "lapce_proxy::plugin::psp::{}::{}::StartLspServer",
                         self.volt_id.author, self.volt_id.name
-                    ))
+                    )),
                 );
 
                 let params: StartLspServerParams =
@@ -1153,7 +1169,7 @@ impl PluginHostHandler {
                         params.server_uri,
                         params.server_args,
                         params.options,
-                        0
+                        0,
                     ) {
                         log::error!("{:?}", err);
                     }
@@ -1183,7 +1199,7 @@ impl PluginHostHandler {
                     format!(
                         "lapce_proxy::plugin::psp::{}::{}::LogMessage",
                         self.volt_id.author, self.volt_id.name
-                    )
+                    ),
                 );
             },
             Cancel::METHOD => {
@@ -1200,8 +1216,8 @@ impl PluginHostHandler {
                             from,
                             ShowMessageParams {
                                 typ:     MessageType::ERROR,
-                                message: msg.clone()
-                            }
+                                message: msg.clone(),
+                            },
                         );
                     }
                 }
@@ -1214,9 +1230,9 @@ impl PluginHostHandler {
                     Some(format!(
                         "lapce_proxy::plugin::psp::{}::{}::{method}",
                         self.volt_id.author, self.volt_id.name
-                    ))
+                    )),
                 );
-            }
+            },
         }
         Ok(())
     }
@@ -1226,7 +1242,7 @@ impl PluginHostHandler {
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
-        text: Rope
+        text: Rope,
     ) {
         let (should_send, include_text) =
             self.check_save_capability(language_id.as_str(), &path);
@@ -1239,14 +1255,14 @@ impl PluginHostHandler {
                 Some(text.to_string())
             } else {
                 None
-            }
+            },
         };
         self.server_rpc.server_notification(
             DidSaveTextDocument::METHOD,
             params,
             Some(language_id),
             Some(path),
-            false
+            false,
         );
     }
 
@@ -1260,16 +1276,16 @@ impl PluginHostHandler {
         change: Arc<
             Mutex<(
                 Option<TextDocumentContentChangeEvent>,
-                Option<TextDocumentContentChangeEvent>
-            )>
-        >
+                Option<TextDocumentContentChangeEvent>,
+            )>,
+        >,
     ) {
         let kind = match &self.server_capabilities.text_document_sync {
             Some(TextDocumentSyncCapability::Kind(kind)) => *kind,
             Some(TextDocumentSyncCapability::Options(options)) => {
                 options.change.unwrap_or(TextDocumentSyncKind::NONE)
             },
-            None => TextDocumentSyncKind::NONE
+            None => TextDocumentSyncKind::NONE,
         };
 
         let mut existing = change.lock();
@@ -1281,7 +1297,7 @@ impl PluginHostHandler {
                     let change = TextDocumentContentChangeEvent {
                         range:        None,
                         range_length: None,
-                        text:         new_text.to_string()
+                        text:         new_text.to_string(),
                     };
                     existing.0 = Some(change.clone());
                     change
@@ -1295,21 +1311,21 @@ impl PluginHostHandler {
                         .unwrap_or_else(|| TextDocumentContentChangeEvent {
                             range:        None,
                             range_length: None,
-                            text:         new_text.to_string()
+                            text:         new_text.to_string(),
                         });
                     existing.1 = Some(change.clone());
                     change
                 }
             },
             TextDocumentSyncKind::NONE => return,
-            _ => return
+            _ => return,
         };
 
         let path = document.uri.to_file_path().ok();
 
         let params = DidChangeTextDocumentParams {
             text_document:   document,
-            content_changes: vec![change]
+            content_changes: vec![change],
         };
 
         self.server_rpc.server_notification(
@@ -1317,7 +1333,7 @@ impl PluginHostHandler {
             params,
             Some(lanaguage_id),
             path,
-            false
+            false,
         );
     }
 
@@ -1326,16 +1342,16 @@ impl PluginHostHandler {
         id: u64,
         tokens: SemanticTokens,
         text: Rope,
-        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>
+        f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
     ) {
         let result = format_semantic_styles(
             &text,
             self.server_capabilities.semantic_tokens_provider.as_ref(),
-            &tokens
+            &tokens,
         )
         .ok_or_else(|| RpcError {
             code:    0,
-            message: "can't get styles".to_string()
+            message: "can't get styles".to_string(),
         });
         f.call(Id::Num(id as i64), result);
     }
@@ -1349,7 +1365,7 @@ impl PluginHostHandler {
                     Some(format!(
                         "{}::{}::handle_spawned_plugin_loaded",
                         self.volt_id.author, self.volt_id.name
-                    ))
+                    )),
                 );
                 return;
             };
@@ -1362,12 +1378,12 @@ impl PluginHostHandler {
 /// Information that a plugin associates with a spawned language server.
 struct SpawnedLspInfo {
     /// The response sender to use when the lsp is initialized.
-    resp: Option<ResponseSender>
+    resp: Option<ResponseSender>,
 }
 
 fn get_document_content_change(
     text: &Rope,
-    delta: &RopeDelta
+    delta: &RopeDelta,
 ) -> Option<TextDocumentContentChangeEvent> {
     let (interval, _) = delta.summary();
     let (start, end) = interval.start_end();
@@ -1391,7 +1407,7 @@ fn get_document_content_change(
         let text_document_content_change_event = TextDocumentContentChangeEvent {
             range: Some(Range { start, end }),
             range_length: None,
-            text
+            text,
         };
 
         return Some(text_document_content_change_event);
@@ -1409,10 +1425,10 @@ fn get_document_content_change(
         let text_document_content_change_event = TextDocumentContentChangeEvent {
             range:        Some(Range {
                 start,
-                end: end_position
+                end: end_position,
             }),
             range_length: None,
-            text:         String::new()
+            text:         String::new(),
         };
 
         return Some(text_document_content_change_event);
@@ -1424,7 +1440,7 @@ fn get_document_content_change(
 fn format_semantic_styles(
     text: &Rope,
     semantic_tokens_provider: Option<&SemanticTokensServerCapabilities>,
-    tokens: &SemanticTokens
+    tokens: &SemanticTokens,
 ) -> Option<(Vec<LineStyle>, Option<String>)> {
     let semantic_tokens_provider = semantic_tokens_provider?;
     let semantic_legends = semantic_tokens_legend(semantic_tokens_provider);
@@ -1464,8 +1480,8 @@ fn format_semantic_styles(
             end,
             text: None,
             style: Style {
-                fg_color: Some(kind)
-            }
+                fg_color: Some(kind),
+            },
         });
     }
 
@@ -1473,14 +1489,14 @@ fn format_semantic_styles(
 }
 
 fn semantic_tokens_legend(
-    semantic_tokens_provider: &SemanticTokensServerCapabilities
+    semantic_tokens_provider: &SemanticTokensServerCapabilities,
 ) -> &SemanticTokensLegend {
     match semantic_tokens_provider {
         SemanticTokensServerCapabilities::SemanticTokensOptions(options) => {
             &options.legend
         },
         SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
-            options
-        ) => &options.semantic_tokens_options.legend
+            options,
+        ) => &options.semantic_tokens_options.legend,
     }
 }

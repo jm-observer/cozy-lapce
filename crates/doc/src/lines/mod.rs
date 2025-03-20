@@ -7,8 +7,8 @@ use std::{
     slice::Iter,
     sync::{
         Arc,
-        atomic::{self, AtomicUsize}
-    }
+        atomic::{self, AtomicUsize},
+    },
 };
 
 use anyhow::{Result, anyhow, bail};
@@ -17,25 +17,24 @@ use floem::{
     kurbo::{Point, Rect, Size},
     peniko::{Brush, Color},
     reactive::{
-        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch
+        ReadSignal, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch,
     },
-    text::{Attrs, AttrsList, FONT_SYSTEM, FamilyOwned, Wrap}
+    text::{Attrs, AttrsList, FONT_SYSTEM, FamilyOwned, LineHeightValue, Wrap},
 };
-use floem::text::LineHeightValue;
 use itertools::Itertools;
 use lapce_xi_rope::{
     Interval, Rope, RopeDelta, Transformer,
-    spans::{SpanIter, Spans, SpansBuilder}
+    spans::{SpanIter, Spans, SpansBuilder},
 };
 use layout::{TextLayout, TextLayoutLine};
 use line::OriginFoldedLine;
 use log::{debug, error, info, warn};
 use lsp_types::{
     DiagnosticSeverity, DocumentHighlight, InlayHint, InlayHintLabel, Location,
-    Position
+    Position,
 };
 use phantom_text::{
-    PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine
+    PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine,
 };
 use signal::Signals;
 use smallvec::SmallVec;
@@ -50,13 +49,13 @@ use crate::{
         command::EditCommand,
         cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
         delta_compute::{OriginLinesDelta, resolve_delta_rs},
-        diff::{
-            DiffResult, advance, consume_line,
-            is_changed, is_diff, is_empty
-        },
+        diff::{DiffResult, advance, consume_line, is_changed, is_diff, is_empty},
         edit::{Action, EditConf, EditType},
         encoding::{offset_utf8_to_utf16, offset_utf16_to_utf8},
-        fold::{FoldingDisplayItem, FoldingRanges, FoldingRangesLine},
+        fold::{
+            FoldedRanges, FoldingDisplayItem, FoldingRanges, FoldingRangesLine,
+            MergeFoldingRangesLine,
+        },
         indent::IndentStyle,
         line::{LineTy, OriginLine, VisualLine},
         line_ending::LineEnding,
@@ -68,11 +67,10 @@ use crate::{
         style::EditorStyle,
         text::{PreeditData, SystemClipboard},
         util::get_document_highlight,
-        word::WordCursor
+        word::WordCursor,
     },
-    syntax::{BracketParser, Syntax, edit::SyntaxEdit}
+    syntax::{BracketParser, Syntax, edit::SyntaxEdit},
 };
-use crate::lines::fold::{FoldedRanges, MergeFoldingRangesLine};
 
 pub mod action;
 pub mod buffer;
@@ -113,15 +111,15 @@ pub struct LinesOfOriginOffset {
     pub origin_line:               OriginLine,
     pub origin_folded_line:        OriginFoldedLine,
     // 在折叠行的偏移值
-    pub origin_folded_line_offest: usize /* pub visual_line:
-                                          * VisualLine,
-                                          * 在视觉行的偏移值
-                                          * pub visual_line_offest:        usize */
+    pub origin_folded_line_offest: usize, /* pub visual_line:
+                                           * VisualLine,
+                                           * 在视觉行的偏移值
+                                           * pub visual_line_offest:        usize */
 }
 
 #[derive(Clone, Copy)]
 pub struct DocLinesManager {
-    lines: RwSignal<DocLines>
+    lines: RwSignal<DocLines>,
 }
 
 impl DocLinesManager {
@@ -136,7 +134,7 @@ impl DocLinesManager {
         config: EditorConfig,
         buffer: Buffer,
         // kind: RwSignal<EditorViewKind>,
-        path: Option<PathBuf>
+        path: Option<PathBuf>,
     ) -> Result<Self> {
         Ok(Self {
             lines: cx.create_rw_signal(DocLines::new(
@@ -149,8 +147,8 @@ impl DocLinesManager {
                 config,
                 buffer,
                 // kind,
-                path
-            )?)
+                path,
+            )?),
         })
     }
 
@@ -223,7 +221,7 @@ pub struct DocLines {
     style_from_lsp:        bool,
     // folding_items: Vec<FoldingDisplayItem>,
     path:                  Option<PathBuf>,
-    document_highlight:    Option<Vec<DocumentHighlight>>
+    document_highlight:    Option<Vec<DocumentHighlight>>,
 }
 
 impl DocLines {
@@ -238,7 +236,7 @@ impl DocLines {
         config: EditorConfig,
         buffer: Buffer,
         // kind: RwSignal<EditorViewKind>,
-        path: Option<PathBuf>
+        path: Option<PathBuf>,
     ) -> Result<Self> {
         let last_line = buffer.last_line() + 1;
         let signals = Signals::new(cx, &editor_style, buffer, (last_line, 0.0));
@@ -272,7 +270,7 @@ impl DocLines {
             // kind,
             style_from_lsp: false,
             // folding_items: Default::default(),
-            document_highlight: None
+            document_highlight: None,
         };
         lines.update_lines_new(OriginLinesDelta::default())?;
         Ok(lines)
@@ -800,9 +798,9 @@ impl DocLines {
     //         })
     //         .unwrap_or_default();
     //     // let semantic_styles =
-    //     //     self.get_line_semantic_styles(current_line, start_offset, end_offset);
-    //     let diagnostic_styles = self.get_line_diagnostic_styles_2(
-    //         current_line,
+    //     //     self.get_line_semantic_styles(current_line, start_offset,
+    // end_offset);     let diagnostic_styles =
+    // self.get_line_diagnostic_styles_2(         current_line,
     //         start_offset,
     //         end_offset
     //     );
@@ -925,7 +923,7 @@ impl DocLines {
     #[inline]
     pub fn folded_line_of_buffer_offset(
         &self,
-        buffer_offset: usize
+        buffer_offset: usize,
     ) -> Result<OriginFoldedLine> {
         let line = self.buffer().line_of_offset(buffer_offset);
         self.init_folded_line_layout_alone(line)
@@ -971,7 +969,7 @@ impl DocLines {
     pub fn buffer_offset_of_click(
         &self,
         _mode: &CursorMode,
-        point: Point
+        point: Point,
     ) -> Result<(usize, bool, CursorAffinity)> {
         let mut is_inside = true;
         let info = match self.origin_folded_line_of_point(point.y)? {
@@ -980,7 +978,7 @@ impl DocLines {
                 let last_line = self.buffer().last_line();
                 self.init_folded_line_layout_alone(last_line)?
             },
-            Some(rs) => rs
+            Some(rs) => rs,
         };
         let hit_point = info.hit_point(Point::new(point.x, 0.0));
         let visual_char_offset = hit_point.index;
@@ -1001,22 +999,22 @@ impl DocLines {
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Forward
+                                        CursorAffinity::Forward,
                                     )
                                 } else {
                                     (
                                         info.origin_interval.start
                                             + text.origin_merge_col,
                                         true,
-                                        CursorAffinity::Backward
+                                        CursorAffinity::Backward,
                                     )
-                                }
+                                },
                             );
                         } else if visual_char_offset == text.next_final_col() {
                             return Ok((
                                 info.origin_interval.start + text.origin_merge_col,
                                 true,
-                                CursorAffinity::Forward
+                                CursorAffinity::Forward,
                             ));
                         }
                     },
@@ -1030,11 +1028,11 @@ impl DocLines {
                                     + text.origin_merge_col_start()
                                     + info.origin_interval.start,
                                 true,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             ));
                         }
                     },
-                    Text::EmptyLine { .. } => unreachable!()
+                    Text::EmptyLine { .. } => unreachable!(),
                 }
             }
             error!(
@@ -1051,7 +1049,7 @@ impl DocLines {
                 Text::Phantom { text } => (
                     text.origin_merge_col + info.origin_interval.start,
                     false,
-                    CursorAffinity::Forward
+                    CursorAffinity::Forward,
                 ),
                 Text::OriginText { .. } => {
                     // 该行只有 "\r\n"，因此return '\r' CursorAffinity::Backward
@@ -1064,13 +1062,13 @@ impl DocLines {
                             (
                                 info.origin_interval.end,
                                 false,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )
                         } else {
                             (
                                 info.origin_interval.end - line_ending_len,
                                 false,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )
                         }
                     }
@@ -1087,7 +1085,7 @@ impl DocLines {
 
     pub(crate) fn origin_folded_line_of_point(
         &self,
-        point_y: f64
+        point_y: f64,
     ) -> Result<Option<OriginFoldedLine>> {
         let origin_folded_line_index =
             (point_y / self.config.line_height as f64).floor() as usize;
@@ -1150,7 +1148,7 @@ impl DocLines {
                 ClickResult::MatchWithoutLocation
             } else {
                 ClickResult::NoHintOrNothing
-            }
+            },
         )
     }
 
@@ -1250,10 +1248,10 @@ impl DocLines {
     pub fn folded_line_and_final_col_of_offset(
         &self,
         buffer_offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<(
         OriginFoldedLine,
-        usize //bool, usize, usize
+        usize, //bool, usize, usize
     )> {
         // // 位于的原始行，以及在原始行的起始offset
         // let (origin_line, start_offset_of_origin_line) = {
@@ -1277,7 +1275,7 @@ impl DocLines {
             // visual_line.clone(),
             // offset_of_visual,
             folded_line,
-            final_col // last_char, origin_line, start_offset_of_origin_line,
+            final_col, // last_char, origin_line, start_offset_of_origin_line,
         ))
     }
 
@@ -1456,7 +1454,7 @@ impl DocLines {
     pub fn compute_screen_lines_new(
         &mut self,
         base: Rect,
-        view_kind: EditorViewKind
+        view_kind: EditorViewKind,
     ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
         info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         let line_height = self.config.line_height;
@@ -1468,14 +1466,16 @@ impl DocLines {
             EditorViewKind::Normal => {
                 (self.folding_ranges.get_all_folded_range(), vec![], true)
             },
-            EditorViewKind::Diff { changes,.. } => (FoldedRanges(vec![]), changes, false)
+            EditorViewKind::Diff { changes, .. } => {
+                (FoldedRanges(vec![]), changes, false)
+            },
         };
         debug!("{folded:?}");
         let folded_line_count = folded.folded_line_count();
         let mut folded_lines = FoldingRangesLine::new(&folded.0);
 
         let empty_line_len = changes.iter().fold(0, |x, y| {
-            if let DiffResult::Empty {lines} = y {
+            if let DiffResult::Empty { lines } = y {
                 x + lines.len()
             } else {
                 x
@@ -1489,16 +1489,24 @@ impl DocLines {
             .iter()
             .filter(is_changed as fn(&&DiffResult) -> bool)
             .peekable();
-        let last_line = self.buffer().last_line() + empty_line_len - folded_line_count;
+        let last_line =
+            self.buffer().last_line() + empty_line_len - folded_line_count;
         let min_val = min_val.min(last_line);
         let max_val = max_val.min(last_line);
         let visual_lines = self.generate_visual_lines(
             last_line,
             &mut empty_lines,
-            &mut folded_lines
+            &mut folded_lines,
         );
 
-        let screen_lines = self._compute_screen_lines_new(&visual_lines[min_val..=max_val], self.config.line_height, y0, base, &mut change_lines, &mut FoldingRangesLine::new(&folded.0))?;
+        let screen_lines = self._compute_screen_lines_new(
+            &visual_lines[min_val..=max_val],
+            self.config.line_height,
+            y0,
+            base,
+            &mut change_lines,
+            &mut FoldingRangesLine::new(&folded.0),
+        )?;
 
         let display_items = if is_normal {
             self.folding_ranges.to_display_items(&screen_lines)
@@ -1516,8 +1524,10 @@ impl DocLines {
         line_height: usize,
         y0: f64,
         base: Rect,
-        change_lines: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-        folded_lines: &mut FoldingRangesLine
+        change_lines: &mut Peekable<
+            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>,
+        >,
+        folded_lines: &mut FoldingRangesLine,
     ) -> Result<ScreenLines> {
         let mut max_width = 0.0;
 
@@ -1557,29 +1567,41 @@ impl DocLines {
 
         for line in lines {
             match &line.line_ty {
-                LineTy::DiffEmpty {..} => {
+                LineTy::DiffEmpty { .. } => {
                     let folded_line_y = line.line_index * line_height;
                     let visual_line_info = VisualLineInfo::DiffDelete {
-                        folded_line_y: folded_line_y as f64 - y0
+                        folded_line_y: folded_line_y as f64 - y0,
                     };
                     visual_lines.push(visual_line_info);
                 },
-                LineTy::OriginText { line_range_inclusive: line_number, origin_folded_line_index } => {
-                    let mut folded_line = self.init_folded_line_2(*line_number.start(), attrs, *origin_folded_line_index, line_ending, last_line
-                                                                  , &mut semantic_styles, &mut inlay_hints, folded_lines, &preedit_phantom)?;
+                LineTy::OriginText {
+                    line_range_inclusive: line_number,
+                    origin_folded_line_index,
+                } => {
+                    let mut folded_line = self.init_folded_line_2(
+                        *line_number.start(),
+                        attrs,
+                        *origin_folded_line_index,
+                        line_ending,
+                        last_line,
+                        &mut semantic_styles,
+                        &mut inlay_hints,
+                        folded_lines,
+                        &preedit_phantom,
+                    )?;
                     let is_diff = is_diff(change_lines, *line_number.start());
 
                     let highlight = get_document_highlight(
                         &mut highlights,
                         folded_line.origin_line_start as u32,
-                        folded_line.origin_line_end as u32
+                        folded_line.origin_line_end as u32,
                     );
                     folded_line.init_layout();
                     folded_line.extra_style();
                     folded_line.init_document_highlight(
                         highlight,
                         document_highlight_color,
-                        line_height
+                        line_height,
                     );
                     let size_width = folded_line.size_width().width;
                     if size_width > max_width {
@@ -1590,11 +1612,11 @@ impl DocLines {
                         text: VisualOriginText {
                             folded_line_y: folded_line_y as f64 - y0,
                             folded_line: folded_line.clone(),
-                            is_diff
-                        }
+                            is_diff,
+                        },
                     };
                     visual_lines.push(visual_line_info);
-                }
+                },
             }
         }
         self.signals.max_width.update_if_not_equal(max_width);
@@ -1603,15 +1625,25 @@ impl DocLines {
             diff_sections: None,
             base,
             line_height: line_height as f64,
-            buffer_len: self.buffer().len()
+            buffer_len: self.buffer().len(),
         })
     }
 
-    pub fn init_folded_line_layout_alone(&self, mut current_origin_line: usize,) -> Result<OriginFoldedLine>{
+    pub fn init_folded_line_layout_alone(
+        &self,
+        mut current_origin_line: usize,
+    ) -> Result<OriginFoldedLine> {
         let binding = self.folding_ranges.get_all_folded_range();
         debug!("{binding:?}");
-        let folded_index = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_origin_folded_line_index(current_origin_line);
-        if let Some(folded_range) = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_folded_range_by_line(current_origin_line as u32) {
+        let folded_index = MergeFoldingRangesLine::new(
+            &self.folding_ranges.get_all_folded_folded_range().0,
+        )
+        .get_origin_folded_line_index(current_origin_line);
+        if let Some(folded_range) = MergeFoldingRangesLine::new(
+            &self.folding_ranges.get_all_folded_folded_range().0,
+        )
+        .get_folded_range_by_line(current_origin_line as u32)
+        {
             current_origin_line = *folded_range.start();
         }
 
@@ -1645,18 +1677,34 @@ impl DocLines {
             .and(self.inlay_hints.as_ref())
             .map(|x| x.iter().peekable());
 
-        let folded_line = self.init_folded_line_2(current_origin_line, attrs, folded_index, line_ending, last_line, &mut semantic_styles, &mut inlay_hints, &mut folded_lines, &preedit_phantom)?;
+        let folded_line = self.init_folded_line_2(
+            current_origin_line,
+            attrs,
+            folded_index,
+            line_ending,
+            last_line,
+            &mut semantic_styles,
+            &mut inlay_hints,
+            &mut folded_lines,
+            &preedit_phantom,
+        )?;
         folded_line.init_layout();
         Ok(folded_line)
     }
 
-    pub fn init_folded_line_layout_alone_by_index(&self, origin_folded_index: usize,) -> Result<Option<OriginFoldedLine>>{
+    pub fn init_folded_line_layout_alone_by_index(
+        &self,
+        origin_folded_index: usize,
+    ) -> Result<Option<OriginFoldedLine>> {
         let buffer = self.buffer();
         let line_ending: &'static str = buffer.line_ending().get_chars();
         let last_line = buffer.last_line();
 
         let binding = self.folding_ranges.get_all_folded_range();
-        let Some(line_num) = MergeFoldingRangesLine::new(&self.folding_ranges.get_all_folded_folded_range().0).get_line_num(origin_folded_index, last_line) else {
+        let Some(line_num) = MergeFoldingRangesLine::new(
+            &self.folding_ranges.get_all_folded_folded_range().0,
+        )
+        .get_line_num(origin_folded_index, last_line) else {
             return Ok(None);
         };
         let mut folded_lines = FoldingRangesLine::new(&binding.0);
@@ -1686,7 +1734,17 @@ impl DocLines {
             .and(self.inlay_hints.as_ref())
             .map(|x| x.iter().peekable());
 
-        let folded_line = self.init_folded_line_2(line_num, attrs, origin_folded_index, line_ending, last_line, &mut semantic_styles, &mut inlay_hints, &mut folded_lines, &preedit_phantom)?;
+        let folded_line = self.init_folded_line_2(
+            line_num,
+            attrs,
+            origin_folded_index,
+            line_ending,
+            last_line,
+            &mut semantic_styles,
+            &mut inlay_hints,
+            &mut folded_lines,
+            &preedit_phantom,
+        )?;
         folded_line.init_layout();
         Ok(Some(folded_line))
     }
@@ -1701,13 +1759,17 @@ impl DocLines {
         all_semantic_styles: &mut Option<Peekable<SpanIter<String>>>,
         all_inlay_hints: &mut Option<Peekable<SpanIter<InlayHint>>>,
         folded_ranges: &mut FoldingRangesLine,
-        preedit_phantom: &Option<PhantomText>
+        preedit_phantom: &Option<PhantomText>,
     ) -> Result<OriginFoldedLine> {
         let text_layout = self.new_text_layout_3(
             current_origin_line,
             attrs,
             line_ending,
-            last_line, all_semantic_styles, all_inlay_hints, folded_ranges, preedit_phantom
+            last_line,
+            all_semantic_styles,
+            all_inlay_hints,
+            folded_ranges,
+            preedit_phantom,
         )?;
         // duration += time.elapsed().unwrap();
         let origin_line_start = text_layout.phantom_text.line;
@@ -1715,7 +1777,7 @@ impl DocLines {
 
         let origin_interval = Interval {
             start: self.buffer().offset_of_line(origin_line_start)?,
-            end:   self.buffer().offset_of_line(origin_line_end + 1)?
+            end:   self.buffer().offset_of_line(origin_line_end + 1)?,
         };
 
         let last_line =
@@ -1727,7 +1789,7 @@ impl DocLines {
             origin_line_end,
             origin_interval,
             text_layout,
-            last_line
+            last_line,
         })
     }
 
@@ -1735,9 +1797,9 @@ impl DocLines {
         &mut self,
         last_line: usize,
         empty_lines: &mut Peekable<
-            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>
+            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>,
         >,
-        folded_lines: &mut FoldingRangesLine
+        folded_lines: &mut FoldingRangesLine,
     ) -> Vec<VisualLine> {
         // 合并后，起始行
         let mut empty_count = 0;
@@ -1745,34 +1807,38 @@ impl DocLines {
         let mut origin_line_num = 0;
         let mut visual_lines = Vec::with_capacity(last_line);
         for visual_line_index in 0..=last_line {
-            if let Some(range) = consume_line(empty_lines, origin_line_num + empty_count) {
+            if let Some(range) =
+                consume_line(empty_lines, origin_line_num + empty_count)
+            {
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
                     line_ty:    LineTy::DiffEmpty {
                         change_line_start: range.start,
-                    }
+                    },
                 });
                 empty_count += 1;
                 continue;
             } else {
                 advance(empty_lines, origin_line_num + empty_count);
             }
-            if let Some(range) = folded_lines.get_folded_range_by_line(origin_line_num as u32) {
+            if let Some(range) =
+                folded_lines.get_folded_range_by_line(origin_line_num as u32)
+            {
                 origin_line_num = *range.end() + 1;
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
-                    line_ty: LineTy::OriginText {
+                    line_ty:    LineTy::OriginText {
                         line_range_inclusive: range,
-                        origin_folded_line_index
-                    }
+                        origin_folded_line_index,
+                    },
                 });
             } else {
                 visual_lines.push(VisualLine {
                     line_index: visual_line_index,
-                    line_ty: LineTy::OriginText {
+                    line_ty:    LineTy::OriginText {
                         line_range_inclusive: origin_line_num..=origin_line_num,
-                        origin_folded_line_index
-                    }
+                        origin_folded_line_index,
+                    },
                 });
                 origin_line_num += 1;
             }
@@ -1795,8 +1861,8 @@ impl DocLines {
     //     let mut text = inlay_hints
     //         .map(|x| {
     //             let mut styles =
-    //                 SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
-    //             loop {
+    //                 SmallVec::<[crate::lines::phantom_text::PhantomText;
+    // 6]>::new();             loop {
     //                 if let Some((Interval { start, .. }, _)) = x.peek() {
     //                     if end_offset <= *start {
     //                         break;
@@ -1804,20 +1870,20 @@ impl DocLines {
     //                 } else {
     //                     break;
     //                 }
-    //                 if let Some((Interval { start, end }, inlay_hint)) = x.next() {
-    //                     if start_offset <= start && end < end_offset {
-    //                         let (_, col) = match buffer.offset_to_line_col(start) {
-    //                             Ok(rs) => rs,
+    //                 if let Some((Interval { start, end }, inlay_hint)) = x.next()
+    // {                     if start_offset <= start && end < end_offset {
+    //                         let (_, col) = match buffer.offset_to_line_col(start)
+    // {                             Ok(rs) => rs,
     //                             Err(err) => {
     //                                 error!("{err:?}");
     //                                 return SmallVec::new();
     //                             }
     //                         };
     //                         let mut text = match &inlay_hint.label {
-    //                             InlayHintLabel::String(label) => label.to_string(),
-    //                             InlayHintLabel::LabelParts(parts) => {
-    //                                 parts.iter().map(|p| &p.value).join("")
-    //                             },
+    //                             InlayHintLabel::String(label) =>
+    // label.to_string(),                             
+    // InlayHintLabel::LabelParts(parts) => {                                 
+    // parts.iter().map(|p| &p.value).join("")                             },
     //                         };
     //                         match (text.starts_with(':'), text.ends_with(':')) {
     //                             (true, true) => {
@@ -1840,10 +1906,10 @@ impl DocLines {
     //                             fg: Some(self.config.inlay_hint_fg),
     //                             // font_family:
     //                             // Some(self.config.inlay_hint_font_family()),
-    //                             font_size: Some(self.config.inlay_hint_font_size()),
-    //                             bg: Some(self.config.inlay_hint_bg),
-    //                             under_line: None,
-    //                             final_col: col,
+    //                             font_size:
+    // Some(self.config.inlay_hint_font_size()),                             bg:
+    // Some(self.config.inlay_hint_bg),                             under_line:
+    // None,                             final_col: col,
     //                             line,
     //                             visual_merge_col: col,
     //                             origin_merge_col: col
@@ -1886,8 +1952,8 @@ impl DocLines {
     //     //             && !folded_ranges.contain_position(hint.position)
     //     //     })
     //     //     .filter_map(|(interval, inlay_hint)| {
-    //     //         let (_, col) = match buffer.offset_to_line_col(interval.start) {
-    //     //             Ok(rs) => rs,
+    //     //         let (_, col) = match buffer.offset_to_line_col(interval.start)
+    // {     //             Ok(rs) => rs,
     //     //             Err(err) => {
     //     //                 error!("{err:?}");
     //     //                 return None;
@@ -2006,8 +2072,8 @@ impl DocLines {
     //     .enable_completion_lens
     //     .then_some(())
     //     .and(self.completion_lens.as_ref())
-    //     // TODO: We're probably missing on various useful completion things to include here!
-    //     .filter(|_| {
+    //     // TODO: We're probably missing on various useful completion things to
+    // include here!     .filter(|_| {
     //         line == completion_line
     //             && !folded_ranges.contain_position(Position {
     //             line: completion_line as u32,
@@ -2020,8 +2086,8 @@ impl DocLines {
     //         text: completion.clone(),
     //         fg: Some(self.config.completion_lens_foreground),
     //         font_size: Some(self.config.completion_lens_font_size()),
-    //         // font_family: Some(self.config.editor.completion_lens_font_family()),
-    //         bg: None,
+    //         // font_family:
+    // Some(self.config.editor.completion_lens_font_family()),         bg: None,
     //         under_line: None,
     //         final_col: completion_col,
     //         line,
@@ -2098,7 +2164,6 @@ impl DocLines {
     //     ))
     // }
 
-
     fn phantom_text_2(
         &self,
         line: usize,
@@ -2106,7 +2171,7 @@ impl DocLines {
         start_offset: usize,
         end_offset: usize,
         folded_ranges: &mut FoldingRangesLine,
-        preedit_phantom: &Option<PhantomText>
+        preedit_phantom: &Option<PhantomText>,
     ) -> Result<PhantomTextLine> {
         let buffer = self.buffer();
         let origin_text_len = end_offset - start_offset;
@@ -2129,7 +2194,7 @@ impl DocLines {
                                 Err(err) => {
                                     error!("{err:?}");
                                     return SmallVec::new();
-                                }
+                                },
                             };
                             let mut text = match &inlay_hint.label {
                                 InlayHintLabel::String(label) => label.to_string(),
@@ -2149,7 +2214,7 @@ impl DocLines {
                                 },
                                 (false, false) => {
                                     text = format!(" {}", text);
-                                }
+                                },
                             }
                             styles.push(PhantomText {
                                 kind: PhantomTextKind::InlayHint,
@@ -2164,7 +2229,7 @@ impl DocLines {
                                 final_col: col,
                                 line,
                                 visual_merge_col: col,
-                                origin_merge_col: col
+                                origin_merge_col: col,
                             })
                         }
                     }
@@ -2212,9 +2277,9 @@ impl DocLines {
             .filter(|(_, inline_completion_line, inline_completion_col)| {
                 line == *inline_completion_line
                     && !folded_ranges.contain_position(Position {
-                    line:      *inline_completion_line as u32,
-                    character: *inline_completion_col as u32
-                })
+                        line:      *inline_completion_line as u32,
+                        character: *inline_completion_col as u32,
+                    })
             })
             .map(|(completion, _, inline_completion_col)| {
                 PhantomText {
@@ -2228,7 +2293,7 @@ impl DocLines {
                     final_col: *inline_completion_col,
                     line,
                     visual_merge_col: *inline_completion_col, // TODO: italics?
-                    origin_merge_col: *inline_completion_col
+                    origin_merge_col: *inline_completion_col,
                 }
             });
         if let Some(inline_completion_text) = inline_completion_text {
@@ -2246,13 +2311,19 @@ impl DocLines {
         let bg = self.config.inlay_hint_bg;
 
         // may be one more phantom_text?
-        text.append(&mut folded_ranges.phantom_text(line as u32, buffer, font_size, fg, bg)?);
+        text.append(&mut folded_ranges.phantom_text(
+            line as u32,
+            buffer,
+            font_size,
+            fg,
+            bg,
+        )?);
 
         Ok(PhantomTextLine::new(
             line,
             origin_text_len,
             start_offset,
-            text
+            text,
         ))
     }
 
@@ -2300,10 +2371,10 @@ impl DocLines {
     //         let next_phantom_text = next_origin_line.phantom.clone();
     //         collapsed_line_col = next_phantom_text.folded_line();
     //         semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
-    //         diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
-    //         let is_last_line = next_phantom_text.line == last_line;
-    //         phantom_text.merge(next_phantom_text, is_last_line);
-    //     }
+    //         diagnostic_styles.extend(next_origin_line.
+    // diagnostic_styles(offset_col));         let is_last_line =
+    // next_phantom_text.line == last_line;         phantom_text.
+    // merge(next_phantom_text, is_last_line);     }
     //
     //     let phantom_color = self.editor_style.phantom_color();
     //     phantom_text.add_phantom_style(
@@ -2331,8 +2402,8 @@ impl DocLines {
     //     //     WrapMethod::None => {},
     //     //     WrapMethod::EditorWidth => {
     //     //         text_layout.set_wrap(Wrap::WordOrGlyph);
-    //     //         text_layout.set_size(self.viewport_size.width as f32, f32::MAX);
-    //     //     },
+    //     //         text_layout.set_size(self.viewport_size.width as f32,
+    // f32::MAX);     //     },
     //     //     WrapMethod::WrapWidth { width } => {
     //     //         text_layout.set_wrap(Wrap::WordOrGlyph);
     //     //         text_layout.set_size(width, f32::MAX);
@@ -2358,7 +2429,7 @@ impl DocLines {
         semantic_styles: Option<&mut Peekable<SpanIter<String>>>,
         inlay_hints: Option<&mut Peekable<SpanIter<InlayHint>>>,
         folded_ranges: &mut FoldingRangesLine,
-        preedit_phantom: &Option<PhantomText>
+        preedit_phantom: &Option<PhantomText>,
     ) -> Result<OriginLine> {
         let start_offset = self.buffer().offset_of_line(current_line)?;
         let end_offset = self.buffer().offset_of_line(current_line + 1)?;
@@ -2376,7 +2447,9 @@ impl DocLines {
             current_line,
             inlay_hints,
             start_offset,
-            end_offset, folded_ranges, preedit_phantom
+            end_offset,
+            folded_ranges,
+            preedit_phantom,
         )?;
         let semantic_styles = semantic_styles
             .map(|x| {
@@ -2402,10 +2475,10 @@ impl DocLines {
                                 len: end - start,
                                 start_of_buffer: start,
                                 end_of_buffer: end,
-                                fg_color: color /* folded_line_offset_start:
-                                                 * start - line_start,
-                                                 * folded_line_offset_end: end -
-                                                 * line_start */
+                                fg_color: color, /* folded_line_offset_start:
+                                                  * start - line_start,
+                                                  * folded_line_offset_end: end -
+                                                  * line_start */
                             });
                         }
                     }
@@ -2418,7 +2491,7 @@ impl DocLines {
         let diagnostic_styles = self.get_line_diagnostic_styles_2(
             current_line,
             start_offset,
-            end_offset
+            end_offset,
         );
         Ok(OriginLine {
             line_index: current_line,
@@ -2426,7 +2499,7 @@ impl DocLines {
             len: end_offset - start_offset,
             phantom: phantom_text,
             semantic_styles,
-            diagnostic_styles
+            diagnostic_styles,
         })
     }
 
@@ -2440,10 +2513,16 @@ impl DocLines {
         all_semantic_styles: &mut Option<Peekable<SpanIter<String>>>,
         all_inlay_hints: &mut Option<Peekable<SpanIter<InlayHint>>>,
         folded_ranges: &mut FoldingRangesLine,
-        preedit_phantom: &Option<PhantomText>
+        preedit_phantom: &Option<PhantomText>,
     ) -> Result<TextLayoutLine> {
-        let origin_line = self.init_origin_line_2(line, all_semantic_styles.as_mut(), all_inlay_hints.as_mut(), folded_ranges, preedit_phantom)?;
-            // origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
+        let origin_line = self.init_origin_line_2(
+            line,
+            all_semantic_styles.as_mut(),
+            all_inlay_hints.as_mut(),
+            folded_ranges,
+            preedit_phantom,
+        )?;
+        // origins.get(line).ok_or(anyhow!("origins {line} empty"))?;
 
         let mut line_content = String::new();
 
@@ -2455,7 +2534,7 @@ impl DocLines {
         let mut collapsed_line_col = origin_line.phantom.folded_line();
         let mut phantom_text = PhantomTextMultiLine::new(
             origin_line.phantom.clone(),
-            line == last_line
+            line == last_line,
         );
 
         let mut attrs_list = AttrsList::new(attrs);
@@ -2467,11 +2546,17 @@ impl DocLines {
             {
                 util::push_strip_suffix(
                     self.buffer().line_content(collapsed_line)?.as_ref(),
-                    &mut line_content
+                    &mut line_content,
                 );
             }
             let offset_col = phantom_text.origin_text_len;
-            let next_origin_line = self.init_origin_line_2(collapsed_line, all_semantic_styles.as_mut(), all_inlay_hints.as_mut(), folded_ranges, preedit_phantom)?;
+            let next_origin_line = self.init_origin_line_2(
+                collapsed_line,
+                all_semantic_styles.as_mut(),
+                all_inlay_hints.as_mut(),
+                folded_ranges,
+                preedit_phantom,
+            )?;
 
             semantic_styles.extend(next_origin_line.semantic_styles(offset_col));
             diagnostic_styles.extend(next_origin_line.diagnostic_styles(offset_col));
@@ -2485,14 +2570,14 @@ impl DocLines {
         phantom_text.add_phantom_style(
             &mut attrs_list,
             attrs.font_size(attrs.font_size - 1.0),
-            phantom_color
+            phantom_color,
         );
         let final_line_content = phantom_text.final_line_content(&line_content);
         self.apply_semantic_styles_2(
             &phantom_text,
             &semantic_styles,
             &mut attrs_list,
-            attrs
+            attrs,
         );
         let text_layout = TextLayout::new_without_init(
             line,
@@ -2500,7 +2585,7 @@ impl DocLines {
             attrs_list,
             None,
             Wrap::WordOrGlyph,
-            line_ending
+            line_ending,
         );
         // drop(font_system);
         // match self.editor_style.wrap_method() {
@@ -2523,7 +2608,7 @@ impl DocLines {
             indent,
             phantom_text,
             semantic_styles,
-            diagnostic_styles
+            diagnostic_styles,
         );
         Ok(layout_line)
     }
@@ -2719,10 +2804,10 @@ impl DocLines {
     //     let min_val = (y0 / line_height as f64).floor() as usize;
     //     let max_val = (y1 / line_height as f64).floor() as usize;
     //     let screen_lines =
-    //         self.visual_lines(min_val, max_val, view_kind, line_height, y0, base);
-    //     let display_items = self.folding_ranges.to_display_items(&screen_lines);
-    //     self.signals.trigger();
-    //     (screen_lines, display_items)
+    //         self.visual_lines(min_val, max_val, view_kind, line_height, y0,
+    // base);     let display_items =
+    // self.folding_ranges.to_display_items(&screen_lines);     self.signals.
+    // trigger();     (screen_lines, display_items)
     // }
 
     // pub fn viewport(&self) -> Rect {
@@ -2786,7 +2871,7 @@ impl DocLines {
         phantom_text: &PhantomTextMultiLine,
         semantic_styles: &[NewLineStyle],
         attrs_list: &mut AttrsList,
-        attrs: Attrs
+        attrs: Attrs,
     ) {
         for NewLineStyle {
             fg_color,
@@ -2799,9 +2884,9 @@ impl DocLines {
                 *end_of_buffer - phantom_text.offset_of_line;
             match (
                 phantom_text.final_col_of_origin_merge_col(
-                    *start_of_buffer - phantom_text.offset_of_line
+                    *start_of_buffer - phantom_text.offset_of_line,
                 ),
-                phantom_text.final_col_of_origin_merge_col(origin_line_offset_end)
+                phantom_text.final_col_of_origin_merge_col(origin_line_offset_end),
             ) {
                 (Ok(Some(start)), Ok(Some(end))) => {
                     attrs_list.add_span(start..end, attrs.color(*fg_color));
@@ -2817,7 +2902,7 @@ impl DocLines {
                 _ => {
                     // maybe be folded
                     continue;
-                }
+                },
             }
             // // for (start, end, color) in styles.into_iter() {
             // let (Some(start), Some(end)) = (
@@ -2888,7 +2973,7 @@ impl DocLines {
         start_offset: usize,
         end_offset: usize,
         max_severity: &mut Option<DiagnosticSeverity>,
-        line_offset: usize
+        line_offset: usize,
     ) -> Vec<(usize, usize, Color)> {
         self.config
             .enable_error_lens
@@ -2916,14 +3001,14 @@ impl DocLines {
                                     },
                                     (severity, None) => {
                                         *max_severity = Some(severity);
-                                    }
+                                    },
                                 }
                                 let color =
                                     self.config.color_of_diagnostic(severity)?;
                                 Some((
                                     start + line_offset - start_offset,
                                     end + line_offset - start_offset,
-                                    color
+                                    color,
                                 ))
                             } else {
                                 None
@@ -2940,8 +3025,8 @@ impl DocLines {
         &self,
         origin_line: usize,
         start_offset: usize,
-        end_offset: usize /* max_severity: &mut
-                           * Option<DiagnosticSeverity>, */
+        end_offset: usize, /* max_severity: &mut
+                            * Option<DiagnosticSeverity>, */
     ) -> Vec<NewLineStyle> {
         self.config
             .enable_error_lens
@@ -2967,11 +3052,12 @@ impl DocLines {
                                     len: end - start,
                                     start_of_buffer: start_offset,
                                     end_of_buffer: end_offset,
-                                    fg_color: color /* folded_line_offset_start:
-                                                     * start -
-                                                     * start_offset,
-                                                     * folded_line_offset_end: end
-                                                     * - start_offset */
+                                    fg_color: color, /* folded_line_offset_start:
+                                                      * start -
+                                                      * start_offset,
+                                                      * folded_line_offset_end:
+                                                      * end
+                                                      * - start_offset */
                                 })
                             } else {
                                 None
@@ -2992,7 +3078,7 @@ impl DocLines {
     pub fn move_right(
         &self,
         buffer_offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<Option<(usize, CursorAffinity)>> {
         // if matches!(affinity, CursorAffinity::Backward) {
         //     return Ok(Some((buffer_offset, CursorAffinity::Forward)));
@@ -3017,7 +3103,7 @@ impl DocLines {
                         if matches!(affinity, CursorAffinity::Backward) {
                             return Ok(Some((
                                 buffer_offset,
-                                CursorAffinity::Forward
+                                CursorAffinity::Forward,
                             )));
                         } else {
                             // next merge col
@@ -3031,7 +3117,7 @@ impl DocLines {
                                             text.origin_merge_col_start()
                                                 + folded_line.offset_of_line()
                                                 + 1,
-                                            CursorAffinity::Backward
+                                            CursorAffinity::Backward,
                                         )));
                                     }
                                 }
@@ -3039,7 +3125,7 @@ impl DocLines {
                             // next line
                             return Ok(Some((
                                 folded_line.origin_interval.end,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         }
                     }
@@ -3047,7 +3133,7 @@ impl DocLines {
                 Text::OriginText { text } => {
                     if text.origin_merge_col_contains(
                         origin_merge_col,
-                        folded_line.last_line
+                        folded_line.last_line,
                     ) {
                         let final_col = text.final_col.start
                             + (origin_merge_col - text.origin_merge_col_start());
@@ -3055,19 +3141,19 @@ impl DocLines {
                             // 换行
                             return Ok(Some((
                                 folded_line.origin_interval.end,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         } else {
                             return Ok(Some((
                                 buffer_offset + 1,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         }
                     }
                 },
                 Text::EmptyLine { .. } => {
                     unreachable!()
-                }
+                },
             }
         }
         Err(anyhow!(
@@ -3078,7 +3164,7 @@ impl DocLines {
     pub fn move_left(
         &self,
         buffer_offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<Option<(usize, CursorAffinity)>> {
         if buffer_offset == 0 {
             return Ok(None);
@@ -3099,7 +3185,7 @@ impl DocLines {
                         if matches!(affinity, CursorAffinity::Forward) {
                             return Ok(Some((
                                 buffer_offset,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         } else if let Some(previous_text) = previous_text.take() {
                             match previous_text {
@@ -3107,7 +3193,7 @@ impl DocLines {
                                     return Ok(Some((
                                         previous.origin_merge_col
                                             + folded_line.origin_interval.start,
-                                        CursorAffinity::Backward
+                                        CursorAffinity::Backward,
                                     )));
                                 },
                                 Text::OriginText { text: previous } => {
@@ -3115,12 +3201,12 @@ impl DocLines {
                                         previous.origin_merge_col_end()
                                             + folded_line.origin_interval.start
                                             - 1,
-                                        CursorAffinity::Backward
+                                        CursorAffinity::Backward,
                                     )));
                                 },
                                 _ => {
                                     bail!("unreachable")
-                                }
+                                },
                             }
                         } else {
                             // previous line
@@ -3137,7 +3223,7 @@ impl DocLines {
                 Text::OriginText { text: origin_text } => {
                     if origin_text.origin_merge_col_contains(
                         origin_merge_col,
-                        folded_line.last_line
+                        folded_line.last_line,
                     ) {
                         if origin_merge_col
                             <= origin_text.origin_merge_col_start() + 1
@@ -3149,12 +3235,12 @@ impl DocLines {
                                         return Ok(Some((
                                             text.origin_merge_col
                                                 + folded_line.origin_interval.start,
-                                            CursorAffinity::Forward
+                                            CursorAffinity::Forward,
                                         )));
                                     },
                                     _ => {
                                         bail!("unreachable")
-                                    }
+                                    },
                                 }
                             } else if origin_merge_col
                                 == origin_text.origin_merge_col_start() + 1
@@ -3163,7 +3249,7 @@ impl DocLines {
                                 return Ok(Some((
                                     origin_text.origin_merge_col_start()
                                         + folded_line.origin_interval.start,
-                                    CursorAffinity::Backward
+                                    CursorAffinity::Backward,
                                 )));
                             } else {
                                 // previous line
@@ -3172,7 +3258,7 @@ impl DocLines {
                         } else {
                             return Ok(Some((
                                 buffer_offset - 1,
-                                CursorAffinity::Backward
+                                CursorAffinity::Backward,
                             )));
                         }
                     } else {
@@ -3182,7 +3268,7 @@ impl DocLines {
                 Text::EmptyLine { .. } => {
                     // previous line
                     break;
-                }
+                },
             }
         }
         if folded_line.line_index == 0 {
@@ -3201,19 +3287,19 @@ impl DocLines {
         match text {
             Text::Phantom { text } => Ok(Some((
                 text.origin_merge_col + previous.origin_interval.start,
-                CursorAffinity::Forward
+                CursorAffinity::Forward,
             ))),
             Text::OriginText { text } => {
                 let line_end = previous.len() - previous.len_without_rn();
                 Ok(Some((
                     text.origin_merge_col_end() + previous.origin_interval.start
                         - line_end,
-                    CursorAffinity::Backward
+                    CursorAffinity::Backward,
                 )))
             },
             Text::EmptyLine { .. } => {
                 bail!("unreachable")
-            }
+            },
         }
     }
 
@@ -3223,10 +3309,11 @@ impl DocLines {
         affinity: CursorAffinity,
         horiz: Option<ColPosition>,
         _mode: Mode,
-        _count: usize
+        _count: usize,
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
         let (visual_line, final_col, ..) = if offset >= self.buffer().len() {
-            let folded_line = self.init_folded_line_layout_alone(self.buffer().last_line())?;
+            let folded_line =
+                self.init_folded_line_layout_alone(self.buffer().last_line())?;
             let final_col = folded_line.len_without_rn();
             (folded_line, final_col)
         } else {
@@ -3234,14 +3321,17 @@ impl DocLines {
         };
 
         let horiz = horiz.unwrap_or(ColPosition::Col(final_col));
-        let Some(previous_visual_line) = self.init_folded_line_layout_alone_by_index(visual_line.line_index.max(1) - 1)?
+        let Some(previous_visual_line) = self
+            .init_folded_line_layout_alone_by_index(
+                visual_line.line_index.max(1) - 1,
+            )?
         else {
             return Ok(None);
         };
         let (offset_of_buffer, affinity) = self.rvline_horiz_col(
             &horiz,
             _mode != Mode::Normal,
-            &previous_visual_line
+            &previous_visual_line,
         )?;
 
         // let Some((_previous_visual_line, final_col, offset_of_buffer)) =
@@ -3266,7 +3356,7 @@ impl DocLines {
         &self,
         affinity: &mut CursorAffinity,
         offset: usize,
-        _mode: Mode
+        _mode: Mode,
     ) -> Result<(usize, ColPosition)> {
         let (origin_folded_line, ..) =
             self.folded_line_and_final_col_of_offset(offset, *affinity)?;
@@ -3296,7 +3386,7 @@ impl DocLines {
         };
         let new_offset = self.buffer().offset_of_line_col(
             origin_folded_line.origin_line_end,
-            origin_folded_line.origin_interval.end
+            origin_folded_line.origin_interval.end,
         )?;
 
         Ok((new_offset, ColPosition::End))
@@ -3308,7 +3398,7 @@ impl DocLines {
         affinity: CursorAffinity,
         horiz: Option<ColPosition>,
         _mode: Mode,
-        _count: usize
+        _count: usize,
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
         let (visual_line, final_col, ..) =
             self.folded_line_and_final_col_of_offset(offset, affinity)?;
@@ -3317,7 +3407,8 @@ impl DocLines {
         // else {     return Ok(None);
         // };
         let horiz = horiz.unwrap_or(ColPosition::Col(final_col));
-        let Some(next_visual_line) = self.init_folded_line_layout_alone_by_index(visual_line.line_index + 1)?
+        let Some(next_visual_line) =
+            self.init_folded_line_layout_alone_by_index(visual_line.line_index + 1)?
         else {
             return Ok(None);
         };
@@ -3338,7 +3429,7 @@ impl DocLines {
         &self,
         horiz: &ColPosition,
         _caret: bool,
-        visual_line: &OriginFoldedLine
+        visual_line: &OriginFoldedLine,
     ) -> Result<(usize, CursorAffinity)> {
         Ok(match *horiz {
             ColPosition::Col(final_col) => {
@@ -3353,7 +3444,7 @@ impl DocLines {
                 let Some(final_offset) = visual_line.first_no_whitespace() else {
                     return Ok((
                         visual_line.len_without_rn(),
-                        CursorAffinity::Forward
+                        CursorAffinity::Forward,
                     ));
                 };
                 (final_offset, CursorAffinity::Backward)
@@ -3361,7 +3452,7 @@ impl DocLines {
                 //     .phantom_text
                 //     .cursor_position_of_final_col(final_offset);
                 // rs.2 + rs.1
-            }
+            },
         })
     }
 
@@ -3373,7 +3464,7 @@ impl DocLines {
 
     fn _compute_change_lines(
         &self,
-        deltas: &[(Rope, RopeDelta, InvalLines)]
+        deltas: &[(Rope, RopeDelta, InvalLines)],
     ) -> Result<OriginLinesDelta> {
         if deltas.len() == 1 {
             if let Some(delta) = deltas.first() {
@@ -3402,7 +3493,6 @@ impl DocLines {
     fn buffer_mut(&mut self) -> &mut Buffer {
         self.signals.buffer.val_mut()
     }
-
 }
 
 type ComputeLines = DocLines;
@@ -3411,9 +3501,10 @@ impl ComputeLines {
     pub fn first_non_blank(
         &self,
         affinity: &mut CursorAffinity,
-        offset: usize
+        offset: usize,
     ) -> Result<(usize, ColPosition)> {
-        let (info, ..) = self.folded_line_and_final_col_of_offset(offset, *affinity)?;
+        let (info, ..) =
+            self.folded_line_and_final_col_of_offset(offset, *affinity)?;
         let non_blank_offset =
             WordCursor::new(self.buffer().text(), info.origin_interval.start)
                 .next_non_blank_char();
@@ -3475,9 +3566,10 @@ impl ComputeLines {
     pub fn cursor_position_of_buffer_offset(
         &self,
         offset: usize,
-        affinity: CursorAffinity
+        affinity: CursorAffinity,
     ) -> Result<Point> {
-        let (vl, offset_folded) = self.folded_line_and_final_col_of_offset(offset, affinity)?;
+        let (vl, offset_folded) =
+            self.folded_line_and_final_col_of_offset(offset, affinity)?;
         let mut point_of_document =
             vl.hit_position_aff(offset_folded, affinity).point;
         let line_height = self.config.line_height;
@@ -3637,14 +3729,14 @@ impl LinesOnUpdate {
             .last_line
             .update_if_not_equal(self.compute_last_width(
                 self.buffer().last_line() + 1,
-                self.buffer().line_ending().get_chars()
+                self.buffer().line_ending().get_chars(),
             ));
     }
 
     fn compute_last_width(
         &self,
         last_line: usize,
-        line_ending: &'static str
+        line_ending: &'static str,
     ) -> (usize, f64) {
         let family =
             Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
@@ -3658,7 +3750,7 @@ impl LinesOnUpdate {
             last_line.to_string(),
             attrs_list,
             &mut font_system,
-            line_ending
+            line_ending,
         );
         (last_line, text_buffer.size().width)
     }
@@ -3672,13 +3764,13 @@ pub enum EditBuffer<'a> {
     EditBuffer {
         iter:      &'a [(Selection, &'a str)],
         edit_type: EditType,
-        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>
+        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     SetPristine(u64),
     Reload {
         content:      Rope,
         set_pristine: bool,
-        response:     &'a mut Vec<(Rope, RopeDelta, InvalLines)>
+        response:     &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     ExecuteMotionMode {
         cursor:      &'a mut Cursor,
@@ -3686,7 +3778,7 @@ pub enum EditBuffer<'a> {
         range:       Range<usize>,
         is_vertical: bool,
         register:    &'a mut Register,
-        response:    &'a mut Vec<(Rope, RopeDelta, InvalLines)>
+        response:    &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     DoEditBuffer {
         cursor:    &'a mut Cursor,
@@ -3694,17 +3786,17 @@ pub enum EditBuffer<'a> {
         modal:     bool,
         register:  &'a mut Register,
         smart_tab: bool,
-        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>
+        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     DoInsertBuffer {
         cursor:   &'a mut Cursor,
         s:        &'a str,
-        response: &'a mut Vec<(Rope, RopeDelta, InvalLines)>
+        response: &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     SetCursor {
         before_cursor: CursorMode,
-        after_cursor:  CursorMode
-    }
+        after_cursor:  CursorMode,
+    },
 }
 
 impl Debug for EditBuffer<'_> {
@@ -3760,14 +3852,14 @@ impl Debug for EditBuffer<'_> {
             },
             EditBuffer::SetCursor {
                 before_cursor,
-                after_cursor
+                after_cursor,
             } => {
                 write!(
                     f,
                     "EditBuffer::SetCursor before_cursor {before_cursor:?} \
                      after_cursor={after_cursor:?}"
                 )
-            }
+            },
         }
     }
 }
@@ -3793,7 +3885,7 @@ impl PubUpdateLines {
             EditBuffer::EditBuffer {
                 iter,
                 edit_type,
-                response
+                response,
             } => {
                 let rs = self.buffer_mut().edit(iter, edit_type);
                 debug!("buffer_edit EditBuffer {:?} {:?}", rs.1, rs.2);
@@ -3814,7 +3906,7 @@ impl PubUpdateLines {
             EditBuffer::Reload {
                 content,
                 set_pristine,
-                response
+                response,
             } => {
                 let rs = self.buffer_mut().reload(content, set_pristine);
                 debug!("buffer_edit Reload {:?} {:?}", rs.1, rs.2);
@@ -3831,7 +3923,7 @@ impl PubUpdateLines {
                 range,
                 is_vertical,
                 register,
-                response
+                response,
             } => {
                 *response = Action::execute_motion_mode(
                     cursor,
@@ -3839,7 +3931,7 @@ impl PubUpdateLines {
                     motion_mode,
                     range,
                     is_vertical,
-                    register
+                    register,
                 );
                 for delta in &*response {
                     self.apply_delta(&delta.1)?;
@@ -3852,7 +3944,7 @@ impl PubUpdateLines {
                 modal,
                 register,
                 smart_tab,
-                response
+                response,
             } => {
                 let syntax = &self.syntax;
                 let mut clipboard = SystemClipboard::new();
@@ -3868,8 +3960,8 @@ impl PubUpdateLines {
                         modal,
                         smart_tab,
                         keep_indent: true,
-                        auto_indent: true
-                    }
+                        auto_indent: true,
+                    },
                 );
                 if !response.is_empty() {
                     self.buffer_mut().set_cursor_before(old_cursor);
@@ -3883,7 +3975,7 @@ impl PubUpdateLines {
             EditBuffer::DoInsertBuffer {
                 cursor,
                 s,
-                response
+                response,
             } => {
                 let auto_closing_matching_pairs =
                     self.config.auto_closing_matching_pairs;
@@ -3898,7 +3990,7 @@ impl PubUpdateLines {
                         util::syntax_prev_unmatched(buffer, syntax, c, offset)
                     },
                     auto_closing_matching_pairs,
-                    auto_surround
+                    auto_surround,
                 );
                 self.buffer_mut().set_cursor_before(old_cursor);
                 self.buffer_mut().set_cursor_after(cursor.mode().clone());
@@ -3909,12 +4001,12 @@ impl PubUpdateLines {
             },
             EditBuffer::SetCursor {
                 before_cursor,
-                after_cursor
+                after_cursor,
             } => {
                 self.buffer_mut().set_cursor_after(after_cursor);
                 self.buffer_mut().set_cursor_before(before_cursor);
                 return Ok(false);
-            }
+            },
         }
         self.signals
             .pristine
@@ -3939,13 +4031,13 @@ impl PubUpdateLines {
     pub fn edit_buffer(
         &mut self,
         iter: &[(Selection, &str)],
-        edit_type: EditType
+        edit_type: EditType,
     ) -> Result<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::EditBuffer {
             edit_type,
             iter,
-            response: &mut rs
+            response: &mut rs,
         })?;
         Ok(rs.remove(0))
     }
@@ -3953,13 +4045,13 @@ impl PubUpdateLines {
     pub fn reload_buffer(
         &mut self,
         content: Rope,
-        set_pristine: bool
+        set_pristine: bool,
     ) -> Result<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::Reload {
             content,
             set_pristine,
-            response: &mut rs
+            response: &mut rs,
         })?;
         Ok(rs.remove(0))
     }
@@ -3971,11 +4063,11 @@ impl PubUpdateLines {
     pub fn set_cursor(
         &mut self,
         before_cursor: CursorMode,
-        after_cursor: CursorMode
+        after_cursor: CursorMode,
     ) {
         if let Err(err) = self.buffer_edit(EditBuffer::SetCursor {
             before_cursor,
-            after_cursor
+            after_cursor,
         }) {
             error!("{err:?}");
         }
@@ -3987,7 +4079,7 @@ impl PubUpdateLines {
         motion_mode: MotionMode,
         range: Range<usize>,
         is_vertical: bool,
-        register: &mut Register
+        register: &mut Register,
     ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::ExecuteMotionMode {
@@ -3996,7 +4088,7 @@ impl PubUpdateLines {
             range,
             is_vertical,
             register,
-            response: &mut rs
+            response: &mut rs,
         })?;
         Ok(rs)
     }
@@ -4007,7 +4099,7 @@ impl PubUpdateLines {
         cmd: &EditCommand,
         modal: bool,
         register: &mut Register,
-        smart_tab: bool
+        smart_tab: bool,
     ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::DoEditBuffer {
@@ -4016,7 +4108,7 @@ impl PubUpdateLines {
             modal,
             register,
             smart_tab,
-            response: &mut rs
+            response: &mut rs,
         })?;
         Ok(rs)
     }
@@ -4024,13 +4116,13 @@ impl PubUpdateLines {
     pub fn do_insert_buffer(
         &mut self,
         cursor: &mut Cursor,
-        s: &str
+        s: &str,
     ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
         let mut rs = Vec::new();
         self.buffer_edit(EditBuffer::DoInsertBuffer {
             cursor,
             s,
-            response: &mut rs
+            response: &mut rs,
         })?;
         Ok(rs)
     }
@@ -4117,7 +4209,7 @@ impl PubUpdateLines {
             UpdateFolding::FoldCode(offset) => {
                 let rope = self.signals.buffer.val().text();
                 self.folding_ranges.fold_by_offset(offset, rope)?;
-            }
+            },
         }
         // todo improve OriginLinesDelta
         self.update_lines_new(OriginLinesDelta::default())?;
@@ -4189,7 +4281,7 @@ impl PubUpdateLines {
 
     pub fn trigger_syntax_change(
         &mut self,
-        _edits: Option<SmallVec<[SyntaxEdit; 3]>>
+        _edits: Option<SmallVec<[SyntaxEdit; 3]>>,
     ) -> Result<()> {
         self.syntax.cancel_flag.store(1, atomic::Ordering::Relaxed);
         self.syntax.cancel_flag = Arc::new(AtomicUsize::new(0));
@@ -4205,7 +4297,7 @@ impl PubUpdateLines {
         &mut self,
         inline_completion: String,
         line: usize,
-        col: usize
+        col: usize,
     ) -> Result<()> {
         self.inline_completion = Some((inline_completion, line, col));
         self.update_lines_new(OriginLinesDelta::default())?;
@@ -4260,7 +4352,7 @@ impl PubUpdateLines {
 
     pub fn set_document_highlight(
         &mut self,
-        document_highlight: Option<Vec<DocumentHighlight>>
+        document_highlight: Option<Vec<DocumentHighlight>>,
     ) {
         if self.document_highlight != document_highlight {
             self.document_highlight = document_highlight;
@@ -4275,7 +4367,7 @@ impl PubUpdateLines {
         &mut self,
         completion_lens: String,
         line: usize,
-        col: usize
+        col: usize,
     ) -> Result<()> {
         self.completion_lens = Some(completion_lens);
         self.completion_pos = (line, col);
@@ -4290,7 +4382,7 @@ impl PubUpdateLines {
     pub fn update_semantic_styles_from_lsp(
         &mut self,
         styles: (Option<String>, Spans<String>),
-        rev: u64
+        rev: u64,
     ) -> Result<bool> {
         if self.buffer().rev() != rev {
             return Ok(false);
@@ -4366,7 +4458,7 @@ impl LinesEditorStyle {
     pub fn show_indent_guide(&self) -> (bool, Color) {
         (
             self.editor_style.show_indent_guide(),
-            self.editor_style.indent_guide()
+            self.editor_style.indent_guide(),
         )
     }
 }
@@ -4417,7 +4509,7 @@ pub trait RopeTextPosition: RopeText {
 
         Ok(Position {
             line:      line as u32,
-            character: utf16_col as u32
+            character: utf16_col as u32,
         })
     }
 
@@ -4433,7 +4525,7 @@ pub trait RopeTextPosition: RopeText {
 
         let column = offset_utf16_to_utf8(
             self.char_indices_iter(line_offset..),
-            pos.character as usize
+            pos.character as usize,
         );
 
         Ok((line, column))
@@ -4447,7 +4539,7 @@ pub enum ClickResult {
     NoHintOrNothing,
     MatchWithoutLocation,
     MatchFolded,
-    MatchHint(Location)
+    MatchHint(Location),
 }
 
 #[derive(Debug)]
@@ -4462,5 +4554,5 @@ pub struct InfoOfBufferOffset {
     /// 在原始折叠行的位置。被折叠则为none
     pub offset_of_origin_folded_line: Option<usize>,
     /// 在整个文档的空间位置
-    pub point_of_document:            Point
+    pub point_of_document:            Point,
 }

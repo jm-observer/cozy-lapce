@@ -4,8 +4,8 @@ use doc::lines::{
     cursor::CursorAffinity,
     phantom_text::{
         PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text,
-        combine_with_text
-    }
+        combine_with_text,
+    },
 };
 use lapce_xi_rope::Interval;
 use log::{debug, info};
@@ -203,7 +203,7 @@ fn print_line(lines: &PhantomTextMultiLine) {
             },
             Text::EmptyLine { .. } => {
                 println!("\tEmpty");
-            }
+            },
         }
     }
     println!();

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    rc::Rc
+    rc::Rc,
 };
 
 use doc::lines::{
@@ -9,7 +9,7 @@ use doc::lines::{
     editor_command::CommandExecuted,
     mode::Mode,
     register::Clipboard,
-    text::SystemClipboard
+    text::SystemClipboard,
 };
 use floem::{
     action::show_context_menu,
@@ -17,22 +17,22 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     menu::{Menu, MenuItem},
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
 };
 use globset::Glob;
 use lapce_rpc::{
     file::{
         Duplicating, FileNodeItem, FileNodeViewKind, Naming, NamingState, NewNode,
-        Renaming
+        Renaming,
     },
-    proxy::ProxyResponse
+    proxy::ProxyResponse,
 };
 
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand},
     config::WithLapceConfig,
     keypress::{KeyPressFocus, condition::Condition},
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 
 #[derive(Debug)]
@@ -41,8 +41,8 @@ enum RenamedPath {
     NameUnchanged,
     Renamed {
         current_path: PathBuf,
-        new_path:     PathBuf
-    }
+        new_path:     PathBuf,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -53,7 +53,7 @@ pub struct FileExplorerData {
     pub naming_str:     RwSignal<String>,
     pub scroll_to_line: RwSignal<Option<f64>>,
     left_diff_path:     RwSignal<Option<PathBuf>>,
-    pub select:         RwSignal<Option<FileNodeViewKind>>
+    pub select:         RwSignal<Option<FileNodeViewKind>>,
 }
 
 impl KeyPressFocus for FileExplorerData {
@@ -70,7 +70,7 @@ impl KeyPressFocus for FileExplorerData {
         &self,
         command: &LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         if self.naming.with_untracked(Naming::is_accepting_input) {
             match command.kind {
@@ -93,7 +93,7 @@ impl KeyPressFocus for FileExplorerData {
 
                     CommandExecuted::Yes
                 },
-                _ => CommandExecuted::Yes
+                _ => CommandExecuted::Yes,
             }
         } else {
             CommandExecuted::No
@@ -122,7 +122,7 @@ impl FileExplorerData {
             read:                false,
             open:                false,
             children:            HashMap::new(),
-            children_open_count: 0
+            children_open_count: 0,
         });
         let naming = cx.create_rw_signal(Naming::None);
         let naming_str = cx.create_rw_signal(String::new());
@@ -134,7 +134,7 @@ impl FileExplorerData {
             scroll_to_line: cx.create_rw_signal(None),
             left_diff_path: cx.create_rw_signal(None),
             select: cx.create_rw_signal(None),
-            naming_str
+            naming_str,
         };
         if data.common.workspace.path.is_some() {
             // only fill in the child files if there is open folder
@@ -211,7 +211,7 @@ impl FileExplorerData {
                         match Glob::new(
                             &config
                                 .signal(|x| x.editor.files_exclude.signal())
-                                .get_untracked()
+                                .get_untracked(),
                         ) {
                             Ok(glob) => {
                                 let matcher = glob.compile_matcher();
@@ -221,7 +221,7 @@ impl FileExplorerData {
                                 target:"files_exclude",
                                 "Failed to compile glob: {}",
                                 e
-                            )
+                            ),
                         }
 
                         node.read = true;
@@ -302,7 +302,7 @@ impl FileExplorerData {
                 let new_path = d.path.parent().unwrap_or("".as_ref()).join(new_node);
 
                 Some(new_path)
-            }
+            },
         })
     }
 
@@ -326,7 +326,7 @@ impl FileExplorerData {
                 let new_relative_path = self.naming_str.get_untracked();
 
                 if <std::string::String as AsRef<std::ffi::OsStr>>::as_ref(
-                    &new_relative_path
+                    &new_relative_path,
                 ) == current_file_name
                 {
                     RenamedPath::NameUnchanged
@@ -338,7 +338,7 @@ impl FileExplorerData {
 
                     RenamedPath::Renamed {
                         current_path: current_path.to_owned(),
-                        new_path
+                        new_path,
                     }
                 }
             } else {
@@ -363,15 +363,15 @@ impl FileExplorerData {
                     },
                     RenamedPath::Renamed {
                         current_path,
-                        new_path
+                        new_path,
                     } => {
                         self.common.internal_command.send(
                             InternalCommand::FinishRenamePath {
                                 current_path,
-                                new_path
-                            }
+                                new_path,
+                            },
                         );
-                    }
+                    },
                 }
             },
             Naming::NewNode(n) => {
@@ -383,7 +383,7 @@ impl FileExplorerData {
                     .internal_command
                     .send(InternalCommand::FinishNewNode {
                         is_dir: n.is_dir,
-                        path
+                        path,
                     });
             },
             Naming::Duplicating(d) => {
@@ -394,10 +394,10 @@ impl FileExplorerData {
                 self.common.internal_command.send(
                     InternalCommand::FinishDuplicate {
                         source: d.path.to_owned(),
-                        path
-                    }
+                        path,
+                    },
                 );
-            }
+            },
         }
     }
 
@@ -413,7 +413,7 @@ impl FileExplorerData {
             self.common
                 .internal_command
                 .send(InternalCommand::OpenFile {
-                    path: path.to_path_buf()
+                    path: path.to_path_buf(),
                 })
         }
     }
@@ -475,15 +475,15 @@ impl FileExplorerData {
     pub fn double_click(
         &self,
         path: &Path,
-        config: WithLapceConfig
+        config: WithLapceConfig,
     ) -> EventPropagation {
         if self.is_dir(path) {
             EventPropagation::Continue
         } else if config.with_untracked(|x| x.core.file_explorer_double_click) {
             self.common.internal_command.send(
                 InternalCommand::OpenAndConfirmedFile {
-                    path: path.to_path_buf()
-                }
+                    path: path.to_path_buf(),
+                },
             );
             EventPropagation::Stop
         } else {
@@ -536,7 +536,7 @@ impl FileExplorerData {
                     state:              NamingState::Naming,
                     base_path:          base_path.clone(),
                     is_dir:             false,
-                    editor_needs_reset: true
+                    editor_needs_reset: true,
                 }));
             });
         }));
@@ -560,7 +560,7 @@ impl FileExplorerData {
                     state:              NamingState::Naming,
                     base_path:          base_path.clone(),
                     is_dir:             true,
-                    editor_needs_reset: true
+                    editor_needs_reset: true,
                 }));
             })
         }));
@@ -596,7 +596,7 @@ impl FileExplorerData {
                 naming.set(Naming::Renaming(Renaming {
                     state:              NamingState::Naming,
                     path:               path.clone(),
-                    editor_needs_reset: true
+                    editor_needs_reset: true,
                 }));
             }));
 
@@ -605,7 +605,7 @@ impl FileExplorerData {
                 naming.set(Naming::Duplicating(Duplicating {
                     state:              NamingState::Naming,
                     path:               path.clone(),
-                    editor_needs_reset: true
+                    editor_needs_reset: true,
                 }));
             }));
 
@@ -653,7 +653,7 @@ impl FileExplorerData {
         let path = path_a.clone();
         menu = menu.entry(
             MenuItem::new("Select for Compare")
-                .action(move || left_diff_path.set(Some(path.clone())))
+                .action(move || left_diff_path.set(Some(path.clone()))),
         );
 
         if let Some(left_path) = self.left_diff_path.get_untracked() {
@@ -666,9 +666,9 @@ impl FileExplorerData {
                         .internal_command
                         .send(InternalCommand::OpenDiffFiles {
                             left_path:  left_path.clone(),
-                            right_path: right_path.clone()
+                            right_path: right_path.clone(),
                         })
-                }
+                },
             ))
         }
 
@@ -689,7 +689,7 @@ impl FileExplorerData {
             self.common
                 .internal_command
                 .send(InternalCommand::OpenFileInNewTab {
-                    path: path.to_path_buf()
+                    path: path.to_path_buf(),
                 });
             EventPropagation::Stop
         }

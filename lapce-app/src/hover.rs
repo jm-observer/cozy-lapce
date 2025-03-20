@@ -1,6 +1,6 @@
 use floem::{
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope}
+    reactive::{RwSignal, Scope},
 };
 use lapce_core::id::EditorId;
 
@@ -12,7 +12,7 @@ pub struct HoverData {
     pub offset:      RwSignal<usize>,
     pub editor_id:   RwSignal<EditorId>,
     pub content:     RwSignal<Vec<MarkdownContent>>,
-    pub layout_rect: RwSignal<Rect>
+    pub layout_rect: RwSignal<Rect>,
 }
 
 impl HoverData {
@@ -22,7 +22,7 @@ impl HoverData {
             offset:      cx.create_rw_signal(0),
             content:     cx.create_rw_signal(Vec::new()),
             editor_id:   cx.create_rw_signal(EditorId::next()),
-            layout_rect: cx.create_rw_signal(Rect::ZERO)
+            layout_rect: cx.create_rw_signal(Rect::ZERO),
         }
     }
 }

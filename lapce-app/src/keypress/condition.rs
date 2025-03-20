@@ -4,7 +4,7 @@ use strum_macros::EnumString;
 pub(super) enum CheckCondition<'a> {
     Single(&'a str),
     Or(&'a str, &'a str),
-    And(&'a str, &'a str)
+    And(&'a str, &'a str),
 }
 
 impl<'a> CheckCondition<'a> {
@@ -24,12 +24,12 @@ impl<'a> CheckCondition<'a> {
                 if or_pos < and_pos {
                     CheckCondition::Or(
                         &condition[..or_pos],
-                        &condition[or_pos + 2..]
+                        &condition[or_pos + 2..],
                     )
                 } else {
                     CheckCondition::And(
                         &condition[..and_pos],
-                        &condition[and_pos + 2..]
+                        &condition[and_pos + 2..],
                     )
                 }
             },
@@ -70,7 +70,7 @@ pub enum Condition {
     #[strum(serialize = "search_focus")]
     SearchFocus,
     #[strum(serialize = "replace_focus")]
-    ReplaceFocus
+    ReplaceFocus,
 }
 
 #[cfg(test)]
@@ -83,7 +83,7 @@ mod test {
 
     #[derive(Clone, Copy, Debug)]
     struct MockFocus {
-        accepted_conditions: &'static [Condition]
+        accepted_conditions: &'static [Condition],
     }
 
     impl KeyPressFocus for MockFocus {
@@ -99,7 +99,7 @@ mod test {
             &self,
             _command: &crate::command::LapceCommand,
             _count: Option<usize>,
-            _mods: Modifiers
+            _mods: Modifiers,
         ) -> crate::command::CommandExecuted {
             unimplemented!()
         }
@@ -132,7 +132,7 @@ mod test {
     #[test]
     fn test_check_condition() {
         let focus = MockFocus {
-            accepted_conditions: &[Condition::EditorFocus, Condition::ListFocus]
+            accepted_conditions: &[Condition::EditorFocus, Condition::ListFocus],
         };
 
         let test_cases = [
@@ -148,7 +148,7 @@ mod test {
             ("!editor_focus && list_focus", false),
             ("editor_focus && list_focus || baz", true),
             ("editor_focus && list_focus && baz", false),
-            ("editor_focus && list_focus && !baz", true)
+            ("editor_focus && list_focus && !baz", true),
         ];
 
         for (condition, should_accept) in test_cases.into_iter() {

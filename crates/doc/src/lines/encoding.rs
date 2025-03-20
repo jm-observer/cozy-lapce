@@ -2,7 +2,7 @@
 /// `text` is what the offsets are into
 pub fn offset_utf8_to_utf16(
     char_indices: impl Iterator<Item = (usize, char)>,
-    offset: usize
+    offset: usize,
 ) -> usize {
     if offset == 0 {
         return 0;
@@ -20,7 +20,7 @@ pub fn offset_utf8_to_utf16(
                 return utf16_offset;
             },
             // Implies that the offset was inside of a character
-            std::cmp::Ordering::Greater => return utf16_offset
+            std::cmp::Ordering::Greater => return utf16_offset,
         }
 
         utf16_offset += ch.len_utf16();
@@ -52,7 +52,7 @@ pub fn offset_utf8_to_utf16(
 /// it should be cheaply cloneable.
 pub fn offset_utf16_to_utf8(
     char_indices: impl Iterator<Item = (usize, char)>,
-    offset: usize
+    offset: usize,
 ) -> usize {
     if offset == 0 {
         return 0;
@@ -78,7 +78,7 @@ pub fn offset_utf16_to_utf8(
             },
             // This implies that the offset was in the middle of a
             // character as we skipped over it
-            std::cmp::Ordering::Greater => return utf8_offset
+            std::cmp::Ordering::Greater => return utf8_offset,
         }
 
         utf16_offset += ch_utf16_len;

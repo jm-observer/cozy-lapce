@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
     process::exit,
     sync::Arc,
-    thread
+    thread,
 };
 
 use anyhow::Result;
@@ -25,7 +25,7 @@ use lapce_rpc::{
     core::{CoreRpc, CoreRpcHandler},
     file::PathObject,
     proxy::{ProxyMessage, ProxyNotification, ProxyRpcHandler},
-    stdio::stdio_transport
+    stdio::stdio_transport,
 };
 use log::error;
 
@@ -42,7 +42,7 @@ struct Cli {
     /// to specify line and column at which it should open the file
     #[clap(value_parser = cli::parse_file_line_column)]
     #[clap(value_hint = clap::ValueHint::AnyPath)]
-    paths: Vec<PathObject>
+    paths: Vec<PathObject>,
 }
 
 #[allow(unused_mut, unused_variables)]
@@ -87,7 +87,7 @@ pub async fn mainloop() -> Result<()> {
                 },
                 CoreRpc::Shutdown => {
                     return;
-                }
+                },
             }
         }
     });
@@ -114,7 +114,7 @@ pub async fn mainloop() -> Result<()> {
                                 {
                                     log::error!("{:?}", err);
                                 }
-                            }
+                            },
                         }
                     });
                 },
@@ -126,7 +126,7 @@ pub async fn mainloop() -> Result<()> {
                 },
                 RpcMessage::Error(id, err) => {
                     core_rpc.handle_response(id, Err(err));
-                }
+                },
             }
         }
         local_proxy_rpc.shutdown();
@@ -155,7 +155,7 @@ pub fn register_lapce_path() -> Result<()> {
             if let Ok(current_path) = std::env::var("PATH") {
                 let mut paths = vec![PathBuf::from(path)];
                 paths.append(
-                    &mut std::env::split_paths(&current_path).collect::<Vec<_>>()
+                    &mut std::env::split_paths(&current_path).collect::<Vec<_>>(),
                 );
                 std::env::set_var("PATH", std::env::join_paths(paths)?);
             }
@@ -168,7 +168,7 @@ pub fn register_lapce_path() -> Result<()> {
 #[tokio::main]
 async fn listen_local_socket(
     proxy_rpc: ProxyRpcHandler,
-    local_socket: PathBuf
+    local_socket: PathBuf,
 ) -> Result<()> {
     tokio::fs::remove_file(&local_socket).await?;
     // todo change to async
@@ -182,7 +182,7 @@ async fn listen_local_socket(
                 let msg: Option<ProxyMessage> =
                     lapce_rpc::stdio::read_msg(&mut reader)?;
                 if let Some(RpcMessage::Notification(
-                    ProxyNotification::OpenPaths { paths }
+                    ProxyNotification::OpenPaths { paths },
                 )) = msg
                 {
                     proxy_rpc.notification(ProxyNotification::OpenPaths { paths });
@@ -195,7 +195,7 @@ async fn listen_local_socket(
 
 pub fn get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
-    user_agent: Option<&str>
+    user_agent: Option<&str>,
 ) -> Result<reqwest::blocking::Response> {
     let mut builder = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
         let proxy = reqwest::Proxy::all(proxy)?;
@@ -228,7 +228,7 @@ pub fn get_url<T: reqwest::IntoUrl + Clone>(
 
 pub async fn async_get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
-    user_agent: Option<&str>
+    user_agent: Option<&str>,
 ) -> Result<reqwest::Response> {
     let mut builder = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
         let proxy = reqwest::Proxy::all(proxy)?;

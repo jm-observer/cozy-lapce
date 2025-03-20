@@ -21,7 +21,7 @@ pub struct PluginConfiguration {
     #[serde(rename(deserialize = "type"))]
     pub kind:        String,
     pub default:     Value,
-    pub description: String
+    pub description: String,
 }
 
 #[derive(Deserialize, Clone, Debug, Serialize, PartialEq, Eq)]
@@ -33,7 +33,7 @@ pub struct VoltInfo {
     pub description:   String,
     pub repository:    Option<String>,
     pub wasm:          bool,
-    pub updated_at_ts: i64
+    pub updated_at_ts: i64,
 }
 
 impl VoltInfo {
@@ -46,13 +46,13 @@ impl VoltInfo {
 #[serde(rename_all = "kebab-case")]
 pub struct VoltActivation {
     pub language:           Option<Vec<String>>,
-    pub workspace_contains: Option<Vec<String>>
+    pub workspace_contains: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct VoltConfig {
     pub default:     Value,
-    pub description: String
+    pub description: String,
 }
 
 #[derive(Deserialize, Clone, Debug, Serialize, PartialEq, Eq)]
@@ -70,7 +70,7 @@ pub struct VoltMetadata {
     pub icon_themes:  Option<Vec<String>>,
     pub dir:          Option<PathBuf>,
     pub activation:   Option<VoltActivation>,
-    pub config:       Option<HashMap<String, VoltConfig>>
+    pub config:       Option<HashMap<String, VoltConfig>>,
 }
 
 impl VoltMetadata {
@@ -87,7 +87,7 @@ impl VoltMetadata {
             description:   self.description.clone(),
             repository:    self.repository.clone(),
             wasm:          self.wasm.is_some(),
-            updated_at_ts: 0
+            updated_at_ts: 0,
         }
     }
 }
@@ -95,7 +95,7 @@ impl VoltMetadata {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VoltID {
     pub author: String,
-    pub name:   String
+    pub name:   String,
 }
 
 impl fmt::Display for VoltID {
@@ -108,7 +108,7 @@ impl From<VoltMetadata> for VoltID {
     fn from(volt: VoltMetadata) -> Self {
         Self {
             author: volt.author,
-            name:   volt.name
+            name:   volt.name,
         }
     }
 }
@@ -117,7 +117,7 @@ impl From<&VoltMetadata> for VoltID {
     fn from(volt: &VoltMetadata) -> Self {
         Self {
             author: volt.author.clone(),
-            name:   volt.name.clone()
+            name:   volt.name.clone(),
         }
     }
 }
@@ -126,7 +126,7 @@ impl From<VoltInfo> for VoltID {
     fn from(volt: VoltInfo) -> Self {
         Self {
             author: volt.author,
-            name:   volt.name
+            name:   volt.name,
         }
     }
 }
@@ -135,7 +135,7 @@ impl From<&VoltInfo> for VoltID {
     fn from(volt: &VoltInfo) -> Self {
         Self {
             author: volt.author.clone(),
-            name:   volt.name.clone()
+            name:   volt.name.clone(),
         }
     }
 }
@@ -159,11 +159,11 @@ mod tests {
             icon_themes:  None,
             dir:          std::env::current_dir().unwrap().canonicalize().ok(),
             activation:   None,
-            config:       None
+            config:       None,
         };
         let volt_id = VoltID {
             author: "Author".to_string(),
-            name:   "plugin".to_string()
+            name:   "plugin".to_string(),
         };
 
         assert_eq!(volt_metadata.id(), volt_id);
@@ -197,7 +197,7 @@ mod tests {
             icon_themes:  None,
             dir:          std::env::current_dir().unwrap().canonicalize().ok(),
             activation:   None,
-            config:       None
+            config:       None,
         };
         let volt_info = VoltInfo {
             name:          "plugin".to_string(),
@@ -207,7 +207,7 @@ mod tests {
             description:   "Useful plugin".to_string(),
             repository:    None,
             wasm:          false,
-            updated_at_ts: 0
+            updated_at_ts: 0,
         };
         assert_eq!(volt_metadata.info(), volt_info);
     }
@@ -222,11 +222,11 @@ mod tests {
             description:   "Useful plugin".to_string(),
             repository:    None,
             wasm:          false,
-            updated_at_ts: 0
+            updated_at_ts: 0,
         };
         let volt_id = VoltID {
             author: "Author".to_string(),
-            name:   "plugin".to_string()
+            name:   "plugin".to_string(),
         };
         assert_eq!(volt_info.id(), volt_id);
         assert_eq!(<VoltID as From<&VoltInfo>>::from(&volt_info), volt_id);

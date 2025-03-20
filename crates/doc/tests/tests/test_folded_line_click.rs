@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, sync::atomic};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use doc::{
     EditorViewKind,
     lines::{
@@ -13,12 +13,12 @@ use doc::{
         fold::{FoldingDisplayItem, FoldingDisplayType},
         register::Register,
         selection::Selection,
-        word::WordCursor
-    }
+        word::WordCursor,
+    },
 };
 use floem::{
     kurbo::{Point, Rect, Size},
-    reactive::SignalUpdate
+    reactive::SignalUpdate,
 };
 use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
 use log::{debug, info};
@@ -26,7 +26,7 @@ use lsp_types::Position;
 
 use crate::tests::lines_util::{
     cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2
+    init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2,
 };
 
 // #[test]
@@ -54,16 +54,18 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     let screen_lines = lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
-            EditorViewKind::Normal
+            EditorViewKind::Normal,
         )?
         .0;
     screen_lines.log();
     //below end of buffer
     {
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(131.1, 432.1)
-        )?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(131.1, 432.1),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -82,10 +84,12 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     // new_offset=4 Backward (32.708343505859375, 30.089889526367188)
     // pub [f]n main()
     {
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(32.7, 30.0)
-        )?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(32.7, 30.0),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 6);
@@ -96,8 +100,9 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     // new_offset=0 Forward (109.70834350585938, 11.089889526367188)
     {
         let point = Point::new(109.70834350585938, 11.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 0);
@@ -109,8 +114,9 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     // new_offset=16 Forward (176.7, 25.0)
     {
         let point = Point::new(176.7, 25.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         // 16
@@ -132,8 +138,9 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     // second half: new_offset=124 Forward (87.70834350585938, 149.0898895263672)
     {
         let point = Point::new(72.7, 150.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 124);
@@ -141,8 +148,9 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(affinity, CursorAffinity::Backward);
 
         let point = Point::new(87.7, 150.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 124);
@@ -155,8 +163,9 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
     //  |    let a = A;|      []
     {
         let point = Point::new(172.7, 150.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -177,10 +186,12 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
         assert_eq!(final_offset, 18);
     }
     {
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(67.7, 183.0)
-        )?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(67.7, 183.0),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 143);
@@ -205,15 +216,16 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     let screen_lines = lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
-            EditorViewKind::Normal
+            EditorViewKind::Normal,
         )?
         .0;
 
     {
         //|    if true {...} else {\r\n  [    ]
         let point = Point::new(252., 25.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         // 16
@@ -227,8 +239,9 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     {
         //|    if true {...} els[]e {\r\n
         let point = Point::new(160., 25.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -268,12 +281,10 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     lines.update_folding_ranges(items.get(1).cloned().unwrap().into())?;
 
     lines.log();
-    let (screen_lines, _, visual_lines) = lines
-        .compute_screen_lines_new(
-            Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
-            EditorViewKind::Normal
-        )?
-        ;
+    let (screen_lines, _, visual_lines) = lines.compute_screen_lines_new(
+        Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
+        EditorViewKind::Normal,
+    )?;
     for vl in &visual_lines {
         debug!("{vl:?}");
     }
@@ -281,8 +292,9 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     //  |    let a: A [] = A;
     {
         let point = Point::new(97.7, 49.0);
-        let Some((offset_of_buffer, is_inside, affinity)) =
-            screen_lines.nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -300,10 +312,12 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
         //last line: |
         //           |...
         //           |[ ]
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(142.1, 541.1)
-        )?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(142.1, 541.1),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -319,10 +333,12 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     {
         // single_click (243.70834350585938, 486.0898895263672) 461 false Backward
         //last line: |      [ ]
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(248.1, 486.1)
-        )? else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(248.1, 486.1),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(
@@ -360,7 +376,7 @@ pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
     let screen_lines = lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
-            EditorViewKind::Normal
+            EditorViewKind::Normal,
         )?
         .0;
     {
@@ -368,10 +384,12 @@ pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
         // pub fn main() {...}
         // ...
         // []
-        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines.nearest_buffer_offset_of_click(
-            &CursorMode::Normal(0),
-            Point::new(51.1, 128.1)
-        )?else {
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(
+                &CursorMode::Normal(0),
+                Point::new(51.1, 128.1),
+            )?
+        else {
             panic!("should not be none");
         };
         assert_eq!(

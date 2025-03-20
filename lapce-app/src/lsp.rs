@@ -49,7 +49,7 @@ pub fn path_from_url(url: &Url) -> PathBuf {
                     },
                     v => {
                         error!("Unhandled 'maybe_drive_letter' chars: {v:?}");
-                    }
+                    },
                 },
                 4 => {
                     if maybe_drive_letter.contains("%3A") {
@@ -65,7 +65,7 @@ pub fn path_from_url(url: &Url) -> PathBuf {
                 },
                 v => {
                     error!("Unhandled 'maybe_drive_letter' length: {v}");
-                }
+                },
             }
         }
     }

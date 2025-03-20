@@ -1,18 +1,18 @@
 use std::{borrow::Cow, path::PathBuf, str::FromStr};
 
 use doc::lines::{
-    RopeTextPosition, buffer::rope_text::RopeText, movement::Movement
+    RopeTextPosition, buffer::rope_text::RopeText, movement::Movement,
 };
 use floem::{
     peniko::kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith}
+    reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
 };
 use lapce_core::id::EditorId;
 use lapce_rpc::{plugin::PluginId, proxy::ProxyRpcHandler};
 use log::error;
 use lsp_types::{
     CompletionItem, CompletionResponse, CompletionTextEdit, InsertTextFormat,
-    Position
+    Position,
 };
 use nucleo::Utf32Str;
 
@@ -22,7 +22,7 @@ use crate::{config::WithLapceConfig, editor::EditorData, snippet::Snippet};
 pub enum CompletionStatus {
     Inactive,
     Started,
-    Done
+    Done,
 }
 
 #[derive(Clone, PartialEq)]
@@ -31,7 +31,7 @@ pub struct ScoredCompletionItem {
     pub plugin_id:   PluginId,
     pub score:       u32,
     pub label_score: u32,
-    pub indices:     Vec<usize>
+    pub indices:     Vec<usize>,
 }
 
 #[derive(Clone)]
@@ -67,7 +67,7 @@ pub struct CompletionData {
     pub latest_editor_id: Option<EditorId>,
     /// Matcher for filtering the completion items
     matcher:              RwSignal<nucleo::Matcher>,
-    config:               WithLapceConfig
+    config:               WithLapceConfig,
 }
 
 impl CompletionData {
@@ -87,7 +87,7 @@ impl CompletionData {
             matcher: cx
                 .create_rw_signal(nucleo::Matcher::new(nucleo::Config::DEFAULT)),
             latest_editor_id: None,
-            config
+            config,
         }
     }
 
@@ -97,7 +97,7 @@ impl CompletionData {
         request_id: usize,
         input: &str,
         resp: &CompletionResponse,
-        plugin_id: PluginId
+        plugin_id: PluginId,
     ) {
         // If we've been canceled or the request id is old, ignore the response.
         if self.status == CompletionStatus::Inactive || self.request_id != request_id
@@ -108,7 +108,7 @@ impl CompletionData {
         let items = match resp {
             CompletionResponse::Array(items) => items,
             // TODO: Possibly handle the 'is_incomplete' field on List.
-            CompletionResponse::List(list) => &list.items
+            CompletionResponse::List(list) => &list.items,
         };
         let items: im::Vector<ScoredCompletionItem> = items
             .iter()
@@ -117,7 +117,7 @@ impl CompletionData {
                 plugin_id,
                 score: 0,
                 label_score: 0,
-                indices: Vec::new()
+                indices: Vec::new(),
             })
             .collect();
         self.input_items.insert(input.to_string(), items);
@@ -131,7 +131,7 @@ impl CompletionData {
         proxy_rpc: &ProxyRpcHandler,
         path: PathBuf,
         input: String,
-        position: Position
+        position: Position,
     ) {
         self.latest_editor_id = Some(editor_id);
         self.input_items.insert(input.clone(), im::Vector::new());
@@ -190,7 +190,7 @@ impl CompletionData {
                 let pattern = nucleo::pattern::Pattern::parse(
                     &self.input,
                     nucleo::pattern::CaseMatching::Ignore,
-                    nucleo::pattern::Normalization::Smart
+                    nucleo::pattern::Normalization::Smart,
                 );
                 self.all_items()
                     .iter()
@@ -280,7 +280,7 @@ impl CompletionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -293,7 +293,7 @@ impl CompletionData {
             active,
             self.filtered_items.len(),
             count,
-            false
+            false,
         );
         self.active.set(new);
     }
@@ -308,7 +308,7 @@ impl CompletionData {
     pub fn update_document_completion(
         &self,
         editor_data: &EditorData,
-        cursor_offset: usize
+        cursor_offset: usize,
     ) {
         let doc = editor_data.doc();
 
@@ -329,7 +329,7 @@ impl CompletionData {
             doc.rope_text(),
             cursor_offset,
             self,
-            doc.completion_lens().as_deref()
+            doc.completion_lens().as_deref(),
         );
         match completion_lens {
             Some(Some(lens)) => {
@@ -342,7 +342,7 @@ impl CompletionData {
                     Err(err) => {
                         error!("{err:?}");
                         return;
-                    }
+                    },
                 };
 
                 doc.set_completion_lens(lens, line, col);
@@ -351,7 +351,7 @@ impl CompletionData {
             Some(None) => {},
             None => {
                 doc.clear_completion_lens();
-            }
+            },
         }
     }
 }
@@ -365,7 +365,7 @@ fn completion_lens_text(
     rope_text: impl RopeText,
     cursor_offset: usize,
     completion: &CompletionData,
-    current_completion: Option<&str>
+    current_completion: Option<&str>,
 ) -> Option<Option<String>> {
     let item = &completion.current_item()?.item;
 
@@ -389,7 +389,7 @@ fn completion_lens_text(
             Err(err) => {
                 error!("{err:?}");
                 return None;
-            }
+            },
         };
 
         // If the start of the edit isn't where the cursor currently is,
@@ -418,7 +418,7 @@ fn completion_lens_text(
             _ => {
                 // We don't know how to support this text format.
                 return None;
-            }
+            },
         }
     } else {
         // There's no specific text edit, so we just use the label.

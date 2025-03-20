@@ -8,18 +8,18 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
     str::FromStr,
-    time::SystemTime
+    time::SystemTime,
 };
 
 use anyhow::Result;
 use doc::lines::{
     editor_command::CommandExecuted,
-    mode::{Mode, Modes}
+    mode::{Mode, Modes},
 };
 use floem::{
     keyboard::{Key, KeyEvent, KeyEventExtModifierSupplement, Modifiers, NamedKey},
     pointer::{MouseButton, PointerButton, PointerInputEvent},
-    reactive::{RwSignal, Scope, SignalUpdate, SignalWith}
+    reactive::{RwSignal, Scope, SignalUpdate, SignalWith},
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -30,16 +30,16 @@ pub use self::press::KeyPress;
 use self::{
     key::KeyInput,
     keymap::{KeyMap, KeyMapPress},
-    loader::KeyMapLoader
+    loader::KeyMapLoader,
 };
 use crate::{
     command::{CommandKind, InternalCommand, LapceCommand, lapce_internal_commands},
     config::LapceConfig,
     keypress::{
         condition::{CheckCondition, Condition},
-        keymap::KeymapMatch
+        keymap::KeymapMatch,
     },
-    window_workspace::CommonData
+    window_workspace::CommonData,
 };
 
 const DEFAULT_KEYMAPS_COMMON: &str =
@@ -58,7 +58,7 @@ pub trait KeyPressFocus: std::fmt::Debug {
         &self,
         command: &LapceCommand,
         count: Option<usize>,
-        mods: Modifiers
+        mods: Modifiers,
     ) -> CommandExecuted;
 
     fn expect_char(&self) -> bool {
@@ -84,7 +84,7 @@ impl KeyPressFocus for () {
         &self,
         _command: &LapceCommand,
         _count: Option<usize>,
-        _mods: Modifiers
+        _mods: Modifiers,
     ) -> CommandExecuted {
         CommandExecuted::No
     }
@@ -112,7 +112,7 @@ impl KeyPressFocus for Box<dyn KeyPressFocus> {
         &self,
         command: &LapceCommand,
         count: Option<usize>,
-        mods: Modifiers
+        mods: Modifiers,
     ) -> CommandExecuted {
         (**self).run_command(command, count, mods)
     }
@@ -133,7 +133,7 @@ impl KeyPressFocus for Box<dyn KeyPressFocus> {
 #[derive(Clone, Copy, Debug)]
 pub enum EventRef<'a> {
     Keyboard(&'a floem::keyboard::KeyEvent),
-    Pointer(&'a floem::pointer::PointerInputEvent)
+    Pointer(&'a floem::pointer::PointerInputEvent),
 }
 
 impl<'a> From<&'a KeyEvent> for EventRef<'a> {
@@ -151,7 +151,7 @@ impl<'a> From<&'a PointerInputEvent> for EventRef<'a> {
 pub struct KeyPressHandle {
     pub handled:  bool,
     pub keypress: KeyPress,
-    pub keymatch: KeymapMatch
+    pub keymatch: KeymapMatch,
 }
 
 #[derive(Clone, Debug)]
@@ -163,7 +163,7 @@ pub struct KeyPressData {
     pub command_keymaps: Rc<IndexMap<String, Vec<KeyMap>>>,
     pub commands_with_keymap: Rc<Vec<KeyMap>>,
     pub commands_without_keymap: Rc<Vec<LapceCommand>>,
-    pub directory: Directory
+    pub directory: Directory,
 }
 
 impl KeyPressData {
@@ -179,7 +179,7 @@ impl KeyPressData {
             commands:                Rc::new(lapce_internal_commands()),
             commands_with_keymap:    Rc::new(Vec::new()),
             commands_without_keymap: Rc::new(Vec::new()),
-            directory:               directory.clone()
+            directory:               directory.clone(),
         };
         keypress.load_commands();
         keypress
@@ -224,7 +224,7 @@ impl KeyPressData {
     fn handle_count<T: KeyPressFocus + ?Sized>(
         &self,
         focus: &T,
-        keypress: &KeyPress
+        keypress: &KeyPress,
     ) -> bool {
         if focus.expect_char() {
             return false;
@@ -260,7 +260,7 @@ impl KeyPressData {
         command: &str,
         count: Option<usize>,
         mods: Modifiers,
-        focus: &T
+        focus: &T,
     ) -> CommandExecuted {
         if let Some(cmd) = self.commands.get(command) {
             focus.run_command(cmd, count, mods)
@@ -279,14 +279,14 @@ impl KeyPressData {
                     physical:              ev.key.physical_key,
                     key_without_modifiers: ev.key.key_without_modifiers(),
                     location:              ev.key.location,
-                    repeat:                ev.key.repeat
+                    repeat:                ev.key.repeat,
                 },
-                mods: Self::get_key_modifiers(ev)
+                mods: Self::get_key_modifiers(ev),
             },
             EventRef::Pointer(ev) => KeyPress {
                 key:  KeyInput::Pointer(ev.button),
-                mods: ev.modifiers
-            }
+                mods: ev.modifiers,
+            },
         };
         Some(keypress)
     }
@@ -294,7 +294,7 @@ impl KeyPressData {
     pub fn key_down<'a, T: KeyPressFocus + ?Sized>(
         &self,
         event: impl Into<EventRef<'a>>,
-        focus: &T
+        focus: &T,
     ) -> KeyPressHandle {
         let keypress = match Self::keypress(event) {
             Some(keypress) => keypress,
@@ -304,19 +304,19 @@ impl KeyPressData {
                     keymatch: KeymapMatch::None,
                     keypress: KeyPress {
                         key:  KeyInput::Pointer(PointerButton::Mouse(
-                            MouseButton::Primary
+                            MouseButton::Primary,
                         )),
-                        mods: Modifiers::empty()
-                    }
+                        mods: Modifiers::empty(),
+                    },
                 };
-            }
+            },
         };
 
         if self.handle_count(focus, &keypress) {
             return KeyPressHandle {
                 handled: true,
                 keymatch: KeymapMatch::None,
-                keypress
+                keypress,
             };
         }
 
@@ -347,7 +347,7 @@ impl KeyPressData {
         &self,
         focus: &T,
         keymatch: KeymapMatch,
-        keypress: KeyPress
+        keypress: KeyPress,
     ) -> KeyPressHandle {
         let mods = keypress.mods;
         match &keymatch {
@@ -364,7 +364,7 @@ impl KeyPressData {
                 return KeyPressHandle {
                     handled,
                     keymatch,
-                    keypress
+                    keypress,
                 };
             },
             KeymapMatch::Multiple(commands) => {
@@ -381,7 +381,7 @@ impl KeyPressData {
                         return KeyPressHandle {
                             handled,
                             keymatch,
-                            keypress
+                            keypress,
                         };
                     }
                 }
@@ -389,7 +389,7 @@ impl KeyPressData {
                 return KeyPressHandle {
                     handled: false,
                     keymatch,
-                    keypress
+                    keypress,
                 };
             },
             KeymapMatch::Prefix => {
@@ -398,7 +398,7 @@ impl KeyPressData {
                 return KeyPressHandle {
                     handled: true,
                     keymatch,
-                    keypress
+                    keypress,
                 };
             },
             KeymapMatch::None => {
@@ -421,13 +421,13 @@ impl KeyPressData {
                                 return KeyPressHandle {
                                     handled,
                                     keymatch,
-                                    keypress: old_keypress
+                                    keypress: old_keypress,
                                 };
                             }
                         }
                     }
                 }
-            }
+            },
         }
 
         let mut mods = keypress.mods;
@@ -450,7 +450,7 @@ impl KeyPressData {
                     return KeyPressHandle {
                         handled: true,
                         keymatch,
-                        keypress
+                        keypress,
                     };
                 } else if let Key::Named(NamedKey::Space) = logical {
                     focus.receive_char(" ");
@@ -458,7 +458,7 @@ impl KeyPressData {
                     return KeyPressHandle {
                         handled: true,
                         keymatch,
-                        keypress
+                        keypress,
                     };
                 }
             }
@@ -467,7 +467,7 @@ impl KeyPressData {
         KeyPressHandle {
             handled: false,
             keymatch,
-            keypress
+            keypress,
         }
     }
 
@@ -480,7 +480,7 @@ impl KeyPressData {
             Key::Named(NamedKey::Meta) => mods.set(Modifiers::META, false),
             Key::Named(NamedKey::Control) => mods.set(Modifiers::CONTROL, false),
             Key::Named(NamedKey::AltGraph) => mods.set(Modifiers::ALTGR, false),
-            _ => ()
+            _ => (),
         }
 
         mods
@@ -489,7 +489,7 @@ impl KeyPressData {
     fn match_keymap<T: KeyPressFocus + ?Sized>(
         &self,
         keypresses: &[KeyPress],
-        check: &T
+        check: &T,
     ) -> KeymapMatch {
         let keypresses: Vec<KeyMapPress> =
             keypresses.iter().filter_map(|k| k.keymap_press()).collect();
@@ -530,7 +530,7 @@ impl KeyPressData {
             && matches.iter().filter(|m| m.key != keypresses).count() == 0
         {
             KeymapMatch::Multiple(
-                matches.iter().rev().map(|m| m.command.clone()).collect()
+                matches.iter().rev().map(|m| m.command.clone()).collect(),
             )
         } else {
             KeymapMatch::Prefix
@@ -539,11 +539,11 @@ impl KeyPressData {
 
     fn check_condition<T: KeyPressFocus + ?Sized>(
         condition: &str,
-        check: &T
+        check: &T,
     ) -> bool {
         fn check_one_condition<T: KeyPressFocus + ?Sized>(
             condition: &str,
-            check: &T
+            check: &T,
         ) -> bool {
             let trimmed = condition.trim();
             if let Some(stripped) = trimmed.strip_prefix('!') {
@@ -574,17 +574,17 @@ impl KeyPressData {
                 let right = Self::check_condition(right, check);
 
                 left && right
-            }
+            },
         }
     }
 
     #[allow(clippy::type_complexity)]
     fn get_keymaps(
         config: &LapceConfig,
-        config_directory: &Path
+        config_directory: &Path,
     ) -> Result<(
         IndexMap<Vec<KeyMapPress>, Vec<KeyMap>>,
-        IndexMap<String, Vec<KeyMap>>
+        IndexMap<String, Vec<KeyMap>>,
     )> {
         let is_modal = config.core.modal;
 
@@ -633,7 +633,7 @@ impl KeyPressData {
     pub fn update_file(
         keymap: &KeyMap,
         keys: &[KeyMapPress],
-        common: Rc<CommonData>
+        common: Rc<CommonData>,
     ) -> Option<()> {
         let mut array = Self::get_file_array(&common.directory.config_directory)
             .unwrap_or_default();
@@ -654,7 +654,7 @@ impl KeyPressData {
             if !keys.is_empty() {
                 array.get_mut(index)?.insert(
                     "key",
-                    toml_edit::value(toml_edit::Value::from(keys.iter().join(" ")))
+                    toml_edit::value(toml_edit::Value::from(keys.iter().join(" "))),
                 );
             } else {
                 array.remove(index);
@@ -663,27 +663,27 @@ impl KeyPressData {
             let mut table = toml_edit::Table::new();
             table.insert(
                 "command",
-                toml_edit::value(toml_edit::Value::from(keymap.command.clone()))
+                toml_edit::value(toml_edit::Value::from(keymap.command.clone())),
             );
             if !keymap.modes.is_empty() {
                 table.insert(
                     "mode",
                     toml_edit::value(toml_edit::Value::from(
-                        keymap.modes.to_string()
-                    ))
+                        keymap.modes.to_string(),
+                    )),
                 );
             }
             if let Some(when) = keymap.when.as_ref() {
                 table.insert(
                     "when",
-                    toml_edit::value(toml_edit::Value::from(when.to_string()))
+                    toml_edit::value(toml_edit::Value::from(when.to_string())),
                 );
             }
 
             if !keys.is_empty() {
                 table.insert(
                     "key",
-                    toml_edit::value(toml_edit::Value::from(keys.iter().join(" ")))
+                    toml_edit::value(toml_edit::Value::from(keys.iter().join(" "))),
                 );
                 array.push(table.clone());
             }
@@ -692,15 +692,15 @@ impl KeyPressData {
                 table.insert(
                     "key",
                     toml_edit::value(toml_edit::Value::from(
-                        keymap.key.iter().join(" ")
-                    ))
+                        keymap.key.iter().join(" "),
+                    )),
                 );
                 table.insert(
                     "command",
                     toml_edit::value(toml_edit::Value::from(format!(
                         "-{}",
                         keymap.command
-                    )))
+                    ))),
                 );
                 array.push(table.clone());
             }

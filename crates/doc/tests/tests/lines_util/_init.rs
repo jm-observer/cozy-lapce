@@ -1,25 +1,37 @@
 use std::{
     fs::File,
     path::{Path, PathBuf},
-    sync::{Arc, atomic::AtomicU64}
+    sync::{Arc, atomic::AtomicU64},
 };
 
 use anyhow::Result;
 use doc::{
-    config::EditorConfig, language::LapceLanguage, lines::{
+    DiagnosticData, EditorViewKind,
+    config::EditorConfig,
+    language::LapceLanguage,
+    lines::{
+        DocLines, RopeTextPosition,
         buffer::{
-            diff::{rope_diff, DiffLines}, rope_text::RopeText, Buffer
-        }, cursor::{Cursor, CursorMode}, diff::{DiffInfo, DiffResult}, fold::{FoldingDisplayItem, FoldingDisplayType, FoldingRange}, selection::Selection, style::EditorStyle, DocLines, RopeTextPosition
-    }, syntax::{BracketParser, Syntax}, DiagnosticData, EditorViewKind
+            Buffer,
+            diff::{DiffLines, rope_diff},
+            rope_text::RopeText,
+        },
+        cursor::{Cursor, CursorMode},
+        diff::{DiffInfo, DiffResult},
+        fold::{FoldingDisplayItem, FoldingDisplayType, FoldingRange},
+        selection::Selection,
+        style::EditorStyle,
+    },
+    syntax::{BracketParser, Syntax},
 };
 use floem::{
     kurbo::Rect,
-    reactive::{RwSignal, Scope, SignalUpdate}
+    reactive::{RwSignal, Scope, SignalUpdate},
 };
 use itertools::Itertools;
 use lapce_xi_rope::{
     Interval,
-    spans::{Spans, SpansBuilder}
+    spans::{Spans, SpansBuilder},
 };
 use log::info;
 use lsp_types::{Diagnostic, InlayHint, Position};
@@ -88,10 +100,10 @@ pub fn folded_v1() -> FoldingDisplayItem {
     FoldingDisplayItem {
         position: Position {
             line:      1,
-            character: 12
+            character: 12,
         },
         y:        0,
-        ty:       FoldingDisplayType::UnfoldStart
+        ty:       FoldingDisplayType::UnfoldStart,
     }
 }
 
@@ -100,10 +112,10 @@ pub fn folded_v2() -> FoldingDisplayItem {
     FoldingDisplayItem {
         position: Position {
             line:      5,
-            character: 5
+            character: 5,
         },
         y:        0,
-        ty:       FoldingDisplayType::UnfoldEnd
+        ty:       FoldingDisplayType::UnfoldEnd,
     }
 }
 
@@ -111,13 +123,13 @@ pub fn folded_v2() -> FoldingDisplayItem {
 pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
     Ok(vec![
         serde_json::from_str(
-            r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#
+            r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#,
         )?,
         serde_json::from_str(
-            r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#
+            r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#,
         )?,
         serde_json::from_str(
-            r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#
+            r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#,
         )?,
     ])
 }
@@ -125,7 +137,7 @@ pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
 /// just for init_main_2()
 pub fn init_main_folded_item_3() -> Result<Vec<FoldingDisplayItem>> {
     Ok(vec![serde_json::from_str(
-        r#"{"position":{"line":0,"character":14},"y":0,"ty":"UnfoldStart"}"#
+        r#"{"position":{"line":0,"character":14},"y":0,"ty":"UnfoldStart"}"#,
     )?])
 }
 
@@ -133,7 +145,7 @@ fn _init_lines(
     folded: Option<Vec<FoldingDisplayItem>>,
     (code, buffer): (String, Buffer),
     folding: Vec<FoldingRange>,
-    hints: Option<Spans<InlayHint>>
+    hints: Option<Spans<InlayHint>>,
 ) -> Result<(DocLines, EditorConfig)> {
     // let folding = _init_lsp_folding_range();
     let config_str = r##"{"font_family":"monospace","font_size":13,"line_height":20,"enable_inlay_hints":true,"inlay_hint_font_size":0,"enable_error_lens":true,"error_lens_end_of_line":true,"error_lens_multiline":false,"error_lens_font_size":0,"enable_completion_lens":false,"enable_inline_completion":true,"completion_lens_font_size":0,"only_render_error_styling":true,"auto_closing_matching_pairs":true,"auto_surround":true,"diagnostic_error":{"components":[0.8980393,0.078431375,0.0,1.0],"cs":null},"diagnostic_warn":{"components":[0.91372555,0.654902,0.0,1.0],"cs":null},"inlay_hint_fg":{"components":[0.65882355,0.65882355,0.65882355,1.0],"cs":null},"inlay_hint_bg":{"components":[0.9215687,0.9215687,0.9215687,1.0],"cs":null},"error_lens_error_foreground":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"error_lens_warning_foreground":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"error_lens_other_foreground":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"completion_lens_foreground":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"editor_foreground":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"syntax":{"markup.link.url":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"function.method":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"markup.heading":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"punctuation.delimiter":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"tag":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"variable.other.member":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"escape":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"markup.link.label":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"property":{"components":[0.53333336,0.08627451,0.5882353,1.0],"cs":null},"enum-member":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"text.reference":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"text.uri":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"builtinType":{"components":[0.07058824,0.24705884,0.72156864,1.0],"cs":null},"enumMember":{"components":[0.57254905,0.06666667,0.654902,1.0],"cs":null},"keyword":{"components":[0.027450982,0.23529413,0.7176471,1.0],"cs":null},"markup.list":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"text.title":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"struct":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"type":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"interface":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"selfKeyword":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"type.builtin":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"constant":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"variable":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"attribute":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"enum":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"markup.bold":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"method":{"components":[0.2509804,0.47058827,0.9490197,1.0],"cs":null},"string.escape":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"embedded":{"components":[0.003921569,0.5176471,0.7372549,1.0],"cs":null},"markup.link.text":{"components":[0.6509804,0.14901961,0.6431373,1.0],"cs":null},"comment":{"components":[0.627451,0.6313726,0.654902,1.0],"cs":null},"typeAlias":{"components":[0.21960786,0.227451,0.25882354,1.0],"cs":null},"function":{"components":[0.2392157,0.42352945,0.49411768,1.0],"cs":null},"string":{"components":[0.3137255,0.6313726,0.30980393,1.0],"cs":null},"constructor":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"bracket.unpaired":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"field":{"components":[0.8941177,0.3372549,0.28627452,1.0],"cs":null},"structure":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null},"markup.italic":{"components":[0.8196079,0.6039216,0.40000004,1.0],"cs":null},"number":{"components":[0.7568628,0.5176471,0.003921569,1.0],"cs":null}}}"##;
@@ -203,7 +215,7 @@ fn _init_lines(
     let diagnostics = DiagnosticData {
         expanded:         cx.create_rw_signal(false),
         diagnostics:      cx.create_rw_signal(im::Vector::new()),
-        diagnostics_span: cx.create_rw_signal(Spans::default())
+        diagnostics_span: cx.create_rw_signal(Spans::default()),
     };
     // { x0: 0.0, y0: 0.0, x1: 591.1680297851563, y1:
     // 538.1586303710938 }
@@ -229,7 +241,7 @@ fn _init_lines(
         editor_style,
         config.clone(),
         buffer,
-        None
+        None,
     )?;
     lines.update_folding_ranges(folding.into())?;
     if let Some(hints) = hints {
@@ -312,14 +324,15 @@ pub fn init_test_diff() -> Vec<DiffLines> {
         code.into(),
         0,
         Arc::new(AtomicU64::new(0)),
-        None
+        None,
     )
     .unwrap()
 }
 
 pub fn init_test_1_diff() -> Vec<DiffLines> {
     let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
-    let file_new: PathBuf = "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+    let file_new: PathBuf =
+        "../../resources/test_code/diff_test_1/test_1_new.rs".into();
 
     let code_old = load_code(&file_old);
     let code = load_code(&file_new);
@@ -328,7 +341,7 @@ pub fn init_test_1_diff() -> Vec<DiffLines> {
         code.into(),
         0,
         Arc::new(AtomicU64::new(0)),
-        None
+        None,
     )
     .unwrap()
 }
@@ -343,46 +356,48 @@ pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind
 
     let diff = DiffInfo {
         is_right: false,
-        changes:  diff
+        changes:  diff,
     };
 
     // let diff = init_diff()?;
     let left_kind = EditorViewKind::Diff {
         is_right: false,
-        changes:  diff.left_changes()
+        changes:  diff.left_changes(),
     };
     let right_kind = EditorViewKind::Diff {
         is_right: true,
-        changes:  diff.right_changes()
+        changes:  diff.right_changes(),
     };
-    
+
     let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
     let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
 
     Ok((left_lines, right_lines, left_kind, right_kind))
 }
 
-pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)> {
+pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)>
+{
     let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
-    let file_new: PathBuf = "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+    let file_new: PathBuf =
+        "../../resources/test_code/diff_test_1/test_1_new.rs".into();
 
     let diff = init_test_1_diff();
     let rs_new = _init_code(file_new);
     let rs_old = _init_code(file_old);
-    
+
     let diff = DiffInfo {
         is_right: false,
-        changes:  diff
+        changes:  diff,
     };
 
     // let diff = init_diff()?;
     let left_kind = EditorViewKind::Diff {
         is_right: false,
-        changes:  diff.left_changes()
+        changes:  diff.left_changes(),
     };
     let right_kind = EditorViewKind::Diff {
         is_right: true,
-        changes:  diff.right_changes()
+        changes:  diff.right_changes(),
     };
     let (left_lines, _) = _init_lines(None, rs_old, vec![], None)?;
     let (right_lines, _) = _init_lines(None, rs_new, vec![], None)?;
@@ -409,6 +424,6 @@ pub fn init_diff() -> Result<DiffInfo> {
     let changes: Vec<DiffLines> = serde_json::from_str(changes)?;
     Ok(DiffInfo {
         is_right: false,
-        changes
+        changes,
     })
 }

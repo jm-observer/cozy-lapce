@@ -24,7 +24,7 @@ pub struct TerminalProfile {
     pub command:     Option<String>,
     pub arguments:   Option<Vec<String>>,
     pub workdir:     Option<url::Url>,
-    pub environment: Option<HashMap<String, String>>
+    pub environment: Option<HashMap<String, String>>,
 }
 
 impl TerminalProfile {}

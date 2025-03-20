@@ -2,13 +2,13 @@ use floem::{
     Renderer, View, ViewId,
     peniko::{
         Color,
-        kurbo::{Point, Rect}
+        kurbo::{Point, Rect},
     },
     prop_extractor,
     reactive::create_effect,
     style::{FontFamily, FontSize, LineHeight, Style, TextColor},
     taffy::prelude::NodeId,
-    text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight}
+    text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
 };
 
 prop_extractor! {
@@ -23,13 +23,13 @@ prop_extractor! {
 enum FocusTextState {
     Text(String),
     FocusColor(Color),
-    FocusIndices(Vec<usize>)
+    FocusIndices(Vec<usize>),
 }
 
 pub fn focus_text(
     text: impl Fn() -> String + 'static,
     focus_indices: impl Fn() -> Vec<usize> + 'static,
-    focus_color: impl Fn() -> Color + 'static
+    focus_color: impl Fn() -> Color + 'static,
 ) -> FocusText {
     let id = ViewId::new();
 
@@ -58,7 +58,7 @@ pub fn focus_text(
         available_text: None,
         available_width: None,
         available_text_layout: None,
-        style: Default::default()
+        style: Default::default(),
     }
 }
 
@@ -72,7 +72,7 @@ pub struct FocusText {
     available_text:        Option<String>,
     available_width:       Option<f32>,
     available_text_layout: Option<TextLayout>,
-    style:                 Extractor
+    style:                 Extractor,
 }
 
 impl FocusText {
@@ -109,7 +109,7 @@ impl FocusText {
             };
             attrs_list.add_span(
                 i_start..i_end,
-                attrs.color(self.focus_color).weight(Weight::BOLD)
+                attrs.color(self.focus_color).weight(Weight::BOLD),
             );
         }
         let text_layout = TextLayout::new_with_text(&self.text, attrs_list);
@@ -150,7 +150,7 @@ impl FocusText {
                 };
                 attrs_list.add_span(
                     i_start..i_end,
-                    attrs.color(self.focus_color).weight(Weight::BOLD)
+                    attrs.color(self.focus_color).weight(Weight::BOLD),
                 );
             }
             let text_layout = TextLayout::new_with_text(new_text, attrs_list);
@@ -167,7 +167,7 @@ impl View for FocusText {
     fn update(
         &mut self,
         _cx: &mut floem::context::UpdateCx,
-        state: Box<dyn std::any::Any>
+        state: Box<dyn std::any::Any>,
     ) {
         if let Ok(state) = state.downcast() {
             match *state {
@@ -179,7 +179,7 @@ impl View for FocusText {
                 },
                 FocusTextState::FocusIndices(indices) => {
                     self.focus_indices = indices;
-                }
+                },
             }
             self.set_text_layout();
             self.id.request_layout();
@@ -195,7 +195,7 @@ impl View for FocusText {
 
     fn layout(
         &mut self,
-        cx: &mut floem::context::LayoutCx
+        cx: &mut floem::context::LayoutCx,
     ) -> floem::taffy::prelude::NodeId {
         cx.layout_node(self.id, true, |_cx| {
             if self.text_layout.is_none() {
@@ -220,7 +220,7 @@ impl View for FocusText {
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx
+        _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<Rect> {
         let text_node = self.text_node.unwrap();
         let layout = self.id.taffy_layout(text_node).unwrap_or_default();
@@ -231,7 +231,7 @@ impl View for FocusText {
                 let mut attrs = Attrs::new().color(
                     self.style
                         .color()
-                        .unwrap_or_else(|| Color::from_rgb8(0xf0, 0xf0, 0xea))
+                        .unwrap_or_else(|| Color::from_rgb8(0xf0, 0xf0, 0xea)),
                 );
                 if let Some(font_size) = self.style.font_size() {
                     attrs = attrs.font_size(font_size);
@@ -281,7 +281,7 @@ impl View for FocusText {
         } else {
             cx.draw_text_with_layout(
                 self.text_layout.as_ref().unwrap().layout_runs(),
-                point
+                point,
             );
         }
     }

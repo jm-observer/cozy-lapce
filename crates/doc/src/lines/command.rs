@@ -136,7 +136,7 @@ pub enum EditCommand {
 
     #[strum(message = "Normalize Line Endings")]
     #[strum(serialize = "normalize_line_endings")]
-    NormalizeLineEndings
+    NormalizeLineEndings,
 }
 
 impl EditCommand {
@@ -231,7 +231,7 @@ pub enum MoveCommand {
     ParagraphForward,
     #[strum(message = "Paragraph Backward")]
     #[strum(serialize = "paragraph_backward")]
-    ParagraphBackward
+    ParagraphBackward,
 }
 
 impl MoveCommand {
@@ -249,11 +249,11 @@ impl MoveCommand {
             LineEnd => Movement::EndOfLine,
             GotoLineDefaultFirst => match count {
                 Some(n) => Movement::Line(LinePosition::Line(n)),
-                None => Movement::Line(LinePosition::First)
+                None => Movement::Line(LinePosition::First),
             },
             GotoLineDefaultLast => match count {
                 Some(n) => Movement::Line(LinePosition::Line(n)),
-                None => Movement::Line(LinePosition::Last)
+                None => Movement::Line(LinePosition::Last),
             },
             WordBackward => Movement::WordBackward,
             WordForward => Movement::WordForward,
@@ -264,7 +264,7 @@ impl MoveCommand {
             NextUnmatchedRightCurlyBracket => Movement::NextUnmatched('}'),
             PreviousUnmatchedLeftCurlyBracket => Movement::PreviousUnmatched('{'),
             ParagraphForward => Movement::ParagraphForward,
-            ParagraphBackward => Movement::ParagraphBackward
+            ParagraphBackward => Movement::ParagraphBackward,
         }
     }
 }
@@ -301,7 +301,7 @@ pub enum ScrollCommand {
     TopOfWindow,
     #[strum(message = "Bottom of Window")]
     #[strum(serialize = "bottom_of_window")]
-    BottomOfWindow
+    BottomOfWindow,
 }
 
 #[derive(
@@ -493,7 +493,7 @@ pub enum FocusCommand {
     InlineCompletionCancel,
     #[strum(message = "Inline Completion Invoke")]
     #[strum(serialize = "inline_completion.invoke")]
-    InlineCompletionInvoke
+    InlineCompletionInvoke,
 }
 
 #[derive(
@@ -519,7 +519,7 @@ pub enum MotionModeCommand {
     MotionModeOutdent,
     #[strum(message = "Motion Mode Yank")]
     #[strum(serialize = "motion_mode_yank")]
-    MotionModeYank
+    MotionModeYank,
 }
 
 #[derive(
@@ -560,5 +560,5 @@ pub enum MultiSelectionCommand {
     SelectSkipCurrent,
     #[strum(message = "Select All")]
     #[strum(serialize = "select_all")]
-    SelectAll
+    SelectAll,
 }

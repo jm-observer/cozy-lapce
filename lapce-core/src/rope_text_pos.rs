@@ -16,7 +16,7 @@ pub trait RopeTextPosition: RopeText {
 
         Ok(Position {
             line:      line as u32,
-            character: utf16_col as u32
+            character: utf16_col as u32,
         })
     }
 

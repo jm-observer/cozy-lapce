@@ -1,18 +1,18 @@
 use std::{
-    collections::HashMap, path::PathBuf, process::Command, sync::mpsc::Sender
+    collections::HashMap, path::PathBuf, process::Command, sync::mpsc::Sender,
 };
 
 use floem::{ext_event::create_signal_from_channel, reactive::ReadSignal};
 use lapce_core::{
     directory::Directory,
-    workspace::{LapceWorkspace, LapceWorkspaceType}
+    workspace::{LapceWorkspace, LapceWorkspaceType},
 };
 use lapce_proxy::dispatch::Dispatcher;
 use lapce_rpc::{
     core::{CoreHandler, CoreNotification, CoreRpcHandler},
     plugin::VoltID,
     proxy::{ProxyRpcHandler, ProxyStatus},
-    terminal::TermId
+    terminal::TermId,
 };
 use log::error;
 
@@ -26,14 +26,14 @@ mod wsl;
 
 pub struct Proxy {
     pub tx:      Sender<CoreNotification>,
-    pub term_tx: Sender<(TermId, TermEvent)>
+    pub term_tx: Sender<(TermId, TermEvent)>,
 }
 
 #[derive(Clone)]
 pub struct ProxyData {
     pub proxy_rpc:    ProxyRpcHandler,
     pub core_rpc:     CoreRpcHandler,
-    pub notification: ReadSignal<Option<CoreNotification>>
+    pub notification: ReadSignal<Option<CoreNotification>>,
 }
 
 impl ProxyData {
@@ -49,7 +49,7 @@ pub fn new_proxy(
     extra_plugin_paths: Vec<PathBuf>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
     term_tx: Sender<(TermId, TermEvent)>,
-    directory: &Directory
+    directory: &Directory,
 ) -> ProxyData {
     let proxy_rpc = ProxyRpcHandler::new();
     let core_rpc = CoreRpcHandler::new();
@@ -62,7 +62,7 @@ pub fn new_proxy(
             .name("ProxyRpcHandler".to_owned())
             .spawn(move || {
                 core_rpc.notification(CoreNotification::ProxyStatus {
-                    status: ProxyStatus::Connecting
+                    status: ProxyStatus::Connecting,
                 });
                 proxy_rpc.initialize(
                     workspace.path.clone(),
@@ -70,7 +70,7 @@ pub fn new_proxy(
                     extra_plugin_paths,
                     plugin_configurations,
                     1,
-                    1
+                    1,
                 );
 
                 match &workspace.kind {
@@ -88,11 +88,11 @@ pub fn new_proxy(
                     LapceWorkspaceType::RemoteSSH(remote) => {
                         if let Err(e) = start_remote(
                             SshRemote {
-                                ssh: remote.clone()
+                                ssh: remote.clone(),
                             },
                             core_rpc.clone(),
                             proxy_rpc.clone(),
-                            &directory
+                            &directory,
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
@@ -101,15 +101,15 @@ pub fn new_proxy(
                     LapceWorkspaceType::RemoteWSL(remote) => {
                         if let Err(e) = start_remote(
                             wsl::WslRemote {
-                                wsl: remote.clone()
+                                wsl: remote.clone(),
                             },
                             core_rpc.clone(),
                             proxy_rpc.clone(),
-                            &directory
+                            &directory,
                         ) {
                             error!("Failed to start SSH remote: {e}");
                         }
-                    }
+                    },
                 }
             })
             .unwrap();
@@ -124,7 +124,7 @@ pub fn new_proxy(
                 let mut proxy = Proxy { tx, term_tx };
                 core_rpc.mainloop(&mut proxy);
                 core_rpc.notification(CoreNotification::ProxyStatus {
-                    status: ProxyStatus::Connected
+                    status: ProxyStatus::Connected,
                 });
             })
             .unwrap()
@@ -135,7 +135,7 @@ pub fn new_proxy(
     ProxyData {
         proxy_rpc,
         core_rpc,
-        notification
+        notification,
     }
 }
 
@@ -158,7 +158,7 @@ impl CoreHandler for Proxy {
     fn handle_request(
         &mut self,
         _id: lapce_rpc::RequestId,
-        _rpc: lapce_rpc::core::CoreRequest
+        _rpc: lapce_rpc::core::CoreRequest,
     ) {
     }
 }
@@ -177,7 +177,7 @@ pub fn new_command(program: &str) -> Command {
 async fn start_local_proxy(
     core_rpc: CoreRpcHandler,
     proxy_rpc: ProxyRpcHandler,
-    directory: Directory
+    directory: Directory,
 ) {
     let mut dispatcher = Dispatcher::new(core_rpc, proxy_rpc, directory);
     let proxy_rpc = dispatcher.proxy_rpc.clone();

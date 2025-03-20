@@ -8,7 +8,7 @@ use floem::reactive::{RwSignal, Scope, SignalGet, SignalUpdate};
 #[derive(Debug)]
 pub struct Listener<T: 'static> {
     cx:  Scope,
-    val: RwSignal<Option<T>>
+    val: RwSignal<Option<T>>,
 }
 
 impl<T: Clone + 'static> Listener<T> {

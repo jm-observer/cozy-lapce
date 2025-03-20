@@ -8,25 +8,25 @@ pub trait Clipboard {
 #[derive(Clone, Default)]
 pub struct RegisterData {
     pub content: String,
-    pub mode:    VisualMode
+    pub mode:    VisualMode,
 }
 
 #[derive(Clone, Default)]
 pub struct Register {
     pub unnamed: RegisterData,
-    last_yank:   RegisterData
+    last_yank:   RegisterData,
 }
 
 pub enum RegisterKind {
     Delete,
-    Yank
+    Yank,
 }
 
 impl Register {
     pub fn add(&mut self, kind: RegisterKind, data: RegisterData) {
         match kind {
             RegisterKind::Delete => self.add_delete(data),
-            RegisterKind::Yank => self.add_yank(data)
+            RegisterKind::Yank => self.add_yank(data),
         }
     }
 

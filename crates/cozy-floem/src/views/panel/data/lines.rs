@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     cell::{RefCell, RefMut},
     collections::HashMap,
-    ops::Range
+    ops::Range,
 };
 
 use ansi_to_style::TextStyle;
@@ -10,19 +10,19 @@ use anyhow::{Result, anyhow};
 use cargo_metadata::PackageId;
 use doc::{
     hit_position_aff,
-    lines::{layout::TextLayout, line_ending::LineEnding}
+    lines::{layout::TextLayout, line_ending::LineEnding},
 };
 use floem::{
     kurbo::{Point, Rect, Size},
     peniko::Color,
-    text::{Attrs, AttrsList, FONT_SYSTEM, FamilyOwned, Style, Weight}
+    text::{Attrs, AttrsList, FONT_SYSTEM, FamilyOwned, Style, Weight},
 };
 use lapce_xi_rope::Rope;
 use log::{error, warn};
 
 use crate::views::{
     panel::DocStyle,
-    tree_with_panel::data::{StyledLines, VisualLine}
+    tree_with_panel::data::{StyledLines, VisualLine},
 };
 
 #[derive(Clone, Debug)]
@@ -31,20 +31,20 @@ pub enum Hyperlink {
         range:  Range<usize>,
         src:    String,
         line:   usize,
-        column: Option<usize>
+        column: Option<usize>,
     },
     Url {
         range: Range<usize>,
         // todo
-        url:   String
-    }
+        url:   String,
+    },
 }
 
 impl Hyperlink {
     pub fn range(&self) -> Range<usize> {
         match self {
             Hyperlink::File { range, .. } => range.clone(),
-            Hyperlink::Url { range, .. } => range.clone()
+            Hyperlink::Url { range, .. } => range.clone(),
         }
     }
 
@@ -55,7 +55,7 @@ impl Hyperlink {
             },
             Hyperlink::Url { range, .. } => {
                 *range = new_range;
-            }
+            },
         }
     }
 }
@@ -68,7 +68,7 @@ pub struct Lines {
     // pub visual_line:      Vec<SimpleLine>,
     // pub visual_links:     Vec<SimpleHyperlink>,
     pub hyperlinks:       Vec<Hyperlink>,
-    pub texts:            Vec<RefCell<TextLayout>>
+    pub texts:            Vec<RefCell<TextLayout>>,
 }
 
 impl Default for Lines {
@@ -79,7 +79,7 @@ impl Default for Lines {
             display_strategy: Default::default(),
             ropes,
             hyperlinks: vec![],
-            texts: vec![]
+            texts: vec![],
         }
     }
 }
@@ -90,12 +90,12 @@ pub enum DisplayId {
     All,
     Error,
     Crate {
-        crate_name: String
+        crate_name: String,
     },
     CrateFile {
         crate_name: String,
-        file_name:  String
-    }
+        file_name:  String,
+    },
 }
 
 impl DisplayId {
@@ -106,7 +106,7 @@ impl DisplayId {
             DisplayId::Crate { crate_name } => {
                 format!("Compiling {}", crate_name.clone())
             },
-            DisplayId::CrateFile { file_name, .. } => file_name.clone()
+            DisplayId::CrateFile { file_name, .. } => file_name.clone(),
         }
     }
 }
@@ -114,14 +114,14 @@ impl DisplayId {
 #[derive(Clone, Debug)]
 pub struct SimpleHyperlink {
     pub rect:       Rect,
-    pub link_index: usize
+    pub link_index: usize,
 }
 
 impl SimpleHyperlink {
     pub fn underline(&self) -> (Point, Point) {
         (
             Point::new(self.rect.x0, self.rect.y1 - 2.0),
-            Point::new(self.rect.x1, self.rect.y1 - 2.0)
+            Point::new(self.rect.x1, self.rect.y1 - 2.0),
         )
     }
 }
@@ -130,7 +130,7 @@ impl SimpleHyperlink {
 pub struct SimpleLine {
     pub line_index: usize,
     pub hyperlinks: Vec<(Point, Point)>,
-    pub text_index: usize
+    pub text_index: usize,
 }
 
 impl Lines {
@@ -141,7 +141,7 @@ impl Lines {
     fn display_simple_lines(
         &self,
         viewport: Rect,
-        line_height: f64
+        line_height: f64,
     ) -> Result<&[SimpleLine]> {
         let lines = &self.line_info()?.1;
         let len = lines.len().max(1) - 1;
@@ -152,7 +152,7 @@ impl Lines {
     }
 
     pub fn line_info(
-        &self
+        &self,
     ) -> Result<&(Rope, Vec<SimpleLine>, Vec<SimpleHyperlink>)> {
         self.ropes
             .get(&self.display_strategy)
@@ -167,7 +167,7 @@ impl Lines {
         &self,
         viewport: Rect,
         line_height: f64,
-        hyper_color: Color
+        hyper_color: Color,
     ) -> Result<Vec<VisualLine>> {
         Ok(self
             .display_simple_lines(viewport, line_height)?
@@ -186,7 +186,7 @@ impl Lines {
                         pos_y,
                         line_index: x.line_index,
                         hyperlinks,
-                        text: text.clone()
+                        text: text.clone(),
                     })
                 } else {
                     warn!("not found text layout: {}", x.text_index);
@@ -199,7 +199,7 @@ impl Lines {
     pub(crate) fn visual_lines_size(
         &self,
         viewport: Rect,
-        line_height: f64
+        line_height: f64,
     ) -> Result<Size> {
         let viewport_size = viewport.size();
         let len = self.lines_len()?;
@@ -218,7 +218,7 @@ impl Lines {
                     Err(err) => {
                         error!("{err:?}");
                         x
-                    }
+                    },
                 }
             })
             .max(viewport.size().width);
@@ -236,7 +236,7 @@ impl Lines {
 
     pub fn point_of_offset(
         &self,
-        offset: usize
+        offset: usize,
     ) -> Result<Option<(Point, usize, usize)>> {
         let rope = &self.line_info()?.0;
         if rope.is_empty() {
@@ -259,7 +259,7 @@ impl Lines {
         hyperlink: &[Hyperlink],
         line_ending: LineEnding,
         text: &mut TextLayout,
-        line_height: f64
+        line_height: f64,
     ) {
         let (rope, lines, links) = self.ropes.entry(text_src.clone()).or_default();
         let mut old_len = rope.len();
@@ -277,7 +277,7 @@ impl Lines {
         let start = links.len();
         let (underlines, mut simple_link): (
             Vec<(Point, Point)>,
-            Vec<SimpleHyperlink>
+            Vec<SimpleHyperlink>,
         ) = hyperlink
             .iter()
             .map(|x| {
@@ -290,29 +290,29 @@ impl Lines {
                 (
                     Point::new(x0, under_line_y),
                     Point::new(x1, under_line_y),
-                    Rect::new(x0, y0, x1, y1)
+                    Rect::new(x0, y0, x1, y1),
                 )
             })
             .enumerate()
             .fold(
                 (
                     Vec::with_capacity(hyperlink.len()),
-                    Vec::with_capacity(hyperlink.len())
+                    Vec::with_capacity(hyperlink.len()),
                 ),
                 |(mut underlines, mut simple_link), (index, x)| {
                     underlines.push((x.0, x.1));
 
                     simple_link.push(SimpleHyperlink {
                         rect:       x.2,
-                        link_index: start + index
+                        link_index: start + index,
                     });
                     (underlines, simple_link)
-                }
+                },
             );
         let _line = SimpleLine {
             line_index,
             text_index,
-            hyperlinks: underlines
+            hyperlinks: underlines,
         };
         links.append(&mut simple_link);
         lines.push(_line);
@@ -343,7 +343,7 @@ impl Lines {
         &mut self,
         style_lines: StyledLines,
         line_ending: LineEnding,
-        doc_style: &DocStyle
+        doc_style: &DocStyle,
     ) -> anyhow::Result<()> {
         // 新内容如果没有\n则会导致二者相等
         let family =
@@ -364,7 +364,7 @@ impl Lines {
                 &content_origin_without_lf,
                 attrs_list,
                 &mut font_system,
-                line_ending_str
+                line_ending_str,
             );
 
             let text_index = self.texts.len();
@@ -376,7 +376,7 @@ impl Lines {
                     &hyperlink,
                     line_ending,
                     &mut text,
-                    doc_style.line_height
+                    doc_style.line_height,
                 );
             }
             self.texts.push(text.into());
@@ -438,11 +438,11 @@ pub enum TextSrc {
     StdOut {
         package_id: PackageId,
         crate_name: String,
-        file:       Option<String>
+        file:       Option<String>,
     },
     StdErr {
-        level: ErrLevel
-    }
+        level: ErrLevel,
+    },
 }
 
 impl TextSrc {
@@ -454,18 +454,18 @@ impl TextSrc {
                 if let Some(file) = file {
                     DisplayId::CrateFile {
                         crate_name: crate_name.clone(),
-                        file_name:  file.clone()
+                        file_name:  file.clone(),
                     }
                 } else {
                     DisplayId::Crate {
-                        crate_name: crate_name.clone()
+                        crate_name: crate_name.clone(),
                     }
                 }
             },
             TextSrc::StdErr { level } => match level {
                 ErrLevel::Error => DisplayId::Error,
-                ErrLevel::Other => DisplayId::All
-            }
+                ErrLevel::Other => DisplayId::All,
+            },
         }
     }
 
@@ -478,18 +478,18 @@ impl TextSrc {
                     vec![
                         DisplayId::All,
                         DisplayId::Crate {
-                            crate_name: crate_name.clone()
+                            crate_name: crate_name.clone(),
                         },
                         DisplayId::CrateFile {
                             crate_name: crate_name.clone(),
-                            file_name:  file.clone()
+                            file_name:  file.clone(),
                         },
                     ]
                 } else {
                     vec![
                         DisplayId::All,
                         DisplayId::Crate {
-                            crate_name: crate_name.clone()
+                            crate_name: crate_name.clone(),
                         },
                     ]
                 }
@@ -500,8 +500,8 @@ impl TextSrc {
                 },
                 ErrLevel::Other => {
                     vec![DisplayId::All]
-                }
-            }
+                },
+            },
         }
     }
 }
@@ -509,5 +509,5 @@ impl TextSrc {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ErrLevel {
     Error,
-    Other
+    Other,
 }

@@ -1,14 +1,17 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    rc::Rc
+    rc::Rc,
 };
 
 use anyhow::Result;
 use doc::{
     DiagnosticData, EditorViewKind,
-    lines::{RopeTextPosition, command::FocusCommand, cursor::Cursor},
-    syntax::Syntax
+    lines::{
+        RopeTextPosition, buffer::rope_text::RopeText, command::FocusCommand,
+        cursor::Cursor,
+    },
+    syntax::Syntax,
 };
 use floem::{
     ext_event::create_ext_action,
@@ -16,7 +19,7 @@ use floem::{
     file_action::save_as,
     keyboard::Modifiers,
     peniko::kurbo::{Point, Rect, Vec2},
-    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch}
+    reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch},
 };
 use itertools::Itertools;
 use lapce_core::{
@@ -25,23 +28,23 @@ use lapce_core::{
     id::*,
     main_split::{
         SplitContent, SplitContentInfo, SplitDirection, SplitInfo,
-        SplitMoveDirection, TabCloseKind
-    }
+        SplitMoveDirection, TabCloseKind,
+    },
 };
 use lapce_rpc::{
     buffer::BufferId,
     core::FileChanged,
     plugin::{PluginId, VoltID},
-    proxy::ProxyResponse
+    proxy::ProxyResponse,
 };
 use lapce_xi_rope::{Rope, spans::SpansBuilder};
 use log::{error, warn};
 use lsp_types::{
     CodeAction, CodeActionOrCommand, DiagnosticSeverity, DocumentChangeOperation,
-    DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit
+    DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit,
 };
 use serde_json::Value;
-use doc::lines::buffer::rope_text::RopeText;
+
 use crate::{
     alert::AlertButton,
     code_lens::CodeLensData,
@@ -51,17 +54,17 @@ use crate::{
     editor::{
         EditorData,
         diff::DiffEditorData,
-        location::{EditorLocation, EditorPosition}
+        location::{EditorLocation, EditorPosition},
     },
     editor_tab::{
         EditorTabChildId, EditorTabChildSimple, EditorTabChildSource,
-        EditorTabManageData
+        EditorTabManageData,
     },
     keypress::{EventRef, KeyPressData, KeyPressHandle},
     panel::{
-        call_hierarchy_view::CallHierarchyData, implementation_view::ReferencesRoot
+        call_hierarchy_view::CallHierarchyData, implementation_view::ReferencesRoot,
     },
-    window_workspace::{CommonData, Focus, WindowWorkspaceData}
+    window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
 
 #[derive(Clone)]
@@ -72,7 +75,7 @@ pub struct SplitData {
     pub children:      Vec<(RwSignal<f64>, SplitContent)>,
     pub direction:     SplitDirection,
     pub window_origin: Point,
-    pub layout_rect:   Rect
+    pub layout_rect:   Rect,
 }
 
 impl SplitData {
@@ -80,7 +83,7 @@ impl SplitData {
         info: &SplitInfo,
         data: MainSplitData,
         parent_split: Option<SplitId>,
-        split_id: SplitId
+        split_id: SplitId,
     ) -> RwSignal<Self> {
         let split_data = {
             let cx = data.scope.create_child();
@@ -95,12 +98,12 @@ impl SplitData {
                     .map(|child| {
                         (
                             cx.create_rw_signal(1.0),
-                            data.clone().generate_split_content(child, split_id)
+                            data.clone().generate_split_content(child, split_id),
                         )
                     })
                     .collect(),
                 window_origin: Point::ZERO,
-                layout_rect: Rect::ZERO
+                layout_rect: Rect::ZERO,
             };
             cx.create_rw_signal(split_data)
         };
@@ -119,14 +122,14 @@ impl SplitData {
                 .children
                 .iter()
                 .map(|(_, child)| data.content_info(child))
-                .collect()
+                .collect(),
         };
         info
     }
 
     pub fn editor_tab_index(
         &self,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> Option<usize> {
         self.children
             .iter()
@@ -170,7 +173,7 @@ impl Editors {
         &self,
         cx: Scope,
         common: Rc<CommonData>,
-        name: Option<String>
+        name: Option<String>,
     ) -> EditorId {
         let editor = EditorData::new_local(cx, *self, common, name);
 
@@ -190,7 +193,7 @@ impl Editors {
         &self,
         cx: Scope,
         common: Rc<CommonData>,
-        name: String
+        name: String,
     ) -> EditorData {
         let id = self.new_local(cx, common, Some(name));
         self.editor_untracked(id).unwrap()
@@ -203,7 +206,7 @@ impl Editors {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
-        view_kind: EditorViewKind
+        view_kind: EditorViewKind,
     ) -> EditorId {
         let editor = EditorData::new_doc(
             cx,
@@ -211,7 +214,7 @@ impl Editors {
             editor_tab_id,
             diff_editor_id,
             common,
-            view_kind
+            view_kind,
         );
 
         self.insert(editor)
@@ -226,7 +229,7 @@ impl Editors {
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
-        view_kind: EditorViewKind
+        view_kind: EditorViewKind,
     ) -> EditorData {
         let id = self.new_from_doc(
             cx,
@@ -234,7 +237,7 @@ impl Editors {
             editor_tab_id,
             diff_editor_id,
             common,
-            view_kind
+            view_kind,
         );
         self.editor_untracked(id).unwrap()
     }
@@ -245,7 +248,7 @@ impl Editors {
         editor_id: EditorId,
         cx: Scope,
         editor_tab_id: Option<EditorTabManageId>,
-        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
     ) -> Option<EditorId> {
         let editor = self.editor_untracked(editor_id)?;
         let new_editor = editor.copy(cx, editor_tab_id, diff_editor_id);
@@ -258,7 +261,7 @@ impl Editors {
         editor_id: EditorId,
         cx: Scope,
         editor_tab_id: Option<EditorTabManageId>,
-        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>
+        diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
     ) -> Option<EditorData> {
         let editor_id = self.copy(editor_id, cx, editor_tab_id, diff_editor_id)?;
         self.editor_untracked(editor_id)
@@ -301,14 +304,14 @@ impl Editors {
 
     pub fn with_editors<O>(
         &self,
-        f: impl FnOnce(&im::HashMap<EditorId, EditorData>) -> O
+        f: impl FnOnce(&im::HashMap<EditorId, EditorData>) -> O,
     ) -> O {
         self.0.with(f)
     }
 
     pub fn with_editors_untracked<O>(
         &self,
-        f: impl FnOnce(&im::HashMap<EditorId, EditorData>) -> O
+        f: impl FnOnce(&im::HashMap<EditorId, EditorData>) -> O,
     ) -> O {
         self.0.with_untracked(f)
     }
@@ -338,7 +341,7 @@ pub struct MainSplitData {
     pub width:             RwSignal<f64>,
     pub code_lens:         RwSignal<CodeLensData>,
     pub common:            Rc<CommonData>,
-    pub hierarchy:         Tabs<CallHierarchyData>
+    pub hierarchy:         Tabs<CallHierarchyData>,
 }
 
 impl std::fmt::Debug for MainSplitData {
@@ -354,7 +357,7 @@ impl MainSplitData {
         let splits = cx.create_rw_signal(im::HashMap::new());
         let active_editor_tab = cx.create_rw_signal(None);
         let editor_tabs: RwSignal<
-            im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>
+            im::HashMap<EditorTabManageId, RwSignal<EditorTabManageData>>,
         > = cx.create_rw_signal(im::HashMap::new());
         let editors = Editors::new(cx);
         let diff_editors: RwSignal<im::HashMap<DiffEditorId, DiffEditorData>> =
@@ -394,7 +397,7 @@ impl MainSplitData {
                         diff_editor.left
                     }
                 },
-                _ => return None
+                _ => return None,
             };
 
             Some(editor)
@@ -428,14 +431,14 @@ impl MainSplitData {
             common,
             references,
             implementations,
-            hierarchy
+            hierarchy,
         }
     }
 
     pub fn key_down<'a>(
         &self,
         event: impl Into<EventRef<'a>>,
-        keypress: &KeyPressData
+        keypress: &KeyPressData,
     ) -> Option<KeyPressHandle> {
         let active_editor_tab = self.active_editor_tab.get_untracked()?;
         let editor_tab = self.editor_tabs.with_untracked(|editor_tabs| {
@@ -471,7 +474,7 @@ impl MainSplitData {
             EditorTabChildId::Settings(_) => None,
             EditorTabChildId::ThemeColorSettings(_) => None,
             EditorTabChildId::Keymap(_) => None,
-            EditorTabChildId::Volt(_, _) => None
+            EditorTabChildId::Volt(_, _) => None,
         }
     }
 
@@ -495,7 +498,7 @@ impl MainSplitData {
         &self,
         path: PathBuf,
         offset: usize,
-        scroll_offset: Vec2
+        scroll_offset: Vec2,
     ) -> bool {
         let mut locations = self.locations.get_untracked();
         if let Some(last_location) = locations.last() {
@@ -511,7 +514,7 @@ impl MainSplitData {
             position: Some(EditorPosition::Offset(offset)),
             scroll_offset: Some(scroll_offset),
             ignore_unconfirmed: false,
-            same_editor_tab: false
+            same_editor_tab: false,
         };
         locations.push_back(location.clone());
         let current_location = locations.len();
@@ -541,7 +544,7 @@ impl MainSplitData {
     pub fn jump_to_location(
         &self,
         location: EditorLocation,
-        edits: Option<Vec<TextEdit>>
+        edits: Option<Vec<TextEdit>>,
     ) {
         self.save_current_jump_location();
         if let Err(err) = self.go_to_location(location, edits) {
@@ -554,20 +557,24 @@ impl MainSplitData {
         path: PathBuf,
         unsaved: Option<String>,
         lsp_req: bool,
-        content: DocContent
+        content: DocContent,
     ) -> (Rc<Doc>, bool) {
         self.get_doc_with_force(path, unsaved, lsp_req, content, false)
     }
+
     pub fn get_doc_with_force(
         &self,
         path: PathBuf,
         unsaved: Option<String>,
         lsp_req: bool,
-        content: DocContent, force: bool
+        content: DocContent,
+        force: bool,
     ) -> (Rc<Doc>, bool) {
         let cx = self.scope;
         let doc = self.docs.with_untracked(|docs| docs.get(&content).cloned());
-        if let Some(doc) = doc && !force {
+        if let Some(doc) = doc
+            && !force
+        {
             (doc, false)
         } else {
             let diagnostic_data = self.get_diagnostic_data(&path);
@@ -578,7 +585,7 @@ impl MainSplitData {
                 diagnostic_data,
                 self.editors,
                 self.common.clone(),
-                content.clone()
+                content.clone(),
             );
             let doc = Rc::new(doc);
             self.docs.update(|docs| {
@@ -591,7 +598,7 @@ impl MainSplitData {
                 let send = create_ext_action(cx, move |result| {
                     if let Ok(ProxyResponse::NewBufferResponse {
                         content,
-                        read_only
+                        read_only,
                     }) = result
                     {
                         local_doc.init_content(Rope::from(content));
@@ -612,7 +619,7 @@ impl MainSplitData {
                     path,
                     move |(_, result)| {
                         send(result);
-                    }
+                    },
                 );
             }
             if lsp_req {
@@ -627,7 +634,7 @@ impl MainSplitData {
     pub fn go_to_location(
         &self,
         location: EditorLocation,
-        edits: Option<Vec<TextEdit>>
+        edits: Option<Vec<TextEdit>>,
     ) -> Result<()> {
         if self.common.focus.get_untracked() != Focus::Workbench {
             self.common.focus.set(Focus::Workbench);
@@ -638,13 +645,16 @@ impl MainSplitData {
             let cursor = tab.editor.cursor.get_untracked();
             let offset = cursor.offset();
 
-
-            let line_num = tab.editor.doc().lines.with_untracked(|x| {
-                x.buffer().line_of_offset(offset)
-            });
-            if let Some(index) = tab.editor.screen_lines.with_untracked(|x| {
-                x.visual_index_for_origin_line_num(line_num)
-            }) {
+            let line_num = tab
+                .editor
+                .doc()
+                .lines
+                .with_untracked(|x| x.buffer().line_of_offset(offset));
+            if let Some(index) = tab
+                .editor
+                .screen_lines
+                .with_untracked(|x| x.visual_index_for_origin_line_num(line_num))
+            {
                 off_top_line = Some(index);
             }
         }
@@ -655,26 +665,31 @@ impl MainSplitData {
             true,
             DocContent::File {
                 path:      path.clone(),
-                read_only: false
-            }
+                read_only: false,
+            },
         );
         log::debug!("go_to_location {:?} {:?}", location, off_top_line);
 
         let child = self.get_editor_tab_child(
             EditorTabChildSource::Editor { path, doc },
             location.ignore_unconfirmed,
-            location.same_editor_tab
+            location.same_editor_tab,
         );
         if let EditorTabChildId::Editor(editor_id) = child {
             if let Some(editor) = self.editors.editor_untracked(editor_id) {
                 batch(|| {
-                    editor.go_to_location(location, new_doc, edits, Some(off_top_line));
+                    editor.go_to_location(
+                        location,
+                        new_doc,
+                        edits,
+                        Some(off_top_line),
+                    );
                 });
             }
         } else {
             anyhow::bail!("get_editor_tab_child not EditorTabChildId::Editor");
         }
-        Ok(()) 
+        Ok(())
     }
 
     pub fn open_file_changes(&self, path: PathBuf) {
@@ -684,17 +699,17 @@ impl MainSplitData {
             false,
             DocContent::File {
                 path:      path.clone(),
-                read_only: false
-            }
+                read_only: false,
+            },
         );
         let left = Doc::new_history(
             self.scope,
             DocContent::History(DocHistory {
                 path:    path.clone(),
-                version: "head".to_string()
+                version: "head".to_string(),
             }),
             self.editors,
-            self.common.clone()
+            self.common.clone(),
         );
         let left = Rc::new(left);
 
@@ -714,7 +729,7 @@ impl MainSplitData {
         self.get_editor_tab_child(
             EditorTabChildSource::DiffEditor { left, right },
             false,
-            false
+            false,
         );
     }
 
@@ -726,8 +741,8 @@ impl MainSplitData {
                 false,
                 DocContent::File {
                     path,
-                    read_only: true
-                }
+                    read_only: true,
+                },
             )
             .0
         });
@@ -735,14 +750,14 @@ impl MainSplitData {
         self.get_editor_tab_child(
             EditorTabChildSource::DiffEditor { left, right },
             false,
-            false
+            false,
         );
     }
 
     fn new_editor_tab(
         &self,
         editor_tab_id: EditorTabManageId,
-        split_id: SplitId
+        split_id: SplitId,
     ) -> RwSignal<EditorTabManageData> {
         let editor_tab = {
             let cx = self.scope.create_child();
@@ -755,7 +770,7 @@ impl MainSplitData {
                 window_origin:        cx.create_rw_signal(Point::ZERO),
                 layout_rect:          cx.create_rw_signal(Rect::ZERO),
                 locations:            cx.create_rw_signal(im::Vector::new()),
-                current_location:     cx.create_rw_signal(0)
+                current_location:     cx.create_rw_signal(0),
             };
             cx.create_rw_signal(editor_tab)
         };
@@ -769,7 +784,7 @@ impl MainSplitData {
         &self,
         source: EditorTabChildSource,
         ignore_unconfirmed: bool,
-        same_editor_tab: bool
+        same_editor_tab: bool,
     ) -> EditorTabChildId {
         let show_tab = self
             .common
@@ -796,13 +811,14 @@ impl MainSplitData {
             root_split.update(|root_split| {
                 root_split.children = vec![(
                     root_split.scope.create_rw_signal(1.0),
-                    SplitContent::EditorTab(editor_tab_id)
+                    SplitContent::EditorTab(editor_tab_id),
                 )];
             });
             self.active_editor_tab.set(Some(editor_tab_id));
             editor_tab
         } else {
-            let (editor_tab_id, editor_tab) = editor_tab_manages.iter().next().unwrap();
+            let (editor_tab_id, editor_tab) =
+                editor_tab_manages.iter().next().unwrap();
             self.active_editor_tab.set(Some(*editor_tab_id));
             *editor_tab
         };
@@ -875,7 +891,7 @@ impl MainSplitData {
                         EditorTabChildId::Settings(_) => true,
                         EditorTabChildId::ThemeColorSettings(_) => true,
                         EditorTabChildId::Keymap(_) => true,
-                        EditorTabChildId::Volt(_, _) => true
+                        EditorTabChildId::Volt(_, _) => true,
                     };
 
                     if can_be_selected {
@@ -1021,7 +1037,7 @@ impl MainSplitData {
                                 .map(|(i, _)| i)
                         })
                     }
-                }
+                },
             }
         };
 
@@ -1035,7 +1051,7 @@ impl MainSplitData {
                             Some(editor_tab_id),
                             None,
                             self.common.clone(),
-                            EditorViewKind::Normal
+                            EditorViewKind::Normal,
                         );
 
                         EditorTabChildId::Editor(editor_id)
@@ -1044,14 +1060,14 @@ impl MainSplitData {
                         let name = self.get_name_for_new_file();
                         let doc_content = DocContent::Scratch {
                             id:   BufferId::next(),
-                            name: name.clone()
+                            name: name.clone(),
                         };
                         let doc = Doc::new_content(
                             self.scope,
                             doc_content,
                             self.editors,
                             self.common.clone(),
-                            None
+                            None,
                         );
                         let doc = Rc::new(doc);
                         self.scratch_docs.update(|scratch_docs| {
@@ -1063,7 +1079,7 @@ impl MainSplitData {
                             Some(editor_tab_id),
                             None,
                             self.common.clone(),
-                            EditorViewKind::Normal
+                            EditorViewKind::Normal,
                         );
 
                         EditorTabChildId::Editor(editor_id)
@@ -1089,13 +1105,13 @@ impl MainSplitData {
                             left.clone(),
                             right.clone(),
                             editors,
-                            self.common.clone()
+                            self.common.clone(),
                         );
                         self.diff_editors.update(|diff_editors| {
                             diff_editors.insert(diff_editor_id, diff_editor);
                         });
                         EditorTabChildId::DiffEditor(diff_editor_id)
-                    }
+                    },
                 }
             };
 
@@ -1116,7 +1132,7 @@ impl MainSplitData {
                         EditorTabChildId::Settings(_) => {},
                         EditorTabChildId::ThemeColorSettings(_) => {},
                         EditorTabChildId::Keymap(_) => {},
-                        EditorTabChildId::Volt(_, _) => {}
+                        EditorTabChildId::Volt(_, _) => {},
                     }
                     (editor_tab_id, current_child.clone())
                 });
@@ -1126,7 +1142,7 @@ impl MainSplitData {
             let is_same = match (&current_child, &source) {
                 (
                     EditorTabChildId::Editor(editor_id),
-                    EditorTabChildSource::Editor { path, doc }
+                    EditorTabChildSource::Editor { path, doc },
                 ) => {
                     if let Some(editor) = editors.editor_untracked(*editor_id) {
                         let same_path = editor
@@ -1139,7 +1155,7 @@ impl MainSplitData {
                                 editor.cursor().set(Cursor::origin(
                                     self.common
                                         .config
-                                        .with_untracked(|c| c.core.modal)
+                                        .with_untracked(|c| c.core.modal),
                                 ));
                             })
                         }
@@ -1149,7 +1165,7 @@ impl MainSplitData {
                 },
                 (
                     EditorTabChildId::DiffEditor(diff_editor_id),
-                    EditorTabChildSource::DiffEditor { left, right }
+                    EditorTabChildSource::DiffEditor { left, right },
                 ) => {
                     if !is_same_diff_editor(diff_editor_id, left, right) {
                         if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
@@ -1162,7 +1178,7 @@ impl MainSplitData {
                 (EditorTabChildId::Settings(_), EditorTabChildSource::Settings) => {
                     true
                 },
-                _ => false
+                _ => false,
             };
             if is_same {
                 let child = active_editor_tab.with_untracked(|editor_tab| {
@@ -1187,7 +1203,7 @@ impl MainSplitData {
                 EditorTabChildId::Settings(_) => {},
                 EditorTabChildId::ThemeColorSettings(_) => {},
                 EditorTabChildId::Keymap(_) => {},
-                EditorTabChildId::Volt(_, _) => {}
+                EditorTabChildId::Volt(_, _) => {},
             }
 
             // Now loading the new child
@@ -1197,7 +1213,7 @@ impl MainSplitData {
                     editor_tab.scope.create_rw_signal(0),
                     editor_tab.scope.create_rw_signal(Rect::ZERO),
                     child.clone(),
-                    editor_tab.scope.create_rw_signal(false)
+                    editor_tab.scope.create_rw_signal(false),
                 );
                 editor_tab.active = selected;
             });
@@ -1216,13 +1232,13 @@ impl MainSplitData {
                             EditorTabChildSource::DiffEditor { left, right } => {
                                 editor_tab.children.iter().position(|child| {
                                     if let EditorTabChildId::DiffEditor(
-                                        diff_editor_id
+                                        diff_editor_id,
                                     ) = child.id()
                                     {
                                         is_same_diff_editor(
                                             diff_editor_id,
                                             left,
-                                            right
+                                            right,
                                         )
                                     } else {
                                         false
@@ -1261,7 +1277,7 @@ impl MainSplitData {
                                     }
                                 })
                             },
-                            EditorTabChildSource::NewFileEditor => None
+                            EditorTabChildSource::NewFileEditor => None,
                         })
                     {
                         self.active_editor_tab.set(Some(*editor_tab_id));
@@ -1296,8 +1312,8 @@ impl MainSplitData {
                     self.scope.create_rw_signal(0),
                     self.scope.create_rw_signal(Rect::ZERO),
                     child.clone(),
-                    self.scope.create_rw_signal(false)
-                )
+                    self.scope.create_rw_signal(false),
+                ),
             );
             editor_tab.active = new_active;
         });
@@ -1427,7 +1443,7 @@ impl MainSplitData {
     pub fn split(
         &self,
         direction: SplitDirection,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
@@ -1459,8 +1475,8 @@ impl MainSplitData {
                     index + 1,
                     (
                         split.scope.create_rw_signal(1.0),
-                        SplitContent::EditorTab(new_editor_tab_id)
-                    )
+                        SplitContent::EditorTab(new_editor_tab_id),
+                    ),
                 );
             });
         } else if children_len == 1 {
@@ -1476,7 +1492,7 @@ impl MainSplitData {
                 }
                 split.children.push((
                     split.scope.create_rw_signal(1.0),
-                    SplitContent::EditorTab(new_editor_tab_id)
+                    SplitContent::EditorTab(new_editor_tab_id),
                 ));
             });
         } else {
@@ -1500,16 +1516,16 @@ impl MainSplitData {
                     children: vec![
                         (
                             cx.create_rw_signal(1.0),
-                            SplitContent::EditorTab(editor_tab_id)
+                            SplitContent::EditorTab(editor_tab_id),
                         ),
                         (
                             cx.create_rw_signal(1.0),
-                            SplitContent::EditorTab(new_editor_tab_id)
+                            SplitContent::EditorTab(new_editor_tab_id),
                         ),
                     ],
                     direction,
                     window_origin: Point::ZERO,
-                    layout_rect: Rect::ZERO
+                    layout_rect: Rect::ZERO,
                 };
                 cx.create_rw_signal(new_split)
             };
@@ -1520,7 +1536,7 @@ impl MainSplitData {
                 let size = split.children[index].0.get_untracked();
                 split.children[index] = (
                     split.scope.create_rw_signal(size),
-                    SplitContent::Split(new_split_id)
+                    SplitContent::Split(new_split_id),
                 );
             });
         }
@@ -1532,7 +1548,7 @@ impl MainSplitData {
         &self,
         cx: Scope,
         split_id: SplitId,
-        editor_tab: &EditorTabManageData
+        editor_tab: &EditorTabManageData,
     ) -> Option<RwSignal<EditorTabManageData>> {
         let child = editor_tab.children.get(editor_tab.active)?.id().clone();
 
@@ -1584,14 +1600,14 @@ impl MainSplitData {
                     cx.create_rw_signal(0),
                     cx.create_rw_signal(Rect::ZERO),
                     new_child,
-                    cx.create_rw_signal(false)
+                    cx.create_rw_signal(false),
                 )],
                 window_origin:        cx.create_rw_signal(Point::ZERO),
                 layout_rect:          cx.create_rw_signal(Rect::ZERO),
                 locations:            cx
                     .create_rw_signal(editor_tab.locations.get_untracked()),
                 current_location:     cx
-                    .create_rw_signal(editor_tab.current_location.get_untracked())
+                    .create_rw_signal(editor_tab.current_location.get_untracked()),
             };
             cx.create_rw_signal(editor_tab)
         };
@@ -1604,7 +1620,7 @@ impl MainSplitData {
     pub fn split_move(
         &self,
         direction: SplitMoveDirection,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(&editor_tab_id).copied()?;
@@ -1725,7 +1741,7 @@ impl MainSplitData {
             },
             SplitContent::Split(split_id) => {
                 self.split_focus(*split_id);
-            }
+            },
         }
     }
 
@@ -1886,7 +1902,7 @@ impl MainSplitData {
 
     fn editor_tab_child_close_warning(
         &self,
-        child: &EditorTabChildId
+        child: &EditorTabChildId,
     ) -> Option<(String, Rc<Doc>, EditorData)> {
         match child {
             EditorTabChildId::Editor(editor_id) => {
@@ -1909,7 +1925,7 @@ impl MainSplitData {
                             DocContent::File { path, .. } => Some((
                                 path.file_name()?.to_str()?.to_string(),
                                 doc,
-                                editor
+                                editor,
                             )),
                             DocContent::Local => None,
                             DocContent::History(_) => None,
@@ -1925,7 +1941,7 @@ impl MainSplitData {
             EditorTabChildId::Settings(_) => None,
             EditorTabChildId::ThemeColorSettings(_) => None,
             EditorTabChildId::Keymap(_) => None,
-            EditorTabChildId::Volt(_, _) => None
+            EditorTabChildId::Volt(_, _) => None,
         }
     }
 
@@ -1966,7 +1982,7 @@ impl MainSplitData {
         &self,
         editor_tab_id: EditorTabManageId,
         child: EditorTabChildId,
-        kind: TabCloseKind
+        kind: TabCloseKind,
     ) -> Option<()> {
         let tabs_to_close: Vec<EditorTabChildId> = {
             let editor_tabs = self.editor_tabs.get_untracked();
@@ -2007,7 +2023,7 @@ impl MainSplitData {
                         }
                     }
                     tabs_to_close
-                }
+                },
             }
         };
         for child_tab in tabs_to_close {
@@ -2020,7 +2036,7 @@ impl MainSplitData {
         &self,
         editor_tab_id: EditorTabManageId,
         child: EditorTabChildId,
-        force: bool
+        force: bool,
     ) -> Option<()> {
         if !force {
             if let Some((name, doc, editor)) =
@@ -2060,17 +2076,17 @@ impl MainSplitData {
                                                     .editor_tab_child_close(
                                                         editor_tab_id,
                                                         child.clone(),
-                                                        false
+                                                        false,
                                                     );
-                                            }
+                                            },
                                         );
                                     }
-                                }
+                                },
                             );
                         });
                         Some(AlertButton {
                             text:   "Save".to_string(),
-                            action: save_action
+                            action: save_action,
                         })
                     },
                     DocContent::File { .. } => {
@@ -2086,18 +2102,18 @@ impl MainSplitData {
                                     editor.clone().run_focus_command(
                                         &FocusCommand::SplitClose,
                                         None,
-                                        Modifiers::empty()
+                                        Modifiers::empty(),
                                     );
                                 }
                             });
                         });
                         Some(AlertButton {
                             text:   "Save".to_string(),
-                            action: save_action
+                            action: save_action,
                         })
                     },
                     DocContent::Local => None,
-                    DocContent::History(_) => None
+                    DocContent::History(_) => None,
                 };
                 if let Some(save_button) = save_button {
                     let main_split = self.clone();
@@ -2122,11 +2138,11 @@ impl MainSplitData {
                                         main_split.editor_tab_child_close(
                                             editor_tab_id,
                                             child.clone(),
-                                            true
+                                            true,
                                         );
-                                    })
+                                    }),
                                 },
-                            ]
+                            ],
                         });
                 }
 
@@ -2166,7 +2182,7 @@ impl MainSplitData {
             EditorTabChildId::Settings(_) => {},
             EditorTabChildId::ThemeColorSettings(_) => {},
             EditorTabChildId::Keymap(_) => {},
-            EditorTabChildId::Volt(_, _) => {}
+            EditorTabChildId::Volt(_, _) => {},
         }
 
         if editor_tab_children_len == 0 {
@@ -2180,7 +2196,7 @@ impl MainSplitData {
         &self,
         editor_tab_id: &EditorTabManageId,
         window_origin: Option<Point>,
-        rect: Option<Rect>
+        rect: Option<Rect>,
     ) -> Option<()> {
         let editor_tabs = self.editor_tabs.get_untracked();
         let editor_tab = editor_tabs.get(editor_tab_id).copied()?;
@@ -2200,7 +2216,7 @@ impl MainSplitData {
             CodeActionOrCommand::Command(command) => {
                 self.run_code_lens(
                     &command.command,
-                    command.arguments.unwrap_or_default()
+                    command.arguments.unwrap_or_default(),
                 );
             },
             CodeActionOrCommand::CodeAction(action) => {
@@ -2209,7 +2225,7 @@ impl MainSplitData {
                 } else {
                     self.resolve_code_action(plugin_id, action);
                 }
-            }
+            },
         }
     }
 
@@ -2233,7 +2249,7 @@ impl MainSplitData {
                         send(edit);
                     }
                 }
-            }
+            },
         );
     }
 
@@ -2267,7 +2283,7 @@ impl MainSplitData {
                         position,
                         scroll_offset: None,
                         ignore_unconfirmed: true,
-                        same_editor_tab: false
+                        same_editor_tab: false,
                     };
                     self.jump_to_location(location, Some(edits));
                 }
@@ -2296,8 +2312,8 @@ impl MainSplitData {
                         Err(err) => {
                             error!("{err:?}");
                             return None;
-                        }
-                    }
+                        },
+                    },
                 );
                 path.map(|path| (path, offset, position))
             });
@@ -2308,14 +2324,14 @@ impl MainSplitData {
             position: Some(position),
             scroll_offset: None,
             ignore_unconfirmed: false,
-            same_editor_tab: false
+            same_editor_tab: false,
         };
         self.jump_to_location(location, None);
     }
 
     fn file_diagnostics_items(
         &self,
-        severity: DiagnosticSeverity
+        severity: DiagnosticSeverity,
     ) -> Vec<(PathBuf, Vec<EditorDiagnostic>)> {
         let diagnostics = self.diagnostics.get_untracked();
         diagnostics
@@ -2329,7 +2345,7 @@ impl MainSplitData {
                             if diag.severity == Some(severity) {
                                 Some(EditorDiagnostic {
                                     range:      Some((iv.start, iv.end)),
-                                    diagnostic: diag.to_owned()
+                                    diagnostic: diag.to_owned(),
                                 })
                             } else {
                                 None
@@ -2348,7 +2364,7 @@ impl MainSplitData {
                         .filter(|d| d.severity == Some(severity))
                         .map(|d| EditorDiagnostic {
                             range:      None,
-                            diagnostic: d
+                            diagnostic: d,
                         })
                         .collect();
                     if !diagnostics.is_empty() {
@@ -2371,7 +2387,7 @@ impl MainSplitData {
                 diagnostics:      self.scope.create_rw_signal(im::Vector::new()),
                 diagnostics_span: self
                     .scope
-                    .create_rw_signal(SpansBuilder::new(0).build())
+                    .create_rw_signal(SpansBuilder::new(0).build()),
             };
             self.diagnostics.update(|d| {
                 d.insert(path.to_path_buf(), diagnostic_data.clone());
@@ -2384,7 +2400,7 @@ impl MainSplitData {
         log::debug!("open_file_changed {:?}", path);
         let doc_content = DocContent::File {
             path:      path.to_path_buf(),
-            read_only: false
+            read_only: false,
         };
         match content {
             FileChanged::Change(content) => {
@@ -2393,7 +2409,7 @@ impl MainSplitData {
                     .with_untracked(|docs| docs.get(&doc_content).cloned());
                 let doc = match doc {
                     Some(doc) => doc,
-                    None => return
+                    None => return,
                 };
                 doc.handle_file_changed(Rope::from(content));
             },
@@ -2422,7 +2438,7 @@ impl MainSplitData {
                 self.docs.update(|x| {
                     x.remove(&doc_content);
                 });
-            }
+            },
         }
     }
 
@@ -2450,7 +2466,7 @@ impl MainSplitData {
         self.get_editor_tab_child(
             EditorTabChildSource::ThemeColorSettings,
             false,
-            false
+            false,
         );
     }
 
@@ -2467,7 +2483,7 @@ impl MainSplitData {
             doc.buffer_id,
             doc.content.get_untracked(),
             doc.rev(),
-            doc.lines.with_untracked(|x| x.buffer().to_string())
+            doc.lines.with_untracked(|x| x.buffer().to_string()),
         );
         match doc_content {
             DocContent::Scratch { .. } => {
@@ -2484,11 +2500,11 @@ impl MainSplitData {
                             let syntax = Syntax::init(
                                 &path,
                                 &grammars_directory,
-                                &queries_directory
+                                &queries_directory,
                             );
                             doc.content.set(DocContent::File {
                                 path:      path.clone(),
-                                read_only: false
+                                read_only: false,
                             });
                             doc.lines.update(|lines| {
                                 if let Err(err) = lines.set_pristine(rev) {
@@ -2509,12 +2525,12 @@ impl MainSplitData {
                     true,
                     Box::new(move |(_, result)| {
                         send(result);
-                    })
+                    }),
                 );
             },
             DocContent::Local => {},
             DocContent::File { .. } => {},
-            DocContent::History(_) => {}
+            DocContent::History(_) => {},
         }
     }
 
@@ -2522,13 +2538,13 @@ impl MainSplitData {
         &self,
         doc: Rc<Doc>,
         path: PathBuf,
-        action: impl Fn() + 'static
+        action: impl Fn() + 'static,
     ) {
         let (buffer_id, doc_content, rev, content) = (
             doc.buffer_id,
             doc.content.get_untracked(),
             doc.rev(),
-            doc.lines.with_untracked(|x| x.buffer().to_string())
+            doc.lines.with_untracked(|x| x.buffer().to_string()),
         );
         match doc_content {
             DocContent::Scratch { .. } => {
@@ -2541,7 +2557,7 @@ impl MainSplitData {
                             // let syntax = Syntax::init(&path);
                             doc.content.set(DocContent::File {
                                 path:      path.clone(),
-                                read_only: false
+                                read_only: false,
                             });
                             doc.lines.update(|lines| {
                                 if let Err(err) = lines.set_pristine(rev) {
@@ -2562,12 +2578,12 @@ impl MainSplitData {
                     true,
                     Box::new(move |(_, result)| {
                         send(result);
-                    })
+                    }),
                 );
             },
             DocContent::Local => {},
             DocContent::File { .. } => {},
-            DocContent::History(_) => {}
+            DocContent::History(_) => {},
         }
     }
 
@@ -2591,7 +2607,7 @@ impl MainSplitData {
                             let num = num_part.parse::<i32>().unwrap();
                             Some(num)
                         },
-                        _ => None
+                        _ => None,
                     })
                 })
                 .max()
@@ -2634,7 +2650,7 @@ impl MainSplitData {
                         log::error!("No path");
                         return;
                     },
-                    move || {}
+                    move || {},
                 );
             }
         });
@@ -2652,7 +2668,7 @@ impl MainSplitData {
                         log::error!("No path");
                         return;
                     },
-                    move || {}
+                    move || {},
                 );
             }
         });
@@ -2663,7 +2679,7 @@ impl MainSplitData {
         from_tab: EditorTabManageId,
         to_tab: EditorTabManageId,
         from_index: usize,
-        to_index: usize
+        to_index: usize,
     ) -> Option<()> {
         let from_editor_tab = self
             .editor_tabs
@@ -2707,8 +2723,8 @@ impl MainSplitData {
                         tab.scope.create_rw_signal(to_index),
                         tab.scope.create_rw_signal(Rect::ZERO),
                         child.id().clone(),
-                        tab.scope.create_rw_signal(false)
-                    )
+                        tab.scope.create_rw_signal(false),
+                    ),
                 );
                 tab.active = to_index;
             });
@@ -2725,7 +2741,7 @@ impl MainSplitData {
     fn split_content_set_parent(
         &self,
         content: &SplitContent,
-        parent_split_id: SplitId
+        parent_split_id: SplitId,
     ) -> Option<()> {
         match content {
             SplitContent::EditorTab(editor_tab_id) => {
@@ -2743,7 +2759,7 @@ impl MainSplitData {
                 split.update(|split| {
                     split.parent_split = Some(parent_split_id);
                 });
-            }
+            },
         }
         Some(())
     }
@@ -2751,7 +2767,7 @@ impl MainSplitData {
     fn editor_tab_child_set_parent(
         &self,
         child: &EditorTabChildId,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> Option<()> {
         match child {
             EditorTabChildId::Editor(editor_id) => {
@@ -2776,7 +2792,7 @@ impl MainSplitData {
             EditorTabChildId::Settings(_) => {},
             EditorTabChildId::ThemeColorSettings(_) => {},
             EditorTabChildId::Keymap(_) => {},
-            EditorTabChildId::Volt(_, _) => {}
+            EditorTabChildId::Volt(_, _) => {},
         }
         Some(())
     }
@@ -2786,7 +2802,7 @@ impl MainSplitData {
         from_tab: EditorTabManageId,
         from_index: usize,
         to_tab: EditorTabManageId,
-        split: SplitMoveDirection
+        split: SplitMoveDirection,
     ) -> Option<()> {
         let from_editor_tab = self
             .editor_tabs
@@ -2821,7 +2837,7 @@ impl MainSplitData {
                 SplitMoveDirection::Up => index,
                 SplitMoveDirection::Down => index + 1,
                 SplitMoveDirection::Right => index + 1,
-                SplitMoveDirection::Left => index
+                SplitMoveDirection::Left => index,
             };
             let new_editor_tab_id = EditorTabManageId::next();
 
@@ -2846,17 +2862,17 @@ impl MainSplitData {
                     cx.create_rw_signal(0),
                     cx.create_rw_signal(Rect::ZERO),
                     child.id().clone(),
-                    cx.create_rw_signal(false)
+                    cx.create_rw_signal(false),
                 )],
                 window_origin:        cx.create_rw_signal(Point::ZERO),
                 layout_rect:          cx.create_rw_signal(Rect::ZERO),
                 locations:            cx.create_rw_signal(im::Vector::new()),
-                current_location:     cx.create_rw_signal(0)
+                current_location:     cx.create_rw_signal(0),
             };
             self.editor_tabs.update(|editor_tabs| {
                 editor_tabs.insert(
                     new_editor_tab.editor_tab_manage_id,
-                    new_editor_tab.scope.create_rw_signal(new_editor_tab)
+                    new_editor_tab.scope.create_rw_signal(new_editor_tab),
                 );
             });
             to_split.update(|split| {
@@ -2867,8 +2883,8 @@ impl MainSplitData {
                     index,
                     (
                         split.scope.create_rw_signal(1.0),
-                        SplitContent::EditorTab(new_editor_tab_id)
-                    )
+                        SplitContent::EditorTab(new_editor_tab_id),
+                    ),
                 );
             });
             self.active_editor_tab.set(Some(new_editor_tab_id));
@@ -2915,18 +2931,18 @@ impl MainSplitData {
                         cx.create_rw_signal(0),
                         cx.create_rw_signal(Rect::ZERO),
                         child.id().clone(),
-                        cx.create_rw_signal(false)
+                        cx.create_rw_signal(false),
                     )],
                     window_origin:        cx.create_rw_signal(Point::ZERO),
                     layout_rect:          cx.create_rw_signal(Rect::ZERO),
                     locations:            cx.create_rw_signal(im::Vector::new()),
-                    current_location:     cx.create_rw_signal(0)
+                    current_location:     cx.create_rw_signal(0),
                 }
             };
             self.editor_tabs.update(|editor_tabs| {
                 editor_tabs.insert(
                     new_editor_tab.editor_tab_manage_id,
-                    new_editor_tab.scope.create_rw_signal(new_editor_tab)
+                    new_editor_tab.scope.create_rw_signal(new_editor_tab),
                 );
             });
 
@@ -2936,7 +2952,7 @@ impl MainSplitData {
                     vec![
                         (
                             scope.create_rw_signal(1.0),
-                            SplitContent::EditorTab(new_editor_tab_id)
+                            SplitContent::EditorTab(new_editor_tab_id),
                         ),
                         (scope.create_rw_signal(1.0), existing_editor_tab),
                     ]
@@ -2946,10 +2962,10 @@ impl MainSplitData {
                         (scope.create_rw_signal(1.0), existing_editor_tab),
                         (
                             scope.create_rw_signal(1.0),
-                            SplitContent::EditorTab(new_editor_tab_id)
+                            SplitContent::EditorTab(new_editor_tab_id),
                         ),
                     ]
-                }
+                },
             };
             let new_split = SplitData {
                 scope,
@@ -2958,12 +2974,12 @@ impl MainSplitData {
                 children: new_split_children,
                 direction: split.direction(),
                 window_origin: Point::ZERO,
-                layout_rect: Rect::ZERO
+                layout_rect: Rect::ZERO,
             };
             self.splits.update(|splits| {
                 splits.insert(
                     new_split_id,
-                    new_split.scope.create_rw_signal(new_split)
+                    new_split.scope.create_rw_signal(new_split),
                 );
             });
             to_split.update(|split| {
@@ -2971,8 +2987,8 @@ impl MainSplitData {
                     index,
                     (
                         split.scope.create_rw_signal(size.get_untracked()),
-                        SplitContent::Split(new_split_id)
-                    )
+                        SplitContent::Split(new_split_id),
+                    ),
                 );
             });
             self.active_editor_tab.set(Some(new_editor_tab_id));
@@ -2994,9 +3010,9 @@ impl MainSplitData {
                     Rope::from(
                         self.common
                             .config
-                            .with_untracked(|config| config.export_theme())
+                            .with_untracked(|config| config.export_theme()),
                     ),
-                    true
+                    true,
                 );
             }
         }
@@ -3009,9 +3025,9 @@ impl MainSplitData {
                 let doc = editor.doc();
                 doc.reload(
                     Rope::from(
-                        std::env::vars().map(|(k, v)| format!("{k}={v}")).join("\n")
+                        std::env::vars().map(|(k, v)| format!("{k}={v}")).join("\n"),
                     ),
-                    true
+                    true,
                 );
             }
         }
@@ -3027,7 +3043,7 @@ impl MainSplitData {
         })?;
         match child.id() {
             EditorTabChildId::Editor(editor_id) => self.editors.editor(*editor_id),
-            _ => None
+            _ => None,
         }
     }
 
@@ -3044,14 +3060,14 @@ impl MainSplitData {
             EditorTabChildId::Editor(editor_id) => {
                 self.editors.editor_untracked(*editor_id)
             },
-            _ => None
+            _ => None,
         }
     }
 
     pub fn generate_split_content(
         &self,
         info: &SplitContentInfo,
-        parent_split: SplitId
+        parent_split: SplitId,
     ) -> SplitContent {
         match info {
             SplitContentInfo::EditorTab(tab_info) => {
@@ -3060,7 +3076,7 @@ impl MainSplitData {
                     .generate_editor_tab_manage_data(tab_info, parent_split);
                 SplitContent::EditorTab(
                     tab_data
-                        .with_untracked(|tab_data| tab_data.editor_tab_manage_id)
+                        .with_untracked(|tab_data| tab_data.editor_tab_manage_id),
                 )
             },
             SplitContentInfo::Split(split_info) => {
@@ -3069,17 +3085,17 @@ impl MainSplitData {
                     split_info,
                     self.clone(),
                     Some(parent_split),
-                    split_id
+                    split_id,
                 );
                 SplitContent::Split(split_id)
-            }
+            },
         }
     }
 
     pub fn generate_editor_tab_manage_data(
         self,
         datas: &EditorTabInfo,
-        split: SplitId
+        split: SplitId,
     ) -> RwSignal<EditorTabManageData> {
         let editor_tab_id = EditorTabManageId::next();
         let editor_tab_data = {
@@ -3098,14 +3114,14 @@ impl MainSplitData {
                             cx.create_rw_signal(Rect::ZERO),
                             self.clone()
                                 .generate_editor_tab_child_id(child, editor_tab_id),
-                            cx.create_rw_signal(false)
+                            cx.create_rw_signal(false),
                         )
                     })
                     .collect(),
                 layout_rect: cx.create_rw_signal(Rect::ZERO),
                 window_origin: cx.create_rw_signal(Point::ZERO),
                 locations: cx.create_rw_signal(im::Vector::new()),
-                current_location: cx.create_rw_signal(0)
+                current_location: cx.create_rw_signal(0),
             };
             cx.create_rw_signal(editor_tab_data)
         };
@@ -3121,7 +3137,7 @@ impl MainSplitData {
     pub fn generate_editor_tab_child_id(
         self,
         data: &EditorTabChildInfo,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> EditorTabChildId {
         match data {
             EditorTabChildInfo::Editor(editor_info) => {
@@ -3149,7 +3165,7 @@ impl MainSplitData {
     pub fn generate_editor_id(
         self,
         data: &EditorInfo,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> EditorId {
         let editors = &self.editors;
         let common = self.common.clone();
@@ -3159,7 +3175,7 @@ impl MainSplitData {
                     path.clone(),
                     data.unsaved.clone(),
                     true,
-                    data.content.clone()
+                    data.content.clone(),
                 );
                 let editor = editors.make_from_doc(
                     self.scope,
@@ -3167,24 +3183,24 @@ impl MainSplitData {
                     Some(editor_tab_id),
                     None,
                     common,
-                    EditorViewKind::Normal
+                    EditorViewKind::Normal,
                 );
                 editor.go_to_location(
                     EditorLocation {
                         path:               path.clone(),
                         position:           Some(EditorPosition::Offset(
-                            data.offset
+                            data.offset,
                         )),
                         scroll_offset:      Some(Vec2::new(
                             data.scroll_offset.0,
-                            data.scroll_offset.1
+                            data.scroll_offset.1,
                         )),
                         ignore_unconfirmed: false,
-                        same_editor_tab:    false
+                        same_editor_tab:    false,
                     },
                     new_doc,
                     None,
-                    None
+                    None,
                 );
 
                 editor.id()
@@ -3200,14 +3216,14 @@ impl MainSplitData {
                         }
                         let content = DocContent::Scratch {
                             id:   BufferId::next(),
-                            name: name.to_string()
+                            name: name.to_string(),
                         };
                         let doc = Doc::new_content(
                             self.scope,
                             content,
                             self.editors,
                             self.common.clone(),
-                            None
+                            None,
                         );
                         let doc = Rc::new(doc);
                         if let Some(unsaved) = &data.unsaved {
@@ -3224,16 +3240,16 @@ impl MainSplitData {
                     Some(editor_tab_id),
                     None,
                     common,
-                    EditorViewKind::Normal
+                    EditorViewKind::Normal,
                 )
-            }
+            },
         }
     }
 
     pub fn generate_diff_editor_data(
         self,
         data: &DiffEditorInfo,
-        editor_tab_id: EditorTabManageId
+        editor_tab_id: EditorTabManageId,
     ) -> DiffEditorData {
         let cx = self.scope.create_child();
 
@@ -3256,7 +3272,7 @@ impl MainSplitData {
                         cx,
                         content.clone(),
                         data.editors,
-                        common.clone()
+                        common.clone(),
                     );
                     let doc = Rc::new(doc);
 
@@ -3275,7 +3291,7 @@ impl MainSplitData {
                             history.path.clone(),
                             move |(_, result)| {
                                 send(result);
-                            }
+                            },
                         );
                     }
 
@@ -3284,21 +3300,21 @@ impl MainSplitData {
                 DocContent::Scratch { name, .. } => {
                     let doc_content = DocContent::Scratch {
                         id:   BufferId::next(),
-                        name: name.to_string()
+                        name: name.to_string(),
                     };
                     let doc = Doc::new_content(
                         cx,
                         doc_content,
                         data.editors,
                         common.clone(),
-                        None
+                        None,
                     );
                     let doc = Rc::new(doc);
                     data.scratch_docs.update(|scratch_docs| {
                         scratch_docs.insert(name.to_string(), doc.clone());
                     });
                     doc
-                }
+                },
             }
         };
 
@@ -3312,7 +3328,7 @@ impl MainSplitData {
             left_doc,
             right_doc,
             self.editors,
-            self.common.clone()
+            self.common.clone(),
         );
 
         self.diff_editors.update(|diff_editors| {
@@ -3339,9 +3355,9 @@ fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url, Vec<TextEdit>>> 
                         .iter()
                         .map(|e| match e {
                             OneOf::Left(e) => e.clone(),
-                            OneOf::Right(e) => e.text_edit.clone()
+                            OneOf::Right(e) => e.text_edit.clone(),
                         })
-                        .collect()
+                        .collect(),
                 )
             })
             .collect::<HashMap<Url, Vec<TextEdit>>>(),
@@ -3355,19 +3371,19 @@ fn workspace_edits(edit: &WorkspaceEdit) -> Option<HashMap<Url, Vec<TextEdit>>> 
                         .iter()
                         .map(|e| match e {
                             OneOf::Left(e) => e.clone(),
-                            OneOf::Right(e) => e.text_edit.clone()
+                            OneOf::Right(e) => e.text_edit.clone(),
                         })
-                        .collect()
-                ))
+                        .collect(),
+                )),
             })
-            .collect::<HashMap<Url, Vec<TextEdit>>>()
+            .collect::<HashMap<Url, Vec<TextEdit>>>(),
     };
     Some(edits)
 }
 
 fn next_in_file_errors_offset(
     active_path: Option<(PathBuf, usize, Position)>,
-    file_diagnostics: &[(PathBuf, Vec<EditorDiagnostic>)]
+    file_diagnostics: &[(PathBuf, Vec<EditorDiagnostic>)],
 ) -> (PathBuf, EditorPosition) {
     if let Some((active_path, offset, position)) = active_path {
         for (current_path, diagnostics) in file_diagnostics {
@@ -3377,7 +3393,7 @@ fn next_in_file_errors_offset(
                         if start > offset {
                             return (
                                 (*current_path).clone(),
-                                EditorPosition::Offset(start)
+                                EditorPosition::Offset(start),
                             );
                         }
                     }
@@ -3390,8 +3406,8 @@ fn next_in_file_errors_offset(
                         return (
                             (*current_path).clone(),
                             EditorPosition::Position(
-                                diagnostic.diagnostic.range.start
-                            )
+                                diagnostic.diagnostic.range.start,
+                            ),
                         );
                     }
                 }
@@ -3406,9 +3422,9 @@ fn next_in_file_errors_offset(
                         EditorPosition::Offset(start)
                     } else {
                         EditorPosition::Position(
-                            diagnostics[0].diagnostic.range.start
+                            diagnostics[0].diagnostic.range.start,
                         )
-                    }
+                    },
                 );
             }
         }
@@ -3420,6 +3436,6 @@ fn next_in_file_errors_offset(
             EditorPosition::Offset(start)
         } else {
             EditorPosition::Position(file_diagnostics[0].1[0].diagnostic.range.start)
-        }
+        },
     )
 }

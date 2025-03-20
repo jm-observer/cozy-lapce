@@ -25,7 +25,7 @@ pub fn print_screen_lines(window: &WindowWorkspaceData) {
                 // editor.editor.screen_lines.get_untracked();
                 // screen_lines.log();
             },
-            _ => {}
+            _ => {},
         }
 
         // if editor

@@ -12,7 +12,7 @@ pub enum ClickMode {
     #[serde(rename = "file")]
     DoubleClickFile,
     #[serde(rename = "all")]
-    DoubleClickAll
+    DoubleClickAll,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
@@ -26,7 +26,7 @@ pub enum WrapStyle {
     // /// Wrap at the wrap-column
     // WrapColumn,
     /// Wrap at a specific width
-    WrapWidth
+    WrapWidth,
 }
 impl WrapStyle {
     pub fn as_str(&self) -> &'static str {
@@ -34,7 +34,7 @@ impl WrapStyle {
             WrapStyle::None => "none",
             WrapStyle::EditorWidth => "editor-width",
             // WrapStyle::WrapColumn => "wrap-column",
-            WrapStyle::WrapWidth => "wrap-width"
+            WrapStyle::WrapWidth => "wrap-width",
         }
     }
 
@@ -44,7 +44,7 @@ impl WrapStyle {
             "editor-width" => Some(WrapStyle::EditorWidth),
             // "wrap-column" => Some(WrapStyle::WrapColumn),
             "wrap-width" => Some(WrapStyle::WrapWidth),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -214,7 +214,7 @@ pub struct EditorConfig {
     #[field_names(
         desc = "Glob patterns for excluding files and folders (in file explorer)"
     )]
-    pub files_exclude:               String
+    pub files_exclude:               String,
 }
 
 impl EditorConfig {

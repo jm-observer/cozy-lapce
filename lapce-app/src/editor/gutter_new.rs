@@ -5,17 +5,17 @@ use std::hash::{Hash, Hasher};
 use doc::lines::{buffer::rope_text::RopeText, screen_lines::VisualLineInfo};
 use floem::{
     peniko::Color,
-    prelude::{RwSignal, SignalGet, SignalWith}
+    prelude::{RwSignal, SignalGet, SignalWith},
 };
 
 use crate::{
     config::color::LapceColor, editor::EditorData,
-    window_workspace::WindowWorkspaceData
+    window_workspace::WindowWorkspaceData,
 };
 
 pub fn gutter_data(
     window_tab_data: WindowWorkspaceData,
-    e_data: RwSignal<EditorData>
+    e_data: RwSignal<EditorData>,
 ) -> Vec<GutterData> {
     let breakpoints = window_tab_data.terminal.debug.breakpoints;
     let e_data = e_data.get();
@@ -42,14 +42,14 @@ pub fn gutter_data(
                 config.color(LapceColor::EDITOR_FOREGROUND),
                 config.color(LapceColor::EDITOR_DIM),
                 config.editor.font_size.signal(),
-                config.editor.font_family.signal()
+                config.editor.font_family.signal(),
             )
         });
     let (fg, dim, style_font_size, font_family) = (
         fg.get(),
         dim.get(),
         style_font_size.get(),
-        font_family.get()
+        font_family.get(),
     );
     screen_lines.with(|screen_lines| {
         screen_lines
@@ -69,40 +69,40 @@ pub fn gutter_data(
                         {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end
+                                    text.folded_line.origin_line_end,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::CodeLen,
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.1.clone()
+                                style_font_family: font_family.1.clone(),
                             }
                         } else if breakpoints
                             .contains_key(&text.folded_line.origin_line_start)
                         {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end
+                                    text.folded_line.origin_line_end,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::Breakpoint,
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.1.clone()
+                                style_font_family: font_family.1.clone(),
                             }
                         } else {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end
+                                    text.folded_line.origin_line_end,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::None,
                                 style_color,
                                 style_width: width,
                                 style_font_size,
-                                style_font_family: font_family.1.clone()
+                                style_font_family: font_family.1.clone(),
                             }
                         }
                     },
@@ -115,9 +115,9 @@ pub fn gutter_data(
                             style_color: dim,
                             style_width: width,
                             style_font_size,
-                            style_font_family: font_family.1.clone()
+                            style_font_family: font_family.1.clone(),
                         }
-                    }
+                    },
                 }
             })
             .collect()
@@ -132,7 +132,7 @@ pub struct GutterData {
     style_width:       f64,
     style_color:       Color,
     style_font_size:   usize,
-    style_font_family: String
+    style_font_family: String,
 }
 
 impl GutterData {
@@ -164,7 +164,7 @@ impl Hash for GutterData {
 pub enum GutterMarker {
     None,
     CodeLen,
-    Breakpoint // CodeLenAndBreakPoint,
+    Breakpoint, // CodeLenAndBreakPoint,
 }
 
 #[derive(Debug, Clone, Hash, Copy, Eq, PartialEq)]
@@ -172,5 +172,5 @@ pub enum GutterFolding {
     None,
     Start,
     End,
-    Folded
+    Folded,
 }

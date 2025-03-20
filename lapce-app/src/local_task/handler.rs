@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc
+    sync::Arc,
 };
 
 use anyhow::Result;
@@ -19,10 +19,10 @@ use crate::{
     db::{LapceDb, SaveEvent},
     local_task::{
         LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler,
-        LocalRpc
+        LocalRpc,
     },
     markdown::parse_markdown,
-    plugin::{VoltIcon, VoltsInfo}
+    plugin::{VoltIcon, VoltsInfo},
 };
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ pub struct LocalTaskHandler {
     pub directory:      Directory,
     pub config:         LapceConfig,
     pub(crate) pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
-    pub db:             Arc<LapceDb>
+    pub db:             Arc<LapceDb>,
 }
 
 impl LocalTaskHandler {
@@ -42,17 +42,17 @@ impl LocalTaskHandler {
                     self.handle_request(id, request).await;
                 },
                 Notification {
-                    notification: _notification
+                    notification: _notification,
                 } => match _notification {
                     LocalNotification::DbSaveEvent(event) => {
                         let db = self.db.clone();
                         tokio::spawn(async move {
                             handle_notification_db_save_event(db, event).await;
                         });
-                    }
-                } /* Shutdown => {
-                   *     return;
-                   * }, */
+                    },
+                }, /* Shutdown => {
+                    *     return;
+                    * }, */
             }
         }
     }
@@ -72,7 +72,7 @@ impl LocalTaskHandler {
             LocalRequest::SpansBuilder {
                 len,
                 styles,
-                result_id
+                result_id,
             } => {
                 let pending = self.pending.clone();
                 tokio::spawn(async move {
@@ -129,7 +129,7 @@ impl LocalTaskHandler {
                     style_colors,
                     font_size,
                     markdown_blockquote,
-                    editor_link
+                    editor_link,
                 ) = (
                     FamilyOwned::parse_list(&self.config.editor.font_family)
                         .collect(),
@@ -137,7 +137,7 @@ impl LocalTaskHandler {
                     self.config.style_colors(),
                     self.config.ui.font_size() as f32,
                     self.config.color(LapceColor::MARKDOWN_BLOCKQUOTE),
-                    self.config.color(LapceColor::EDITOR_LINK)
+                    self.config.color(LapceColor::EDITOR_LINK),
                 );
 
                 let dir = self.directory.clone();
@@ -150,7 +150,7 @@ impl LocalTaskHandler {
                         &style_colors,
                         font_size,
                         markdown_blockquote,
-                        editor_link
+                        editor_link,
                     )
                     .await;
                     handle_response(id, rs, pending);
@@ -166,14 +166,14 @@ impl LocalTaskHandler {
                             .await;
                     handle_response(id, rs, pending);
                 });
-            }
+            },
         }
     }
 }
 
 async fn handle_find_grammar(
     grammars_directory: &Path,
-    queries_directory: &Path
+    queries_directory: &Path,
 ) -> Result<LocalResponse> {
     use crate::app::grammars::*;
     let release = find_grammar_release().await?;
@@ -191,7 +191,7 @@ async fn handle_download_readme(
     style_colors: &HashMap<String, Color>,
     font_size: f32,
     markdown_blockquote: Color,
-    editor_link: Color
+    editor_link: Color,
 ) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/readme",
@@ -208,7 +208,7 @@ async fn handle_download_readme(
             style_colors,
             font_size,
             markdown_blockquote,
-            editor_link
+            editor_link,
         );
         return Ok(LocalResponse::DownloadVoltReadme { readme: text });
     }
@@ -222,7 +222,7 @@ async fn handle_download_readme(
         style_colors,
         font_size,
         markdown_blockquote,
-        editor_link
+        editor_link,
     );
     Ok(LocalResponse::DownloadVoltReadme { readme: text })
 }
@@ -242,7 +242,7 @@ async fn handle_query_volts(query: &str, offset: usize) -> Result<LocalResponse>
 
 async fn handle_load_icon(
     volt: &VoltInfo,
-    cache_directory: Option<PathBuf>
+    cache_directory: Option<PathBuf>,
 ) -> Result<LocalResponse> {
     let url = format!(
         "https://plugins.lapce.dev/api/v1/plugins/{}/{}/{}/icon?id={}",
@@ -277,7 +277,7 @@ async fn handle_load_icon(
 async fn handle_spans_builder(
     len: usize,
     styles: SemanticStyles,
-    result_id: Option<String>
+    result_id: Option<String>,
 ) -> Result<LocalResponse> {
     let mut styles_span = SpansBuilder::new(len);
     for style in styles.styles {
@@ -290,7 +290,7 @@ async fn handle_spans_builder(
 }
 async fn handle_find_all_volts(
     extra_plugin_paths: Arc<Vec<PathBuf>>,
-    plugin_dir: PathBuf
+    plugin_dir: PathBuf,
 ) -> Result<LocalResponse> {
     let volts = find_all_volts(&extra_plugin_paths, &plugin_dir).await;
     Ok(LocalResponse::FindAllVolts { volts })
@@ -303,7 +303,7 @@ async fn handle_query_volt_info(url: String) -> Result<LocalResponse> {
 
 async fn handle_install_volt(
     info: VoltInfo,
-    plugin_dir: PathBuf
+    plugin_dir: PathBuf,
 ) -> Result<LocalResponse> {
     let volt = download_volt(&info, &plugin_dir).await?;
     let icon = async_volt_icon(&volt).await;
@@ -313,7 +313,7 @@ async fn handle_install_volt(
 fn handle_response(
     id: RequestId,
     result: Result<LocalResponse>,
-    pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>
+    pending: Arc<Mutex<HashMap<u64, LocalResponseHandler>>>,
 ) {
     let handler = { pending.lock().remove(&id) };
     if let Some(handler) = handler {
@@ -358,6 +358,6 @@ async fn handle_notification_db_save_event(db: Arc<LapceDb>, event: SaveEvent) {
             if let Err(err) = db.insert_panel_orders(&order) {
                 log::error!("{:?}", err);
             }
-        }
+        },
     }
 }

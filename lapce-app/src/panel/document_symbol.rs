@@ -8,28 +8,28 @@ use floem::{
     style::CursorStyle,
     views::{
         Decorators, VirtualVector, container, h_stack, label, scroll, stack,
-        virtual_stack
-    }
+        virtual_stack,
+    },
 };
 use lapce_core::{icon::LapceIcons, id::Id, panel::PanelContainerPosition};
 use lsp_types::{DocumentSymbol, Position, Range, SymbolKind};
 
 use crate::{
     command::InternalCommand, common_svg, config::color::LapceColor,
-    editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData
+    editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData,
 };
 
 #[derive(Clone, Debug)]
 pub struct SymbolData {
     pub path: PathBuf,
-    pub file: RwSignal<SymbolInformationItemData>
+    pub file: RwSignal<SymbolInformationItemData>,
 }
 
 impl SymbolData {
     pub fn new(
         items: Vec<RwSignal<SymbolInformationItemData>>,
         path: PathBuf,
-        cx: Scope
+        cx: Scope,
     ) -> Self {
         let name = path
             .file_name()
@@ -50,7 +50,7 @@ impl SymbolData {
             deprecated:      None,
             range:           Range::new(Position::new(0, 0), end),
             selection_range: Default::default(),
-            children:        None
+            children:        None,
         };
         let file = cx.create_rw_signal(SymbolInformationItemData {
             id: Id::next(),
@@ -58,7 +58,7 @@ impl SymbolData {
             detail: None,
             item: file_ds,
             open: cx.create_rw_signal(true),
-            children: items
+            children: items,
         });
         Self { path, file }
     }
@@ -66,12 +66,12 @@ impl SymbolData {
     fn get_children(
         &self,
         min: usize,
-        max: usize
+        max: usize,
     ) -> Vec<(
         usize,
         usize,
         Rc<PathBuf>,
-        RwSignal<SymbolInformationItemData>
+        RwSignal<SymbolInformationItemData>,
     )> {
         let path = Rc::new(self.path.clone());
         let level: usize = 0;
@@ -92,7 +92,7 @@ pub struct SymbolInformationItemData {
     pub detail:   Option<String>,
     pub item:     DocumentSymbol,
     pub open:     RwSignal<bool>,
-    pub children: Vec<RwSignal<SymbolInformationItemData>>
+    pub children: Vec<RwSignal<SymbolInformationItemData>>,
 }
 
 impl From<(DocumentSymbol, Scope)> for SymbolInformationItemData {
@@ -111,7 +111,7 @@ impl From<(DocumentSymbol, Scope)> for SymbolInformationItemData {
             detail: item.detail.clone(),
             item,
             open: cx.create_rw_signal(false),
-            children
+            children,
         }
     }
 }
@@ -164,7 +164,7 @@ impl SymbolInformationItemData {
 pub enum MatchDocumentSymbol {
     BeforeSymbol,
     MatchSymbol(Id, usize),
-    AfterSymbol
+    AfterSymbol,
 }
 impl MatchDocumentSymbol {
     pub fn is_mach(&self) -> bool {
@@ -182,12 +182,12 @@ fn get_children(
     min: usize,
     max: usize,
     level: usize,
-    path: Rc<PathBuf>
+    path: Rc<PathBuf>,
 ) -> Vec<(
     usize,
     usize,
     Rc<PathBuf>,
-    RwSignal<SymbolInformationItemData>
+    RwSignal<SymbolInformationItemData>,
 )> {
     let mut children = Vec::new();
     if *next >= min && *next < max {
@@ -211,14 +211,14 @@ fn get_children(
 
 #[derive(Default, Clone)]
 pub struct VirtualList {
-    pub root: Option<SymbolData>
+    pub root: Option<SymbolData>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct DocumentSymbolViewData {
     pub virtual_list: RwSignal<VirtualList>,
     pub scroll_to:    RwSignal<Option<f64>>,
-    pub select:       RwSignal<Option<Id>>
+    pub select:       RwSignal<Option<Id>>,
 }
 
 impl DocumentSymbolViewData {
@@ -226,7 +226,7 @@ impl DocumentSymbolViewData {
         Self {
             virtual_list: cx.create_rw_signal(VirtualList::default()),
             scroll_to:    cx.create_rw_signal(None),
-            select:       cx.create_rw_signal(None)
+            select:       cx.create_rw_signal(None),
         }
     }
 }
@@ -241,7 +241,7 @@ impl VirtualList {
 
     pub fn match_line_with_children(
         &self,
-        line: u32
+        line: u32,
     ) -> Option<MatchDocumentSymbol> {
         self.root.as_ref().map(|x| x.match_line_with_children(line))
     }
@@ -252,7 +252,7 @@ impl
         usize,
         usize,
         Rc<PathBuf>,
-        RwSignal<SymbolInformationItemData>
+        RwSignal<SymbolInformationItemData>,
     )> for VirtualList
 {
     fn total_len(&self) -> usize {
@@ -265,14 +265,14 @@ impl
 
     fn slice(
         &mut self,
-        range: std::ops::Range<usize>
+        range: std::ops::Range<usize>,
     ) -> impl Iterator<
         Item = (
             usize,
             usize,
             Rc<PathBuf>,
-            RwSignal<SymbolInformationItemData>
-        )
+            RwSignal<SymbolInformationItemData>,
+        ),
     > {
         if let Some(root) = self.root.as_ref() {
             let min = range.start;
@@ -287,7 +287,7 @@ impl
 
 pub fn symbol_panel(
     window_tab_data: WindowWorkspaceData,
-    _position: PanelContainerPosition
+    _position: PanelContainerPosition,
 ) -> impl View {
     let config = window_tab_data.common.config;
     let ui_line_height = window_tab_data.common.ui_line_height;

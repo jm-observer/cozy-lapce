@@ -1,14 +1,14 @@
 use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
-    sync::Arc
+    sync::Arc,
 };
 
 use crossbeam_channel::{Receiver, unbounded};
 use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
     event::{ModifyKind, RenameMode},
-    recommended_watcher
+    recommended_watcher,
 };
 use parking_lot::Mutex;
 
@@ -18,13 +18,13 @@ use parking_lot::Mutex;
 pub struct FileWatcher {
     rx_event: Option<Receiver<Result<Event, notify::Error>>>,
     inner:    RecommendedWatcher,
-    state:    Arc<Mutex<WatcherState>>
+    state:    Arc<Mutex<WatcherState>>,
 }
 
 #[derive(Debug, Default)]
 struct WatcherState {
     events:   EventQueue,
-    watchees: Vec<Watchee>
+    watchees: Vec<Watchee>,
 }
 
 /// Tracks a registered 'that-which-is-watched'.
@@ -33,7 +33,7 @@ struct Watchee {
     path:      PathBuf,
     recursive: bool,
     token:     WatchToken,
-    filter:    Option<Box<PathFilter>>
+    filter:    Option<Box<PathFilter>>,
 }
 
 /// Token provided to `FileWatcher`, to associate events with
@@ -66,7 +66,7 @@ impl FileWatcher {
         FileWatcher {
             rx_event: Some(rx_event),
             inner,
-            state
+            state,
         }
     }
 
@@ -112,9 +112,9 @@ impl FileWatcher {
         path: &Path,
         recursive: bool,
         token: WatchToken,
-        filter: F
+        filter: F,
     ) where
-        F: Fn(&Path) -> bool + Send + 'static {
+        F: Fn(&Path) -> bool + Send + 'static, {
         let filter = Box::new(filter) as Box<PathFilter>;
         self.watch_impl(path, recursive, token, Some(filter));
     }
@@ -124,13 +124,13 @@ impl FileWatcher {
         path: &Path,
         recursive: bool,
         token: WatchToken,
-        filter: Option<Box<PathFilter>>
+        filter: Option<Box<PathFilter>>,
     ) {
         let path = match path.canonicalize() {
             Ok(ref p) => p.to_owned(),
             Err(_) => {
                 return;
-            }
+            },
         };
 
         let mut state = self.state.lock();
@@ -139,7 +139,7 @@ impl FileWatcher {
             path,
             recursive,
             token,
-            filter
+            filter,
         };
         let mode = mode_from_bool(w.recursive);
 
@@ -233,7 +233,7 @@ impl Watchee {
                     false
                 }
             },
-            _ => false
+            _ => false,
         }
     }
 

@@ -7,19 +7,19 @@ use crate::lines::register::Clipboard;
 pub struct Preedit {
     pub text:   String,
     pub cursor: Option<(usize, usize)>,
-    pub offset: usize
+    pub offset: usize,
 }
 
 /// IME Preedit
 /// This is used for IME input, and must be owned by the `Document`.
 #[derive(Debug, Clone)]
 pub struct PreeditData {
-    pub preedit: RwSignal<Option<Preedit>>
+    pub preedit: RwSignal<Option<Preedit>>,
 }
 impl PreeditData {
     pub fn new(cx: Scope) -> PreeditData {
         PreeditData {
-            preedit: cx.create_rw_signal(None)
+            preedit: cx.create_rw_signal(None),
         }
     }
 }
@@ -30,11 +30,11 @@ pub enum WrapMethod {
     #[default]
     EditorWidth,
     WrapColumn {
-        col: usize
+        col: usize,
     },
     WrapWidth {
-        width: f32
-    }
+        width: f32,
+    },
 }
 impl std::fmt::Display for WrapMethod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -72,7 +72,7 @@ pub enum RenderWhitespace {
     None,
     All,
     Boundary,
-    Trailing
+    Trailing,
 }
 impl std::fmt::Display for RenderWhitespace {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

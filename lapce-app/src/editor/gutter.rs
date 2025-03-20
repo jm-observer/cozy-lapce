@@ -6,7 +6,7 @@ use floem::{
     peniko::kurbo::{Point, Rect, Size},
     prelude::Color,
     reactive::{Memo, SignalGet, SignalWith},
-    text::{Attrs, AttrsList, TextLayout}
+    text::{Attrs, AttrsList, TextLayout},
 };
 use log::{debug, error};
 
@@ -16,12 +16,12 @@ pub struct EditorGutterView {
     id:                   ViewId,
     editor:               EditorData,
     width:                f64,
-    gutter_padding_right: Memo<f32>
+    gutter_padding_right: Memo<f32>,
 }
 
 pub fn editor_gutter_view(
     editor: EditorData,
-    gutter_padding_right: Memo<f32>
+    gutter_padding_right: Memo<f32>,
 ) -> EditorGutterView {
     let id = ViewId::new();
 
@@ -29,7 +29,7 @@ pub fn editor_gutter_view(
         id,
         editor,
         width: 0.0,
-        gutter_padding_right
+        gutter_padding_right,
     }
 }
 
@@ -45,7 +45,7 @@ impl EditorGutterView {
         added: Color,
         modified_color: Color,
         removed: Color,
-        line_height: f64
+        line_height: f64,
     ) -> Result<()> {
         if !is_normal {
             return Ok(());
@@ -59,7 +59,7 @@ impl EditorGutterView {
             changes,
             added,
             modified_color,
-            removed
+            removed,
         )?;
         for (y, height, removed, color) in changes {
             let height = if removed {
@@ -74,10 +74,10 @@ impl EditorGutterView {
             cx.fill(
                 &Size::new(3.0, height).to_rect().with_origin(Point::new(
                     self.width + 5.0 - gutter_padding_right,
-                    y
+                    y,
                 )),
                 color,
-                0.0
+                0.0,
             )
         }
         Ok(())
@@ -89,7 +89,7 @@ impl EditorGutterView {
         is_normal: bool,
         sticky_header: bool,
         shadow_color: Color,
-        hbg: Color
+        hbg: Color,
     ) {
         if !is_normal {
             return;
@@ -121,7 +121,7 @@ impl View for EditorGutterView {
 
     fn compute_layout(
         &mut self,
-        _cx: &mut floem::context::ComputeLayoutCx
+        _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<floem::peniko::kurbo::Rect> {
         if let Some(width) = self.id.get_layout().map(|l| l.size.width as f64) {
             self.width = width;
@@ -153,7 +153,7 @@ impl View for EditorGutterView {
             removed,
             modified,
             added,
-            sticky_header
+            sticky_header,
         ) = self.editor.common.config.signal(|config| {
             (
                 config.editor.line_height.signal(),
@@ -168,7 +168,7 @@ impl View for EditorGutterView {
                 config.color(LapceColor::SOURCE_CONTROL_REMOVED),
                 config.color(LapceColor::SOURCE_CONTROL_MODIFIED),
                 config.color(LapceColor::SOURCE_CONTROL_ADDED),
-                config.editor.sticky_header.signal()
+                config.editor.sticky_header.signal(),
             )
         });
 
@@ -185,7 +185,7 @@ impl View for EditorGutterView {
             removed,
             modified,
             added,
-            sticky_header
+            sticky_header,
         ) = (
             line_height.get() as f64,
             font_family.get(),
@@ -199,7 +199,7 @@ impl View for EditorGutterView {
             removed.get(),
             modified.get(),
             added.get(),
-            sticky_header.get()
+            sticky_header.get(),
         );
 
         let kind_is_normal = self
@@ -216,14 +216,17 @@ impl View for EditorGutterView {
 
         let (current_visual_line, _line_offset) =
             match doc.lines.with_untracked(|x| {
-                x.folded_line_and_final_col_of_offset(offset, CursorAffinity::Forward)
-                    .map(|x| (x.0.clone(), x.1))
+                x.folded_line_and_final_col_of_offset(
+                    offset,
+                    CursorAffinity::Forward,
+                )
+                .map(|x| (x.0.clone(), x.1))
             }) {
                 Ok(rs) => rs,
                 Err(err) => {
                     error!("{err:?}");
                     return;
-                }
+                },
             };
 
         let attrs = Attrs::new()
@@ -246,12 +249,12 @@ impl View for EditorGutterView {
                     let text_layout = if current_number == line_number {
                         TextLayout::new_with_text(
                             &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                            current_line_attrs_list.clone()
+                            current_line_attrs_list.clone(),
                         )
                     } else {
                         TextLayout::new_with_text(
                             &line_number.map(|x| x.to_string()).unwrap_or_default(),
-                            attrs_list.clone()
+                            attrs_list.clone(),
                         )
                     };
                     let y = text.folded_line_y;
@@ -266,7 +269,7 @@ impl View for EditorGutterView {
 
                     cx.draw_text_with_layout(
                         text_layout.layout_runs(),
-                        Point::new(x, y)
+                        Point::new(x, y),
                     );
                 }
             }
@@ -281,7 +284,7 @@ impl View for EditorGutterView {
             added,
             modified,
             removed,
-            line_height
+            line_height,
         ) {
             error!("{err:?}");
         }
@@ -290,7 +293,7 @@ impl View for EditorGutterView {
             kind_is_normal,
             sticky_header,
             shadow,
-            header_bg
+            header_bg,
         );
     }
 
