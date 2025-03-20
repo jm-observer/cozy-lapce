@@ -2374,10 +2374,12 @@ impl EditorData {
         &self,
         location: EditorLocation,
         new_doc: bool,
-        edits: Option<Vec<TextEdit>>
+        edits: Option<Vec<TextEdit>>,
+        off_top_line: Option<Option<usize>>
     ) {
         if !new_doc {
             self.do_go_to_location(location, edits);
+            self.common.offset_line_from_top.set(off_top_line);
         } else {
             let loaded = self.doc().loaded;
             let editor = self.clone();
@@ -2385,9 +2387,9 @@ impl EditorData {
                 if prev_loaded == Some(true) {
                     return true;
                 }
-
                 let loaded = loaded.get();
                 if loaded {
+                    editor.common.offset_line_from_top.set(off_top_line);
                     editor.do_go_to_location(location.clone(), edits.clone());
                 }
                 loaded

@@ -28,6 +28,21 @@ impl <'a> FoldingRangesLine<'a> {
         }
     }
 
+    /// 计算line在实际展示时，位于第几行
+    pub fn get_origin_folded_line_index(&mut self, line: usize) -> usize {
+        let mut index = 0;
+        let mut line_num = 0;
+        while line_num <= line {
+            if let Some(folded) = self.get_folded_range_by_line(line_num as u32) {
+                line_num = *folded.end() + 1;
+            } else {
+                line_num += 1;
+            }
+            index += 1;
+        }
+        index
+    }
+
     pub fn get_folded_range_by_line(&mut self, line: u32) -> Option<RangeInclusive<usize>> {
         loop {
             if let Some(folded) = self.folding.peek() {

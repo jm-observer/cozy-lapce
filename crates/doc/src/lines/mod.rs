@@ -21,6 +21,7 @@ use floem::{
     },
     text::{Attrs, AttrsList, FONT_SYSTEM, FamilyOwned, Wrap}
 };
+use floem::text::LineHeightValue;
 use itertools::Itertools;
 use lapce_xi_rope::{
     Interval, Rope, RopeDelta, Transformer,
@@ -1256,7 +1257,7 @@ impl DocLines {
         buffer_offset: usize,
         affinity: CursorAffinity
     ) -> Result<(
-        &OriginFoldedLine,
+        OriginFoldedLine,
         usize //bool, usize, usize
     )> {
         // // 位于的原始行，以及在原始行的起始offset
@@ -1267,7 +1268,8 @@ impl DocLines {
         //     (origin_line, origin_line_start_offset)
         // };
         // let offset_of_col = offset - start_offset_of_origin_line;
-        let folded_line = self.folded_line_of_buffer_offset(buffer_offset)?;
+        let line = self.buffer().line_of_offset(buffer_offset);
+        let folded_line = self.init_folded_line_layout_alone(line)?;
         let merge_offset = buffer_offset - folded_line.origin_interval.start;
         let final_col =
             folded_line.cursor_final_col_of_merge_col(merge_offset, affinity)?;
@@ -1605,6 +1607,45 @@ impl DocLines {
             line_height: line_height as f64,
             buffer_len: self.buffer().len()
         })
+    }
+
+    pub fn init_folded_line_layout_alone(&self, current_origin_line: usize,) -> Result<OriginFoldedLine>{
+        let binding = self.folding_ranges.get_all_folded_range();
+        let mut folded_lines = FoldingRangesLine::new(&binding.0);
+        let folded_index = folded_lines.get_origin_folded_line_index(current_origin_line);
+        let mut folded_lines = FoldingRangesLine::new(&binding.0);
+
+        let buffer = self.buffer();
+        let line_ending: &'static str = buffer.line_ending().get_chars();
+        let last_line = buffer.last_line();
+        let preedit_phantom = util::preedit_phantom_2(
+            &self.preedit,
+            buffer,
+            Some(self.config.editor_foreground),
+        );
+        let family =
+            Cow::Owned(FamilyOwned::parse_list(&self.config.font_family).collect());
+        let font_size = self.config.font_size;
+        let attrs = Attrs::new()
+            .family(&family)
+            .font_size(font_size as f32)
+            .line_height(LineHeightValue::Px(self.config.line_height as f32));
+
+        let mut semantic_styles = if self.style_from_lsp {
+            self.semantic_styles.as_ref().map(|x| x.1.iter().peekable())
+        } else {
+            self.syntax.styles.as_ref().map(|x| x.iter().peekable())
+        };
+        let mut inlay_hints = self
+            .config
+            .enable_inlay_hints
+            .then_some(())
+            .and(self.inlay_hints.as_ref())
+            .map(|x| x.iter().peekable());
+
+        let folded_line = self.init_folded_line_2(current_origin_line, attrs, folded_index, line_ending, last_line, &mut semantic_styles, &mut inlay_hints, &mut folded_lines, &preedit_phantom)?;
+        folded_line.init_layout();
+        Ok(folded_line)
     }
 
     fn init_folded_line_2(
@@ -3143,10 +3184,9 @@ impl DocLines {
         _count: usize
     ) -> Result<Option<(usize, ColPosition, CursorAffinity)>> {
         let (visual_line, final_col, ..) = if offset >= self.buffer().len() {
-            let Some(folded_line) = self.origin_folded_lines.last() else {
-                bail!("last line is none");
-            };
-            (folded_line, folded_line.len_without_rn())
+            let folded_line = self.init_folded_line_layout_alone(self.buffer().last_line())?;
+            let final_col = folded_line.len_without_rn();
+            (folded_line, final_col)
         } else {
             self.folded_line_of_offset(offset, affinity)?
         };

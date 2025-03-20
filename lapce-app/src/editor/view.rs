@@ -1889,17 +1889,14 @@ fn editor_content(
                     x.cursor_position_of_buffer_offset(offset, cursor.affinity)
                 })
             else {
-                // log::info!(
-                //     "ensure_visible offset={offset}
-                // offset_line_from_top={offset_line_from_top:?} {:?} empty",
-                // cursor.affinity );
+
                 e_data.ensure_visible.set(current_scroll.get_untracked());
                 return ;
             };
-            // log::info!(
-            //         "ensure_visible offset={offset}
-            // offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
-            //     );
+            log::info!(
+                    "ensure_visible offset={offset}
+            offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
+                );
             let ensure_visiable = if let Some(offset_line_from_top) = offset_line_from_top {
                 // from jump
                 let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;

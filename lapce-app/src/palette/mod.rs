@@ -1580,6 +1580,7 @@ impl PaletteData {
                             same_editor_tab: false
                         },
                         false,
+                        None,
                         None
                     );
                 },
@@ -1606,6 +1607,7 @@ impl PaletteData {
                     self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
+                        None,
                         None
                     );
                 },
@@ -1635,6 +1637,7 @@ impl PaletteData {
                             same_editor_tab: false
                         },
                         false,
+                        None,
                         None
                     );
                 },
@@ -1653,6 +1656,7 @@ impl PaletteData {
                     self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
+                        None,
                         None
                     );
                 },

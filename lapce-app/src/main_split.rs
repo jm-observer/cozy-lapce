@@ -41,7 +41,7 @@ use lsp_types::{
     DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit
 };
 use serde_json::Value;
-
+use doc::lines::buffer::rope_text::RopeText;
 use crate::{
     alert::AlertButton,
     code_lens::CodeLensData,
@@ -620,7 +620,6 @@ impl MainSplitData {
         location: EditorLocation,
         edits: Option<Vec<TextEdit>>
     ) -> Result<()> {
-        log::debug!("go_to_location {:?}", location);
         if self.common.focus.get_untracked() != Focus::Workbench {
             self.common.focus.set(Focus::Workbench);
         }
@@ -628,45 +627,17 @@ impl MainSplitData {
         // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
         if let Some(tab) = self.get_active_editor_untracked() {
             let cursor = tab.editor.cursor.get_untracked();
+            let offset = cursor.offset();
 
-            let line_index = tab.editor.doc().lines.with_untracked(|x| {
-                let rs = x
-                    .folded_line_of_buffer_offset(cursor.offset())
-                    .map(|x| x.line_index);
-                if rs.is_err() {
-                    x.log();
-                }
-                rs
-            })?;
+
+            let line_num = tab.editor.doc().lines.with_untracked(|x| {
+                x.buffer().line_of_offset(offset)
+            });
             if let Some(index) = tab.editor.screen_lines.with_untracked(|x| {
-                x.visual_index_for_origin_folded_line_index(line_index)
+                x.visual_index_for_origin_line_num(line_num)
             }) {
                 off_top_line = Some(index);
             }
-
-            // let lines = tab
-            //     .editor
-            //     .doc()
-            //     .lines
-            //     .lines_of_origin_offset(cursor.offset())?;
-
-            //
-            // if let Some(min_visual_line) = tab
-            //     .editor
-            //     .screen_lines
-            //     .with_untracked(|x| x.info.get(&x.lines[0]).cloned())
-            // {
-            //     let line = tab
-            //         .editor
-            //         .visual_line_of_offset(cursor.offset(),
-            // CursorAffinity::Forward)         .0
-            //         .vline
-            //         .0;
-            //     off_top_line = Some(
-            //         line.saturating_sub(min_visual_line.vline_info.vline.0)
-            //             .max(5),
-            //     )
-            // }
         }
         let path = location.path.clone();
         let (doc, new_doc) = self.get_doc(
@@ -678,6 +649,7 @@ impl MainSplitData {
                 read_only: false
             }
         );
+        log::debug!("go_to_location {:?} {:?}", location, off_top_line);
 
         let child = self.get_editor_tab_child(
             EditorTabChildSource::Editor { path, doc },
@@ -687,8 +659,7 @@ impl MainSplitData {
         if let EditorTabChildId::Editor(editor_id) = child {
             if let Some(editor) = self.editors.editor_untracked(editor_id) {
                 batch(|| {
-                    editor.common.offset_line_from_top.set(Some(off_top_line));
-                    editor.go_to_location(location, new_doc, edits);
+                    editor.go_to_location(location, new_doc, edits, Some(off_top_line));
                 });
             }
         }
@@ -3201,6 +3172,7 @@ impl MainSplitData {
                         same_editor_tab:    false
                     },
                     new_doc,
+                    None,
                     None
                 );
 

@@ -212,20 +212,17 @@ impl ScreenLines {
         None
     }
 
-    pub fn visual_index_for_origin_folded_line_index(
+    pub fn visual_index_for_origin_line_num(
         &self,
         line_index: usize
     ) -> Option<usize> {
         for (index, visual_line) in self.visual_lines.iter().enumerate() {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
-                match line_index.cmp(&text.folded_line.origin_line_start) {
-                    Ordering::Less => {
-                        return None;
-                    },
-                    Ordering::Equal => {
-                        return Some(index);
-                    },
-                    _ => {}
+                if text.folded_line.origin_line_start <= line_index && line_index <= text.folded_line.origin_line_end {
+                    // index 从0开始，该函数是测算第几个，因此加1
+                    return Some(index + 1);
+                } else if line_index < text.folded_line.origin_line_start {
+                    return None;
                 }
             }
         }
