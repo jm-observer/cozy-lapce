@@ -2291,6 +2291,48 @@ impl MainSplitData {
         }
     }
 
+    pub fn prev_error(&self) {
+        let file_diagnostics =
+            self.file_diagnostics_items(DiagnosticSeverity::ERROR);
+        if file_diagnostics.is_empty() {
+            return;
+        }
+        let active_editor = self.active_editor.get_untracked();
+        let active_path = active_editor
+            .map(|editor| (editor.doc(), editor.cursor()))
+            .and_then(|(doc, cursor)| {
+                let offset = cursor.with_untracked(|c| c.offset());
+                let (path, position) = (
+                    doc.content.get_untracked().path().cloned(),
+                    match doc
+                        .lines
+                        .with_untracked(|b| b.buffer().offset_to_position(offset))
+                    {
+                        Ok(rs) => rs,
+                        Err(err) => {
+                            error!("{err:?}");
+                            return None;
+                        },
+                    },
+                );
+                path.map(|path| (path, offset, position))
+            });
+        let Some((path, position)) =
+            prev_in_file_errors_offset(active_path, &file_diagnostics)
+        else {
+            error!("prev_in_file_errors_offset none");
+            return;
+        };
+        let location = EditorLocation {
+            path,
+            position: Some(position),
+            scroll_offset: None,
+            ignore_unconfirmed: false,
+            same_editor_tab: false,
+        };
+        self.jump_to_location(location, None);
+    }
+
     pub fn next_error(&self) {
         let file_diagnostics =
             self.file_diagnostics_items(DiagnosticSeverity::ERROR);
@@ -3438,4 +3480,62 @@ fn next_in_file_errors_offset(
             EditorPosition::Position(file_diagnostics[0].1[0].diagnostic.range.start)
         },
     )
+}
+
+fn prev_in_file_errors_offset(
+    active_path: Option<(PathBuf, usize, Position)>,
+    file_diagnostics: &[(PathBuf, Vec<EditorDiagnostic>)],
+) -> Option<(PathBuf, EditorPosition)> {
+    if let Some((active_path, offset, position)) = active_path {
+        for (current_path, diagnostics) in file_diagnostics.iter().rev() {
+            if &active_path == current_path {
+                for diagnostic in diagnostics.iter().rev() {
+                    if let Some((_start, end)) = diagnostic.range {
+                        if end < offset {
+                            return Some((
+                                (*current_path).clone(),
+                                EditorPosition::Offset(_start),
+                            ));
+                        }
+                    } else if diagnostic.diagnostic.range.end.line < position.line
+                        || (diagnostic.diagnostic.range.end.line == position.line
+                            && diagnostic.diagnostic.range.end.character
+                                < position.character)
+                    {
+                        return Some((
+                            (*current_path).clone(),
+                            EditorPosition::Position(
+                                diagnostic.diagnostic.range.start,
+                            ),
+                        ));
+                    }
+                    continue;
+                }
+            } else if current_path < &active_path {
+                let last_diag = diagnostics.last()?;
+                if let Some((_start, _end)) = last_diag.range {
+                    return Some((
+                        (*current_path).clone(),
+                        EditorPosition::Offset(_start),
+                    ));
+                } else {
+                    return Some((
+                        (*current_path).clone(),
+                        EditorPosition::Position(last_diag.diagnostic.range.start),
+                    ));
+                }
+            }
+        }
+    }
+
+    let diag = file_diagnostics.last()?;
+    let last_diag = diag.1.last()?;
+    Some((
+        diag.0.clone(),
+        if let Some((_start, _end)) = last_diag.range {
+            EditorPosition::Offset(_start)
+        } else {
+            EditorPosition::Position(last_diag.diagnostic.range.start)
+        },
+    ))
 }

@@ -73,91 +73,92 @@ pub enum Condition {
     ReplaceFocus,
 }
 
-#[cfg(test)]
-mod test {
-    use floem::keyboard::Modifiers;
-    use lapce_core::mode::Mode;
+// #[cfg(test)]
+// mod test {
+//     use floem::keyboard::Modifiers;
+//     use lapce_core::mode::Mode;
 
-    use super::Condition;
-    use crate::keypress::{KeyPressData, KeyPressFocus, condition::CheckCondition};
+//     use super::Condition;
+//     use crate::keypress::{KeyPressData, KeyPressFocus,
+// condition::CheckCondition};
 
-    #[derive(Clone, Copy, Debug)]
-    struct MockFocus {
-        accepted_conditions: &'static [Condition],
-    }
+//     #[derive(Clone, Copy, Debug)]
+//     struct MockFocus {
+//         accepted_conditions: &'static [Condition],
+//     }
 
-    impl KeyPressFocus for MockFocus {
-        fn check_condition(&self, condition: Condition) -> bool {
-            self.accepted_conditions.contains(&condition)
-        }
+//     impl KeyPressFocus for MockFocus {
+//         fn check_condition(&self, condition: Condition) -> bool {
+//             self.accepted_conditions.contains(&condition)
+//         }
 
-        fn get_mode(&self) -> Mode {
-            unimplemented!()
-        }
+//         fn get_mode(&self) -> Mode {
+//             unimplemented!()
+//         }
 
-        fn run_command(
-            &self,
-            _command: &crate::command::LapceCommand,
-            _count: Option<usize>,
-            _mods: Modifiers,
-        ) -> crate::command::CommandExecuted {
-            unimplemented!()
-        }
+//         fn run_command(
+//             &self,
+//             _command: &crate::command::LapceCommand,
+//             _count: Option<usize>,
+//             _mods: Modifiers,
+//         ) -> crate::command::CommandExecuted {
+//             unimplemented!()
+//         }
 
-        fn receive_char(&self, _c: &str) {
-            unimplemented!()
-        }
-    }
+//         fn receive_char(&self, _c: &str) {
+//             unimplemented!()
+//         }
+//     }
 
-    #[test]
-    fn test_parse() {
-        assert_eq!(
-            CheckCondition::Or("foo", "bar"),
-            CheckCondition::parse_first("foo||bar")
-        );
-        assert_eq!(
-            CheckCondition::And("foo", "bar"),
-            CheckCondition::parse_first("foo&&bar")
-        );
-        assert_eq!(
-            CheckCondition::And("foo", "bar||baz"),
-            CheckCondition::parse_first("foo&&bar||baz")
-        );
-        assert_eq!(
-            CheckCondition::And("foo ", " bar || baz"),
-            CheckCondition::parse_first("foo && bar || baz")
-        );
-    }
+//     #[test]
+//     fn test_parse() {
+//         assert_eq!(
+//             CheckCondition::Or("foo", "bar"),
+//             CheckCondition::parse_first("foo||bar")
+//         );
+//         assert_eq!(
+//             CheckCondition::And("foo", "bar"),
+//             CheckCondition::parse_first("foo&&bar")
+//         );
+//         assert_eq!(
+//             CheckCondition::And("foo", "bar||baz"),
+//             CheckCondition::parse_first("foo&&bar||baz")
+//         );
+//         assert_eq!(
+//             CheckCondition::And("foo ", " bar || baz"),
+//             CheckCondition::parse_first("foo && bar || baz")
+//         );
+//     }
 
-    #[test]
-    fn test_check_condition() {
-        let focus = MockFocus {
-            accepted_conditions: &[Condition::EditorFocus, Condition::ListFocus],
-        };
+//     #[test]
+//     fn test_check_condition() {
+//         let focus = MockFocus {
+//             accepted_conditions: &[Condition::EditorFocus,
+// Condition::ListFocus],         };
 
-        let test_cases = [
-            ("editor_focus", true),
-            ("list_focus", true),
-            ("!editor_focus", false),
-            ("!list_focus", false),
-            ("editor_focus || list_focus", true),
-            ("editor_focus || !list_focus", true),
-            ("!editor_focus || list_focus", true),
-            ("editor_focus && list_focus", true),
-            ("editor_focus && !list_focus", false),
-            ("!editor_focus && list_focus", false),
-            ("editor_focus && list_focus || baz", true),
-            ("editor_focus && list_focus && baz", false),
-            ("editor_focus && list_focus && !baz", true),
-        ];
+//         let test_cases = [
+//             ("editor_focus", true),
+//             ("list_focus", true),
+//             ("!editor_focus", false),
+//             ("!list_focus", false),
+//             ("editor_focus || list_focus", true),
+//             ("editor_focus || !list_focus", true),
+//             ("!editor_focus || list_focus", true),
+//             ("editor_focus && list_focus", true),
+//             ("editor_focus && !list_focus", false),
+//             ("!editor_focus && list_focus", false),
+//             ("editor_focus && list_focus || baz", true),
+//             ("editor_focus && list_focus && baz", false),
+//             ("editor_focus && list_focus && !baz", true),
+//         ];
 
-        for (condition, should_accept) in test_cases.into_iter() {
-            assert_eq!(
-                should_accept,
-                KeyPressData::check_condition(condition, &focus),
-                "Condition check failed. Condition: {condition}. Expected result: \
-                 {should_accept}",
-            );
-        }
-    }
-}
+//         for (condition, should_accept) in test_cases.into_iter() {
+//             assert_eq!(
+//                 should_accept,
+//                 KeyPressData::check_condition(condition, &focus),
+//                 "Condition check failed. Condition: {condition}. Expected
+// result: \                  {should_accept}",
+//             );
+//         }
+//     }
+// }

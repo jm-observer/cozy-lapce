@@ -1544,7 +1544,9 @@ impl WindowWorkspaceData {
             NextError => {
                 self.main_split.next_error();
             }
-            PreviousError => {}
+            PreviousError => {
+                self.main_split.prev_error();
+            }
             Quit => {
                 floem::quit_app();
             }
@@ -2382,7 +2384,7 @@ impl WindowWorkspaceData {
                     .into_iter()
                     .sorted_by_key(|d| d.range.start)
                     .collect();
-
+                debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 // if !diagnostics.is_empty() {
                 //     debug!(
                 //         "PublishDiagnostics {:?} {}",

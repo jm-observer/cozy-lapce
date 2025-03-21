@@ -9,8 +9,7 @@ use floem::{
     peniko::Color,
     text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun},
 };
-use itertools::Itertools;
-use log::{error, warn};
+use log::{error};
 use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
