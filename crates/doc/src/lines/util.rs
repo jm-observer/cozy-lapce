@@ -229,8 +229,25 @@ pub fn matching_char(c: char) -> Option<char> {
         ')' => '(',
         '[' => ']',
         ']' => '[',
+        '"' => '"',
+        '\'' => '\'',
+        '<' => '>',
+        '`' => '`',
         _ => return None,
     })
+}
+
+pub fn matching_auto_arround(c: char) -> bool {
+    match c {
+        '{' |
+        '(' |
+        '[' |
+        '"' |
+        '\'' |
+        '<' |
+        '`' => true,
+        _ => false,
+    }
 }
 
 pub fn has_unmatched_pair(line: &str) -> bool {

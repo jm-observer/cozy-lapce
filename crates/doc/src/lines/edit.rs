@@ -19,6 +19,7 @@ use crate::lines::{
     },
     word::{CharClassification, get_char_property},
 };
+use crate::lines::util::matching_auto_arround;
 
 fn format_start_end(
     buffer: &Buffer,
@@ -139,24 +140,13 @@ impl Action {
                     // that char and its corresponding closing pair
                     if region.start != region.end
                         && auto_surround
-                        && (matching_pair_type == Some(true)
-                            || c == '"'
-                            || c == '\''
-                            || c == '`')
+                        && matching_auto_arround(c)
                     {
                         edits.push((
                             Selection::region(region.min(), region.min()),
                             c.to_string(),
                         ));
-                        edits_after.push((
-                            idx,
-                            match c {
-                                '"' => '"',
-                                '\'' => '\'',
-                                '`' => '`',
-                                _ => matching_char(c).unwrap(),
-                            },
-                        ));
+                        edits_after.push((idx, matching_char(c).unwrap()));
                         continue;
                     }
 
