@@ -9,6 +9,8 @@ use floem::{
     peniko::Color,
     text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun},
 };
+use itertools::Itertools;
+use log::{error, warn};
 use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
@@ -212,7 +214,10 @@ impl TextLayoutLine {
 
     pub fn init_extra_style(&mut self) {
         if !self.init {
-            self.apply_diagnostic_styles_2();
+            self.extra_style.clear();
+            if let Err(err) = self.apply_diagnostic_styles_2() {
+                error!("{err}");
+            }
             self.apply_layout_styles();
         }
     }
@@ -226,7 +231,6 @@ impl TextLayoutLine {
     }
 
     fn apply_layout_styles(&mut self) {
-        self.extra_style.clear();
         let layout = &mut self.text.borrow_mut();
         self.phantom_text.iter_phantom_text().for_each(|phantom| {
             if (phantom.bg.is_none() && phantom.under_line.is_none())
@@ -282,7 +286,7 @@ impl TextLayoutLine {
         self.document_highlight_style = highlight_styles;
     }
 
-    fn apply_diagnostic_styles_2(&mut self) {
+    fn apply_diagnostic_styles_2(&mut self) -> anyhow::Result<()> {
         let layout = &mut self.text.borrow_mut();
         let phantom_text = &self.phantom_text;
         let line_styles = &self.diagnostic_styles;
@@ -295,15 +299,17 @@ impl TextLayoutLine {
             ..
         } in line_styles
         {
+            let start = phantom_text.final_col_of_origin_merge_col(
+                *start_of_buffer - phantom_text.offset_of_line,
+            )?;
+            let end =  phantom_text.final_col_of_origin_merge_col(
+                *end_of_buffer - phantom_text.offset_of_line,
+            )?;
             match (
-                phantom_text.final_col_of_origin_merge_col(
-                    *start_of_buffer - phantom_text.offset_of_line,
-                ),
-                phantom_text.final_col_of_origin_merge_col(
-                    *end_of_buffer - phantom_text.offset_of_line,
-                ),
+                start
+               , end
             ) {
-                (Ok(Some(start)), Ok(Some(end))) => {
+                (Some(start), Some(end)) => {
                     let styles = util::extra_styles_for_range(
                         layout,
                         start,
@@ -322,6 +328,7 @@ impl TextLayoutLine {
                 },
             }
         }
+        Ok(())
     }
 }
 

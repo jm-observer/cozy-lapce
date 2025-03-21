@@ -3930,7 +3930,7 @@ pub async fn launch() -> Result<()> {
     let cli = Cli::parse();
 
     // ?
-    // logging::panic_hook();
+    logging::panic_hook();
     // if !cli.wait {
     //     logging::panic_hook();
     // }

@@ -1597,7 +1597,7 @@ impl DocLines {
                         folded_line.origin_line_end as u32,
                     );
                     folded_line.init_layout();
-                    folded_line.extra_style();
+                    folded_line.init_extra_style();
                     folded_line.init_document_highlight(
                         highlight,
                         document_highlight_color,
@@ -1881,8 +1881,8 @@ impl DocLines {
     //                         };
     //                         let mut text = match &inlay_hint.label {
     //                             InlayHintLabel::String(label) =>
-    // label.to_string(),                             
-    // InlayHintLabel::LabelParts(parts) => {                                 
+    // label.to_string(),
+    // InlayHintLabel::LabelParts(parts) => {
     // parts.iter().map(|p| &p.value).join("")                             },
     //                         };
     //                         match (text.starts_with(':'), text.ends_with(':')) {
@@ -2967,58 +2967,58 @@ impl DocLines {
     //     // }
     // }
 
-    /// return (line,start, end, color)
-    pub fn get_line_diagnostic_styles(
-        &self,
-        start_offset: usize,
-        end_offset: usize,
-        max_severity: &mut Option<DiagnosticSeverity>,
-        line_offset: usize,
-    ) -> Vec<(usize, usize, Color)> {
-        self.config
-            .enable_error_lens
-            .then_some(())
-            .map(|_| {
-                self.diagnostics.diagnostics_span.with_untracked(|diags| {
-                    diags
-                        .iter_chunks(start_offset..end_offset)
-                        .filter_map(|(iv, diag)| {
-                            let start = iv.start();
-                            let end = iv.end();
-                            let severity = diag.severity?;
-                            // warn!("start_offset={start_offset}
-                            // end_offset={end_offset}
-                            // interval={iv:?}");
-                            if start <= end_offset
-                                && start_offset <= end
-                                && severity < DiagnosticSeverity::HINT
-                            {
-                                match (severity, *max_severity) {
-                                    (severity, Some(max)) => {
-                                        if severity < max {
-                                            *max_severity = Some(severity);
-                                        }
-                                    },
-                                    (severity, None) => {
-                                        *max_severity = Some(severity);
-                                    },
-                                }
-                                let color =
-                                    self.config.color_of_diagnostic(severity)?;
-                                Some((
-                                    start + line_offset - start_offset,
-                                    end + line_offset - start_offset,
-                                    color,
-                                ))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect()
-                })
-            })
-            .unwrap_or_default()
-    }
+    // /// return (line,start, end, color)
+    // pub fn get_line_diagnostic_styles(
+    //     &self,
+    //     start_offset: usize,
+    //     end_offset: usize,
+    //     max_severity: &mut Option<DiagnosticSeverity>,
+    //     line_offset: usize,
+    // ) -> Vec<(usize, usize, Color)> {
+    //     self.config
+    //         .enable_error_lens
+    //         .then_some(())
+    //         .map(|_| {
+    //             self.diagnostics.diagnostics_span.with_untracked(|diags| {
+    //                 diags
+    //                     .iter_chunks(start_offset..end_offset)
+    //                     .filter_map(|(iv, diag)| {
+    //                         let start = iv.start();
+    //                         let end = iv.end();
+    //                         let severity = diag.severity?;
+    //                         // warn!("start_offset={start_offset}
+    //                         // end_offset={end_offset}
+    //                         // interval={iv:?}");
+    //                         if start <= end_offset
+    //                             && start_offset <= end
+    //                             && severity < DiagnosticSeverity::HINT
+    //                         {
+    //                             match (severity, *max_severity) {
+    //                                 (severity, Some(max)) => {
+    //                                     if severity < max {
+    //                                         *max_severity = Some(severity);
+    //                                     }
+    //                                 },
+    //                                 (severity, None) => {
+    //                                     *max_severity = Some(severity);
+    //                                 },
+    //                             }
+    //                             let color =
+    //                                 self.config.color_of_diagnostic(severity)?;
+    //                             Some((
+    //                                 start + line_offset - start_offset,
+    //                                 end + line_offset - start_offset,
+    //                                 color,
+    //                             ))
+    //                         } else {
+    //                             None
+    //                         }
+    //                     })
+    //                     .collect()
+    //             })
+    //         })
+    //         .unwrap_or_default()
+    // }
 
     /// return (line,start, end, color)
     fn get_line_diagnostic_styles_2(
@@ -3048,10 +3048,10 @@ impl DocLines {
                                     self.config.color_of_diagnostic(severity)?;
                                 Some(NewLineStyle {
                                     origin_line,
-                                    origin_line_offset_start: start - start_offset,
+                                    origin_line_offset_start: start_offset,
                                     len: end - start,
-                                    start_of_buffer: start_offset,
-                                    end_of_buffer: end_offset,
+                                    start_of_buffer: start,
+                                    end_of_buffer: end,
                                     fg_color: color, /* folded_line_offset_start:
                                                       * start -
                                                       * start_offset,
@@ -4141,7 +4141,7 @@ impl PubUpdateLines {
         self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
-
+        self.signals.trigger();
         Ok(())
     }
 
