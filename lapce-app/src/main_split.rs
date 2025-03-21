@@ -2291,9 +2291,8 @@ impl MainSplitData {
         }
     }
 
-    pub fn prev_error(&self) {
-        let file_diagnostics =
-            self.file_diagnostics_items(DiagnosticSeverity::ERROR);
+    pub fn prev_error(&self, severity: DiagnosticSeverity) {
+        let file_diagnostics = self.file_diagnostics_items(severity);
         if file_diagnostics.is_empty() {
             return;
         }
@@ -2333,9 +2332,8 @@ impl MainSplitData {
         self.jump_to_location(location, None);
     }
 
-    pub fn next_error(&self) {
-        let file_diagnostics =
-            self.file_diagnostics_items(DiagnosticSeverity::ERROR);
+    pub fn next_error(&self, severity: DiagnosticSeverity) {
+        let file_diagnostics = self.file_diagnostics_items(severity);
         if file_diagnostics.is_empty() {
             return;
         }

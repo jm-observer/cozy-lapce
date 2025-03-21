@@ -583,6 +583,14 @@ pub enum LapceWorkbenchCommand {
     #[strum(serialize = "previous_error")]
     PreviousError,
 
+    #[strum(message = "Next Warn in Workspace")]
+    #[strum(serialize = "next_warn")]
+    NextWarn,
+
+    #[strum(message = "Previous Warn in Workspace")]
+    #[strum(serialize = "previous_warn")]
+    PreviousWarn,
+
     #[strum(message = "Diff Files")]
     #[strum(serialize = "diff_files")]
     DiffFiles,

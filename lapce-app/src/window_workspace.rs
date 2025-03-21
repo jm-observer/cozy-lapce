@@ -55,8 +55,8 @@ use lapce_rpc::{
 };
 use log::{debug, error, info, trace, warn};
 use lsp_types::{
-    CodeActionOrCommand, CodeLens, Diagnostic, MessageType, ProgressParams,
-    ProgressToken, ShowMessageParams,
+    CodeActionOrCommand, CodeLens, Diagnostic, DiagnosticSeverity, MessageType,
+    ProgressParams, ProgressToken, ShowMessageParams,
 };
 use serde_json::Value;
 
@@ -1542,10 +1542,16 @@ impl WindowWorkspaceData {
                 self.main_split.jump_location_backward(true);
             }
             NextError => {
-                self.main_split.next_error();
+                self.main_split.next_error(DiagnosticSeverity::ERROR);
             }
             PreviousError => {
-                self.main_split.prev_error();
+                self.main_split.prev_error(DiagnosticSeverity::ERROR);
+            }
+            NextWarn => {
+                self.main_split.next_error(DiagnosticSeverity::WARNING);
+            }
+            PreviousWarn => {
+                self.main_split.prev_error(DiagnosticSeverity::WARNING);
             }
             Quit => {
                 floem::quit_app();
