@@ -3,10 +3,7 @@ use std::{rc::Rc, sync::atomic};
 use doc::{
     EditorViewKind,
     lines::{
-        buffer::{
-            diff::{DiffLines, rope_diff},
-            rope_text::RopeText,
-        },
+        buffer::{diff::DiffLines, rope_text::RopeText},
         diff::DiffInfo,
     },
 };
@@ -18,9 +15,15 @@ use lapce_core::{
     editor_tab::DiffEditorInfo,
     id::{DiffEditorId, EditorId, EditorTabManageId},
 };
+use log::error;
 
 use super::EditorData;
-use crate::{doc::Doc, main_split::Editors, window_workspace::CommonData};
+use crate::{
+    doc::Doc,
+    local_task::{LocalRequest, LocalResponse},
+    main_split::Editors,
+    window_workspace::CommonData,
+};
 
 // #[derive(Clone)]
 // pub struct DiffInfo {
@@ -37,6 +40,7 @@ pub struct DiffEditorData {
     pub right:         EditorData,
     // pub confirmed:     RwSignal<bool>,
     pub focus_right:   RwSignal<bool>,
+    common:            Rc<CommonData>,
 }
 
 impl DiffEditorData {
@@ -84,6 +88,7 @@ impl DiffEditorData {
             left,
             right,
             focus_right: cx.create_rw_signal(true),
+            common,
         };
 
         data.listen_diff_changes();
@@ -125,6 +130,7 @@ impl DiffEditorData {
             focus_right: cx.create_rw_signal(true),
             left,
             right,
+            common: self.common.clone(),
         };
 
         diff_editor.listen_diff_changes();
@@ -154,6 +160,7 @@ impl DiffEditorData {
             })
         };
 
+        let common = self.common.clone();
         cx.create_effect(move |_| {
             let (_, left_rev) = left_doc_rev.get();
             let (left_editor_view, left_doc) = (left.kind_rw(), left.doc());
@@ -201,16 +208,36 @@ impl DiffEditorData {
                 })
             };
 
-            rayon::spawn(move || {
-                let changes = rope_diff(
+            common.local_task.request_async(
+                LocalRequest::RopeDiff {
                     left_rope,
                     right_rope,
-                    right_rev,
-                    right_atomic_rev.clone(),
-                    Some(3),
-                );
-                send(changes);
-            });
+                    rev: right_rev,
+                    atomic_rev: right_atomic_rev,
+                    context_lines: Some(3),
+                },
+                move |(_id, rs)| match rs {
+                    Ok(response) => {
+                        if let LocalResponse::RopeDiff { changes, .. } = response {
+                            send(changes);
+                        }
+                    },
+                    Err(err) => {
+                        error!("{err}")
+                    },
+                },
+            );
+
+            // rayon::spawn(move || {
+            //     let changes = rope_diff(
+            //         left_rope,
+            //         right_rope,
+            //         right_rev,
+            //         right_atomic_rev.clone(),
+            //         Some(3),
+            //     );
+            //     send(changes);
+            // });
         });
     }
 }

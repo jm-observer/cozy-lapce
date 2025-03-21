@@ -6,17 +6,21 @@ use std::{
 
 use anyhow::Result;
 use crossbeam_channel::Receiver;
+use doc::lines::{buffer::diff::rope_diff, selection::Selection};
 use floem::{prelude::Color, text::FamilyOwned};
 use lapce_core::directory::Directory;
 use lapce_proxy::plugin::{async_volt_icon, download_volt, wasi::find_all_volts};
 use lapce_rpc::{RequestId, plugin::VoltInfo, style::SemanticStyles};
-use lapce_xi_rope::{Interval, spans::SpansBuilder};
+use lapce_xi_rope::{
+    Interval, RopeInfo, find::CaseMatching, spans::SpansBuilder, tree::Node,
+};
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 
 use crate::{
     config::{LapceConfig, color::LapceColor},
     db::{LapceDb, SaveEvent},
+    find::{Find, FindSearchString},
     local_task::{
         LocalNotification, LocalRequest, LocalResponse, LocalResponseHandler,
         LocalRpc,
@@ -167,8 +171,95 @@ impl LocalTaskHandler {
                     handle_response(id, rs, pending);
                 });
             },
+            LocalRequest::FindText {
+                text,
+                case_matching,
+                whole_words,
+                search,
+            } => {
+                let pending = self.pending.clone();
+
+                tokio::spawn(async move {
+                    let rs =
+                        handle_find_text(text, case_matching, whole_words, search)
+                            .await;
+                    handle_response(id, rs, pending);
+                });
+            },
+
+            LocalRequest::RopeDiff {
+                left_rope,
+                right_rope,
+                rev,
+                atomic_rev,
+                context_lines,
+            } => {
+                let pending = self.pending.clone();
+
+                tokio::spawn(async move {
+                    let changes = rope_diff(
+                        left_rope,
+                        right_rope,
+                        rev,
+                        atomic_rev,
+                        context_lines,
+                    );
+                    handle_response(
+                        id,
+                        Ok(LocalResponse::RopeDiff { changes, rev }),
+                        pending,
+                    );
+                });
+            },
+            LocalRequest::SyntaxParse {
+                rev,
+                text,
+                edits,
+                mut syntax,
+            } => {
+                let pending = self.pending.clone();
+                let grammars_directory = self.directory.grammars_directory.clone();
+                let queries_directory = self.directory.queries_directory.clone();
+
+                tokio::spawn(async move {
+                    syntax.parse(
+                        rev,
+                        text,
+                        edits.as_deref(),
+                        &grammars_directory,
+                        &queries_directory,
+                    );
+                    handle_response(
+                        id,
+                        Ok(LocalResponse::SyntaxParse { syntax }),
+                        pending,
+                    );
+                });
+            },
         }
     }
+}
+
+async fn handle_find_text(
+    text: Node<RopeInfo>,
+    case_matching: CaseMatching,
+    whole_words: bool,
+    search: FindSearchString,
+) -> Result<LocalResponse> {
+    let mut occurrences = Selection::new();
+    Find::find(
+        &text,
+        &search,
+        0,
+        text.len(),
+        case_matching,
+        whole_words,
+        true,
+        &mut occurrences,
+    );
+    Ok(LocalResponse::FindText {
+        selection: occurrences,
+    })
 }
 
 async fn handle_find_grammar(

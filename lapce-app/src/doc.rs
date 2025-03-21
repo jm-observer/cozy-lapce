@@ -16,7 +16,7 @@ use doc::{
         DocLinesManager, RopeTextPosition,
         buffer::{
             Buffer, InvalLines,
-            diff::{DiffLines, rope_diff},
+            diff::DiffLines,
             rope_text::{RopeText, RopeTextVal},
         },
         char_buffer::CharBuffer,
@@ -743,20 +743,38 @@ impl Doc {
                 error!("{err:?}");
             }
         });
-        let mut syntax = self.syntax();
-        let grammars_directory = self.common.directory.grammars_directory.clone();
-        let queries_directory = self.common.directory.queries_directory.clone();
+        let syntax = self.syntax();
+        // let grammars_directory = self.common.directory.grammars_directory.clone();
+        // let queries_directory = self.common.directory.queries_directory.clone();
 
-        rayon::spawn(move || {
-            syntax.parse(
+        self.common.local_task.request_async(
+            LocalRequest::SyntaxParse {
                 rev,
                 text,
-                edits.as_deref(),
-                &grammars_directory,
-                &queries_directory,
-            );
-            send(syntax);
-        });
+                edits,
+                syntax,
+            },
+            move |(_id, rs)| match rs {
+                Ok(response) => {
+                    if let LocalResponse::SyntaxParse { syntax } = response {
+                        send(syntax);
+                    }
+                },
+                Err(err) => {
+                    error!("{err:?}")
+                },
+            },
+        );
+        // rayon::spawn(move || {
+        //     syntax.parse(
+        //         rev,
+        //         text,
+        //         edits.as_deref(),
+        //         &grammars_directory,
+        //         &queries_directory,
+        //     );
+        //     send(syntax);
+        // });
     }
 
     fn clear_style_cache(&self) {
@@ -1228,20 +1246,39 @@ impl Doc {
         let text = self.lines.with_untracked(|b| b.buffer().text().clone());
         let case_matching = self.common.find.case_matching.get_untracked();
         let whole_words = self.common.find.whole_words.get_untracked();
-        rayon::spawn(move || {
-            let mut occurrences = Selection::new();
-            Find::find(
-                &text,
-                &search,
-                0,
-                text.len(),
+
+        self.common.local_task.request_async(
+            LocalRequest::FindText {
+                text,
                 case_matching,
                 whole_words,
-                true,
-                &mut occurrences,
-            );
-            send(occurrences);
-        });
+                search,
+            },
+            move |(_id, rs)| match rs {
+                Ok(response) => {
+                    if let LocalResponse::FindText { selection } = response {
+                        send(selection);
+                    }
+                },
+                Err(err) => {
+                    error!("{err}")
+                },
+            },
+        );
+        // rayon::spawn(move || {
+        //     let mut occurrences = Selection::new();
+        //     Find::find(
+        //         &text,
+        //         &search,
+        //         0,
+        //         text.len(),
+        //         case_matching,
+        //         whole_words,
+        //         true,
+        //         &mut occurrences,
+        //     );
+        //     send(occurrences);
+        // });
     }
 
     /// Get the sticky headers for a particular line, creating them if
@@ -1352,11 +1389,31 @@ impl Doc {
             })
         };
 
-        rayon::spawn(move || {
-            let changes =
-                rope_diff(left_rope, right_rope, rev, atomic_rev.clone(), None);
-            send(changes.map(im::Vector::from));
-        });
+        self.common.local_task.request_async(
+            LocalRequest::RopeDiff {
+                left_rope,
+                right_rope,
+                rev,
+                atomic_rev,
+                context_lines: None,
+            },
+            move |(_id, rs)| match rs {
+                Ok(response) => {
+                    if let LocalResponse::RopeDiff { changes, .. } = response {
+                        send(changes.map(im::Vector::from));
+                    }
+                },
+                Err(err) => {
+                    error!("{err}")
+                },
+            },
+        );
+
+        // rayon::spawn(move || {
+        //     let changes =
+        //         rope_diff(left_rope, right_rope, rev, atomic_rev.clone(),
+        // None);     send(changes.map(im::Vector::from));
+        // });
     }
 
     pub fn save(&self, after_action: impl FnOnce() + 'static) {

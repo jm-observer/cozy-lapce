@@ -1321,16 +1321,17 @@ fn editor_tab_content(
                     let left_viewport = diff_editor_data.left.editor.viewport;
                     let left_scroll_to = diff_editor_data.left.scroll_to();
                     let right_viewport = diff_editor_data.right.editor.viewport;
-                    let right_scroll_to = diff_editor_data.right.scroll_to();
+                    let _right_scroll_to = diff_editor_data.right.scroll_to();
                     // keep scroll common
-                    create_effect(move |_| {
-                        let left_viewport = left_viewport.get();
-                        if right_viewport.get_untracked() != left_viewport {
-                            // log::info!("right_scroll_to {:?}", left_viewport);
-                            right_scroll_to
-                                .set(Some(left_viewport.origin().to_vec2()));
-                        }
-                    });
+                    // todo reform view
+                    // create_effect(move |_| {
+                    //     let left_viewport = left_viewport.get();
+                    //     if right_viewport.get_untracked() != left_viewport {
+                    //         // log::info!("right_scroll_to {:?}", left_viewport);
+                    //         right_scroll_to
+                    //             .set(Some(left_viewport.origin().to_vec2()));
+                    //     }
+                    // });
                     create_effect(move |_| {
                         let right_viewport = right_viewport.get();
                         if left_viewport.get_untracked() != right_viewport {
@@ -3929,7 +3930,7 @@ pub async fn launch() -> Result<()> {
     let cli = Cli::parse();
 
     // ?
-    logging::panic_hook();
+    // logging::panic_hook();
     // if !cli.wait {
     //     logging::panic_hook();
     // }
@@ -3940,8 +3941,8 @@ pub async fn launch() -> Result<()> {
          wasi_experimental_http_wasmtime=warn,hyper=info,reqwest=info,\
          wasmtime=info,floem=info,alacritty_terminal=info,\
          lapce_app::keypress::loader=info",
-        log::LevelFilter::Info,
-        true,
+        log::LevelFilter::Warn,
+        false,
     )
     .build();
 

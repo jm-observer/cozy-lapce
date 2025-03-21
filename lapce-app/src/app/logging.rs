@@ -1,5 +1,6 @@
 use log::error;
 
+#[allow(dead_code)]
 pub(super) fn panic_hook() {
     std::panic::set_hook(Box::new(move |info| {
         let thread = std::thread::current();

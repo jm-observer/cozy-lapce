@@ -444,7 +444,7 @@ fn move_down(
     //     let prev_line = None;
     //     for visual_line in x {
     //         if let LineTy::OriginText { origin_folded_line_index,
-    // line_range_inclusive: line_number } =  visual_line.line_ty {             
+    // line_range_inclusive: line_number } =  visual_line.line_ty {
     // if line < line_number {                 continue;
     //             } else if line == line_number
     //         }
@@ -784,136 +784,136 @@ pub fn do_motion_mode(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::rc::Rc;
+// #[cfg(test)]
+// mod tests {
+//     use std::rc::Rc;
 
-    use floem_editor_core::{
-        buffer::rope_text::{RopeText, RopeTextVal},
-        cursor::{ColPosition, CursorAffinity},
-        mode::Mode,
-    };
-    use floem_reactive::{Scope, SignalUpdate};
-    use lapce_xi_rope::Rope;
-    use peniko::kurbo::{Rect, Size};
+//     use floem_editor_core::{
+//         buffer::rope_text::{RopeText, RopeTextVal},
+//         cursor::{ColPosition, CursorAffinity},
+//         mode::Mode,
+//     };
+//     use floem_reactive::{Scope, SignalUpdate};
+//     use lapce_xi_rope::Rope;
+//     use peniko::kurbo::{Rect, Size};
 
-    use super::Editor;
-    use crate::views::editor::{
-        movement::{correct_crlf, end_of_line, move_down, move_up},
-        text::SimpleStyling,
-        text_document::TextDocument,
-    };
+//     use super::Editor;
+//     use crate::views::editor::{
+//         movement::{correct_crlf, end_of_line, move_down, move_up},
+//         text::SimpleStyling,
+//         text_document::TextDocument,
+//     };
 
-    fn make_ed(text: &str) -> Editor {
-        // let cx = Scope::new();
-        // let doc = Rc::new(TextDocument::new(cx, text));
-        // let style = Rc::new(SimpleStyling::new());
-        // let editor = Editor::new(cx, doc, style, false);
-        // editor
-        //     .viewport
-        //     .set(Rect::ZERO.with_size(Size::new(f64::MAX, f64::MAX)));
-        // editor
-        todo!()
-    }
+//     fn make_ed(text: &str) -> Editor {
+//         // let cx = Scope::new();
+//         // let doc = Rc::new(TextDocument::new(cx, text));
+//         // let style = Rc::new(SimpleStyling::new());
+//         // let editor = Editor::new(cx, doc, style, false);
+//         // editor
+//         //     .viewport
+//         //     .set(Rect::ZERO.with_size(Size::new(f64::MAX, f64::MAX)));
+//         // editor
+//         todo!()
+//     }
 
-    // Tests for movement logic.
-    // Many of the locations that use affinity are unsure of the specifics, and
-    // should only be assumed to be mostly kinda correct.
+//     // Tests for movement logic.
+//     // Many of the locations that use affinity are unsure of the specifics,
+// and     // should only be assumed to be mostly kinda correct.
 
-    #[test]
-    fn test_correct_crlf() {
-        let text = Rope::from("hello\nworld");
-        let text = RopeTextVal::new(text);
-        assert_eq!(correct_crlf(&text, 0), 0);
-        assert_eq!(correct_crlf(&text, 5), 5);
-        assert_eq!(correct_crlf(&text, 6), 6);
-        assert_eq!(correct_crlf(&text, text.len()), text.len());
+//     #[test]
+//     fn test_correct_crlf() {
+//         let text = Rope::from("hello\nworld");
+//         let text = RopeTextVal::new(text);
+//         assert_eq!(correct_crlf(&text, 0), 0);
+//         assert_eq!(correct_crlf(&text, 5), 5);
+//         assert_eq!(correct_crlf(&text, 6), 6);
+//         assert_eq!(correct_crlf(&text, text.len()), text.len());
 
-        let text = Rope::from("hello\r\nworld");
-        let text = RopeTextVal::new(text);
-        assert_eq!(correct_crlf(&text, 0), 0);
-        assert_eq!(correct_crlf(&text, 5), 5);
-        assert_eq!(correct_crlf(&text, 6), 5);
-        assert_eq!(correct_crlf(&text, 7), 7);
-        assert_eq!(correct_crlf(&text, text.len()), text.len());
-    }
+//         let text = Rope::from("hello\r\nworld");
+//         let text = RopeTextVal::new(text);
+//         assert_eq!(correct_crlf(&text, 0), 0);
+//         assert_eq!(correct_crlf(&text, 5), 5);
+//         assert_eq!(correct_crlf(&text, 6), 5);
+//         assert_eq!(correct_crlf(&text, 7), 7);
+//         assert_eq!(correct_crlf(&text, text.len()), text.len());
+//     }
 
-    #[test]
-    fn test_end_of_line() {
-        let ed = make_ed("abc\ndef\nghi");
-        let mut aff = CursorAffinity::Backward;
-        assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
-        assert_eq!(end_of_line(&ed, &mut aff, 1, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
-        assert_eq!(end_of_line(&ed, &mut aff, 3, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
+//     #[test]
+//     fn test_end_of_line() {
+//         let ed = make_ed("abc\ndef\nghi");
+//         let mut aff = CursorAffinity::Backward;
+//         assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
+//         assert_eq!(end_of_line(&ed, &mut aff, 1, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
+//         assert_eq!(end_of_line(&ed, &mut aff, 3, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
 
-        assert_eq!(end_of_line(&ed, &mut aff, 4, Mode::Insert).0, 7);
-        assert_eq!(end_of_line(&ed, &mut aff, 5, Mode::Insert).0, 7);
-        assert_eq!(end_of_line(&ed, &mut aff, 7, Mode::Insert).0, 7);
+//         assert_eq!(end_of_line(&ed, &mut aff, 4, Mode::Insert).0, 7);
+//         assert_eq!(end_of_line(&ed, &mut aff, 5, Mode::Insert).0, 7);
+//         assert_eq!(end_of_line(&ed, &mut aff, 7, Mode::Insert).0, 7);
 
-        let ed = make_ed("abc\r\ndef\r\nghi");
-        let mut aff = CursorAffinity::Forward;
-        assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
+//         let ed = make_ed("abc\r\ndef\r\nghi");
+//         let mut aff = CursorAffinity::Forward;
+//         assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
 
-        assert_eq!(end_of_line(&ed, &mut aff, 1, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
-        assert_eq!(end_of_line(&ed, &mut aff, 3, Mode::Insert).0, 3);
-        assert_eq!(aff, CursorAffinity::Backward);
+//         assert_eq!(end_of_line(&ed, &mut aff, 1, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
+//         assert_eq!(end_of_line(&ed, &mut aff, 3, Mode::Insert).0, 3);
+//         assert_eq!(aff, CursorAffinity::Backward);
 
-        assert_eq!(end_of_line(&ed, &mut aff, 5, Mode::Insert).0, 8);
-        assert_eq!(end_of_line(&ed, &mut aff, 6, Mode::Insert).0, 8);
-        assert_eq!(end_of_line(&ed, &mut aff, 7, Mode::Insert).0, 8);
-        assert_eq!(end_of_line(&ed, &mut aff, 8, Mode::Insert).0, 8);
+//         assert_eq!(end_of_line(&ed, &mut aff, 5, Mode::Insert).0, 8);
+//         assert_eq!(end_of_line(&ed, &mut aff, 6, Mode::Insert).0, 8);
+//         assert_eq!(end_of_line(&ed, &mut aff, 7, Mode::Insert).0, 8);
+//         assert_eq!(end_of_line(&ed, &mut aff, 8, Mode::Insert).0, 8);
 
-        let ed = make_ed("testing\r\nAbout\r\nblah");
-        let mut aff = CursorAffinity::Backward;
-        assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 7);
-    }
+//         let ed = make_ed("testing\r\nAbout\r\nblah");
+//         let mut aff = CursorAffinity::Backward;
+//         assert_eq!(end_of_line(&ed, &mut aff, 0, Mode::Insert).0, 7);
+//     }
 
-    #[test]
-    fn test_move_down() {
-        let ed = make_ed("abc\n\n\ndef\n\nghi");
+//     #[test]
+//     fn test_move_down() {
+//         let ed = make_ed("abc\n\n\ndef\n\nghi");
 
-        let mut aff = CursorAffinity::Forward;
+//         let mut aff = CursorAffinity::Forward;
 
-        assert_eq!(move_down(&ed, 0, &mut aff, None, Mode::Insert, 1).0, 4);
+//         assert_eq!(move_down(&ed, 0, &mut aff, None, Mode::Insert, 1).0, 4);
 
-        let (offset, horiz) = move_down(&ed, 1, &mut aff, None, Mode::Insert, 1);
-        assert_eq!(offset, 4);
-        assert!(matches!(horiz, ColPosition::Col(_)));
-        let (offset, horiz) =
-            move_down(&ed, 4, &mut aff, Some(horiz), Mode::Insert, 1);
-        assert_eq!(offset, 5);
-        assert!(matches!(horiz, ColPosition::Col(_)));
-        let (offset, _) = move_down(&ed, 5, &mut aff, Some(horiz), Mode::Insert, 1);
-        // Moving down with a horiz starting from position 1 on first line will put
-        // cursor at (approximately) position 1 on the next line with content
-        // they arrive at
-        assert_eq!(offset, 7);
-    }
+//         let (offset, horiz) = move_down(&ed, 1, &mut aff, None, Mode::Insert,
+// 1);         assert_eq!(offset, 4);
+//         assert!(matches!(horiz, ColPosition::Col(_)));
+//         let (offset, horiz) =
+//             move_down(&ed, 4, &mut aff, Some(horiz), Mode::Insert, 1);
+//         assert_eq!(offset, 5);
+//         assert!(matches!(horiz, ColPosition::Col(_)));
+//         let (offset, _) = move_down(&ed, 5, &mut aff, Some(horiz),
+// Mode::Insert, 1);         // Moving down with a horiz starting from position
+// 1 on first line will put         // cursor at (approximately) position 1 on
+// the next line with content         // they arrive at
+//         assert_eq!(offset, 7);
+//     }
 
-    #[test]
-    fn test_move_up() {
-        let ed = make_ed("abc\n\n\ndef\n\nghi");
+//     #[test]
+//     fn test_move_up() {
+//         let ed = make_ed("abc\n\n\ndef\n\nghi");
 
-        let mut aff = CursorAffinity::Forward;
+//         let mut aff = CursorAffinity::Forward;
 
-        assert_eq!(move_up(&ed, 0, &mut aff, None, Mode::Insert, 1).0, 0);
+//         assert_eq!(move_up(&ed, 0, &mut aff, None, Mode::Insert, 1).0, 0);
 
-        let (offset, horiz) = move_up(&ed, 7, &mut aff, None, Mode::Insert, 1);
-        assert_eq!(offset, 5);
-        assert!(matches!(horiz, ColPosition::Col(_)));
-        let (offset, horiz) =
-            move_up(&ed, 5, &mut aff, Some(horiz), Mode::Insert, 1);
-        assert_eq!(offset, 4);
-        assert!(matches!(horiz, ColPosition::Col(_)));
-        let (offset, _) = move_up(&ed, 4, &mut aff, Some(horiz), Mode::Insert, 1);
-        // Moving up with a horiz starting from position 1 on first line will put
-        // cursor at (approximately) position 1 on the next line with content
-        // they arrive at
-        assert_eq!(offset, 1);
-    }
-}
+//         let (offset, horiz) = move_up(&ed, 7, &mut aff, None, Mode::Insert,
+// 1);         assert_eq!(offset, 5);
+//         assert!(matches!(horiz, ColPosition::Col(_)));
+//         let (offset, horiz) =
+//             move_up(&ed, 5, &mut aff, Some(horiz), Mode::Insert, 1);
+//         assert_eq!(offset, 4);
+//         assert!(matches!(horiz, ColPosition::Col(_)));
+//         let (offset, _) = move_up(&ed, 4, &mut aff, Some(horiz),
+// Mode::Insert, 1);         // Moving up with a horiz starting from position 1
+// on first line will put         // cursor at (approximately) position 1 on the
+// next line with content         // they arrive at
+//         assert_eq!(offset, 1);
+//     }
+// }

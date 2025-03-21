@@ -51,7 +51,6 @@ itertools         = { version = "0.12.1" }
 notify            = { version = "5.2.0", features = ["serde"] }
 once_cell         = { version = "1.19" }
 parking_lot       = { version = "0.12.3", features = ["arc_lock"] }
-rayon             = { version = "1.10.0" }
 regex             = { version = "1.10.5" }
 remain            = { version = "0.2" }
 semver            = { version = "1.0" }
@@ -148,6 +147,8 @@ codegen-units = 1
 
 [profile.release]
 debug           = true
+panic = 'unwind'
+
 
 # A profile which compiles all (non-workspace) dependencies in release mode
 # but Lapce code in dev mode. This gives a good debugging experience for your

@@ -1,23 +1,34 @@
 mod handler;
 mod requester;
 
-use std::{collections::HashMap, path::PathBuf, sync::Arc, thread};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, atomic::AtomicU64},
+    thread,
+};
 
 use anyhow::Result;
 use crossbeam_channel::Receiver;
+use doc::{
+    lines::{buffer::diff::DiffLines, selection::Selection},
+    syntax::{Syntax, edit::SyntaxEdit},
+};
 use lapce_core::directory::Directory;
 use lapce_rpc::{
     RequestId,
     plugin::{VoltInfo, VoltMetadata},
     style::SemanticStyles,
 };
-use lapce_xi_rope::spans::Spans;
+use lapce_xi_rope::{Rope, RopeInfo, find::CaseMatching, spans::Spans, tree::Node};
 use parking_lot::Mutex;
 pub use requester::LocalTaskRequester;
+use smallvec::SmallVec;
 
 use crate::{
     config::LapceConfig,
     db::{LapceDb, SaveEvent},
+    find::FindSearchString,
     local_task::handler::LocalTaskHandler,
     markdown::MarkdownContent,
     plugin::{VoltIcon, VoltsInfo},
@@ -56,7 +67,6 @@ pub enum LocalRpc {
     }, // Shutdown
 }
 
-#[derive(Debug)]
 pub enum LocalRequest {
     FindAllVolts {
         extra_plugin_paths: Arc<Vec<PathBuf>>,
@@ -86,8 +96,34 @@ pub enum LocalRequest {
         info: VoltInfo,
     },
     FindGrammar,
+    FindText {
+        text:          Node<RopeInfo>,
+        case_matching: CaseMatching,
+        whole_words:   bool,
+        search:        FindSearchString,
+    },
+    RopeDiff {
+        left_rope:     Rope,
+        right_rope:    Rope,
+        rev:           u64,
+        atomic_rev:    Arc<AtomicU64>,
+        context_lines: Option<usize>,
+    },
+    SyntaxParse {
+        rev:    u64,
+        text:   Node<RopeInfo>,
+        edits:  Option<SmallVec<[SyntaxEdit; 3]>>,
+        syntax: Syntax,
+    },
 }
 pub enum LocalResponse {
+    SyntaxParse {
+        syntax: Syntax,
+    },
+    RopeDiff {
+        changes: Option<Vec<DiffLines>>,
+        rev:     u64,
+    },
     FindAllVolts {
         volts: Vec<VoltMetadata>,
     },
@@ -114,6 +150,9 @@ pub enum LocalResponse {
     },
     FindGrammar {
         updated: bool,
+    },
+    FindText {
+        selection: Selection,
     },
 }
 
