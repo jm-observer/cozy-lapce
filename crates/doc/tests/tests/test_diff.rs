@@ -33,7 +33,7 @@ pub fn _test_1_screen() -> Result<()> {
             right_kind.clone(),
         )?
         .0;
-    let visual_lines = screen_lines.visual_lines;
+    let visual_lines = &screen_lines.visual_lines;
     // for line in screen_lines.visual_lines {
     //     debug!("{:?}", line);
     // }
@@ -86,7 +86,7 @@ pub fn _test_screen() -> Result<()> {
             && visual_lines[16].is_diff_delete()
             && !visual_lines[17].is_diff_delete()
     );
-    for line in screen_lines.visual_lines {
+    for line in &screen_lines.visual_lines {
         debug!("{:?}", line);
     }
 

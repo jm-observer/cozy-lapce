@@ -9,7 +9,7 @@ use floem::{
     peniko::Color,
     text::{Attrs, AttrsList, FONT_SYSTEM, HitPoint, HitPosition, LayoutRun},
 };
-use log::{error};
+use log::error;
 use lsp_types::DocumentHighlight;
 use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
@@ -207,7 +207,7 @@ impl TextLayoutLine {
             .for_each(|x| x.adjust(offset_delta, line_delta));
     }
 
-    pub fn extra_style(&mut self) -> &[LineExtraStyle] {
+    pub fn extra_style(&self) -> &[LineExtraStyle] {
         &self.extra_style
     }
 
@@ -221,7 +221,7 @@ impl TextLayoutLine {
         }
     }
 
-    pub fn document_highlight_style(&mut self) -> &[LineExtraStyle] {
+    pub fn document_highlight_style(&self) -> &[LineExtraStyle] {
         &self.document_highlight_style
     }
 
@@ -301,13 +301,10 @@ impl TextLayoutLine {
             let start = phantom_text.final_col_of_origin_merge_col(
                 *start_of_buffer - phantom_text.offset_of_line,
             )?;
-            let end =  phantom_text.final_col_of_origin_merge_col(
+            let end = phantom_text.final_col_of_origin_merge_col(
                 *end_of_buffer - phantom_text.offset_of_line,
             )?;
-            match (
-                start
-               , end
-            ) {
+            match (start, end) {
                 (Some(start), Some(end)) => {
                     let styles = util::extra_styles_for_range(
                         layout,

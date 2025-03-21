@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc};
+use std::{borrow::Cow, cell::Cell, cmp::Ordering, ops::Range, rc::Rc, sync::Arc};
 
 use anyhow::Result;
 use doc::{
@@ -66,7 +66,7 @@ pub struct Editor {
 
     pub window_origin:        RwSignal<Point>,
     pub viewport:             RwSignal<Rect>,
-    pub screen_lines:         RwSignal<ScreenLines>,
+    pub screen_lines:         RwSignal<Arc<ScreenLines>>,
     pub visual_lines:         RwSignal<Vec<VisualLine>>,
     pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
 
@@ -151,7 +151,7 @@ impl Editor {
         let doc = cx.create_rw_signal(doc);
 
         let viewport = cx.create_rw_signal(Rect::ZERO);
-        let screen_lines = cx.create_rw_signal(ScreenLines::default());
+        let screen_lines = cx.create_rw_signal(Arc::new(ScreenLines::default()));
         let visual_lines = cx.create_rw_signal(vec![]);
 
         let folding_display_item = cx.create_rw_signal(vec![]);
@@ -1558,7 +1558,7 @@ pub fn paint_text(
     viewport: Rect,
     is_active: bool,
     hide_cursor: bool,
-    screen_lines: ScreenLines,
+    screen_lines: Arc<ScreenLines>,
     lines: DocLinesManager,
     font_family: Cow<[FamilyOwned]>,
     visible_whitespace: Color,
@@ -1568,13 +1568,12 @@ pub fn paint_text(
     dim_color: Color,
     diff_color: Color,
 ) -> Result<()> {
-    let mut visual_lines = screen_lines.visual_lines.into_iter().peekable();
+    let mut visual_lines = screen_lines.visual_lines.iter().peekable();
     while let Some(line_info) = visual_lines.next() {
         let y = line_info.paint_point(screen_lines.base).y;
         match line_info {
             VisualLineInfo::OriginText {
-                text: mut line_info,
-                ..
+                text: line_info, ..
             } => {
                 if line_info.is_diff {
                     cx.fill(

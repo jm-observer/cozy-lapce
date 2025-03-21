@@ -1455,7 +1455,7 @@ impl DocLines {
         &mut self,
         base: Rect,
         view_kind: EditorViewKind,
-    ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
+    ) -> Result<(Arc<ScreenLines>, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
         info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         let line_height = self.config.line_height;
         let (y0, y1) = (base.y0, base.y1);
@@ -1515,7 +1515,7 @@ impl DocLines {
         };
 
         self.signals.trigger();
-        Ok((screen_lines, display_items, visual_lines))
+        Ok((Arc::new(screen_lines), display_items, visual_lines))
     }
 
     pub fn _compute_screen_lines_new(
