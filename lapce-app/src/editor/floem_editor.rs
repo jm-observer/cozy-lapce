@@ -1323,6 +1323,92 @@ pub trait CommonAction {
     ) -> bool;
 }
 
+pub fn get_selection(
+    cursor: &Cursor,
+) -> Vec<(usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)> {
+    match cursor.mode() {
+        CursorMode::Normal(_) => {
+            vec![]
+        },
+        CursorMode::Visual {
+            start: _start,
+            end: _end,
+            mode: VisualMode::Normal,
+        } => {
+            error!("todo implement");
+            vec![]
+            // let start_offset = start.min(end);
+            // let end_offset = match ed.move_right(*start.max(end),
+            // Mode::Insert, 1) {     Ok(rs) => rs,
+            //     Err(err) => {
+            //         error!("{err:?}");
+            //         return;
+            //     }
+            // };
+            //
+            // if let Err(err) = paint_normal_selection(
+            //     cx,
+            //     selection_color,
+            //     *start_offset,
+            //     end_offset,
+            //     _screen_lines, cursor.affinity
+            // ) {
+            //     error!("{err:?}");
+            // }
+        },
+        CursorMode::Visual {
+            start: _start,
+            end: _end,
+            mode: VisualMode::Linewise,
+        } => {
+            error!("todo implement paint_linewise_selection");
+            vec![]
+            // if let Err(err) = paint_linewise_selection(
+            //     cx,
+            //     ed,
+            //     selection_color,
+            //     screen_lines,
+            //     *start.min(end),
+            //     *start.max(end),
+            //     cursor.affinity,
+            // ) {
+            //     error!("{err:?}");
+            // }
+        },
+        CursorMode::Visual {
+            start: _start,
+            end: _end,
+            mode: VisualMode::Blockwise,
+        } => {
+            error!("todo implement paint_blockwise_selection");
+            vec![]
+            // if let Err(err) = paint_blockwise_selection(
+            //     cx,
+            //     ed,
+            //     selection_color,
+            //     screen_lines,
+            //     *start.min(end),
+            //     *start.max(end),
+            //     cursor.affinity,
+            //     cursor.horiz,
+            // ) {
+            //     error!("{err:?}");
+            // }
+        },
+        CursorMode::Insert(_) => cursor
+            .regions_iter()
+            .filter(|(start, end, ..)| start != end)
+            .map(|(start, end, start_affinity, end_affinity)| {
+                if start > end {
+                    (end, start, end_affinity, start_affinity)
+                } else {
+                    (start, end, start_affinity, end_affinity)
+                }
+            })
+            .collect(),
+    }
+}
+
 pub fn paint_selection(cx: &mut PaintCx, ed: &Editor, _screen_lines: &ScreenLines) {
     let cursor = ed.cursor;
 
@@ -1567,79 +1653,109 @@ pub fn paint_text(
     line_height: f64,
     dim_color: Color,
     diff_color: Color,
+    selections: Vec<(usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)>,
+    select_color: Color,
 ) -> Result<()> {
-    let mut visual_lines = screen_lines.visual_lines.iter().peekable();
-    while let Some(line_info) = visual_lines.next() {
-        let y = line_info.paint_point(screen_lines.base).y;
-        match line_info {
-            VisualLineInfo::OriginText {
-                text: line_info, ..
-            } => {
-                if line_info.is_diff {
-                    cx.fill(
-                        &Rect::ZERO
-                            .with_size(Size::new(viewport.width(), line_height))
-                            .with_origin(Point::new(viewport.x0, y)),
-                        diff_color.multiply_alpha(0.2),
-                        0.0,
+    {
+        let mut visual_lines = screen_lines.visual_lines.iter().peekable();
+        while let Some(line_info) = visual_lines.next() {
+            let y = line_info.paint_point(screen_lines.base).y;
+            match line_info {
+                VisualLineInfo::OriginText {
+                    text: line_info, ..
+                } => {
+                    if line_info.is_diff {
+                        cx.fill(
+                            &Rect::ZERO
+                                .with_size(Size::new(viewport.width(), line_height))
+                                .with_origin(Point::new(viewport.x0, y)),
+                            diff_color.multiply_alpha(0.2),
+                            0.0,
+                        );
+                    }
+                    paint_extra_style(
+                        cx,
+                        line_info.folded_line.extra_style(),
+                        y,
+                        viewport,
                     );
-                }
-                paint_extra_style(
-                    cx,
-                    line_info.folded_line.extra_style(),
-                    y,
-                    viewport,
-                );
-                paint_document_highlight_style(
-                    cx,
-                    line_info.folded_line.document_highlight_style(),
-                    y,
-                    viewport,
-                );
-                if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
-                    let attrs = Attrs::new()
-                        .color(visible_whitespace)
-                        .family(&font_family)
-                        .font_size(font_size);
-                    let attrs_list = AttrsList::new(attrs);
-                    let space_text =
-                        TextLayout::new_with_text("·", attrs_list.clone());
-                    let tab_text = TextLayout::new_with_text("→", attrs_list);
+                    paint_document_highlight_style(
+                        cx,
+                        line_info.folded_line.document_highlight_style(),
+                        y,
+                        viewport,
+                    );
+                },
+                VisualLineInfo::DiffDelete { .. } => {
+                    let mut count = 1.0f64;
+                    while let Some(VisualLineInfo::DiffDelete { .. }) =
+                        visual_lines.peek()
+                    {
+                        count += 1.0;
+                        visual_lines.next();
+                    }
+                    paint_diff_no_code(
+                        cx,
+                        viewport,
+                        y,
+                        dim_color,
+                        count * line_height,
+                    );
+                },
+            }
+        }
+    }
+    {
+        for (start_offset, end_offset, start_affinity, end_affinity) in selections {
+            paint_normal_selection(
+                cx,
+                select_color,
+                start_offset,
+                end_offset,
+                &screen_lines,
+                start_affinity,
+                end_affinity,
+            )?;
+        }
+    }
+    let visual_lines = screen_lines.visual_lines.iter();
+    for line_info in visual_lines {
+        let y = line_info.paint_point(screen_lines.base).y;
+        if let VisualLineInfo::OriginText {
+            text: line_info, ..
+        } = line_info
+        {
+            if let Some(whitespaces) = &line_info.folded_line.whitespaces() {
+                let attrs = Attrs::new()
+                    .color(visible_whitespace)
+                    .family(&font_family)
+                    .font_size(font_size);
+                let attrs_list = AttrsList::new(attrs);
+                let space_text = TextLayout::new_with_text("·", attrs_list.clone());
+                let tab_text = TextLayout::new_with_text("→", attrs_list);
 
-                    for (c, (x0, _x1)) in whitespaces.iter() {
-                        match *c {
-                            '\t' => {
-                                cx.draw_text_with_layout(
-                                    tab_text.layout_runs(),
-                                    Point::new(*x0, y),
-                                );
-                            },
-                            ' ' => {
-                                cx.draw_text_with_layout(
-                                    space_text.layout_runs(),
-                                    Point::new(*x0, y),
-                                );
-                            },
-                            _ => {},
-                        }
+                for (c, (x0, _x1)) in whitespaces.iter() {
+                    match *c {
+                        '\t' => {
+                            cx.draw_text_with_layout(
+                                tab_text.layout_runs(),
+                                Point::new(*x0, y),
+                            );
+                        },
+                        ' ' => {
+                            cx.draw_text_with_layout(
+                                space_text.layout_runs(),
+                                Point::new(*x0, y),
+                            );
+                        },
+                        _ => {},
                     }
                 }
-
-                cx.draw_text_with_layout(
-                    line_info.folded_line.borrow_text().layout_runs(),
-                    Point::new(0.0, y),
-                );
-            },
-            VisualLineInfo::DiffDelete { .. } => {
-                let mut count = 1.0f64;
-                while let Some(VisualLineInfo::DiffDelete { .. }) =
-                    visual_lines.peek()
-                {
-                    count += 1.0;
-                    visual_lines.next();
-                }
-                paint_diff_no_code(cx, viewport, y, dim_color, count * line_height);
-            },
+            }
+            cx.draw_text_with_layout(
+                line_info.folded_line.borrow_text().layout_runs(),
+                Point::new(0.0, y),
+            );
         }
     }
     if is_active && !hide_cursor {

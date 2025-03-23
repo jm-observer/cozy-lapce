@@ -58,14 +58,14 @@ use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
 use lapce_xi_rope::find::CaseMatching;
 use log::error;
 
-use super::{DocSignal, EditorData};
+use super::{DocSignal, EditorData, floem_editor::get_selection};
 use crate::{
     app::clickable_icon,
     command::InternalCommand,
     common_svg,
     config::{LapceConfig, WithLapceConfig, color::LapceColor, editor::WrapStyle},
     editor::{
-        floem_editor::{Editor, paint_selection, paint_text},
+        floem_editor::{Editor, paint_text},
         gutter_new::view::editor_gutter_new,
     },
     svg,
@@ -954,6 +954,7 @@ impl View for EditorView {
             cursor_highlight_current_line,
             cursor_offset,
             cursor_affinity,
+            selections,
         ) = self.editor.cursor().with_untracked(|cursor| {
             let highlight_current_line = match cursor.mode() {
                 CursorMode::Normal(_) | CursorMode::Insert(_) => true,
@@ -965,6 +966,7 @@ impl View for EditorView {
                 highlight_current_line,
                 cursor_offset,
                 cursor.affinity,
+                get_selection(&cursor),
             )
         });
         let screen_lines = self.editor.editor.screen_lines.get_untracked();
@@ -992,10 +994,14 @@ impl View for EditorView {
 
         let bracket_offsets = doc.find_enclosing_brackets(cursor_offset);
 
-        let (visible_whitespace, current_line_color) = ed
-            .doc()
-            .lines
-            .with_untracked(|x| (x.visible_whitespace(), x.current_line_color()));
+        let (visible_whitespace, current_line_color, selection_color) =
+            ed.doc().lines.with_untracked(|x| {
+                (
+                    x.visible_whitespace(),
+                    x.current_line_color(),
+                    x.selection_color(),
+                )
+            });
 
         // let screen_lines = screen_lines.get();
         self.paint_current_line(
@@ -1008,7 +1014,7 @@ impl View for EditorView {
             cursor_highlight_current_line,
             cursor_offset,
         );
-        paint_selection(cx, ed, &screen_lines);
+        // paint_selection(cx, ed, &screen_lines);
         // let screen_lines = ed.screen_lines.get_untracked();
 
         self.paint_diff_sections(
@@ -1056,6 +1062,8 @@ impl View for EditorView {
             line_height as f64,
             editor_dim_color,
             source_control_added_color,
+            selections,
+            selection_color,
         ) {
             error!("{err}");
         }
