@@ -109,7 +109,7 @@ pub fn get_document_highlight(
             {
                 highs.push(changes.next().unwrap());
                 continue;
-            } else if end_line < high.range.start.line {
+            } else {
                 break;
             }
         } else {

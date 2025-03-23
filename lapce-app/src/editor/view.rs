@@ -1904,6 +1904,8 @@ fn editor_content(
         //
         create_effect(move |_| {
             let e_data = e_data.get_untracked();
+            e_data.doc_signal().track();
+            e_data.kind_read().track();
             let cursor = cursor.get();
             let offset = cursor.offset();
             let offset_line_from_top = e_data
@@ -1916,8 +1918,6 @@ fn editor_content(
                 .config
                 .signal(|x| x.editor.line_height.signal())
                 .get() as f64;
-            e_data.doc_signal().track();
-            e_data.kind_read().track();
 
             let Ok(mut origin_point) =
                 e_data.doc_signal().with(|x| x.lines).with_untracked(|x| {
@@ -1927,29 +1927,37 @@ fn editor_content(
                 e_data.ensure_visible.set(current_scroll.get_untracked());
                 return;
             };
-            log::warn!(
-                "ensure_visible offset={offset}
-            offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
+            log::debug!(
+                "ensure_visible offset={offset} \
+                 offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
             );
             let ensure_visiable = if let Some(offset_line_from_top) =
                 offset_line_from_top
             {
                 // from jump
                 let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;
+                let line_height_2 = line_height * 2.0;
                 let scroll = current_scroll.get_untracked();
                 let backup_point = origin_point;
-                if scroll != Rect::ZERO {
-                    if origin_point.y < scroll.y0 {
-                        origin_point.y -= height
-                    } else if origin_point.y > scroll.y1 {
-                        origin_point.y += (scroll.height() - height).max(0.0)
+                let rect = if scroll != Rect::ZERO {
+                    let mut y0 = (origin_point.y - height).max(0.0);
+                    let mut y1 = y0 + scroll.height();
+                    // avoid to be hidden
+                    if y1 - origin_point.y < line_height_2 {
+                        y1 += line_height_2;
+                        y0 = (y0 - line_height_2).max(0.0);
                     }
+                    Rect::new(origin_point.x, y0, origin_point.x, y1)
                 } else {
-                    origin_point.y += height
-                }
-                let rect = Rect::from_origin_size(origin_point, (1.0, 0.0));
-                log::info!(
-                    "offset_line_from_top {scroll:?} {rect:?} \
+                    log::error!("ensure_visible viewport is zero",);
+                    origin_point.y += height;
+                    Rect::from_origin_size(
+                        origin_point,
+                        (line_height_2, line_height_2),
+                    )
+                };
+                log::debug!(
+                    "offset_line_from_top viewport={scroll:?} target={rect:?} \
                      backup_point={backup_point:?} offset={offset} \
                      offset_line_from_top={offset_line_from_top:?} height={height} ",
                 );
@@ -2018,20 +2026,13 @@ fn editor_content(
         // log::info!("on_resize rect={size:?}");
     })
     .on_scroll(move |rect| {
-        // log::info!("on_scroll rect{rect:?}");
+        log::info!("on_scroll rect{rect:?}");
         let e_data = e_data.get_untracked();
         if rect.y0 != current_scroll.get_untracked().y0 {
-            // only cancel completion if scrolled vertically
             e_data.cancel_completion();
             e_data.cancel_inline_completion();
         }
-
         e_data.editor.viewport.set(rect);
-        // e_data
-        //     .editor
-        //     .doc()
-        //     .lines
-        //     .update(|x| x.update_viewport_by_scroll(rect));
         e_data.common.hover.active.set(false);
         current_scroll.set(rect);
     })
@@ -2042,7 +2043,12 @@ fn editor_content(
         })
     })
     .scroll_delta(move || scroll_delta.get())
-    .ensure_visible(move || e_data.read_only().with(|x| x.ensure_visible).get())
+    .ensure_visible(move || {
+        let ensure_visible = e_data.read_only().with(|x| x.ensure_visible).get();
+        let current_scroll = current_scroll.get_untracked();
+        log::info!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
+        ensure_visible
+    })
     .style(|s| s.size_full().set(PropagatePointerWheel, false))
     .keyboard_navigable()
     .debug_name("Editor Content")
