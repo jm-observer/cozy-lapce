@@ -2319,12 +2319,12 @@ impl DocLines {
             bg,
         )?);
 
-        Ok(PhantomTextLine::new(
+        PhantomTextLine::new(
             line,
             origin_text_len,
             start_offset,
             text,
-        ))
+        )
     }
 
     // #[allow(clippy::too_many_arguments)]

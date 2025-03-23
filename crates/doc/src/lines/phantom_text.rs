@@ -1,12 +1,12 @@
 use std::{cmp::Ordering, fmt, ops::Range};
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use floem::{
     peniko::Color,
     text::{Attrs, AttrsList},
 };
 use lapce_xi_rope::Interval;
-use log::{info, warn};
+use log::{error, info, warn};
 use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -351,7 +351,7 @@ impl PhantomTextLine {
         origin_text_len: usize,
         offset_of_line: usize,
         mut phantom_texts: SmallVec<[PhantomText; 6]>,
-    ) -> Self {
+    ) -> Result<Self> {
         phantom_texts.sort_by(|a, b| {
             if a.visual_merge_col == b.visual_merge_col {
                 a.kind.cmp(&b.kind)
@@ -370,13 +370,16 @@ impl PhantomTextLine {
             match phantom.kind {
                 PhantomTextKind::LineFoldedRang { len, .. } => {
                     phantom.final_col =
-                        usize_offset(phantom.final_col, final_offset);
+                        usize_offset(phantom.final_col, final_offset)?;
                     final_offset =
                         final_offset + phantom.text.len() as i32 - len as i32;
+                    if origin_text_len as i32 + final_offset < 0 {
+                        error!("{phantom:?} line={line} origin_text_len={origin_text_len} =offset_of_line{offset_of_line}");
+                    }
                 },
                 _ => {
                     phantom.final_col =
-                        usize_offset(phantom.final_col, final_offset);
+                        usize_offset(phantom.final_col, final_offset)?;
                     final_offset += phantom.text.len() as i32;
                 },
             }
@@ -444,14 +447,14 @@ impl PhantomTextLine {
             );
         }
 
-        let final_text_len = usize_offset(origin_text_len, final_offset);
-        Self {
+        let final_text_len = usize_offset(origin_text_len, final_offset)?;
+        Ok(Self {
             final_text_len,
             line,
             origin_text_len,
             texts,
             offset_of_line,
-        }
+        })
     }
 
     pub fn folded_line(&self) -> Option<usize> {
@@ -1093,10 +1096,12 @@ impl PhantomTextMultiLine {
     }
 }
 
-fn usize_offset(val: usize, offset: i32) -> usize {
+fn usize_offset(val: usize, offset: i32) -> Result<usize> {
     let rs = val as i32 + offset;
-    assert!(rs >= 0);
-    rs as usize
+    if rs < 0 {
+        bail!("value out of range: val={val}, offset={offset}");
+    }
+    Ok(rs as usize)
 }
 
 /// Not allowed to cross the range??
