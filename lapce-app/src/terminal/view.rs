@@ -482,7 +482,7 @@ impl TerminalView {
 
             let (mode, stopped) = self.terminal_data.data.with_untracked(|x| {
                 (
-                    x.mode.clone(),
+                    x.mode,
                     x.run_debug.as_ref().map(|r| r.stopped).unwrap_or(false),
                 )
             });
@@ -654,10 +654,10 @@ impl View for TerminalView {
     fn paint(&mut self, cx: &mut floem::context::PaintCx) {
         let config = self.config.get();
 
-        let (mode, launch_error, raw) =
-            self.terminal_data.data.with_untracked(|x| {
-                (x.mode.clone(), x.launch_error.clone(), x.raw.clone())
-            });
+        let (mode, launch_error, raw) = self
+            .terminal_data
+            .data
+            .with_untracked(|x| (x.mode, x.launch_error.clone(), x.raw.clone()));
         let line_height = config.terminal_line_height() as f64;
         let font_family = config.terminal_font_family();
         let font_size = config.terminal_font_size();

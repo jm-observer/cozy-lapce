@@ -223,6 +223,7 @@ impl ScreenLines {
                 {
                     // index 从0开始，该函数是测算第几个，因此加1
                     return Some(index + 1);
+                    // return Some(text.folded_line_y);
                 } else if line_index < text.folded_line.origin_line_start {
                     return None;
                 }

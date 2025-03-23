@@ -1927,7 +1927,7 @@ fn editor_content(
                 e_data.ensure_visible.set(current_scroll.get_untracked());
                 return;
             };
-            log::info!(
+            log::warn!(
                 "ensure_visible offset={offset}
             offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
             );

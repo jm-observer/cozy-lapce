@@ -71,41 +71,37 @@ impl DiffInfo {
         let mut changes = self.changes.iter().peekable();
         let mut next_left_change_line: Option<Range<usize>> = None;
         let mut diff_tys = vec![];
-        loop {
-            if let Some(change) = changes.next() {
-                match change {
-                    DiffLines::Left(diff) => {
-                        next_left_change_line = Some(diff.clone());
-                        diff_tys.push(DiffResult::Changed {
-                            lines: diff.clone(),
-                        });
-                        if let Some(DiffLines::Right(right_diff)) = changes.peek() {
-                            // edit
-                            if diff.len() < right_diff.len() {
-                                diff_tys.push(DiffResult::Empty {
-                                    lines: diff.end
-                                        ..diff.end + right_diff.len() - diff.len(),
-                                });
-                            }
-                            changes.next();
+        while let Some(change) = changes.next() {
+            match change {
+                DiffLines::Left(diff) => {
+                    next_left_change_line = Some(diff.clone());
+                    diff_tys.push(DiffResult::Changed {
+                        lines: diff.clone(),
+                    });
+                    if let Some(DiffLines::Right(right_diff)) = changes.peek() {
+                        // edit
+                        if diff.len() < right_diff.len() {
+                            diff_tys.push(DiffResult::Empty {
+                                lines: diff.end
+                                    ..diff.end + right_diff.len() - diff.len(),
+                            });
                         }
-                    },
-                    DiffLines::Both(diff) => {
-                        next_left_change_line = Some(diff.left.clone());
-                    },
-                    DiffLines::Right(diff) => {
-                        diff_tys.push(match &next_left_change_line {
-                            None => DiffResult::Empty {
-                                lines: 0..diff.len(),
-                            },
-                            Some(lines) => DiffResult::Empty {
-                                lines: lines.end..lines.end + diff.len(),
-                            },
-                        });
-                    },
-                }
-            } else {
-                break;
+                        changes.next();
+                    }
+                },
+                DiffLines::Both(diff) => {
+                    next_left_change_line = Some(diff.left.clone());
+                },
+                DiffLines::Right(diff) => {
+                    diff_tys.push(match &next_left_change_line {
+                        None => DiffResult::Empty {
+                            lines: 0..diff.len(),
+                        },
+                        Some(lines) => DiffResult::Empty {
+                            lines: lines.end..lines.end + diff.len(),
+                        },
+                    });
+                },
             }
         }
         // log::info!("{}", serde_json::to_string(&diff_tys).unwrap());
@@ -165,7 +161,6 @@ impl DiffInfo {
             }
         }
         // log::info!("{}", serde_json::to_string(&diff_tys).unwrap());
-
         diff_tys
     }
 }

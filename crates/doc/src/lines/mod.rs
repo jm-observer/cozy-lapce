@@ -2327,7 +2327,7 @@ impl DocLines {
         ))
     }
 
-    #[allow(clippy::too_many_arguments)]
+    // #[allow(clippy::too_many_arguments)]
     // fn new_text_layout_2(
     //     &self,
     //     line: usize,

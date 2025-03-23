@@ -1750,15 +1750,13 @@ impl WindowWorkspaceData {
                     let offset = editor_data.cursor().with_untracked(|x| x.offset());
                     let Some((word, semantic)) = editor_data.doc().lines.with_untracked(|x| {
                         if let Some((_, styles)) = &x.semantic_styles {
-                            let Some(semantic) = styles.iter().find_map(|x| {
+                            let semantic = styles.iter().find_map(|x| {
                                 if x.0.contains(offset) {
                                     Some(x.1.clone())
                                 } else {
                                     None
                                 }
-                            }) else {
-                                return None;
-                            };
+                            })?;
                             let (start, end) = x.buffer().select_word(offset);
                             Some((x.buffer().slice_to_cow(start..end).to_string(), semantic))
                         } else {

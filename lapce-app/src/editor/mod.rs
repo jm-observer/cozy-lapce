@@ -55,9 +55,9 @@ use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::error;
 use lsp_types::{
-    CodeActionResponse, CompletionItem, CompletionTextEdit, GotoDefinitionResponse,
-    HoverContents, InlineCompletionTriggerKind, Location, MarkedString, MarkupKind,
-    Range, TextEdit,
+    CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
+    GotoDefinitionResponse, HoverContents, InlineCompletionTriggerKind, Location,
+    MarkedString, MarkupKind, Range, TextEdit,
 };
 use nucleo::Utf32Str;
 
@@ -2206,18 +2206,25 @@ impl EditorData {
             .common
             .config
             .with_untracked(|config| config.editor.autosave_interval);
+        log::warn!("check_auto_save {autosave_interval}");
         if autosave_interval > 0 {
-            if self.doc().content.with_untracked(|c| c.path().is_none()) {
+            let doc = self.doc();
+            if doc.content.with_untracked(|c| c.path().is_none()) {
                 return;
             };
             let editor = self.clone();
-            let rev = self.doc().rev();
+            let rev = doc.rev();
             exec_after(Duration::from_millis(autosave_interval), move |_| {
                 let is_pristine = editor
                     .doc()
                     .lines
                     .with_untracked(|x| x.buffer().is_pristine());
                 let is_current_rec = editor.doc().rev() == rev;
+                log::warn!(
+                    "check_auto_save {is_current_rec} is_pristine={is_pristine} \
+                     {:?}",
+                    doc.content
+                );
                 if !is_pristine && is_current_rec {
                     editor.save(true, || {});
                 }
@@ -2379,8 +2386,8 @@ impl EditorData {
         off_top_line: Option<Option<usize>>,
     ) {
         if !new_doc {
-            self.do_go_to_location(location, edits);
             self.common.offset_line_from_top.set(off_top_line);
+            self.do_go_to_location(location, edits);
         } else {
             let loaded = self.doc().loaded;
             let editor = self.clone();
@@ -2453,11 +2460,6 @@ impl EditorData {
             return;
         }
 
-        // insert some empty data, so that we won't make the request again
-        doc.code_actions().update(|c| {
-            c.insert(offset, (PluginId(0), im::Vector::new()));
-        });
-
         let (position, rev, diagnostics) = doc.lines.with_untracked(|buffer| {
             let buffer = buffer.buffer();
             let position = buffer.offset_to_position(offset);
@@ -2466,15 +2468,27 @@ impl EditorData {
             // Get the diagnostics for the current line, which the LSP might use to
             // inform what code actions are available (such as fixes for
             // the diagnostics).
-            let diagnostics = doc
-                .diagnostics()
-                .diagnostics_span
-                .get_untracked()
-                .iter_chunks(offset..offset)
-                .filter(|(iv, _diag)| iv.start <= offset && iv.end >= offset)
-                .map(|(_iv, diag)| diag)
-                .cloned()
-                .collect();
+            let diagnostics = doc.lines.with_untracked(|x| {
+                x.diagnostics.diagnostics_span.with_untracked(|x| {
+                    x.iter()
+                        .filter(|(iv, _diag)| {
+                            log::warn!("diagnostics_span len {iv:?} {_diag:?}");
+                            iv.start <= offset && iv.end >= offset
+                        })
+                        .map(|(_iv, diag)| diag)
+                        .cloned()
+                        .collect::<Vec<Diagnostic>>()
+                })
+            });
+            // let diagnostics = doc
+            //     .diagnostics()
+            //     .diagnostics_span
+            //     .get_untracked()
+            //     .iter_chunks(offset..offset)
+            //     .filter(|(iv, _diag)| iv.start <= offset && iv.end >= offset)
+            //     .map(|(_iv, diag)| diag)
+            //     .cloned()
+            //     .collect::<Vec<Diagnostic>>();
 
             (position, rev, diagnostics)
         });
@@ -2485,6 +2499,17 @@ impl EditorData {
                 return;
             },
         };
+        log::debug!(
+            "get_code_actions {path:?} {offset} {exists} diagnostics.is_empty={}",
+            diagnostics.is_empty()
+        );
+        if diagnostics.is_empty() {
+            return;
+        }
+        // insert some empty data, so that we won't make the request again
+        doc.code_actions().update(|c| {
+            c.insert(offset, (PluginId(0), im::Vector::new()));
+        });
 
         let send = create_ext_action(
             self.scope,
@@ -2496,19 +2521,24 @@ impl EditorData {
                 }
             },
         );
+        log::debug!("get_code_actions {position:?} {rev} {diagnostics:?}");
 
         self.common.proxy.get_code_actions(
             path,
             position,
             diagnostics,
-            move |(_, result)| {
-                if let Ok(ProxyResponse::GetCodeActionsResponse {
-                    plugin_id,
-                    resp,
-                }) = result
-                {
+            move |(_, result)| match result {
+                Ok(ProxyResponse::GetCodeActionsResponse { plugin_id, resp }) => {
+                    log::debug!(
+                        "GetCodeActionsResponse {plugin_id:?} {rev} {resp:?}"
+                    );
+
                     send((plugin_id, resp))
-                }
+                },
+                Ok(_) => (),
+                Err(err) => {
+                    error!("{err:?}")
+                },
             },
         );
     }
@@ -3559,9 +3589,7 @@ impl EditorData {
     //                                 return actual_line + visual_line
     //                                     - current_visual_line;
     //                             } else if current_visual_line + len - skip.len()
-    // + 1                                 >= visual_line
-    //                             {
-    //                                 return actual_line
+    // + 1                                 >= visual_line { return actual_line
     //                                     + skip.end
     //                                     + (visual_line
     //                                         - current_visual_line
