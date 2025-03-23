@@ -69,7 +69,7 @@ pub fn gutter_data(
                         {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end,
+                                    text.folded_line.origin_line_start,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::CodeLen,
@@ -83,7 +83,7 @@ pub fn gutter_data(
                         {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end,
+                                    text.folded_line.origin_line_start,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::Breakpoint,
@@ -95,7 +95,7 @@ pub fn gutter_data(
                         } else {
                             GutterData {
                                 origin_line_start: Some(
-                                    text.folded_line.origin_line_end,
+                                    text.folded_line.origin_line_start,
                                 ),
                                 paint_point_y: text.folded_line_y,
                                 marker: GutterMarker::None,
