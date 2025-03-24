@@ -42,22 +42,24 @@ pub fn global_search_panel(
 
     let focus = global_search.common.focus;
     // let is_focused = move || focus.get() == Focus::Panel(PanelKind::Search);
+    let input_view = text_input(global_search.search_str)
+        .style(|s| s.width_pct(100.0))
+        .on_event_stop(EventListener::KeyDown, move |event| {
+            if let Event::KeyDown(_key_event) = event {
+                window_tab_data.key_down(_key_event);
+            }
+        })
+        .on_event_stop(EventListener::FocusGained, move |event| {
+            if let Event::FocusGained = event {
+                focus.set(Focus::Panel(PanelKind::Search))
+            }
+        });
+    global_search.view_id.set(input_view.id());
 
     stack((
         container(
             stack((
-                text_input(global_search.search_str)
-                    .style(|s| s.width_pct(100.0))
-                    .on_event_stop(EventListener::KeyDown, move |event| {
-                        if let Event::KeyDown(_key_event) = event {
-                            window_tab_data.key_down(_key_event);
-                        }
-                    })
-                    .on_event_stop(EventListener::FocusGained, move |event| {
-                        if let Event::FocusGained = event {
-                            focus.set(Focus::Panel(PanelKind::Search))
-                        }
-                    }),
+                input_view,
                 clickable_icon(
                     || LapceIcons::SEARCH_CASE_SENSITIVE,
                     move || {

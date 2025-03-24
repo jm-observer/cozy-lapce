@@ -7,6 +7,7 @@ use std::{
 
 use doc::lines::{editor_command::CommandExecuted, mode::Mode};
 use floem::{
+    ViewId,
     ext_event::create_ext_action,
     keyboard::Modifiers,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
@@ -164,6 +165,7 @@ impl Hash for SearchItem {
 pub struct GlobalSearchData {
     pub search_result: RwSignal<IndexMap<PathBuf, SearchMatchData>>,
     pub search_str:    RwSignal<String>,
+    pub view_id:       RwSignal<ViewId>,
     pub main_split:    MainSplitData,
     pub common:        Rc<CommonData>,
 }
@@ -251,6 +253,7 @@ impl GlobalSearchData {
             main_split,
             common,
             search_str,
+            view_id: cx.create_rw_signal(ViewId::default()),
         };
 
         {

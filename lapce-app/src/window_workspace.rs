@@ -2990,16 +2990,19 @@ impl WindowWorkspaceData {
             );
         }
         self.panel.show_panel(&kind);
-        if kind == PanelKind::Search
-            && self.common.focus.get_untracked() == Focus::Workbench
-        {
-            let active_editor = self.main_split.active_editor.get_untracked();
-            let word = active_editor.map(|editor| editor.word_at_cursor());
-            if let Some(word) = word {
-                if !word.is_empty() {
-                    self.global_search.set_pattern(word);
+        if kind == PanelKind::Search {
+            if self.common.focus.get_untracked() == Focus::Workbench {
+                let active_editor = self.main_split.active_editor.get_untracked();
+                let word = active_editor.map(|editor| editor.word_at_cursor());
+                if let Some(word) = word {
+                    if !word.is_empty() {
+                        self.global_search.set_pattern(word);
+                    }
                 }
             }
+            self.global_search
+                .view_id
+                .with_untracked(|x| x.request_focus());
         }
         self.common.focus.set(Focus::Panel(kind));
     }
