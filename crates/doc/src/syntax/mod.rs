@@ -23,7 +23,7 @@ use lapce_xi_rope::{
     Interval, Rope,
     spans::{Spans, SpansBuilder},
 };
-use log::error;
+use log::{error, info};
 use slotmap::{DefaultKey as LayerId, HopSlotMap};
 use thiserror::Error;
 use tree_sitter::{Node, Parser, Point, QueryCursor, Tree};
@@ -1051,7 +1051,7 @@ impl Syntax {
             grammars_directory,
             queries_directory,
         ) {
-            error!("{:?}", err);
+            info!("{:?}", err);
         }
         let tree = layers.try_tree();
 

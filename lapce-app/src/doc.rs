@@ -377,7 +377,7 @@ impl Doc {
             cache_rev: cx.create_rw_signal(0),
             content: cx.create_rw_signal(content),
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
-            loaded: cx.create_rw_signal(true),
+            loaded: cx.create_rw_signal(false),
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
             code_actions: cx.create_rw_signal(im::HashMap::new()),

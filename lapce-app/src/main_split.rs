@@ -1172,8 +1172,16 @@ impl MainSplitData {
                 ) => {
                     if !is_same_diff_editor(diff_editor_id, left, right) {
                         if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
-                            diff_editor.left.update_doc(left.clone());
-                            diff_editor.right.update_doc(right.clone());
+                            batch(|| {
+                                diff_editor.left.update_doc(left.clone());
+                                diff_editor.right.update_doc(right.clone());
+                                diff_editor.jump_by_changes_index.set(Some(0));
+                            });
+
+                        }
+                    } else {
+                        if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
+                            diff_editor.jump_by_changes_index.set(Some(0));
                         }
                     }
                     true
@@ -1183,7 +1191,7 @@ impl MainSplitData {
                 },
                 _ => false,
             };
-            log::warn!("is_same={is_same:?}");
+            log::debug!("is_same={is_same:?}");
             if is_same {
                 let child = active_editor_tab_manage.with_untracked(|editor_tab| {
                     editor_tab.children[selected].id().clone()

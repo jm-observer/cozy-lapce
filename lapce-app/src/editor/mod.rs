@@ -2472,7 +2472,7 @@ impl EditorData {
                 x.diagnostics.diagnostics_span.with_untracked(|x| {
                     x.iter()
                         .filter(|(iv, _diag)| {
-                            log::warn!("diagnostics_span len {iv:?} {_diag:?}");
+                            // log::warn!("diagnostics_span len {iv:?} {_diag:?}");
                             iv.start <= offset && iv.end >= offset
                         })
                         .map(|(_iv, diag)| diag)

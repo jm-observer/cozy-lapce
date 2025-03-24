@@ -15,9 +15,9 @@ use lapce_core::{
     editor_tab::DiffEditorInfo,
     id::{DiffEditorId, EditorId, EditorTabManageId},
 };
-use log::error;
+use log::{error};
 
-use super::EditorData;
+use super::{EditorData, view::count_rect};
 use crate::{
     doc::Doc,
     local_task::{LocalRequest, LocalResponse},
@@ -33,14 +33,16 @@ use crate::{
 
 #[derive(Clone)]
 pub struct DiffEditorData {
-    pub id:            DiffEditorId,
-    pub editor_tab_id: RwSignal<EditorTabManageId>,
-    pub scope:         Scope,
-    pub left:          EditorData,
-    pub right:         EditorData,
+    pub id:                    DiffEditorId,
+    pub editor_tab_id:         RwSignal<EditorTabManageId>,
+    pub scope:                 Scope,
+    pub left:                  EditorData,
+    pub right:                 EditorData,
     // pub confirmed:     RwSignal<bool>,
-    pub focus_right:   RwSignal<bool>,
-    common:            Rc<CommonData>,
+    pub focus_right:           RwSignal<bool>,
+    /// used when open diff file
+    pub jump_by_changes_index: RwSignal<Option<usize>>,
+    common:                    Rc<CommonData>,
 }
 
 impl DiffEditorData {
@@ -89,6 +91,7 @@ impl DiffEditorData {
             right,
             focus_right: cx.create_rw_signal(true),
             common,
+            jump_by_changes_index: cx.create_rw_signal(Some(0)),
         };
 
         data.listen_diff_changes();
@@ -131,6 +134,7 @@ impl DiffEditorData {
             left,
             right,
             common: self.common.clone(),
+            jump_by_changes_index: cx.create_rw_signal(Some(0)),
         };
 
         diff_editor.listen_diff_changes();
@@ -161,20 +165,31 @@ impl DiffEditorData {
         };
 
         let common = self.common.clone();
+        let jump_by_changes_index = self.jump_by_changes_index;
         cx.create_effect(move |_| {
             let (_, left_rev) = left_doc_rev.get();
-            let (left_editor_view, left_doc) = (left.kind_rw(), left.doc());
+            let (left_editor_view, left_doc) = (left.kind_rw(), left.doc_signal().get());
+
+            let (right_editor_view, right_doc) = (right.kind_rw(), right.doc_signal().get());
+            let left_loaded = left_doc.loaded.get();
+            let right_loaded = right_doc.loaded.get();
+            if !left_loaded || !right_loaded{
+                return;
+            }
             let (left_atomic_rev, left_rope) =
                 left_doc.lines.with_untracked(|buffer| {
                     (buffer.buffer().atomic_rev(), buffer.buffer().text().clone())
                 });
-
             let (_, right_rev) = right_doc_rev.get();
-            let (right_editor_view, right_doc) = (right.kind_rw(), right.doc());
             let (right_atomic_rev, right_rope) =
                 right_doc.lines.with_untracked(|buffer| {
                     (buffer.buffer().atomic_rev(), buffer.buffer().text().clone())
                 });
+            let right_data = right.clone();
+
+            // warn!("{:?} {:?}", left_doc.content.get_untracked(), right_doc.content.get_untracked());
+            // warn!("{}", left_content);
+            // warn!("{}", right_content);
 
             let send = {
                 let right_atomic_rev = right_atomic_rev.clone();
@@ -197,14 +212,27 @@ impl DiffEditorData {
                         is_right: false,
                         changes,
                     };
-                    left_editor_view.set(EditorViewKind::Diff {
-                        changes:  diff.left_changes(),
-                        is_right: false,
-                    });
-                    right_editor_view.set(EditorViewKind::Diff {
-                        changes:  diff.right_changes(),
-                        is_right: true,
-                    });
+
+                    let right_changes = diff.right_changes();
+                    if !right_changes.is_empty() {
+                        left_editor_view.set(EditorViewKind::Diff {
+                            changes:  diff.left_changes(),
+                            is_right: false,
+                        });
+                        right_editor_view.set(EditorViewKind::Diff {
+                            changes:  diff.right_changes(),
+                            is_right: true,
+                        });
+                        let jump_ =
+                            jump_by_changes_index.try_update(|x| x.take()).flatten();
+                        if let Some(jump) = jump_ {
+                            if let Err(err) =
+                                count_rect(&right_changes, jump, right_data)
+                            {
+                                error!("{err}");
+                            }
+                        }
+                    }
                 })
             };
 

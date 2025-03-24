@@ -198,8 +198,11 @@ pub fn editor_view(
         doc.with(|x| x.lines.with_untracked(|x| x.signal_max_width()))
             .get();
         view_kind.track();
-        // log::info!("signal_max_width={signal_max_width}");
-        id.request_layout();
+        log::debug!(
+            "signal_max_width focus when tab change but content is not changed"
+        );
+        // id.request_layout();
+        id.request_all();
     });
 
     // let hide_cursor = e_data.common.window_common.hide_cursor;
@@ -1782,12 +1785,13 @@ fn editor_breadcrumbs(
     .debug_name("Editor BreadCrumbs")
 }
 
-fn count_rect(
-    changes: Vec<DiffResult>,
+pub fn count_rect(
+    changes: &Vec<DiffResult>,
     index: usize,
     right_editor: EditorData,
 ) -> Result<()> {
     if let Some(change) = changes.get(index) {
+        // log::error!("{change:?}");
         let line_index = match change {
             DiffResult::Empty { lines } => {
                 right_editor.editor.visual_lines.with_untracked(|x| {
@@ -1820,10 +1824,10 @@ fn count_rect(
             },
         }?;
         let line_height = right_editor.editor.line_height(0);
-        let y = (line_index * line_height) as f64;
-        let y1 = ((line_index + 1) * line_height) as f64;
+        let y = ((line_index.max(3) - 3) * line_height) as f64;
+        let y1 = ((line_index + 3) * line_height) as f64;
         let rect = Rect::new(0.0, y, 0.0, y1);
-        log::info!("index={index} rect={rect:?} len={}", changes.len());
+        log::debug!("\n\nindex={index} rect={rect:?} len={} \n\n", changes.len());
         right_editor.ensure_visible.set(rect);
         Ok(())
     } else {
@@ -1854,7 +1858,7 @@ pub fn editor_diff_header(
                     }) else {
                         return;
                     };
-                    if let Err(err) = count_rect(changes, index, right_editor) {
+                    if let Err(err) = count_rect(&changes, index, right_editor) {
                         error!("{err}");
                     }
                 }
@@ -1873,7 +1877,7 @@ pub fn editor_diff_header(
                 }) else {
                     return;
                 };
-                if let Err(err) = count_rect(changes, index, right_editor) {
+                if let Err(err) = count_rect(&changes, index, right_editor) {
                     error!("{err}");
                 }
             }
@@ -1913,7 +1917,6 @@ fn editor_content(
         create_effect(move |_| {
             let e_data = e_data.get_untracked();
             e_data.doc_signal().track();
-            e_data.kind_read().track();
             let cursor = cursor.get();
             let offset = cursor.offset();
             let offset_line_from_top = e_data
