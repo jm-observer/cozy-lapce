@@ -22,3 +22,13 @@ args = ["build", "--profile", "fastdev", "--features", "dev", "--no-default-feat
 [tasks._build-release]
 command = "cargo"
 args = ["build", "--release", "--bin", "lapce"]
+
+[tasks.run-prod]
+script = '''
+cargo run --profile fastdev --bin lapce -- -w -n
+'''
+dependencies = ["_build-prod"]
+[tasks._build-prod]
+description = "Build the project"
+command = "cargo"
+args = ["build", "--bin", "lapce"]

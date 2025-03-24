@@ -1,5 +1,4 @@
 //! Movement logic for the editor.
-
 use anyhow::{Result, bail};
 use doc::lines::{
     buffer::rope_text::RopeText,
@@ -11,11 +10,13 @@ use doc::lines::{
     selection::{SelRegion, Selection},
     soft_tab::SnapDirection,
 };
-use floem::reactive::SignalGet;
 use lapce_xi_rope::Rope;
 use log::info;
 
-use crate::editor::floem_editor::{CommonAction, Editor};
+use crate::{
+    doc::Doc,
+    editor::floem_editor::{CommonAction, Editor},
+};
 
 /// Move a selection region by a given movement.
 /// Much of the time, this will just be a matter of moving the cursor, but
@@ -28,6 +29,7 @@ fn move_region(
     modify: bool,
     movement: &Movement,
     mode: Mode,
+    doc: &Doc,
 ) -> Result<SelRegion> {
     let (count, region) = if count >= 1 && !modify && !region.is_caret() {
         // If we're not a caret, and we are moving left/up or right/down, we want to
@@ -62,6 +64,7 @@ fn move_region(
         count,
         movement,
         mode,
+        doc,
     )?;
     let start = match modify {
         true => region.start,
@@ -78,11 +81,12 @@ pub fn move_selection(
     modify: bool,
     movement: &Movement,
     mode: Mode,
+    doc: &Doc,
 ) -> Result<Selection> {
     let mut new_selection = Selection::new();
     for region in selection.regions() {
         new_selection.add_region(move_region(
-            view, region, affinity, count, modify, movement, mode,
+            view, region, affinity, count, modify, movement, mode, doc,
         )?);
     }
     Ok(new_selection)
@@ -98,21 +102,23 @@ pub fn move_offset(
     count: usize,
     movement: &Movement,
     mode: Mode,
+    doc: &Doc,
 ) -> Result<(usize, Option<ColPosition>)> {
+    let rope = doc.rope_text();
     let (new_offset, horiz) = match movement {
         Movement::Left => {
-            let new_offset = move_left(view, offset, affinity, mode, count)?;
+            let new_offset = move_left( offset, affinity, mode, count, doc)?;
 
             (new_offset, None)
         },
         Movement::Right => {
-            let new_offset = move_right(view, offset, affinity, mode, count)?;
+            let new_offset = move_right( offset, affinity, mode, count, doc)?;
 
             (new_offset, None)
         },
         Movement::Up => {
             let Some((new_offset, horiz)) =
-                move_up(view, offset, affinity, horiz.cloned(), mode, count)?
+                move_up( offset, affinity, horiz.cloned(), mode, count, doc)?
             else {
                 return Ok((offset, horiz.cloned()));
             };
@@ -121,7 +127,7 @@ pub fn move_offset(
         },
         Movement::Down => {
             let Some((new_offset, horiz)) =
-                move_down(view, offset, affinity, horiz.cloned(), mode, count)?
+                move_down( offset, affinity, horiz.cloned(), mode, count, doc)?
             else {
                 return Ok((offset, horiz.cloned()));
             };
@@ -134,13 +140,12 @@ pub fn move_offset(
             (0, Some(ColPosition::Start))
         },
         Movement::DocumentEnd => {
-            let (new_offset, horiz) =
-                document_end(view.rope_text(), affinity, mode)?;
+            let (new_offset, horiz) = document_end(rope, affinity, mode)?;
 
             (new_offset, Some(horiz))
         },
         Movement::FirstNonBlank => {
-            let (new_offset, horiz) = first_non_blank(view, affinity, offset)?;
+            let (new_offset, horiz) = first_non_blank(doc, affinity, offset)?;
 
             (new_offset, Some(horiz))
         },
@@ -150,7 +155,7 @@ pub fn move_offset(
             (new_offset, Some(horiz))
         },
         Movement::EndOfLine => {
-            let (new_offset, horiz) = end_of_line(view, affinity, offset, mode)?;
+            let (new_offset, horiz) = end_of_line(doc, affinity, offset, mode)?;
             info!("EndOfLine offset={offset} new_offset={new_offset}");
             (new_offset, Some(horiz))
         },
@@ -161,57 +166,54 @@ pub fn move_offset(
             (new_offset, Some(horiz))
         },
         Movement::Offset(offset) => {
-            let new_offset = view.text().prev_grapheme_offset(*offset + 1).unwrap();
+            let new_offset = doc.lines.with_untracked(|x| {
+                x.buffer().text().prev_grapheme_offset(*offset + 1).unwrap()
+            });
+            // view.text()
             (new_offset, None)
         },
         Movement::WordEndForward => {
-            let new_offset = view.rope_text().move_n_wordends_forward(
-                offset,
-                count,
-                mode == Mode::Insert,
-            );
+            let new_offset =
+                rope.move_n_wordends_forward(offset, count, mode == Mode::Insert);
             (new_offset, None)
         },
         Movement::WordForward => {
-            let new_offset = view.rope_text().move_n_words_forward(offset, count);
+            let new_offset = rope.move_n_words_forward(offset, count);
             (new_offset, None)
         },
         Movement::WordBackward => {
-            let new_offset =
-                view.rope_text().move_n_words_backward(offset, count, mode);
+            let new_offset = rope.move_n_words_backward(offset, count, mode);
             (new_offset, None)
         },
         Movement::NextUnmatched(char) => {
-            let new_offset = view.doc().find_unmatched(offset, false, *char);
+            let new_offset = doc.find_unmatched(offset, false, *char);
 
             (new_offset, None)
         },
         Movement::PreviousUnmatched(char) => {
-            let new_offset = view.doc().find_unmatched(offset, true, *char);
+            let new_offset = doc.find_unmatched(offset, true, *char);
 
             (new_offset, None)
         },
         Movement::MatchPairs => {
-            let new_offset = view.doc().find_matching_pair(offset);
+            let new_offset = doc.find_matching_pair(offset);
 
             (new_offset, None)
         },
         Movement::ParagraphForward => {
-            let new_offset =
-                view.rope_text().move_n_paragraphs_forward(offset, count);
+            let new_offset = rope.move_n_paragraphs_forward(offset, count);
 
             (new_offset, None)
         },
         Movement::ParagraphBackward => {
-            let new_offset =
-                view.rope_text().move_n_paragraphs_backward(offset, count);
+            let new_offset = rope.move_n_paragraphs_backward(offset, count);
 
             (new_offset, None)
         },
     };
 
     // todo ?
-    // let new_offset = correct_crlf(&view.rope_text(), new_offset);
+    // let new_offset = correct_crlf(&rope, new_offset);
 
     Ok((new_offset, horiz))
 }
@@ -312,15 +314,14 @@ fn count_spaces_from(text: &Rope, from_offset: usize) -> usize {
 /// If `soft_tab_width` is `Some` (and greater than 1) then the offset will snap
 /// to the soft tab.
 fn move_left(
-    ed: &Editor,
     offset: usize,
     affinity: &mut CursorAffinity,
     _mode: Mode,
     _count: usize,
+    doc: &Doc,
 ) -> Result<usize> {
     log::info!("move_left {offset} {affinity:?}");
-    let Some((new_offset, new_affinity)) = ed
-        .doc()
+    let Some((new_offset, new_affinity)) = doc
         .lines
         .with_untracked(|x| x.move_left(offset, *affinity))?
     else {
@@ -351,15 +352,14 @@ fn move_left(
 /// If `soft_tab_width` is `Some` (and greater than 1) then the offset will snap
 /// to the soft tab.
 fn move_right(
-    view: &Editor,
     offset: usize,
     affinity: &mut CursorAffinity,
     _mode: Mode,
     _count: usize,
+    doc: &Doc,
 ) -> Result<usize> {
     log::info!("move_right {offset} {affinity:?}");
-    let Some((new_offset, new_affinity)) = view
-        .doc()
+    let Some((new_offset, new_affinity)) = doc
         .lines
         .with_untracked(|x| x.move_right(offset, *affinity))?
     else {
@@ -374,16 +374,15 @@ fn move_right(
 /// `count` may be zero, because moving up in a selection just jumps to the
 /// start of the selection.
 fn move_up(
-    view: &Editor,
     offset: usize,
     affinity: &mut CursorAffinity,
     horiz: Option<ColPosition>,
     _mode: Mode,
     _count: usize,
+    doc: &Doc,
 ) -> Result<Option<(usize, ColPosition)>> {
     log::info!("move_up {offset} {affinity:?} {horiz:?}");
-    let Some((offset_of_buffer, horiz, new_affinity)) = view
-        .doc()
+    let Some((offset_of_buffer, horiz, new_affinity)) = doc
         .lines
         .with_untracked(|x| x.move_up(offset, *affinity, horiz, _mode, _count))?
     else {
@@ -402,7 +401,7 @@ fn move_down_last_rvline(
     _horiz: Option<ColPosition>,
     mode: Mode,
 ) -> Result<(usize, ColPosition)> {
-    // let rope_text = view.rope_text();
+    // let rope_text = rope;
     //
     // let last_line = rope_text.last_line();
     // let new_offset = rope_text.line_end_offset(last_line, mode != Mode::Normal)?;
@@ -430,12 +429,12 @@ fn move_down_last_rvline(
 /// `count` may be zero, because moving down in a selection just jumps to the
 /// end of the selection.
 fn move_down(
-    view: &Editor,
     offset: usize,
     affinity: &mut CursorAffinity,
     horiz: Option<ColPosition>,
     _mode: Mode,
     _count: usize,
+    doc: &Doc,
 ) -> Result<Option<(usize, ColPosition)>> {
     // let line = view.doc.with_untracked(|x| x.lines.with_untracked(|x|
     // x.buffer().line_of_offset(offset)));
@@ -452,8 +451,7 @@ fn move_down(
     // })
 
     log::info!("move_down {offset}");
-    let Some((offset_of_buffer, horiz, new_affinity)) = view
-        .doc()
+    let Some((offset_of_buffer, horiz, new_affinity)) = doc
         .lines
         .with_untracked(|x| x.move_down(offset, *affinity, horiz, _mode, _count))?
     else {
@@ -478,13 +476,11 @@ fn document_end(
 }
 
 fn first_non_blank(
-    view: &Editor,
+    doc: &Doc,
     affinity: &mut CursorAffinity,
     offset: usize,
 ) -> Result<(usize, ColPosition)> {
-    view.doc
-        .get_untracked()
-        .lines
+    doc.lines
         .with_untracked(|x| x.first_non_blank(affinity, offset))
 }
 
@@ -505,14 +501,12 @@ fn start_of_line(
 }
 
 fn end_of_line(
-    view: &Editor,
+    doc: &Doc,
     affinity: &mut CursorAffinity,
     offset: usize,
     mode: Mode,
 ) -> Result<(usize, ColPosition)> {
-    view.doc
-        .get_untracked()
-        .lines
+    doc.lines
         .with_untracked(|x| x.end_of_line(affinity, offset, mode))
 }
 #[allow(dead_code, unused_variables)]
@@ -523,7 +517,7 @@ fn to_line(
     mode: Mode,
     position: &LinePosition,
 ) -> (usize, ColPosition) {
-    // let rope_text = view.rope_text();
+    // let rope_text = rope;
     //
     // // TODO(minor): Should this use rvline?
     // let line = match position {
@@ -557,6 +551,7 @@ pub fn move_cursor(
     count: usize,
     modify: bool,
     register: &mut Register,
+    doc: &Doc,
 ) -> Result<()> {
     let motion_mode = cursor.motion_mode.clone();
     let horiz = cursor.horiz;
@@ -578,6 +573,7 @@ pub fn move_cursor(
                 count,
                 movement,
                 Mode::Normal,
+                doc,
             )?;
             if let Some(motion_mode) = &motion_mode {
                 let (moved_new_offset, _) = move_offset(
@@ -588,6 +584,7 @@ pub fn move_cursor(
                     1,
                     &Movement::Right,
                     Mode::Insert,
+                    doc,
                 )?;
                 let range = match movement {
                     Movement::EndOfLine | Movement::WordEndForward => {
@@ -628,6 +625,7 @@ pub fn move_cursor(
                 count,
                 movement,
                 Mode::Visual(VisualMode::Normal),
+                doc,
             )?;
             cursor.set_mode(CursorMode::Visual {
                 start,
@@ -646,6 +644,7 @@ pub fn move_cursor(
                 modify,
                 movement,
                 Mode::Insert,
+                doc,
             );
             cursor.set_insert(selection?);
         },
@@ -657,9 +656,10 @@ pub fn do_multi_selection(
     view: &Editor,
     cursor: &mut Cursor,
     cmd: &MultiSelectionCommand,
+    doc: &Doc,
 ) -> Result<()> {
     use MultiSelectionCommand::*;
-    let rope_text = view.rope_text();
+    let rope = doc.rope_text();
 
     match cmd {
         SelectUndo => {
@@ -681,6 +681,7 @@ pub fn do_multi_selection(
                     1,
                     &Movement::Up,
                     Mode::Insert,
+                    doc,
                 )?;
                 if new_offset != offset {
                     selection
@@ -700,6 +701,7 @@ pub fn do_multi_selection(
                     1,
                     &Movement::Down,
                     Mode::Insert,
+                    doc,
                 )?;
                 if new_offset != offset {
                     selection
@@ -712,15 +714,14 @@ pub fn do_multi_selection(
             if let CursorMode::Insert(selection) = cursor.mode().clone() {
                 let mut new_selection = Selection::new();
                 for region in selection.regions() {
-                    let (start_line, _) =
-                        rope_text.offset_to_line_col(region.min())?;
+                    let (start_line, _) = rope.offset_to_line_col(region.min())?;
                     let (end_line, end_col) =
-                        rope_text.offset_to_line_col(region.max())?;
+                        rope.offset_to_line_col(region.max())?;
                     for line in start_line..end_line + 1 {
                         let offset = if line == end_line {
-                            rope_text.offset_of_line_col(line, end_col)
+                            rope.offset_of_line_col(line, end_col)
                         } else {
-                            rope_text.line_end_offset(line, true)
+                            rope.line_end_offset(line, true)
                         }?;
                         new_selection
                             .add_region(SelRegion::new(offset, offset, None));
@@ -733,10 +734,10 @@ pub fn do_multi_selection(
             if let CursorMode::Insert(selection) = cursor.mode().clone() {
                 let mut new_selection = Selection::new();
                 for region in selection.regions() {
-                    let start_line = rope_text.line_of_offset(region.min());
-                    let start = rope_text.offset_of_line(start_line)?;
-                    let end_line = rope_text.line_of_offset(region.max());
-                    let end = rope_text.offset_of_line(end_line + 1)?;
+                    let start_line = rope.line_of_offset(region.min());
+                    let start = rope.offset_of_line(start_line)?;
+                    let end_line = rope.line_of_offset(region.max());
+                    let end = rope.offset_of_line(end_line + 1)?;
                     new_selection.add_region(SelRegion::new(start, end, None));
                 }
                 cursor.set_insert(new_selection);
@@ -749,7 +750,7 @@ pub fn do_multi_selection(
             // However, we haven't included a `find` in floem-editor
         },
         SelectAll => {
-            let new_selection = Selection::region(0, rope_text.len());
+            let new_selection = Selection::region(0, rope.len());
             cursor.set_insert(new_selection);
         },
     }

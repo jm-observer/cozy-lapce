@@ -18,7 +18,7 @@ pub fn print_screen_lines(window: &WindowWorkspaceData) {
         let content = editor.doc().content.get_untracked();
         match &content {
             DocContent::File { .. } | DocContent::History(_) => {
-                warn!("{:?} {:?}", content, editor.editor.cursor.get_untracked());
+                warn!("{:?} {:?}", content, editor.cursor.get_untracked());
                 editor.doc().lines.with_untracked(|x| x.log());
                 warn!("");
                 // let screen_lines =

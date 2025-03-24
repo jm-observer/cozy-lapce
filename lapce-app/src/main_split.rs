@@ -480,7 +480,7 @@ impl MainSplitData {
 
     pub fn save_current_jump_location(&self) -> bool {
         if let Some(editor) = self.active_editor.get_untracked() {
-            let (cursor, viewport) = (editor.cursor(), editor.editor.viewport);
+            let (cursor, viewport) = (editor.cursor(), editor.viewport);
             let path = editor
                 .doc()
                 .content
@@ -642,16 +642,15 @@ impl MainSplitData {
         let mut off_top_line = None;
         // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
         if let Some(tab) = self.get_active_editor_untracked() {
-            let cursor = tab.editor.cursor.get_untracked();
+            let cursor = tab.cursor.get_untracked();
             let offset = cursor.offset();
 
             let line_num = tab
-                .editor
-                .doc()
+                .doc
+                .get_untracked()
                 .lines
                 .with_untracked(|x| x.buffer().line_of_offset(offset));
             if let Some(index) = tab
-                .editor
                 .screen_lines
                 .with_untracked(|x| x.visual_index_for_origin_line_num(line_num))
             {
@@ -1177,7 +1176,6 @@ impl MainSplitData {
                                 diff_editor.right.update_doc(right.clone());
                                 diff_editor.jump_by_changes_index.set(Some(0));
                             });
-
                         }
                     } else {
                         if let Some(diff_editor) = diff_editors.get(diff_editor_id) {

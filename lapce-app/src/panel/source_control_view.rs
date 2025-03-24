@@ -123,7 +123,7 @@ pub fn source_control_panel(
                     window_origin.set(pos + (10.0, 6.0));
                 })
                 .on_scroll(move |rect| {
-                    editor.get().editor.viewport.set(rect);
+                    editor.get().viewport.set(rect);
                     // lines.update(|x| x.update_viewport_by_scroll(rect));
                 })
                 .ensure_visible(move || {
@@ -131,10 +131,9 @@ pub fn source_control_panel(
                     let offset = cursor.offset();
                     let e_data = editor.get_untracked();
                     e_data.kind_read().track();
-                    let line_height = e_data.editor.line_height(0) as f64;
+                    let line_height = e_data.line_height(0) as f64;
 
                     if let Some((x, y, width, line_height)) = e_data
-                        .editor
                         .screen_lines
                         .with(|x| match x.visual_position_of_buffer_offset(offset) {
                             Ok(point) => point.map(|point| {

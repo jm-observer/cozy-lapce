@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
+use std::cmp::Ordering;
 use anyhow::Result;
 use doc::{
     EditorViewKind,
@@ -16,15 +16,18 @@ use doc::{
             rope_text::{RopeText, RopeTextVal},
         },
         command::{
-            EditCommand, FocusCommand, MotionModeCommand, MultiSelectionCommand,
-            ScrollCommand,
+            EditCommand, FocusCommand, MotionModeCommand, MoveCommand,
+            MultiSelectionCommand, ScrollCommand,
         },
-        cursor::{Cursor, CursorMode},
+        cursor::{Cursor, CursorAffinity, CursorMode},
         edit::EditType,
-        editor_command::CommandExecuted,
+        editor_command::{Command, CommandExecuted},
+        fold::FoldingDisplayItem,
+        line::VisualLine,
         mode::{Mode, MotionMode},
         movement::Movement,
-        screen_lines::VisualLineInfo,
+        phantom_text::Text,
+        screen_lines::{ScreenLines, VisualLineInfo},
         selection::{InsertDrift, SelRegion, Selection},
     },
 };
@@ -53,7 +56,7 @@ use lapce_core::{
 };
 use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
-use log::error;
+use log::{debug, error, info};
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
     GotoDefinitionResponse, HoverContents, InlineCompletionTriggerKind, Location,
@@ -143,6 +146,16 @@ pub struct EditorData {
     // pub sticky_header_height: RwSignal<f64>,
     pub common:           Rc<CommonData>,
     pub ensure_visible:   RwSignal<Rect>,
+
+    pub window_origin:        RwSignal<Point>,
+    pub viewport:             RwSignal<Rect>,
+    pub screen_lines:         RwSignal<Arc<ScreenLines>>,
+    pub visual_lines:         RwSignal<Vec<VisualLine>>,
+    pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
+    pub cursor:               RwSignal<Cursor>,
+
+    pub(crate) doc: RwSignal<Rc<Doc>>,
+    pub kind:       RwSignal<EditorViewKind>,
 }
 
 impl PartialEq for EditorData {
@@ -154,12 +167,62 @@ impl PartialEq for EditorData {
 impl EditorData {
     fn new(
         cx: Scope,
+        doc: Rc<Doc>,
+        modal: bool,
+        view_kind: EditorViewKind,
         editor: Editor,
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
     ) -> Self {
         let cx = cx.create_child();
+
+        let viewport = cx.create_rw_signal(Rect::ZERO);
+        let screen_lines = cx.create_rw_signal(Arc::new(ScreenLines::default()));
+        let visual_lines = cx.create_rw_signal(vec![]);
+
+        let folding_display_item = cx.create_rw_signal(vec![]);
+
+        let viewport_memo = cx.create_memo(move |_| viewport.get());
+
+        let cursor_mode = if modal {
+            CursorMode::Normal(0)
+        } else {
+            CursorMode::Insert(Selection::caret(0))
+        };
+        let cursor = Cursor::new(cursor_mode, None, None);
+        let cursor = cx.create_rw_signal(cursor);
+        let doc = cx.create_rw_signal(doc);
+        let kind = cx.create_rw_signal(view_kind);
+
+        cx.create_effect(move |_| {
+            let lines = doc.with(|x| x.lines);
+            let base = viewport_memo.get();
+            let kind = kind.get();
+            let signal_paint_content =
+                lines.with_untracked(|x| x.signal_paint_content());
+            let val = signal_paint_content.get();
+            let Some((screen_lines_val, folding_display_item_val, visual_lines_val)) = lines
+                .try_update(|x| {
+                    match x.compute_screen_lines_new(base, kind) {
+                        Ok(rs) => {Some(rs)}
+                        Err(err) => {
+                            error!("{err}");
+                            None
+                        }
+                    }
+                }).flatten()
+            else {
+                return ;
+            };
+            debug!(
+                "create_effect _compute_screen_lines {val} base={base:?} {:?}",
+                floem::prelude::SignalGet::id(&signal_paint_content)
+            );
+            visual_lines.set(visual_lines_val);
+            screen_lines.set(screen_lines_val);
+            folding_display_item.set(folding_display_item_val);
+        });
 
         // let confirmed = confirmed.unwrap_or_else(|| cx.create_rw_signal(false));
         EditorData {
@@ -182,15 +245,23 @@ impl EditorData {
             common, /* sticky_header_info:
                      * cx.create_rw_signal(StickyHeaderInfo::default()) */
             ensure_visible: cx.create_rw_signal(Rect::ZERO),
+            window_origin: cx.create_rw_signal(Point::ZERO),
+            viewport,
+            screen_lines,
+            visual_lines,
+            folding_display_item,
+            cursor,
+            doc,
+            kind,
         }
     }
 
     pub fn kind_read(&self) -> ReadSignal<EditorViewKind> {
-        self.editor.kind.read_only()
+        self.kind.read_only()
     }
 
     pub fn kind_rw(&self) -> RwSignal<EditorViewKind> {
-        self.editor.kind
+        self.kind
     }
 
     /// Create a new local editor.
@@ -216,8 +287,10 @@ impl EditorData {
     ) -> Self {
         let cx = cx.create_child();
         let doc = Rc::new(Doc::new_local(cx, editors, common.clone(), name));
-        let editor = doc.create_editor(cx, true, EditorViewKind::Normal);
-        Self::new(cx, editor, None, None, common)
+
+        let modal = false;
+        let editor = doc.create_editor(cx);
+        Self::new(cx, doc, modal, EditorViewKind::Normal, editor, None, None, common)
     }
 
     /// Create a new editor with a specific doc.
@@ -231,13 +304,15 @@ impl EditorData {
         common: Rc<CommonData>,
         view_kind: EditorViewKind,
     ) -> Self {
-        let editor = doc.create_editor(cx, false, view_kind);
-        Self::new(cx, editor, editor_tab_id, diff_editor_id, common)
+        let editor = doc.create_editor(cx);
+        let modal = false;
+        Self::new(cx, doc, modal, view_kind, editor, editor_tab_id, diff_editor_id, common)
     }
 
     /// Swap out the document this editor is for
     pub fn update_doc(&self, doc: Rc<Doc>) {
-        self.editor.update_doc(doc);
+        self.doc.set(doc);
+        // self.editor.update_doc(doc);
     }
 
     /// Create a new editor using the same underlying [`Doc`]
@@ -255,14 +330,14 @@ impl EditorData {
             editor_tab_id,
             diff_editor_id,
             self.common.clone(),
-            self.editor.kind.get_untracked(),
+            self.kind.get_untracked(),
         );
-        editor.editor.cursor.set(self.editor.cursor.get_untracked());
+        editor.cursor.set(self.cursor.get_untracked());
         // editor
         //     .editor
         //     .viewport
         //     .set(self.editor.viewport.get_untracked());
-        let viewport = self.editor.viewport.get_untracked();
+        let viewport = self.viewport.get_untracked();
         editor
             .editor
             .scroll_to
@@ -298,15 +373,15 @@ impl EditorData {
     }
 
     pub fn cursor(&self) -> RwSignal<Cursor> {
-        self.editor.cursor
+        self.cursor
     }
 
     pub fn viewport_untracked(&self) -> Rect {
-        self.editor.viewport_untracked()
+        self.viewport.get_untracked()
     }
 
     pub fn window_origin(&self) -> RwSignal<Point> {
-        self.editor.window_origin
+        self.window_origin
     }
 
     pub fn scroll_delta(&self) -> RwSignal<Vec2> {
@@ -327,37 +402,34 @@ impl EditorData {
     // }
 
     pub fn doc(&self) -> Rc<Doc> {
-        self.editor.doc()
+        self.doc.get_untracked()
     }
 
     /// The signal for the editor's document.
     pub fn doc_signal(&self) -> DocSignal {
-        DocSignal {
-            inner: self.editor.doc_signal(),
-        }
+        DocSignal { inner: self.doc }
     }
 
-    pub fn text(&self) -> Rope {
-        self.editor.text()
-    }
+    // pub fn text(&self) -> Rope {
+    //     self.editor.text()
+    // }
 
-    pub fn rope_text(&self) -> RopeTextVal {
-        self.editor.rope_text()
-    }
+    // pub fn rope_text(&self) -> RopeTextVal {
+    //     self.editor.rope_text()
+    // }
 
     fn run_edit_command(&self, cmd: &EditCommand) -> Result<CommandExecuted> {
         log::debug!("{:?}", cmd);
         let doc = self.doc();
-        let text = self.editor.rope_text();
+        let text = self.rope_text();
         let is_local = doc.content.with_untracked(|content| content.is_local());
-        let modal =
-            self.editor.doc().lines.with_untracked(|x| x.modal()) && !is_local;
+        let modal = self.doc().lines.with_untracked(|x| x.modal()) && !is_local;
         let smart_tab = self
             .common
             .config
             .with_untracked(|config| config.editor.smart_tab);
         let doc_before_edit = text.text().clone();
-        let mut cursor = self.editor.cursor.get_untracked();
+        let mut cursor = self.cursor.get_untracked();
         let mut register = self.common.register.get_untracked();
 
         let yank_data = if let CursorMode::Visual { .. } = &cursor.mode() {
@@ -374,7 +446,7 @@ impl EditorData {
                 register.add_delete(data?);
             }
         }
-        self.editor.cursor.set(cursor);
+        self.cursor.set(cursor);
         self.editor.register.set(register);
 
         if show_completion(cmd, &doc_before_edit, &deltas) {
@@ -415,7 +487,7 @@ impl EditorData {
             MotionModeCommand::MotionModeOutdent => MotionMode::Outdent,
             MotionModeCommand::MotionModeYank => MotionMode::Yank { count },
         };
-        let mut cursor = self.editor.cursor.get_untracked();
+        let mut cursor = self.cursor.get_untracked();
         let mut register = self.common.register.get_untracked();
 
         do_motion_mode(
@@ -426,17 +498,21 @@ impl EditorData {
             &mut register,
         );
 
-        self.editor.cursor.set(cursor);
+        self.cursor.set(cursor);
         self.common.register.set(register);
 
         CommandExecuted::Yes
+    }
+
+    pub fn rope_text(&self) -> RopeTextVal {
+        self.doc().rope_text()
     }
 
     fn run_multi_selection_command(
         &self,
         cmd: &MultiSelectionCommand,
     ) -> CommandExecuted {
-        let mut cursor = self.editor.cursor.get_untracked();
+        let mut cursor = self.cursor.get_untracked();
         let rope_text = self.rope_text();
         let doc = self.doc();
 
@@ -575,14 +651,15 @@ impl EditorData {
                 }
             },
             _ => {
-                if let Err(err) = do_multi_selection(&self.editor, &mut cursor, cmd)
+                if let Err(err) =
+                    do_multi_selection(&self.editor, &mut cursor, cmd, &doc)
                 {
                     error!("{err:?}");
                 }
             },
         };
 
-        self.editor.cursor.set(cursor);
+        self.cursor.set(cursor);
         // self.cancel_signature();
         self.cancel_completion();
         self.cancel_inline_completion();
@@ -619,6 +696,7 @@ impl EditorData {
 
         let mut cursor = self.cursor().get_untracked();
         let old_val = (cursor.offset(), cursor.affinity);
+        let doc = self.doc.get_untracked();
         self.common.register.update(|register| {
             if let Err(err) = move_cursor(
                 &self.editor,
@@ -628,6 +706,7 @@ impl EditorData {
                 count.unwrap_or(1),
                 mods.shift(),
                 register,
+                &doc,
             ) {
                 error!("{}", err);
             }
@@ -637,11 +716,11 @@ impl EditorData {
                 .internal_command
                 .send(InternalCommand::ResetBlinkCursor);
         }
-        self.editor.cursor.set(cursor);
+        self.cursor.set(cursor);
 
         if self.snippet.with_untracked(|s| s.is_some()) {
             self.snippet.update(|snippet| {
-                let offset = self.editor.cursor.get_untracked().offset();
+                let offset = self.cursor.get_untracked().offset();
                 let mut within_region = false;
                 for (_, (start, end)) in snippet.as_mut().unwrap() {
                     if offset >= *start && offset <= *end {
@@ -658,6 +737,31 @@ impl EditorData {
         CommandExecuted::Yes
     }
 
+    // TODO: should this have modifiers state in its api
+    pub fn page_move(&self, down: bool, mods: Modifiers) {
+        let viewport = self.viewport_untracked();
+        // TODO: don't assume line height is constant
+        let line_height = self.line_height(0) as f64;
+        let lines = (viewport.height() / line_height / 2.0).round() as usize;
+        let distance = (lines as f64) * line_height;
+        self.editor.scroll_delta
+            .set(Vec2::new(0.0, if down { distance } else { -distance }));
+        let cmd = if down {
+            MoveCommand::Down
+        } else {
+            MoveCommand::Up
+        };
+        let cmd = Command::Move(cmd);
+        // self.doc().run_command(self, &cmd, Some(lines), mods);
+
+            let cmd = CommandKind::from(cmd);
+            let cmd = LapceCommand {
+                kind: cmd,
+                data: None,
+            };
+            self.run_command(&cmd, Some(lines), mods);
+    }
+
     pub fn run_scroll_command(
         &self,
         cmd: &ScrollCommand,
@@ -671,10 +775,10 @@ impl EditorData {
 
         match cmd {
             ScrollCommand::PageUp => {
-                self.editor.page_move(false, mods);
+                self.page_move(false, mods);
             },
             ScrollCommand::PageDown => {
-                self.editor.page_move(true, mods);
+                self.page_move(true, mods);
             },
             ScrollCommand::ScrollUp => {
                 self.scroll(false, count.unwrap_or(1), mods);
@@ -1133,7 +1237,7 @@ impl EditorData {
     }
 
     fn on_screen_find(&self, pattern: &str) -> Vec<SelRegion> {
-        let lines: HashSet<usize> = self.editor.screen_lines.with_untracked(|x| {
+        let lines: HashSet<usize> = self.screen_lines.with_untracked(|x| {
             x.visual_lines
                 .iter()
                 .filter_map(|l| {
@@ -1623,12 +1727,56 @@ impl EditorData {
     }
 
     fn scroll(&self, down: bool, count: usize, mods: Modifiers) {
-        self.editor.scroll(
-            self.editor.sticky_header_height.get_untracked(),
-            down,
-            count,
-            mods,
-        )
+
+        let top_offset = self.editor.sticky_header_height.get_untracked();
+        let viewport = self.viewport_untracked();
+        // TODO: don't assume line height is constant
+        let line_height = self.line_height(0) as f64;
+        let diff = line_height * count as f64;
+        let diff = if down { diff } else { -diff };
+
+        let offset = self.cursor.with_untracked(|cursor| cursor.offset());
+        let rope = self.doc().rope_text();
+        let (line, _col) = match rope.offset_to_line_col(offset) {
+            Ok(rs) => rs,
+            Err(err) => {
+                error!("{err:?}");
+                return;
+            },
+        };
+        let top = viewport.y0 + diff + top_offset;
+        let bottom = viewport.y0 + diff + viewport.height();
+
+        let new_line = if (line + 1) as f64 * line_height + line_height > bottom {
+            let line = (bottom / line_height).floor() as usize;
+            if line > 2 { line - 2 } else { 0 }
+        } else if line as f64 * line_height - line_height < top {
+            let line = (top / line_height).ceil() as usize;
+            line + 1
+        } else {
+            line
+        };
+
+        self.editor.scroll_delta.set(Vec2::new(0.0, diff));
+
+        let res = match new_line.cmp(&line) {
+            Ordering::Greater => Some((MoveCommand::Down, new_line - line)),
+            Ordering::Less => Some((MoveCommand::Up, line - new_line)),
+            _ => None,
+        };
+
+        if let Some((cmd, count)) = res {
+            let cmd = Command::Move(cmd);
+            // self.doc().run_command(self, &cmd, Some(count), mods);
+
+                let cmd = CommandKind::from(cmd);
+                let cmd = LapceCommand {
+                    kind: cmd,
+                    data: None,
+                };
+                self.run_command(&cmd, Some(count), mods);
+
+        }
     }
 
     fn select_inline_completion(&self) {
@@ -2970,7 +3118,7 @@ impl EditorData {
                 self.active().set(true);
                 self.left_click(pointer_event);
 
-                let y = pointer_event.pos.y - self.editor.viewport_untracked().y0;
+                let y = pointer_event.pos.y - self.viewport.get_untracked().y0;
                 if self.editor.sticky_header_height.get_untracked() > y {
                     let index = y as usize
                         / self
@@ -3080,18 +3228,44 @@ impl EditorData {
     }
 
     fn single_click(&self, pointer_event: &PointerInputEvent) {
-        let offset = self.editor.single_click(pointer_event, &self.common);
-        if let Some(offset) = offset {
-            self.sync_document_symbol_by_offset(offset);
-            self.common
-                .internal_command
-                .send(InternalCommand::DocumentHighlight);
-        }
+        // let offset = self.editor.single_click(pointer_event, &self.common);
+
+        let mode = self.cursor.with_untracked(|c| c.mode().clone());
+        let (new_offset, _is_inside, cursor_affinity) =
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                },
+            };
+        log::info!(
+            "offset_of_point single_click {:?} {new_offset} {_is_inside} \
+             {cursor_affinity:?}",
+            pointer_event.pos
+        );
+        self.cursor.update(|cursor| {
+            cursor.set_offset_with_affinity(
+                new_offset,
+                pointer_event.modifiers.shift(),
+                pointer_event.modifiers.alt(),
+                Some(cursor_affinity),
+            );
+            cursor.affinity = cursor_affinity;
+        });
+        self.common
+            .internal_command
+            .send(InternalCommand::ResetBlinkCursor);
+        self.sync_document_symbol_by_offset(new_offset);
+        self.common
+            .internal_command
+            .send(InternalCommand::DocumentHighlight);
     }
 
     pub fn sync_document_symbol_by_offset(&self, offset: usize) {
         if self.common.sync_document_symbol.get_untracked() {
-            let doc = self.editor.doc();
+            let doc = self.doc();
             let line = doc.lines.with_untracked(|x| {
                 let buffer = x.buffer();
                 buffer.line_of_offset(offset)
@@ -3119,17 +3293,154 @@ impl EditorData {
     }
 
     fn double_click(&self, pointer_event: &PointerInputEvent) {
-        self.editor.double_click(pointer_event);
+        let mode = self.cursor.with_untracked(|c| c.mode().clone());
+
+        let (mouse_offset, _, _) =
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                },
+            };
+        let (start, end) = self
+            .doc()
+            .lines
+            .with_untracked(|x| x.buffer().select_word(mouse_offset));
+
+        let start_affi = self.screen_lines.with_untracked(|x| {
+            let text = x.visual_line_for_buffer_offset(start)?;
+            let Ok(text) = text.folded_line.text_of_origin_merge_col(
+                start - text.folded_line.origin_interval.start,
+            ) else {
+                error!(
+                    "start {start}, folded {}-{}",
+                    text.folded_line.origin_line_start,
+                    text.folded_line.origin_line_end
+                );
+                return None;
+            };
+            if let Text::Phantom { .. } = text {
+                Some(CursorAffinity::Forward)
+            } else {
+                None
+            }
+        });
+
+        info!(
+            "double_click {:?} {:?} mouse_offset={mouse_offset},  start={start} \
+             end={end} start_affi={start_affi:?}",
+            pointer_event.pos, mode
+        );
+        self.cursor.update(|cursor| {
+            cursor.add_region(
+                start,
+                end,
+                pointer_event.modifiers.shift(),
+                pointer_event.modifiers.alt(),
+                start_affi,
+            );
+        });
+
+        self.doc().lines.update(|x| x.set_document_highlight(None));
     }
 
     fn triple_click(&self, pointer_event: &PointerInputEvent) {
-        self.editor.triple_click(pointer_event);
+        let mode = self.cursor.with_untracked(|c| c.mode().clone());
+        let (mouse_offset, _, _) =
+            match self.nearest_buffer_offset_of_click(&mode, pointer_event.pos) {
+                Ok(Some(rs)) => rs,
+                Ok(None) => return,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                },
+            };
+        let origin_interval = match self.doc().lines.with_untracked(|x| {
+            let rs = x
+                .folded_line_of_buffer_offset(mouse_offset)
+                .map(|x| x.origin_interval);
+            if rs.is_err() {
+                x.log();
+            }
+            rs
+        }) {
+            Ok(origin_interval) => origin_interval,
+            Err(err) => {
+                error!("{}", err);
+                return;
+            },
+        };
+        // let vline = self
+        //     .visual_line_of_offset(mouse_offset, CursorAffinity::Backward)
+        //     .0;
+
+        self.cursor.update(|cursor| {
+            cursor.add_region(
+                origin_interval.start,
+                origin_interval.end,
+                pointer_event.modifiers.shift(),
+                pointer_event.modifiers.alt(),
+                None,
+            )
+        });
+    }
+
+    pub fn nearest_buffer_offset_of_click(
+        &self,
+        mode: &CursorMode,
+        mut point: Point,
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let viewport = self.viewport_untracked();
+        // point.x += viewport.x0;
+        point.y -= viewport.y0;
+        // log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
+        self.screen_lines
+            .with_untracked(|x| x.nearest_buffer_offset_of_click(mode, point))
+    }
+
+    /// Get the (point above, point below) of a particular offset within the
+    /// editor.
+    pub fn points_of_offset(&self, offset: usize) -> Result<(Point, Point)> {
+        let Some((point_above, line_height)) =
+            self.screen_lines.with_untracked(|screen_lines| {
+                match screen_lines.visual_position_of_buffer_offset(offset) {
+                    Ok(point) => {
+                        point.map(|point| (point, screen_lines.line_height))
+                    },
+                    Err(err) => {
+                        error!("{}", err.to_string());
+                        None
+                    },
+                }
+            })
+        else {
+            // log::info!("points_of_offset point is none {offset}");
+            return Ok((Point::new(0.0, 0.0), Point::new(0.0, 0.0)));
+        };
+        let mut point_below = point_above;
+        point_below.y += line_height;
+        Ok((point_above, point_below))
+    }
+
+    pub fn offset_of_point(
+        &self,
+        mode: &CursorMode,
+        mut point: Point,
+    ) -> Result<Option<(usize, bool, CursorAffinity)>> {
+        let viewport = self.viewport_untracked();
+        // point.x += viewport.x0;
+        point.y -= viewport.y0;
+        // log::info!("offset_of_point point={point:?}, viewport={viewport:?} ");
+        self.screen_lines
+            .with_untracked(|x| x.buffer_offset_of_click(mode, point))
     }
 
     pub fn pointer_move(&self, pointer_event: &PointerMoveEvent) {
         let mode = self.cursor().with_untracked(|c| c.mode().clone());
         let (offset, is_inside, affinity) =
-            match self.editor.offset_of_point(&mode, pointer_event.pos) {
+            match self.offset_of_point(&mode, pointer_event.pos) {
                 Ok(Some(rs)) => rs,
                 Ok(None) => return,
                 Err(err) => {
@@ -3416,12 +3727,22 @@ impl EditorData {
         });
     }
 
+    pub fn max_line_width(&self) -> f64 {
+        self.doc()
+            .lines
+            .with_untracked(|x| x.signal_max_width().get_untracked())
+    }
+
     // reset the doc inside and move cursor back
     pub fn reset(&self) {
         let doc = self.doc();
         doc.reload(Rope::from(""), true);
         self.cursor()
             .update(|cursor| cursor.set_offset(0, false, false));
+    }
+
+    pub fn line_height(&self, _line: usize) -> usize {
+        self.doc().lines.with_untracked(|x| x.config.line_height)
     }
 
     // pub fn visual_line(&self, line: usize) -> usize {

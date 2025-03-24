@@ -2707,15 +2707,14 @@ impl WindowWorkspaceData {
         let editor_id = self.common.hover.editor_id.get_untracked();
         let editor_data = self.main_split.editors.editor(editor_id)?;
 
-        let (window_origin, editor) =
-            (editor_data.window_origin(), &editor_data.editor);
-        let viewport = editor.viewport;
+        let window_origin =editor_data.window_origin();
+        let viewport = editor_data.viewport;
 
         let hover_offset = self.common.hover.offset.get_untracked();
         // TODO(minor): affinity should be gotten from where the hover was started
         // at.
         let (point_above, point_below) =
-            editor.points_of_offset(hover_offset).ok()?;
+            editor_data.points_of_offset(hover_offset).ok()?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2763,16 +2762,15 @@ impl WindowWorkspaceData {
                 return Ok(Point::ZERO);
             };
 
-        let (window_origin, viewport, editor) = (
+        let (window_origin, viewport) = (
             editor_data.window_origin(),
-            editor_data.editor.viewport,
-            &editor_data.editor,
+            editor_data.viewport,
         );
 
         // TODO(minor): What affinity should we use for this? Probably just use the
         // cursor's original affinity..
         let (point_above, point_below) =
-            editor.points_of_offset(completion.offset)?;
+            editor_data.points_of_offset(completion.offset)?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2813,15 +2811,14 @@ impl WindowWorkspaceData {
             return Ok(Point::ZERO);
         };
 
-        let (window_origin, viewport, editor) = (
+        let (window_origin, viewport, ) = (
             editor_data.window_origin(),
-            editor_data.editor.viewport,
-            &editor_data.editor,
+            editor_data.viewport,
         );
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) =
-            editor.points_of_offset(code_action.offset)?;
+            editor_data.points_of_offset(code_action.offset)?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();
@@ -2866,15 +2863,14 @@ impl WindowWorkspaceData {
                 return Ok(Point::ZERO);
             };
 
-        let (window_origin, viewport, editor) = (
+        let (window_origin, viewport) = (
             editor_data.window_origin(),
-            editor_data.editor.viewport,
-            &editor_data.editor,
+            editor_data.viewport,
         );
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) =
-            editor.points_of_offset(self.rename.start.get_untracked())?;
+            editor_data.points_of_offset(self.rename.start.get_untracked())?;
 
         let window_origin =
             window_origin.get() - self.common.window_origin.get().to_vec2();

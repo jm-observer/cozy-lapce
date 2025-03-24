@@ -1318,9 +1318,9 @@ fn editor_tab_content(
                             false
                         }
                     };
-                    let left_viewport = diff_editor_data.left.editor.viewport;
+                    let left_viewport = diff_editor_data.left.viewport;
                     let left_scroll_to = diff_editor_data.left.scroll_to();
-                    let right_viewport = diff_editor_data.right.editor.viewport;
+                    let right_viewport = diff_editor_data.right.viewport;
                     let _right_scroll_to = diff_editor_data.right.scroll_to();
                     // keep scroll common
                     // todo reform view

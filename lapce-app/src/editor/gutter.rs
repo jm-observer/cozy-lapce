@@ -54,13 +54,8 @@ impl EditorGutterView {
         let changes = doc.head_changes().get_untracked();
         let gutter_padding_right = self.gutter_padding_right.get_untracked() as f64;
 
-        let changes = changes_colors_screen(
-            &e_data.editor,
-            changes,
-            added,
-            modified_color,
-            removed,
-        )?;
+        let changes =
+            changes_colors_screen(&e_data, changes, added, modified_color, removed)?;
         for (y, height, removed, color) in changes {
             let height = if removed {
                 10.0
@@ -138,7 +133,7 @@ impl View for EditorGutterView {
         }
         let viewport = self.editor.viewport_untracked();
         let cursor = self.editor.cursor();
-        let screen_lines = self.editor.editor.screen_lines;
+        let screen_lines = self.editor.screen_lines;
         // let screen_lines = doc.lines.with_untracked(|x| x.signal_screen_lines());
         let (
             line_height,

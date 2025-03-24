@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData, EditorViewKind,
+    DiagnosticData,
     language::LapceLanguage,
     lines::{
         DocLinesManager, RopeTextPosition,
@@ -23,7 +23,6 @@ use doc::{
         command::EditCommand,
         cursor::Cursor,
         edit::EditType,
-        editor_command::*,
         fold::FoldingRange,
         line_ending::LineEnding,
         mode::MotionMode,
@@ -37,7 +36,6 @@ use doc::{
 };
 use floem::{
     ext_event::create_ext_action,
-    keyboard::Modifiers,
     kurbo::Rect,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith, batch},
     text::FamilyOwned,
@@ -54,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::{
-    command::{CommandKind, InternalCommand, LapceCommand},
+    command::{InternalCommand},
     editor::{
         EditorData,
         floem_editor::{CommonAction, Editor},
@@ -409,14 +407,10 @@ impl Doc {
     pub fn create_editor(
         self: &Rc<Doc>,
         cx: Scope,
-        is_local: bool,
-        view_kind: EditorViewKind,
     ) -> Editor {
         let common = &self.common;
-        let modal = common.config.with_untracked(|x| x.core.modal) && !is_local;
-
         let register = common.register;
-        let mut editor = Editor::new(cx, self.clone(), modal, view_kind);
+        let mut editor = Editor::new(cx, self.editor_id);
 
         editor.register = register;
         editor.ime_allowed = common.window_common.ime_allowed;
@@ -1565,24 +1559,24 @@ impl Doc {
         self.lines.with_untracked(|x| x.preedit.clone())
     }
 
-    pub fn run_command(
-        &self,
-        ed: &Editor,
-        cmd: &Command,
-        count: Option<usize>,
-        modifiers: Modifiers,
-    ) -> CommandExecuted {
-        let Some(editor_data) = self.editor_data(ed.id()) else {
-            return CommandExecuted::No;
-        };
+    // pub fn run_command(
+    //     &self,
+    //     ed: &Editor,
+    //     cmd: &Command,
+    //     count: Option<usize>,
+    //     modifiers: Modifiers,
+    // ) -> CommandExecuted {
+    //     let Some(editor_data) = self.editor_data(ed.id()) else {
+    //         return CommandExecuted::No;
+    //     };
 
-        let cmd = CommandKind::from(cmd.clone());
-        let cmd = LapceCommand {
-            kind: cmd,
-            data: None,
-        };
-        editor_data.run_command(&cmd, count, modifiers)
-    }
+    //     let cmd = CommandKind::from(cmd.clone());
+    //     let cmd = LapceCommand {
+    //         kind: cmd,
+    //         data: None,
+    //     };
+    //     editor_data.run_command(&cmd, count, modifiers)
+    // }
 
     pub fn receive_char(&self, ed: &Editor, c: &str) {
         let Some(editor_data) = self.editor_data(ed.id()) else {

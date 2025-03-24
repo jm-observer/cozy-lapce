@@ -184,8 +184,8 @@ pub fn editor_view(
     let id = ViewId::new();
     let is_active = create_memo(move |_| is_active(true));
 
-    let viewport = e_data.editor.viewport.read_only();
-    let screen_lines = e_data.editor.screen_lines.read_only();
+    let viewport = e_data.viewport.read_only();
+    let screen_lines = e_data.screen_lines.read_only();
     // .doc()
     // .lines
     // .with_untracked(|x| (x.signal_viewport(), x.signal_screen_lines()));
@@ -281,8 +281,10 @@ pub fn editor_view(
     let cursor = e_data.cursor();
     let find_focus = e_data.find_focus;
     let ime_allowed = e_data.common.window_common.ime_allowed;
-    let editor_viewport = e_data.editor.viewport;
+    let editor_viewport = e_data.viewport;
     let editor_cursor = e_data.cursor();
+    let doc = e_data.doc_signal();
+    let e_data_clone = e_data.clone();
     create_effect(move |_| {
         let active = is_active.get();
         if active && !find_focus.get() {
@@ -297,10 +299,10 @@ pub fn editor_view(
                     set_ime_allowed(true);
                 }
                 let offset = cursor.with(|c| c.offset());
-                let doc = ed1.doc.get_untracked();
+                let doc = doc.get_untracked();
 
                 if doc.loaded() {
-                    let (_, point_below) = match ed1.points_of_offset(offset) {
+                    let (_, point_below) = match e_data.points_of_offset(offset) {
                         Ok(rs) => rs,
                         Err(err) => {
                             error!("{err:?}");
@@ -320,11 +322,10 @@ pub fn editor_view(
         }
     });
 
-    let doc = e_data.doc_signal();
     EditorView {
         id,
         name,
-        editor: e_data,
+        editor: e_data_clone,
         is_active,
         inner_node: None,
         // viewport: viewport_rw,
@@ -336,13 +337,14 @@ pub fn editor_view(
         }
 
         if let Event::ImePreedit { text, cursor } = event {
+            let doc = doc.get_untracked();
             if text.is_empty() {
-                ed2.clear_preedit();
+                ed2.clear_preedit(&doc);
             } else {
                 // log::info!("Event::ImePreedit set_ime_cursor_area {text} cursor:
                 // {cursor:?}");
                 let offset = editor_cursor.with_untracked(|c| c.offset());
-                ed2.set_preedit(text.clone(), *cursor, offset);
+                ed2.set_preedit(text.clone(), *cursor, offset, &doc);
             }
         }
         EventPropagation::Stop
@@ -351,10 +353,10 @@ pub fn editor_view(
         if !is_active.get_untracked() {
             return EventPropagation::Continue;
         }
-
+        let doc = doc.get_untracked();
         if let Event::ImeCommit(text) = event {
-            ed3.clear_preedit();
-            ed3.receive_char(text);
+            ed3.clear_preedit(&doc);
+            ed3.receive_char(&text, &doc)
         }
         EventPropagation::Stop
     })
@@ -479,9 +481,8 @@ impl EditorView {
         cursor_offset: usize,
     ) -> Option<()> {
         let e_data = self.editor.clone();
-        let ed = e_data.editor.clone();
         let doc = e_data.doc();
-        let viewport = ed.viewport_untracked();
+        let viewport = self.editor.viewport_untracked();
 
         let current_line_color = current_line_color?;
         let breakline = self.debug_breakline.get_untracked().and_then(
@@ -684,7 +685,7 @@ impl EditorView {
             AttrsList,
             LineEnding,
             Vec<(usize, String)>,
-        ) = self.editor.editor.doc().lines.with_untracked(|lines| {
+        ) = self.editor.doc().lines.with_untracked(|lines| {
             (
                 lines.init_default_attrs_list(),
                 lines.buffer().line_ending(),
@@ -827,7 +828,8 @@ impl View for EditorView {
 
     fn style_pass(&mut self, cx: &mut StyleCx<'_>) {
         let editor = &self.editor.editor;
-        if match editor
+        if match self
+            .editor
             .doc()
             .lines
             .try_update(|s| s.update_editor_style(cx))
@@ -868,7 +870,6 @@ impl View for EditorView {
                 self.inner_node = Some(self.id.new_taffy_node());
             }
             let e_data = &self.editor;
-            let editor = &e_data.editor;
             let viewport_size = self.editor.viewport_untracked().size();
             let inner_node = self.inner_node.unwrap();
             let line_height = self
@@ -877,10 +878,9 @@ impl View for EditorView {
                 .config
                 .with_untracked(|config| config.editor.line_height())
                 as f64;
-            let width = (editor.max_line_width() + 10.0).max(viewport_size.width);
+            let width = (e_data.max_line_width() + 10.0).max(viewport_size.width);
 
-            let visual_line_len =
-                e_data.editor.visual_lines.with_untracked(|x| x.len());
+            let visual_line_len = e_data.visual_lines.with_untracked(|x| x.len());
             // let lines =
             //     editor.last_line() + screen_lines.lines.len() - line_unique.len();
             let last_line_height = line_height * visual_line_len as f64;
@@ -920,7 +920,6 @@ impl View for EditorView {
     fn paint(&mut self, cx: &mut PaintCx) {
         let doc = self.editor.doc_signal().get();
         let e_data = &self.editor;
-        let ed = &e_data.editor;
 
         let cursor_hidden = e_data.common.window_common.hide_cursor.get_untracked();
 
@@ -972,8 +971,8 @@ impl View for EditorView {
                 get_selection(&cursor),
             )
         });
-        let screen_lines = self.editor.editor.screen_lines.get_untracked();
-        let viewport = ed.viewport.get_untracked();
+        let screen_lines = self.editor.screen_lines.get_untracked();
+        let viewport = self.editor.viewport.get_untracked();
         let cursor_points = cursor_offsets
             .into_iter()
             .filter_map(|offset| {
@@ -998,7 +997,7 @@ impl View for EditorView {
         let bracket_offsets = doc.find_enclosing_brackets(cursor_offset);
 
         let (visible_whitespace, current_line_color, selection_color) =
-            ed.doc().lines.with_untracked(|x| {
+            doc.lines.with_untracked(|x| {
                 (
                     x.visible_whitespace(),
                     x.current_line_color(),
@@ -1633,7 +1632,7 @@ fn editor_gutter_folding_range(
 ) -> impl View {
     let config = window_tab_data.common.config;
     dyn_stack(
-        move || e_data.with(|x| x.editor.folding_display_item).get(),
+        move || e_data.with(|x| x.folding_display_item).get(),
         move |item| *item,
         move |item| {
             editor_gutter_folding_view(window_tab_data.clone(), item).on_click_stop(
@@ -1794,7 +1793,7 @@ pub fn count_rect(
         // log::error!("{change:?}");
         let line_index = match change {
             DiffResult::Empty { lines } => {
-                right_editor.editor.visual_lines.with_untracked(|x| {
+                right_editor.visual_lines.with_untracked(|x| {
                     for (index, line) in x.iter().enumerate() {
                         if let LineTy::DiffEmpty { change_line_start } = line.line_ty
                         {
@@ -1807,7 +1806,7 @@ pub fn count_rect(
                 })
             },
             DiffResult::Changed { lines } => {
-                right_editor.editor.visual_lines.with_untracked(|x| {
+                right_editor.visual_lines.with_untracked(|x| {
                     for (index, line) in x.iter().enumerate() {
                         if let LineTy::OriginText {
                             line_range_inclusive,
@@ -1823,7 +1822,7 @@ pub fn count_rect(
                 })
             },
         }?;
-        let line_height = right_editor.editor.line_height(0);
+        let line_height = right_editor.line_height(0);
         let y = ((line_index.max(3) - 3) * line_height) as f64;
         let y1 = ((line_index + 3) * line_height) as f64;
         let rect = Rect::new(0.0, y, 0.0, y1);
@@ -2043,7 +2042,7 @@ fn editor_content(
             e_data.cancel_completion();
             e_data.cancel_inline_completion();
         }
-        e_data.editor.viewport.set(rect);
+        e_data.viewport.set(rect);
         e_data.common.hover.active.set(false);
         current_scroll.set(rect);
     })
@@ -2441,7 +2440,7 @@ fn changes_color_iter(
 /// Get the position and coloring information for over the entire current
 /// [`ScreenLines`] Returns `(y, height_idx, removed, color)`
 pub fn changes_colors_screen(
-    editor: &Editor,
+    editor: &EditorData,
     changes: im::Vector<DiffLines>,
     added: Color,
     modified_color: Color,

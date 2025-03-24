@@ -311,6 +311,7 @@ impl CompletionData {
         cursor_offset: usize,
     ) {
         let doc = editor_data.doc();
+        let rope = doc.rope_text();
 
         if !doc.content.with_untracked(|content| content.is_file()) {
             return;
@@ -326,7 +327,7 @@ impl CompletionData {
         }
 
         let completion_lens = completion_lens_text(
-            doc.rope_text(),
+            rope.clone(),
             cursor_offset,
             self,
             doc.completion_lens().as_deref(),
@@ -336,7 +337,7 @@ impl CompletionData {
                 let offset = self.offset + self.input.len();
                 // TODO: will need to be adjusted to use visual line.
                 //   Could just store the offset in doc.
-                let (line, col) = match editor_data.editor.offset_to_line_col(offset)
+                let (line, col) = match rope.offset_to_line_col(offset)
                 {
                     Ok(rs) => rs,
                     Err(err) => {
