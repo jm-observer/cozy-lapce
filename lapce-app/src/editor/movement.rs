@@ -56,16 +56,21 @@ fn move_region(
         (count, *region)
     };
 
-    let (end, horiz) = move_offset(
-        view,
-        region.end,
-        region.horiz.as_ref(),
-        affinity,
-        count,
-        movement,
-        mode,
-        doc,
-    )?;
+    let (end, horiz) = if count == 0 {
+        (region.end, region.horiz)
+    } else {
+        move_offset(
+            view,
+            region.end,
+            region.horiz.as_ref(),
+            affinity,
+            count,
+            movement,
+            mode,
+            doc,
+        )?
+    };
+
     let start = match modify {
         true => region.start,
         false => end,
