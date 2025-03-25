@@ -17,12 +17,12 @@ use doc::{
 use floem::{
     Renderer, ViewId,
     context::PaintCx,
-    kurbo::{BezPath, Line, Point, Rect, Size, Stroke, Vec2},
+    kurbo::{BezPath, Line, Point, Rect, Size, Stroke},
     peniko,
     peniko::Color,
     pointer::PointerInputEvent,
     reactive::{
-        RwSignal, Scope, SignalUpdate, SignalWith, Trigger, batch,
+        RwSignal, Scope, SignalUpdate, SignalWith, batch,
     },
     text::{Attrs, AttrsList, FamilyOwned, TextLayout},
 };
@@ -50,13 +50,9 @@ pub struct Editor {
     pub read_only: RwSignal<bool>,
 
     // pub cursor: RwSignal<Cursor>,
-    pub editor_view_focused:    Trigger,
-    pub editor_view_focus_lost: Trigger,
+    // pub editor_view_focused:    Trigger,
+    // pub editor_view_focus_lost: Trigger,
     pub editor_view_id:         RwSignal<Option<ViewId>>,
-
-    /// The current scroll position.
-    pub scroll_delta: RwSignal<Vec2>,
-    pub scroll_to:    RwSignal<Option<Vec2>>,
 
     /// Modal mode register
     pub register: RwSignal<Register>,
@@ -119,10 +115,8 @@ impl Editor {
             id,
             active: cx.create_rw_signal(false),
             read_only: cx.create_rw_signal(false),
-            scroll_delta: cx.create_rw_signal(Vec2::ZERO),
-            scroll_to: cx.create_rw_signal(None),
-            editor_view_focused: cx.create_trigger(),
-            editor_view_focus_lost: cx.create_trigger(),
+            // editor_view_focused: cx.create_trigger(),
+            // editor_view_focus_lost: cx.create_trigger(),
             editor_view_id: cx.create_rw_signal(None),
             // screen_lines,
             register: cx.create_rw_signal(Register::default()),

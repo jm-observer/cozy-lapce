@@ -1894,8 +1894,8 @@ fn editor_content(
         .with_untracked(|editor| {
             (
                 editor.cursor().read_only(),
-                editor.scroll_delta().read_only(),
-                editor.scroll_to(),
+                editor.scroll_delta.read_only(),
+                editor.scroll_to,
                 editor.window_origin(),
                 editor.editor.clone(),
             )
@@ -1997,14 +1997,13 @@ fn editor_content(
         let id = editor_content_view.id();
         editor.editor_view_id.set(Some(id));
 
-        let editor2 = editor.clone();
         editor_content_view
-            .on_event_cont(EventListener::FocusGained, move |_| {
-                editor.editor_view_focused.notify();
-            })
-            .on_event_cont(EventListener::FocusLost, move |_| {
-                editor2.editor_view_focus_lost.notify();
-            })
+            // .on_event_cont(EventListener::FocusGained, move |_| {
+            //     editor.editor_view_focused.notify();
+            // })
+            // .on_event_cont(EventListener::FocusLost, move |_| {
+            //     editor2.editor_view_focus_lost.notify();
+            // })
             // 不能on_event_stop。否则会导致diff的左侧光标无法渲染
             .on_event_cont(EventListener::PointerDown, move |event| {
                 if let Event::PointerDown(pointer_event) = event {

@@ -156,6 +156,10 @@ pub struct EditorData {
 
     pub(crate) doc: RwSignal<Rc<Doc>>,
     pub kind:       RwSignal<EditorViewKind>,
+
+    /// The current scroll position.
+    pub scroll_delta: RwSignal<Vec2>,
+    pub scroll_to:    RwSignal<Option<Vec2>>,
 }
 
 impl PartialEq for EditorData {
@@ -253,6 +257,8 @@ impl EditorData {
             cursor,
             doc,
             kind,
+            scroll_delta: cx.create_rw_signal(Vec2::ZERO),
+            scroll_to: cx.create_rw_signal(None),
         }
     }
 
@@ -339,7 +345,6 @@ impl EditorData {
         //     .set(self.editor.viewport.get_untracked());
         let viewport = self.viewport.get_untracked();
         editor
-            .editor
             .scroll_to
             .set(Some(viewport.origin().to_vec2()));
         editor
@@ -384,13 +389,13 @@ impl EditorData {
         self.window_origin
     }
 
-    pub fn scroll_delta(&self) -> RwSignal<Vec2> {
-        self.editor.scroll_delta
-    }
-
-    pub fn scroll_to(&self) -> RwSignal<Option<Vec2>> {
-        self.editor.scroll_to
-    }
+    // pub fn scroll_delta(&self) -> RwSignal<Vec2> {
+    //     self.editor.scroll_delta
+    // }
+    //
+    // pub fn scroll_to(&self) -> RwSignal<Option<Vec2>> {
+    //     self.editor.scroll_to
+    // }
 
     pub fn active(&self) -> RwSignal<bool> {
         self.editor.active
@@ -744,7 +749,7 @@ impl EditorData {
         let line_height = self.line_height(0) as f64;
         let lines = (viewport.height() / line_height / 2.0).round() as usize;
         let distance = (lines as f64) * line_height;
-        self.editor.scroll_delta
+        self.scroll_delta
             .set(Vec2::new(0.0, if down { distance } else { -distance }));
         let cmd = if down {
             MoveCommand::Down
@@ -1757,7 +1762,7 @@ impl EditorData {
             line
         };
 
-        self.editor.scroll_delta.set(Vec2::new(0.0, diff));
+        self.scroll_delta.set(Vec2::new(0.0, diff));
 
         let res = match new_line.cmp(&line) {
             Ordering::Greater => Some((MoveCommand::Down, new_line - line)),
@@ -2580,7 +2585,7 @@ impl EditorData {
             Cursor::new(CursorMode::Insert(Selection::caret(offset)), None, None)
         });
         if let Some(scroll_offset) = scroll_offset {
-            self.editor.scroll_to.set(Some(scroll_offset));
+            self.scroll_to.set(Some(scroll_offset));
         }
         if let Some(edits) = edits.as_ref() {
             self.do_text_edit(edits, false);
