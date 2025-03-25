@@ -2416,18 +2416,26 @@ impl EditorData {
         // log::debug!("{:?} {}", old_selection, format_before_save);
         let mut cursor = self.cursor().get_untracked();
         let doc = self.doc();
+        let cursor_offset = cursor.offset();
 
-        let rev_offset = if format_before_save {
-            doc.lines.with_untracked(|x| {
-                x.buffer()
-                    .text()
-                    .slice_to_cow(0..cursor.offset())
-                    .chars()
-                    .filter(|c| c.is_ascii())
-                    .count()
-            })
+        let (screen_line_index, rev_offset) = if format_before_save {
+            let screen_line_index = self.screen_lines.with_untracked(|x| {
+                x.visual_line_for_buffer_offset(cursor_offset)
+                    .map(|(index, _)| index)
+            });
+            (
+                screen_line_index,
+                doc.lines.with_untracked(|x| {
+                    x.buffer()
+                        .text()
+                        .slice_to_cow(0..cursor.offset())
+                        .chars()
+                        .filter(|c| c.is_ascii())
+                        .count()
+                }),
+            )
         } else {
-            0
+            (None, 0)
         };
 
         // let rev_offset = doc.buffer.with_untracked(|x| x.len()) - cursor.offset();
@@ -2440,6 +2448,7 @@ impl EditorData {
             old_selection.apply_delta(&delta, true, InsertDrift::Default);
 
         let old_cursor = cursor.mode().clone();
+
         doc.lines.update(|lines| {
             cursor.update_selection(lines.buffer(), selection);
             let rope = lines.buffer().text();
@@ -2453,6 +2462,12 @@ impl EditorData {
                     .map(|(index, _)| index + 1)
                     .unwrap_or_default();
                 cursor.set_offset(offset, false, false);
+                debug!(
+                    "rev_offset={rev_offset} offset={offset}, {screen_line_index:?}"
+                );
+                self.common
+                    .offset_line_from_top
+                    .set(Some(screen_line_index));
             }
             lines.set_cursor(old_cursor, cursor.mode().clone());
         });
@@ -3337,7 +3352,7 @@ impl EditorData {
             .with_untracked(|x| x.buffer().select_word(mouse_offset));
 
         let start_affi = self.screen_lines.with_untracked(|x| {
-            let text = x.visual_line_for_buffer_offset(start)?;
+            let (_, text) = x.visual_line_for_buffer_offset(start)?;
             let Ok(text) = text.folded_line.text_of_origin_merge_col(
                 start - text.folded_line.origin_interval.start,
             ) else {

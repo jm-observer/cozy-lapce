@@ -274,15 +274,15 @@ impl ScreenLines {
     pub fn visual_line_for_buffer_offset(
         &self,
         buffer_offset: usize,
-    ) -> Option<&VisualOriginText> {
-        for visual_line in &self.visual_lines {
+    ) -> Option<(usize, &VisualOriginText)> {
+        for (index, visual_line) in self.visual_lines.iter().enumerate() {
             if let VisualLineInfo::OriginText { text, .. } = visual_line {
                 if text.folded_line.contain_buffer_offset(buffer_offset) {
-                    return Some(text);
+                    return Some((index, text));
                 } else if text.folded_line.origin_interval.start == buffer_offset {
                     // last line and line is empty
                     // origin_interval == [buffer_offset, buffer_offset)
-                    return Some(text);
+                    return Some((index, text));
                 } else if text.folded_line.origin_interval.start > buffer_offset {
                     return None;
                 }
@@ -295,7 +295,7 @@ impl ScreenLines {
         &self,
         buffer_offset: usize,
     ) -> Result<Option<(&VisualOriginText, usize)>> {
-        let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
+        let Some((_, vl)) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.folded_line.origin_interval.start;
@@ -354,7 +354,7 @@ impl ScreenLines {
         buffer_offset: usize,
         cursor_affinity: CursorAffinity,
     ) -> Result<Option<(&VisualOriginText, usize)>> {
-        let Some(vl) = self.visual_line_for_buffer_offset(buffer_offset) else {
+        let Some((_, vl)) = self.visual_line_for_buffer_offset(buffer_offset) else {
             return Ok(None);
         };
         let merge_col = buffer_offset - vl.folded_line.origin_interval.start;

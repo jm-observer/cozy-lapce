@@ -511,7 +511,8 @@ impl EditorView {
 
         // Highlight the current line
         if !is_local && cursor_highlight_current_line {
-            let info = screen_lines.visual_line_for_buffer_offset(cursor_offset)?;
+            let (_, info) =
+                screen_lines.visual_line_for_buffer_offset(cursor_offset)?;
             let origin_folded_line = &info.folded_line;
             if Some(origin_folded_line.origin_line_start) == breakline {
                 return None;
