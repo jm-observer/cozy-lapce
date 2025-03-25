@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::{
-    command::{InternalCommand},
+    command::InternalCommand,
     editor::{
         EditorData,
         floem_editor::{CommonAction, Editor},
@@ -404,10 +404,7 @@ impl Doc {
 
     /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to
     /// be registered appropriately to create the [`EditorData`] and such.
-    pub fn create_editor(
-        self: &Rc<Doc>,
-        cx: Scope,
-    ) -> Editor {
+    pub fn create_editor(self: &Rc<Doc>, cx: Scope) -> Editor {
         let common = &self.common;
         let register = common.register;
         let mut editor = Editor::new(cx, self.editor_id);

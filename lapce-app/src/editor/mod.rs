@@ -1,11 +1,12 @@
 use std::{
+    cmp::Ordering,
     collections::{HashMap, HashSet},
     rc::Rc,
     str::FromStr,
     sync::Arc,
     time::Duration,
 };
-use std::cmp::Ordering;
+
 use anyhow::Result;
 use doc::{
     EditorViewKind,
@@ -296,7 +297,16 @@ impl EditorData {
 
         let modal = false;
         let editor = doc.create_editor(cx);
-        Self::new(cx, doc, modal, EditorViewKind::Normal, editor, None, None, common)
+        Self::new(
+            cx,
+            doc,
+            modal,
+            EditorViewKind::Normal,
+            editor,
+            None,
+            None,
+            common,
+        )
     }
 
     /// Create a new editor with a specific doc.
@@ -312,7 +322,16 @@ impl EditorData {
     ) -> Self {
         let editor = doc.create_editor(cx);
         let modal = false;
-        Self::new(cx, doc, modal, view_kind, editor, editor_tab_id, diff_editor_id, common)
+        Self::new(
+            cx,
+            doc,
+            modal,
+            view_kind,
+            editor,
+            editor_tab_id,
+            diff_editor_id,
+            common,
+        )
     }
 
     /// Swap out the document this editor is for
@@ -344,9 +363,7 @@ impl EditorData {
         //     .viewport
         //     .set(self.editor.viewport.get_untracked());
         let viewport = self.viewport.get_untracked();
-        editor
-            .scroll_to
-            .set(Some(viewport.origin().to_vec2()));
+        editor.scroll_to.set(Some(viewport.origin().to_vec2()));
         editor
             .editor
             .last_movement
@@ -759,12 +776,12 @@ impl EditorData {
         let cmd = Command::Move(cmd);
         // self.doc().run_command(self, &cmd, Some(lines), mods);
 
-            let cmd = CommandKind::from(cmd);
-            let cmd = LapceCommand {
-                kind: cmd,
-                data: None,
-            };
-            self.run_command(&cmd, Some(lines), mods);
+        let cmd = CommandKind::from(cmd);
+        let cmd = LapceCommand {
+            kind: cmd,
+            data: None,
+        };
+        self.run_command(&cmd, Some(lines), mods);
     }
 
     pub fn run_scroll_command(
@@ -1732,7 +1749,6 @@ impl EditorData {
     }
 
     fn scroll(&self, down: bool, count: usize, mods: Modifiers) {
-
         let top_offset = self.editor.sticky_header_height.get_untracked();
         let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
@@ -1774,13 +1790,12 @@ impl EditorData {
             let cmd = Command::Move(cmd);
             // self.doc().run_command(self, &cmd, Some(count), mods);
 
-                let cmd = CommandKind::from(cmd);
-                let cmd = LapceCommand {
-                    kind: cmd,
-                    data: None,
-                };
-                self.run_command(&cmd, Some(count), mods);
-
+            let cmd = CommandKind::from(cmd);
+            let cmd = LapceCommand {
+                kind: cmd,
+                data: None,
+            };
+            self.run_command(&cmd, Some(count), mods);
         }
     }
 
@@ -1874,13 +1889,20 @@ impl EditorData {
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        let (line, position) = doc.lines.with_untracked(|b| {
+        let (line, position, select_word) = doc.lines.with_untracked(|b| {
+            let buffer = b.buffer();
+            let (start, end) = buffer.select_word(offset);
             (
-                b.buffer().line_of_offset(offset),
-                b.buffer().offset_to_position(offset),
+                buffer.line_of_offset(offset),
+                buffer.offset_to_position(offset),
+                buffer.slice_to_cow(start..end).to_string(),
             )
         });
         let position = position?;
+
+        log::warn!(
+            "update_inline_completion {line} {position:?} word={select_word}"
+        );
         // let position = doc
         //     .buffer
         //     .with_untracked(|buffer| buffer.offset_to_position(offset));
@@ -4189,45 +4211,47 @@ impl DocSignal {
 /// Checks if completion should be triggered if the received command
 /// is one that inserts whitespace or deletes whitespace
 fn show_completion(
-    cmd: &EditCommand,
-    doc: &Rope,
-    deltas: &[(Rope, RopeDelta, InvalLines)],
+    _cmd: &EditCommand,
+    _doc: &Rope,
+    _deltas: &[(Rope, RopeDelta, InvalLines)],
 ) -> bool {
-    let show_completion = match cmd {
-        EditCommand::DeleteBackward
-        | EditCommand::DeleteForward
-        | EditCommand::DeleteWordBackward
-        | EditCommand::DeleteWordForward
-        | EditCommand::DeleteForwardAndInsert => {
-            let start = match deltas.first().and_then(|delta| delta.1.els.first()) {
-                Some(lapce_xi_rope::DeltaElement::Copy(_, start)) => *start,
-                _ => 0,
-            };
+    false
+    // let show_completion = match cmd {
+    //     EditCommand::DeleteBackward
+    //     | EditCommand::DeleteForward
+    //     | EditCommand::DeleteWordBackward
+    //     | EditCommand::DeleteWordForward
+    //     | EditCommand::DeleteForwardAndInsert => {
+    //         let start = match deltas.first().and_then(|delta|
+    // delta.1.els.first()) {
+    // Some(lapce_xi_rope::DeltaElement::Copy(_, start)) => *start,
+    //             _ => 0,
+    //         };
 
-            let end = match deltas.first().and_then(|delta| delta.1.els.get(1)) {
-                Some(lapce_xi_rope::DeltaElement::Copy(end, _)) => *end,
-                _ => 0,
-            };
+    //         let end = match deltas.first().and_then(|delta|
+    // delta.1.els.get(1)) {
+    // Some(lapce_xi_rope::DeltaElement::Copy(end, _)) => *end,
+    // _ => 0,         };
 
-            if start > 0 && end > start {
-                let next_char = doc
-                    .slice_to_cow(end..end + 1)
-                    .chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_punctuation());
-                let str = doc.slice_to_cow(start..end);
-                // log::info!("{next_char} {str}");
-                !str.chars()
-                    .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
-                    && next_char
-            } else {
-                true
-            }
-        },
-        EditCommand::NormalizeLineEndings => true,
-        _ => false,
-    };
+    //         if start > 0 && end > start {
+    //             let next_char = doc
+    //                 .slice_to_cow(end..end + 1)
+    //                 .chars()
+    //                 .all(|c| c.is_whitespace() || c.is_ascii_punctuation());
+    //             let str = doc.slice_to_cow(start..end);
+    //             // log::info!("{next_char} {str}");
+    //             !str.chars()
+    //                 .all(|c| c.is_whitespace() || c.is_ascii_whitespace())
+    //                 && next_char
+    //         } else {
+    //             true
+    //         }
+    //     },
+    //     // EditCommand::NormalizeLineEndings => true,
+    //     _ => false,
+    // };
 
-    show_completion
+    // show_completion
 }
 
 fn show_inline_completion(cmd: &EditCommand) -> bool {
