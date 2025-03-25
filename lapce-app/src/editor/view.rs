@@ -64,10 +64,8 @@ use crate::{
     command::InternalCommand,
     common_svg,
     config::{LapceConfig, WithLapceConfig, color::LapceColor, editor::WrapStyle},
-    editor::{
-        floem_editor::{Editor, paint_text},
-        gutter_new::view::editor_gutter_new,
-    },
+    editor::{floem_editor::paint_text, gutter_new::view::editor_gutter_new},
+    keypress::KeyPressFocus,
     svg,
     window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
@@ -225,7 +223,7 @@ pub fn editor_view(
     });
 
     let config = e_data.common.config;
-    let sticky_header_height_signal = e_data.editor.sticky_header_height;
+    let sticky_header_height_signal = e_data.sticky_header_height;
     let editor2 = e_data.clone();
     create_effect(move |last_rev| {
         let (line_height, sticky_header) = config.signal(|config| {
@@ -273,10 +271,6 @@ pub fn editor_view(
         rev
     });
 
-    let ed1 = e_data.editor.clone();
-    let ed2 = ed1.clone();
-    let ed3 = ed1.clone();
-
     let editor_window_origin = e_data.window_origin();
     let cursor = e_data.cursor();
     let find_focus = e_data.find_focus;
@@ -285,6 +279,9 @@ pub fn editor_view(
     let editor_cursor = e_data.cursor();
     let doc = e_data.doc_signal();
     let e_data_clone = e_data.clone();
+    let e_data_event = e_data.clone();
+    let e_data_2 = e_data.clone();
+    let e_data_3 = e_data.clone();
     create_effect(move |_| {
         let active = is_active.get();
         if active && !find_focus.get() {
@@ -335,16 +332,15 @@ pub fn editor_view(
         if !is_active.get_untracked() {
             return EventPropagation::Continue;
         }
-
         if let Event::ImePreedit { text, cursor } = event {
             let doc = doc.get_untracked();
             if text.is_empty() {
-                ed2.clear_preedit(&doc);
+                e_data_2.clear_preedit(&doc);
             } else {
                 // log::info!("Event::ImePreedit set_ime_cursor_area {text} cursor:
                 // {cursor:?}");
                 let offset = editor_cursor.with_untracked(|c| c.offset());
-                ed2.set_preedit(text.clone(), *cursor, offset, &doc);
+                e_data_2.set_preedit(text.clone(), *cursor, offset, &doc);
             }
         }
         EventPropagation::Stop
@@ -355,8 +351,8 @@ pub fn editor_view(
         }
         let doc = doc.get_untracked();
         if let Event::ImeCommit(text) = event {
-            ed3.clear_preedit(&doc);
-            ed3.receive_char(&text, &doc)
+            e_data_3.clear_preedit(&doc);
+            e_data_event.receive_char(&text);
         }
         EventPropagation::Stop
     })
@@ -639,8 +635,7 @@ impl EditorView {
             return Ok(());
         }
 
-        let sticky_header_info =
-            self.editor.editor.sticky_header_info.get_untracked();
+        let sticky_header_info = self.editor.sticky_header_info.get_untracked();
         let total_sticky_lines = sticky_header_info.sticky_lines.len();
 
         let paint_last_line = total_sticky_lines > 0
@@ -715,7 +710,7 @@ impl EditorView {
             editor_sticky_header_background_color,
             0.0,
         );
-        self.editor.editor.sticky_header_info.get_untracked();
+        self.editor.sticky_header_info.get_untracked();
         // Paint lines
         let mut y_accum = 0.0;
 
@@ -828,7 +823,6 @@ impl View for EditorView {
     }
 
     fn style_pass(&mut self, cx: &mut StyleCx<'_>) {
-        let editor = &self.editor.editor;
         if match self
             .editor
             .doc()
@@ -842,7 +836,7 @@ impl View for EditorView {
                 return;
             },
         } {
-            editor.floem_style_id.update(|val| *val += 1);
+            // editor.floem_style_id.update(|val| *val += 1);
             cx.app_state_mut().request_paint(self.id());
         }
     }
@@ -857,7 +851,7 @@ impl View for EditorView {
         state: Box<dyn std::any::Any>,
     ) {
         if let Ok(state) = state.downcast() {
-            self.editor.editor.sticky_header_info.set(*state);
+            self.editor.sticky_header_info.set(*state);
             self.id.request_layout();
         }
     }
@@ -1241,7 +1235,7 @@ pub fn editor_container_view(
                     .signal(|config| config.editor.sticky_header.signal())
                     .get();
                 let (sticky_header_height, editor_view) =
-                    editor.with(|x| (x.editor.sticky_header_height, x.kind_read()));
+                    editor.with(|x| (x.sticky_header_height, x.kind_read()));
                 let sticky_header_height = sticky_header_height.get() as f32;
 
                 s.absolute()
@@ -1891,14 +1885,13 @@ fn editor_content(
     debug_breakline: Memo<Option<(usize, PathBuf)>>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
 ) -> impl View {
-    let (cursor, scroll_delta, scroll_to, window_origin, editor) = e_data
-        .with_untracked(|editor| {
+    let (cursor, scroll_delta, scroll_to, window_origin) =
+        e_data.with_untracked(|editor| {
             (
                 editor.cursor().read_only(),
                 editor.scroll_delta.read_only(),
                 editor.scroll_to,
                 editor.window_origin(),
-                editor.editor.clone(),
             )
         });
 
@@ -1994,9 +1987,8 @@ fn editor_content(
                 .min_size_full()
                 .cursor(CursorStyle::Text)
         });
-
         let id = editor_content_view.id();
-        editor.editor_view_id.set(Some(id));
+        e_data.with_untracked(|x| x.editor_view_id.set(Some(id)));
 
         editor_content_view
             // .on_event_cont(EventListener::FocusGained, move |_| {
@@ -2499,7 +2491,6 @@ pub fn changes_colors_screen(
 /// [`ScreenLines`] Returns `(y, height_idx, removed, color)`
 pub fn changes_colors_all(
     _config: &LapceConfig,
-    _ed: &Editor,
     _changes: im::Vector<DiffLines>,
 ) -> Vec<(f64, usize, bool, Color)> {
     // let line_height = config.editor.line_height();

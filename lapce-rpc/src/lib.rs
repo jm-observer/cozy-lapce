@@ -14,6 +14,8 @@ pub mod stdio;
 pub mod style;
 pub mod terminal;
 
+use std::fmt::Display;
+
 pub use parse::{Call, RequestId, RpcObject};
 use serde::{Deserialize, Serialize};
 pub use stdio::stdio_transport;
@@ -30,4 +32,14 @@ pub enum RpcMessage<Req, Notif, Resp> {
 pub struct RpcError {
     pub code:    i64,
     pub message: String,
+}
+
+impl Display for RpcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "RpcError(code: {}, message: {})",
+            self.code, self.message
+        )
+    }
 }

@@ -2243,7 +2243,7 @@ impl WindowWorkspaceData {
                     }
                     Focus::Workbench => {
                         if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                            if let Some(id) = e_data.editor.editor_view_id.get_untracked() {
+                            if let Some(id) = e_data.editor_view_id.get_untracked() {
                                 id.request_paint();
                             }
                         }
@@ -2707,7 +2707,7 @@ impl WindowWorkspaceData {
         let editor_id = self.common.hover.editor_id.get_untracked();
         let editor_data = self.main_split.editors.editor(editor_id)?;
 
-        let window_origin =editor_data.window_origin();
+        let window_origin = editor_data.window_origin();
         let viewport = editor_data.viewport;
 
         let hover_offset = self.common.hover.offset.get_untracked();
@@ -2762,10 +2762,8 @@ impl WindowWorkspaceData {
                 return Ok(Point::ZERO);
             };
 
-        let (window_origin, viewport) = (
-            editor_data.window_origin(),
-            editor_data.viewport,
-        );
+        let (window_origin, viewport) =
+            (editor_data.window_origin(), editor_data.viewport);
 
         // TODO(minor): What affinity should we use for this? Probably just use the
         // cursor's original affinity..
@@ -2811,10 +2809,8 @@ impl WindowWorkspaceData {
             return Ok(Point::ZERO);
         };
 
-        let (window_origin, viewport, ) = (
-            editor_data.window_origin(),
-            editor_data.viewport,
-        );
+        let (window_origin, viewport) =
+            (editor_data.window_origin(), editor_data.viewport);
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) =
@@ -2863,10 +2859,8 @@ impl WindowWorkspaceData {
                 return Ok(Point::ZERO);
             };
 
-        let (window_origin, viewport) = (
-            editor_data.window_origin(),
-            editor_data.viewport,
-        );
+        let (window_origin, viewport) =
+            (editor_data.window_origin(), editor_data.viewport);
 
         // TODO(minor): What affinity should we use for this?
         let (_point_above, point_below) =

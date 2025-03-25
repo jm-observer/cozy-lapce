@@ -175,7 +175,7 @@ impl Editors {
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> EditorId {
-        let editor = EditorData::new_local(cx, *self, common, name);
+        let editor = EditorData::new_local(cx, common, name);
 
         self.insert(editor)
     }
@@ -583,7 +583,6 @@ impl MainSplitData {
                 cx,
                 path.clone(),
                 diagnostic_data,
-                self.editors,
                 self.common.clone(),
                 content.clone(),
             );
@@ -707,7 +706,6 @@ impl MainSplitData {
                 path:    path.clone(),
                 version: "head".to_string(),
             }),
-            self.editors,
             self.common.clone(),
         );
         let left = Rc::new(left);
@@ -1066,7 +1064,6 @@ impl MainSplitData {
                         let doc = Doc::new_content(
                             self.scope,
                             doc_content,
-                            self.editors,
                             self.common.clone(),
                             None,
                         );
@@ -3271,7 +3268,6 @@ impl MainSplitData {
                         let doc = Doc::new_content(
                             self.scope,
                             content,
-                            self.editors,
                             self.common.clone(),
                             None,
                         );
@@ -3315,15 +3311,10 @@ impl MainSplitData {
                     doc
                 },
                 DocContent::Local => {
-                    Rc::new(Doc::new_local(cx, data.editors, common.clone(), None))
+                    Rc::new(Doc::new_local(cx, common.clone(), None))
                 },
                 DocContent::History(history) => {
-                    let doc = Doc::new_history(
-                        cx,
-                        content.clone(),
-                        data.editors,
-                        common.clone(),
-                    );
+                    let doc = Doc::new_history(cx, content.clone(), common.clone());
                     let doc = Rc::new(doc);
 
                     {
@@ -3352,13 +3343,8 @@ impl MainSplitData {
                         id:   BufferId::next(),
                         name: name.to_string(),
                     };
-                    let doc = Doc::new_content(
-                        cx,
-                        doc_content,
-                        data.editors,
-                        common.clone(),
-                        None,
-                    );
+                    let doc =
+                        Doc::new_content(cx, doc_content, common.clone(), None);
                     let doc = Rc::new(doc);
                     data.scratch_docs.update(|scratch_docs| {
                         scratch_docs.insert(name.to_string(), doc.clone());

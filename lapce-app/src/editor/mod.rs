@@ -30,6 +30,7 @@ use doc::{
         phantom_text::Text,
         screen_lines::{ScreenLines, VisualLineInfo},
         selection::{InsertDrift, SelRegion, Selection},
+        text::Preedit,
     },
 };
 use floem::{
@@ -64,6 +65,7 @@ use lsp_types::{
     MarkedString, MarkupKind, Range, TextEdit,
 };
 use nucleo::Utf32Str;
+use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
 use crate::{
@@ -73,14 +75,13 @@ use crate::{
     db::LapceDb,
     doc::Doc,
     editor::{
-        floem_editor::{Editor, do_motion_mode},
+        floem_editor::do_motion_mode,
         movement::{do_multi_selection, move_cursor},
     },
     editor_tab::EditorTabChildId,
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
     keypress::{KeyPressFocus, condition::Condition},
     lsp::path_from_url,
-    main_split::Editors,
     markdown::{
         MarkdownContent, from_marked_string, from_plaintext, parse_markdown,
     },
@@ -142,7 +143,7 @@ pub struct EditorData {
     pub on_screen_find:   RwSignal<OnScreenFind>,
     pub last_inline_find: RwSignal<Option<(InlineFindDirection, String)>>,
     pub find_focus:       RwSignal<bool>,
-    pub editor:           Rc<Editor>,
+    // pub editor:           Rc<Editor>,
     // pub kind: RwSignal<EditorViewKind>,
     // pub sticky_header_height: RwSignal<f64>,
     pub common:           Rc<CommonData>,
@@ -159,8 +160,13 @@ pub struct EditorData {
     pub kind:       RwSignal<EditorViewKind>,
 
     /// The current scroll position.
-    pub scroll_delta: RwSignal<Vec2>,
-    pub scroll_to:    RwSignal<Option<Vec2>>,
+    pub scroll_delta:         RwSignal<Vec2>,
+    pub scroll_to:            RwSignal<Option<Vec2>>,
+    pub editor_view_id:       RwSignal<Option<ViewId>>,
+    pub active:               RwSignal<bool>,
+    pub sticky_header_height: RwSignal<f64>,
+    pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
+    pub last_movement:        RwSignal<Movement>,
 }
 
 impl PartialEq for EditorData {
@@ -175,7 +181,6 @@ impl EditorData {
         doc: Rc<Doc>,
         modal: bool,
         view_kind: EditorViewKind,
-        editor: Editor,
         editor_tab_id: Option<EditorTabManageId>,
         diff_editor_id: Option<(EditorTabManageId, DiffEditorId)>,
         common: Rc<CommonData>,
@@ -244,7 +249,6 @@ impl EditorData {
             }),
             last_inline_find: cx.create_rw_signal(None),
             find_focus: cx.create_rw_signal(false),
-            editor: Rc::new(editor),
             // kind: cx.create_rw_signal(EditorViewKind::Normal),
             // sticky_header_height: cx.create_rw_signal(0.0),
             common, /* sticky_header_info:
@@ -260,6 +264,11 @@ impl EditorData {
             kind,
             scroll_delta: cx.create_rw_signal(Vec2::ZERO),
             scroll_to: cx.create_rw_signal(None),
+            editor_view_id: cx.create_rw_signal(None),
+            active: cx.create_rw_signal(false),
+            sticky_header_height: cx.create_rw_signal(0.0),
+            sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
+            last_movement: cx.create_rw_signal(Movement::Left),
         }
     }
 
@@ -276,11 +285,10 @@ impl EditorData {
     /// [`Editors::new_local`] instead to register the editor.
     pub fn new_local(
         cx: Scope,
-        editors: Editors,
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> Self {
-        Self::new_local_id(cx, editors, common, name)
+        Self::new_local_id(cx, common, name)
     }
 
     /// Create a new local editor with the given id.
@@ -288,25 +296,14 @@ impl EditorData {
     /// [`Editors::new_local`] instead to register the editor.
     pub fn new_local_id(
         cx: Scope,
-        editors: Editors,
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> Self {
         let cx = cx.create_child();
-        let doc = Rc::new(Doc::new_local(cx, editors, common.clone(), name));
+        let doc = Rc::new(Doc::new_local(cx, common.clone(), name));
 
         let modal = false;
-        let editor = doc.create_editor(cx);
-        Self::new(
-            cx,
-            doc,
-            modal,
-            EditorViewKind::Normal,
-            editor,
-            None,
-            None,
-            common,
-        )
+        Self::new(cx, doc, modal, EditorViewKind::Normal, None, None, common)
     }
 
     /// Create a new editor with a specific doc.
@@ -320,14 +317,12 @@ impl EditorData {
         common: Rc<CommonData>,
         view_kind: EditorViewKind,
     ) -> Self {
-        let editor = doc.create_editor(cx);
         let modal = false;
         Self::new(
             cx,
             doc,
             modal,
             view_kind,
-            editor,
             editor_tab_id,
             diff_editor_id,
             common,
@@ -364,16 +359,13 @@ impl EditorData {
         //     .set(self.editor.viewport.get_untracked());
         let viewport = self.viewport.get_untracked();
         editor.scroll_to.set(Some(viewport.origin().to_vec2()));
-        editor
-            .editor
-            .last_movement
-            .set(self.editor.last_movement.get_untracked());
+        editor.last_movement.set(self.last_movement.get_untracked());
 
         editor
     }
 
     pub fn id(&self) -> EditorId {
-        self.editor.id()
+        self.doc().editor_id
     }
 
     pub fn editor_info(&self, _data: &WindowWorkspaceData) -> EditorInfo {
@@ -414,9 +406,9 @@ impl EditorData {
     //     self.editor.scroll_to
     // }
 
-    pub fn active(&self) -> RwSignal<bool> {
-        self.editor.active
-    }
+    // pub fn active(&self) -> RwSignal<bool> {
+    //     self.editor.active
+    // }
 
     // /// Get the line information for lines on the screen.
     // pub fn screen_lines(&self) -> RwSignal<ScreenLines> {
@@ -469,7 +461,7 @@ impl EditorData {
             }
         }
         self.cursor.set(cursor);
-        self.editor.register.set(register);
+        // self.editor.register.set(register);
 
         if show_completion(cmd, &doc_before_edit, &deltas) {
             self.update_completion(false);
@@ -512,13 +504,7 @@ impl EditorData {
         let mut cursor = self.cursor.get_untracked();
         let mut register = self.common.register.get_untracked();
 
-        do_motion_mode(
-            &self.editor,
-            &*self.doc(),
-            &mut cursor,
-            motion_mode,
-            &mut register,
-        );
+        do_motion_mode(&*self.doc(), &mut cursor, motion_mode, &mut register);
 
         self.cursor.set(cursor);
         self.common.register.set(register);
@@ -673,9 +659,7 @@ impl EditorData {
                 }
             },
             _ => {
-                if let Err(err) =
-                    do_multi_selection(&self.editor, &mut cursor, cmd, &doc)
-                {
+                if let Err(err) = do_multi_selection(&mut cursor, cmd, &doc) {
                     error!("{err:?}");
                 }
             },
@@ -695,9 +679,7 @@ impl EditorData {
         mods: Modifiers,
     ) -> CommandExecuted {
         self.common.hover.active.set(false);
-        if movement.is_jump()
-            && movement != &self.editor.last_movement.get_untracked()
-        {
+        if movement.is_jump() && movement != &self.last_movement.get_untracked() {
             let path = self
                 .doc()
                 .content
@@ -714,14 +696,13 @@ impl EditorData {
                 );
             }
         }
-        self.editor.last_movement.set(movement.clone());
+        self.last_movement.set(movement.clone());
 
         let mut cursor = self.cursor().get_untracked();
         let old_val = (cursor.offset(), cursor.affinity);
         let doc = self.doc.get_untracked();
         self.common.register.update(|register| {
             if let Err(err) = move_cursor(
-                &self.editor,
                 &*self.doc(),
                 &mut cursor,
                 movement,
@@ -757,6 +738,40 @@ impl EditorData {
         }
         self.cancel_completion();
         CommandExecuted::Yes
+    }
+
+    pub fn clear_preedit(&self, doc: &Doc) {
+        let preedit = doc.preedit();
+        if preedit.preedit.with_untracked(|preedit| preedit.is_none()) {
+            return;
+        }
+
+        batch(|| {
+            preedit.preedit.set(None);
+            doc.cache_rev().update(|cache_rev| {
+                *cache_rev += 1;
+            });
+        });
+    }
+
+    pub fn set_preedit(
+        &self,
+        text: String,
+        cursor: Option<(usize, usize)>,
+        offset: usize,
+        doc: &Doc,
+    ) {
+        batch(|| {
+            doc.preedit().preedit.set(Some(Preedit {
+                text,
+                cursor,
+                offset,
+            }));
+
+            doc.cache_rev().update(|cache_rev| {
+                *cache_rev += 1;
+            });
+        });
     }
 
     // TODO: should this have modifiers state in its api
@@ -1749,7 +1764,7 @@ impl EditorData {
     }
 
     fn scroll(&self, down: bool, count: usize, mods: Modifiers) {
-        let top_offset = self.editor.sticky_header_height.get_untracked();
+        let top_offset = self.sticky_header_height.get_untracked();
         let viewport = self.viewport_untracked();
         // TODO: don't assume line height is constant
         let line_height = self.line_height(0) as f64;
@@ -3157,11 +3172,11 @@ impl EditorData {
         }
         match pointer_event.button {
             PointerButton::Mouse(MouseButton::Primary) => {
-                self.active().set(true);
+                self.active.set(true);
                 self.left_click(pointer_event);
 
                 let y = pointer_event.pos.y - self.viewport.get_untracked().y0;
-                if self.editor.sticky_header_height.get_untracked() > y {
+                if self.sticky_header_height.get_untracked() > y {
                     let index = y as usize
                         / self
                             .common
@@ -3169,8 +3184,7 @@ impl EditorData {
                             .with_untracked(|config| config.editor.line_height());
                     if let (Some(path), Some(line)) = (
                         self.doc().content.get_untracked().path(),
-                        self.editor
-                            .sticky_header_info
+                        self.sticky_header_info
                             .get_untracked()
                             .sticky_lines
                             .get(index),
@@ -3492,7 +3506,7 @@ impl EditorData {
             };
         // log::info!("offset_of_point pointer_move {:?} {offset} {is_inside}
         // {affinity:?}", pointer_event.pos);
-        if self.active().get_untracked()
+        if self.active.get_untracked()
             && self.cursor().with_untracked(|c| c.offset()) != offset
         {
             self.cursor().update(|cursor| {
@@ -3547,8 +3561,8 @@ impl EditorData {
         }
     }
 
-    pub fn pointer_up(&self, pointer_event: &PointerInputEvent) {
-        self.editor.pointer_up(pointer_event);
+    pub fn pointer_up(&self, _pointer_event: &PointerInputEvent) {
+        self.active.set(false);
     }
 
     pub fn pointer_leave(&self) {

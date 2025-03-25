@@ -13,16 +13,12 @@ use doc::lines::{
 use lapce_xi_rope::Rope;
 use log::info;
 
-use crate::{
-    doc::Doc,
-    editor::floem_editor::{CommonAction, Editor},
-};
+use crate::{doc::Doc, editor::floem_editor::CommonAction};
 
 /// Move a selection region by a given movement.
 /// Much of the time, this will just be a matter of moving the cursor, but
 /// some movements may depend on the current selection.
 fn move_region(
-    view: &Editor,
     region: &SelRegion,
     affinity: &mut CursorAffinity,
     count: usize,
@@ -60,7 +56,6 @@ fn move_region(
         (region.end, region.horiz)
     } else {
         move_offset(
-            view,
             region.end,
             region.horiz.as_ref(),
             affinity,
@@ -79,7 +74,6 @@ fn move_region(
 }
 
 pub fn move_selection(
-    view: &Editor,
     selection: &Selection,
     affinity: &mut CursorAffinity,
     count: usize,
@@ -91,7 +85,7 @@ pub fn move_selection(
     let mut new_selection = Selection::new();
     for region in selection.regions() {
         new_selection.add_region(move_region(
-            view, region, affinity, count, modify, movement, mode, doc,
+            region, affinity, count, modify, movement, mode, doc,
         )?);
     }
     Ok(new_selection)
@@ -100,7 +94,6 @@ pub fn move_selection(
 // TODO: It would probably fit the overall logic better if affinity was
 // immutable and it just returned the new affinity!
 pub fn move_offset(
-    view: &Editor,
     offset: usize,
     horiz: Option<&ColPosition>,
     affinity: &mut CursorAffinity,
@@ -112,18 +105,18 @@ pub fn move_offset(
     let rope = doc.rope_text();
     let (new_offset, horiz) = match movement {
         Movement::Left => {
-            let new_offset = move_left( offset, affinity, mode, count, doc)?;
+            let new_offset = move_left(offset, affinity, mode, count, doc)?;
 
             (new_offset, None)
         },
         Movement::Right => {
-            let new_offset = move_right( offset, affinity, mode, count, doc)?;
+            let new_offset = move_right(offset, affinity, mode, count, doc)?;
 
             (new_offset, None)
         },
         Movement::Up => {
             let Some((new_offset, horiz)) =
-                move_up( offset, affinity, horiz.cloned(), mode, count, doc)?
+                move_up(offset, affinity, horiz.cloned(), mode, count, doc)?
             else {
                 return Ok((offset, horiz.cloned()));
             };
@@ -132,7 +125,7 @@ pub fn move_offset(
         },
         Movement::Down => {
             let Some((new_offset, horiz)) =
-                move_down( offset, affinity, horiz.cloned(), mode, count, doc)?
+                move_down(offset, affinity, horiz.cloned(), mode, count, doc)?
             else {
                 return Ok((offset, horiz.cloned()));
             };
@@ -155,7 +148,7 @@ pub fn move_offset(
             (new_offset, Some(horiz))
         },
         Movement::StartOfLine => {
-            let (new_offset, horiz) = start_of_line(view, affinity, offset)?;
+            let (new_offset, horiz) = start_of_line(affinity, offset)?;
             info!("StartOfLine offset={offset} new_offset={new_offset}");
             (new_offset, Some(horiz))
         },
@@ -166,7 +159,7 @@ pub fn move_offset(
         },
         Movement::Line(position) => {
             let (new_offset, horiz) =
-                to_line(view, offset, horiz.cloned(), mode, position);
+                to_line(offset, horiz.cloned(), mode, position);
 
             (new_offset, Some(horiz))
         },
@@ -400,7 +393,6 @@ fn move_up(
 #[allow(dead_code, unused_variables)]
 /// Move down for when the cursor is on the last visual line.
 fn move_down_last_rvline(
-    view: &Editor,
     _offset: usize,
     affinity: &mut CursorAffinity,
     _horiz: Option<ColPosition>,
@@ -490,7 +482,6 @@ fn first_non_blank(
 }
 
 fn start_of_line(
-    _view: &Editor,
     _affinity: &mut CursorAffinity,
     _offset: usize,
 ) -> Result<(usize, ColPosition)> {
@@ -516,7 +507,6 @@ fn end_of_line(
 }
 #[allow(dead_code, unused_variables)]
 fn to_line(
-    view: &Editor,
     offset: usize,
     horiz: Option<ColPosition>,
     mode: Mode,
@@ -549,7 +539,6 @@ fn to_line(
 /// Move the current cursor.  
 /// This will signal-update the document for some motion modes.
 pub fn move_cursor(
-    ed: &Editor,
     action: &dyn CommonAction,
     cursor: &mut Cursor,
     movement: &Movement,
@@ -571,7 +560,6 @@ pub fn move_cursor(
             };
             let offset = *offset;
             let (new_offset, horiz) = move_offset(
-                ed,
                 offset,
                 horiz.as_ref(),
                 &mut cursor.affinity,
@@ -582,7 +570,6 @@ pub fn move_cursor(
             )?;
             if let Some(motion_mode) = &motion_mode {
                 let (moved_new_offset, _) = move_offset(
-                    ed,
                     new_offset,
                     None,
                     &mut cursor.affinity,
@@ -605,7 +592,6 @@ pub fn move_cursor(
                     _ => offset..new_offset,
                 };
                 action.exec_motion_mode(
-                    ed,
                     cursor,
                     motion_mode.clone(),
                     range,
@@ -623,7 +609,6 @@ pub fn move_cursor(
             let end = *end;
             let mode = *mode;
             let (new_offset, horiz) = move_offset(
-                ed,
                 end,
                 horiz.as_ref(),
                 &mut cursor.affinity,
@@ -642,7 +627,6 @@ pub fn move_cursor(
         CursorMode::Insert(selection) => {
             let selection = selection.clone();
             let selection = move_selection(
-                ed,
                 &selection,
                 &mut cursor.affinity,
                 count,
@@ -658,7 +642,6 @@ pub fn move_cursor(
 }
 
 pub fn do_multi_selection(
-    view: &Editor,
     cursor: &mut Cursor,
     cmd: &MultiSelectionCommand,
     doc: &Doc,
@@ -679,7 +662,6 @@ pub fn do_multi_selection(
             if let CursorMode::Insert(mut selection) = cursor.mode().clone() {
                 let offset = selection.first().map(|s| s.end).unwrap_or(0);
                 let (new_offset, _) = move_offset(
-                    view,
                     offset,
                     cursor.horiz.as_ref(),
                     &mut cursor.affinity,
@@ -699,7 +681,6 @@ pub fn do_multi_selection(
             if let CursorMode::Insert(mut selection) = cursor.mode().clone() {
                 let offset = selection.last().map(|s| s.end).unwrap_or(0);
                 let (new_offset, _) = move_offset(
-                    view,
                     offset,
                     cursor.horiz.as_ref(),
                     &mut cursor.affinity,
@@ -763,7 +744,6 @@ pub fn do_multi_selection(
 }
 
 pub fn do_motion_mode(
-    ed: &Editor,
     action: &dyn CommonAction,
     cursor: &mut Cursor,
     motion_mode: MotionMode,
@@ -777,7 +757,6 @@ pub fn do_motion_mode(
         {
             let offset = cursor.offset();
             action.exec_motion_mode(
-                ed,
                 cursor,
                 cached_motion_mode,
                 offset..offset,

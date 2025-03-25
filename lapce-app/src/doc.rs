@@ -54,15 +54,12 @@ use smallvec::SmallVec;
 use crate::{
     command::InternalCommand,
     editor::{
-        EditorData,
-        floem_editor::{CommonAction, Editor},
+        floem_editor::CommonAction,
         location::{EditorLocation, EditorPosition},
     },
     find::{Find, FindProgress, FindResult},
     history::DocumentHistory,
-    keypress::KeyPressFocus,
     local_task::{LocalRequest, LocalResponse},
-    main_split::Editors,
     panel::document_symbol::{
         DocumentSymbolViewData, SymbolData, SymbolInformationItemData,
     },
@@ -121,7 +118,7 @@ pub struct Doc {
 
     pub find_result: FindResult,
 
-    editors:    Editors,
+    // editors:    Editors,
     pub common: Rc<CommonData>,
 
     pub document_symbol_data: DocumentSymbolViewData,
@@ -134,7 +131,6 @@ impl Doc {
         cx: Scope,
         path: PathBuf,
         diagnostics: DiagnosticData,
-        editors: Editors,
         common: Rc<CommonData>,
         doc_content: DocContent,
     ) -> Self {
@@ -198,7 +194,6 @@ impl Doc {
             code_actions: cx.create_rw_signal(im::HashMap::new()),
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
-            editors,
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
@@ -210,17 +205,15 @@ impl Doc {
 
     pub fn new_local(
         cx: Scope,
-        editors: Editors,
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> Doc {
-        Self::new_content(cx, DocContent::Local, editors, common, name)
+        Self::new_content(cx, DocContent::Local, common, name)
     }
 
     pub fn new_content(
         cx: Scope,
         content: DocContent,
-        editors: Editors,
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> Self {
@@ -287,7 +280,6 @@ impl Doc {
             find_result: FindResult::new(cx),
             code_actions: cx.create_rw_signal(im::HashMap::new()),
             // preedit: PreeditData::new(cx),
-            editors,
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
@@ -298,7 +290,6 @@ impl Doc {
     pub fn new_history(
         cx: Scope,
         content: DocContent,
-        editors: Editors,
         common: Rc<CommonData>,
     ) -> Self {
         let editor_id = EditorId::next();
@@ -381,7 +372,6 @@ impl Doc {
             code_actions: cx.create_rw_signal(im::HashMap::new()),
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
-            editors,
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
@@ -402,23 +392,22 @@ impl Doc {
     //     })
     // }
 
-    /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to
-    /// be registered appropriately to create the [`EditorData`] and such.
-    pub fn create_editor(self: &Rc<Doc>, cx: Scope) -> Editor {
-        let common = &self.common;
-        let register = common.register;
-        let mut editor = Editor::new(cx, self.editor_id);
+    // /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to
+    // /// be registered appropriately to create the [`EditorData`] and such.
+    // pub fn create_editor(self: &Rc<Doc>, cx: Scope) -> Editor {
+    //     // let common = &self.common;
+    //     let editor = Editor::new(cx, self.editor_id);
 
-        editor.register = register;
-        editor.ime_allowed = common.window_common.ime_allowed;
-        editor.recreate_view_effects();
+    //     // editor.register = register;
+    //     // editor.ime_allowed = common.window_common.ime_allowed;
+    //     editor.recreate_view_effects();
 
-        editor
-    }
+    //     editor
+    // }
 
-    fn editor_data(&self, id: EditorId) -> Option<EditorData> {
-        self.editors.editor_untracked(id)
-    }
+    // fn editor_data(&self, id: EditorId) -> Option<EditorData> {
+    //     self.editors.editor_untracked(id)
+    // }
 
     pub fn syntax(&self) -> Syntax {
         self.lines.with_untracked(|x| x.syntax.clone())
@@ -1414,18 +1403,17 @@ impl Doc {
             // let buffer = self.lines.with_untracked(|x| x.signal_buffer());
             let lines = self.lines;
 
-            let send = create_ext_action(self.scope, move |result| {
-                if let Ok(ProxyResponse::SaveResponse {}) = result {
-                    match lines.try_update(|x| x.set_pristine(rev)) {
-                        Some(Ok(true)) => {
-                            after_action();
-                        },
-                        Some(Err(err)) => {
-                            error!("{err:?}");
-                        },
-                        _ => {},
-                    }
-                }
+            let send = create_ext_action(self.scope, move |result| match result {
+                Ok(_) => match lines.try_update(|x| x.set_pristine(rev)) {
+                    Some(Ok(true)) => {
+                        after_action();
+                    },
+                    Some(Err(err)) => {
+                        error!("{err:?}");
+                    },
+                    _ => {},
+                },
+                Err(err) => error!("{err}"),
             });
 
             self.common.proxy.save(rev, path, true, move |(_, result)| {
@@ -1575,13 +1563,13 @@ impl Doc {
     //     editor_data.run_command(&cmd, count, modifiers)
     // }
 
-    pub fn receive_char(&self, ed: &Editor, c: &str) {
-        let Some(editor_data) = self.editor_data(ed.id()) else {
-            return;
-        };
+    // pub fn receive_char(&self, ed: &Editor, c: &str) {
+    //     let Some(editor_data) = self.editor_data(ed.id()) else {
+    //         return;
+    //     };
 
-        editor_data.receive_char(c);
-    }
+    //     editor_data.receive_char(c);
+    // }
 
     // pub fn edit(
     //     &self,
@@ -1595,9 +1583,9 @@ impl Doc {
     //     self.apply_deltas(&[delta]);
     // }
 
-    pub fn editor_id(&self) -> EditorId {
-        self.editor_id
-    }
+    // pub fn editor_id(&self) -> EditorId {
+    //     self.editor_id
+    // }
 
     pub fn font_size(&self, _line: usize) -> usize {
         self.lines.with_untracked(|x| x.config.font_size)
@@ -1640,7 +1628,6 @@ impl Doc {
 impl CommonAction for Doc {
     fn exec_motion_mode(
         &self,
-        _ed: &Editor,
         cursor: &mut Cursor,
         motion_mode: MotionMode,
         range: Range<usize>,
@@ -1671,7 +1658,6 @@ impl CommonAction for Doc {
 
     fn do_edit(
         &self,
-        _ed: &Editor,
         cursor: &mut Cursor,
         cmd: &EditCommand,
         modal: bool,
