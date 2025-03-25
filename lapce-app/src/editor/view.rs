@@ -1275,7 +1275,8 @@ pub fn editor_container_view(
             return;
         }
         let doc = editor.doc();
-        editor.scope.dispose();
+        // ?
+        // editor.scope.dispose();
 
         let scratch_doc_name =
             if let DocContent::Scratch { name, .. } = doc.content.get_untracked() {
@@ -1287,7 +1288,8 @@ pub fn editor_container_view(
             if !scratch_docs
                 .with_untracked(|scratch_docs| scratch_docs.contains_key(&name))
             {
-                doc.scope.dispose();
+                // ?
+                // doc.scope.dispose();
             }
         }
     })

@@ -284,7 +284,8 @@ impl Cursor {
                 self.mode = CursorMode::Normal(offset);
             },
             CursorMode::Insert(_) => {
-                self.mode = CursorMode::Insert(selection);
+                self.set_insert(selection);
+                // self.mode = CursorMode::Insert(selection);
             },
         }
     }
@@ -361,7 +362,8 @@ impl Cursor {
             CursorMode::Insert(selection) => {
                 let selection =
                     selection.apply_delta(delta, true, InsertDrift::Default);
-                self.mode = CursorMode::Insert(selection);
+                self.set_insert(selection);
+                // self.mode = CursorMode::Insert(selection);
             },
         }
         self.horiz = None;
@@ -658,7 +660,8 @@ impl Cursor {
                     new_region.start_cursor_affi = start_affinity;
                     Selection::sel_region(new_region)
                 };
-                self.mode = CursorMode::Insert(new_selection);
+                self.set_insert(new_selection);
+                // self.mode = CursorMode::Insert(new_selection);
             },
         }
     }

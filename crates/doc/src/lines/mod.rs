@@ -2319,12 +2319,7 @@ impl DocLines {
             bg,
         )?);
 
-        PhantomTextLine::new(
-            line,
-            origin_text_len,
-            start_offset,
-            text,
-        )
+        PhantomTextLine::new(line, origin_text_len, start_offset, text)
     }
 
     // #[allow(clippy::too_many_arguments)]
@@ -3870,7 +3865,7 @@ impl PubUpdateLines {
     }
 
     pub fn buffer_edit(&mut self, edit: EditBuffer) -> Result<bool> {
-        debug!("buffer_edit {edit:?}");
+        debug!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
         let mut line_delta = OriginLinesDelta::default();
         match edit {
             EditBuffer::Init(content) => {
@@ -4020,6 +4015,7 @@ impl PubUpdateLines {
         self.signals.update_paint_text();
 
         self.trigger_signals();
+        debug!("after buffer_edit rev={}", self.buffer().rev());
         Ok(true)
     }
 

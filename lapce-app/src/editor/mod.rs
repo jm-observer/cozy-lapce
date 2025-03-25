@@ -2048,6 +2048,7 @@ impl EditorData {
             } else if let Err(err) = self.apply_completion_item(&item.item) {
                 log::error!("{:?}", err);
             }
+            self.check_auto_save();
         }
     }
 
@@ -2061,7 +2062,8 @@ impl EditorData {
             c.cancel();
         });
 
-        self.doc().clear_completion_lens()
+        self.doc().clear_completion_lens();
+        self.check_auto_save();
     }
 
     /// Update the displayed autocompletion box
@@ -2396,7 +2398,6 @@ impl EditorData {
             .common
             .config
             .with_untracked(|config| config.editor.autosave_interval);
-        log::warn!("check_auto_save {autosave_interval}");
         if autosave_interval > 0 {
             let doc = self.doc();
             if doc.content.with_untracked(|c| c.path().is_none()) {
@@ -2415,7 +2416,7 @@ impl EditorData {
                      {:?}",
                     doc.content
                 );
-                if !is_pristine && is_current_rec {
+                if !is_pristine && is_current_rec && !editor.has_completions() {
                     editor.save(true, || {});
                 }
             });
