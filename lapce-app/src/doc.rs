@@ -42,7 +42,7 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
-    debug::LapceBreakpoint, doc::DocContent, id::EditorId, workspace::LapceWorkspace,
+    debug::LapceBreakpoint, doc::DocContent, workspace::LapceWorkspace,
 };
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
@@ -94,7 +94,6 @@ pub type AllCodeLens = im::HashMap<usize, (PluginId, usize, im::Vector<CodeLens>
 
 #[derive(Clone)]
 pub struct Doc {
-    pub editor_id:    EditorId,
     pub name:         Option<String>,
     pub scope:        Scope,
     pub buffer_id:    BufferId,
@@ -134,7 +133,6 @@ impl Doc {
         common: Rc<CommonData>,
         doc_content: DocContent,
     ) -> Self {
-        let editor_id = EditorId::next();
         let queries_directory = common.directory.queries_directory.clone();
         let grammars_directory = common.directory.grammars_directory.clone();
         let syntax = Syntax::init(&path, &grammars_directory, &queries_directory);
@@ -177,7 +175,6 @@ impl Doc {
         });
 
         Doc {
-            editor_id,
             name: None,
             // kind,
             // viewport
@@ -216,7 +213,6 @@ impl Doc {
         common: Rc<CommonData>,
         name: Option<String>,
     ) -> Self {
-        let editor_id = EditorId::next();
         let cx = cx.create_child();
         let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
             common.config.with_untracked(|config| {
@@ -265,7 +261,6 @@ impl Doc {
             });
         });
         Self {
-            editor_id,
             name,
             scope: cx,
             buffer_id: BufferId::next(),
@@ -290,7 +285,6 @@ impl Doc {
         content: DocContent,
         common: Rc<CommonData>,
     ) -> Self {
-        let editor_id = EditorId::next();
         let (rw_config, bracket_pair_colorization, bracket_colorization_limit) =
             common.config.with_untracked(|config| {
                 (
@@ -348,7 +342,6 @@ impl Doc {
         });
 
         Self {
-            editor_id,
             name: None,
             scope: cx,
             buffer_id: BufferId::next(),

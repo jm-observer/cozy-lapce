@@ -135,6 +135,7 @@ pub type SnippetIndex = Vec<(usize, (usize, usize))>;
 #[derive(Clone, Debug)]
 pub struct EditorData {
     pub scope:            Scope,
+    pub editor_id:        EditorId,
     pub editor_tab_id:    RwSignal<Option<EditorTabManageId>>,
     pub diff_editor_id:   RwSignal<Option<(EditorTabManageId, DiffEditorId)>>,
     // pub confirmed:            RwSignal<bool>,
@@ -269,6 +270,7 @@ impl EditorData {
             sticky_header_height: cx.create_rw_signal(0.0),
             sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
             last_movement: cx.create_rw_signal(Movement::Left),
+            editor_id: EditorId::next(),
         }
     }
 
@@ -365,7 +367,7 @@ impl EditorData {
     }
 
     pub fn id(&self) -> EditorId {
-        self.doc().editor_id
+        self.editor_id
     }
 
     pub fn editor_info(&self, _data: &WindowWorkspaceData) -> EditorInfo {
@@ -2421,10 +2423,12 @@ impl EditorData {
                     .lines
                     .with_untracked(|x| x.buffer().is_pristine());
                 let is_current_rec = editor.doc().rev() == rev;
+                let has_completions = editor.has_completions();
+                let has_has_inline_completions = editor.has_inline_completions();
                 log::warn!(
-                    "check_auto_save {is_current_rec} is_pristine={is_pristine} \
-                     {:?}",
-                    doc.content
+                    "check_auto_save {is_current_rec} is_pristine={is_pristine} has_inline_completions={has_has_inline_completions}\
+                    has_completions={has_completions} {:?}",
+                    doc.content.get_untracked()
                 );
                 if !is_pristine && is_current_rec && !editor.has_completions() {
                     editor.save(true, || {});
