@@ -165,8 +165,7 @@ impl Doc {
             buffer,
             // kind,
             Some(path.clone()),
-        )
-        .unwrap();
+        );
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.with(|x| x.get_doc_editor_config());
@@ -255,8 +254,7 @@ impl Doc {
             rw_config,
             buffer,
             None,
-        )
-        .unwrap();
+        );
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.with(|x| x.get_doc_editor_config());
@@ -338,8 +336,7 @@ impl Doc {
             rw_config,
             buffer,
             None,
-        )
-        .unwrap();
+        );
         let config = common.config;
         cx.create_effect(move |_| {
             let editor_config = config.with(|x| x.get_doc_editor_config());
@@ -454,9 +451,7 @@ impl Doc {
     pub fn init_content(&self, content: Rope) {
         batch(|| {
             self.lines.update(|lines| {
-                if let Err(err) = lines.init_buffer(content) {
-                    error!("{:?}", err);
-                }
+                lines.init_buffer(content);
             });
             self.loaded.set(true);
             self.on_update(None);
@@ -488,16 +483,11 @@ impl Doc {
     pub fn reload(&self, content: Rope, set_pristine: bool) {
         // self.code_actions.clear();
         // self.inlay_hints = None;
-        let delta = match self
+        let Some(delta) = self
             .lines
             .try_update(|buffer| buffer.reload_buffer(content, set_pristine))
-            .unwrap()
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            },
+        else {
+            return;
         };
         self.apply_deltas(&[delta]);
     }
@@ -516,16 +506,11 @@ impl Doc {
         if self.content.with_untracked(|c| c.read_only()) {
             return Vec::new();
         }
-        let deltas = match self
+        let Some(deltas) = self
             .lines
             .try_update(|lines| lines.do_insert_buffer(cursor, s))
-            .unwrap()
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return vec![];
-            },
+        else {
+            return vec![];
         };
         self.apply_deltas(&deltas);
         deltas
@@ -540,17 +525,9 @@ impl Doc {
             return None;
         }
 
-        let (text, delta, inval_lines) = match self
+        let (text, delta, inval_lines) = self
             .lines
-            .try_update(|buffer| buffer.edit_buffer(edits, edit_type))
-            .unwrap()
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return None;
-            },
-        };
+            .try_update(|buffer| buffer.edit_buffer(edits, edit_type))?;
         self.apply_deltas(&[(text.clone(), delta.clone(), inval_lines.clone())]);
         Some((text, delta, inval_lines))
     }
@@ -569,18 +546,10 @@ impl Doc {
             debug!("do_edit read_only or not_changing_buffer");
             return Vec::new();
         }
-        let deltas = match self.lines.try_update(|lines| {
+        let Some(deltas) = self.lines.try_update(|lines| {
             lines.do_edit_buffer(cursor, cmd, modal, register, smart_tab)
-        }) {
-            None => {
-                error!("None");
-                return vec![];
-            },
-            Some(Ok(rs)) => rs,
-            Some(Err(err)) => {
-                error!("{err:?}");
-                return vec![];
-            },
+        }) else {
+            return vec![];
         };
         if !deltas.is_empty() {
             self.apply_deltas(&deltas);
@@ -1404,14 +1373,9 @@ impl Doc {
             let lines = self.lines;
 
             let send = create_ext_action(self.scope, move |result| match result {
-                Ok(_) => match lines.try_update(|x| x.set_pristine(rev)) {
-                    Some(Ok(true)) => {
-                        after_action();
-                    },
-                    Some(Err(err)) => {
-                        error!("{err:?}");
-                    },
-                    _ => {},
+                Ok(_) => {
+                    lines.try_update(|x| x.set_pristine(rev));
+                    after_action();
                 },
                 Err(err) => error!("{err}"),
             });
@@ -1634,7 +1598,7 @@ impl CommonAction for Doc {
         is_vertical: bool,
         register: &mut Register,
     ) {
-        let deltas = match self.lines.try_update(move |lines| {
+        let Some(deltas) = self.lines.try_update(move |lines| {
             lines.execute_motion_mode(
                 cursor,
                 motion_mode,
@@ -1642,16 +1606,8 @@ impl CommonAction for Doc {
                 is_vertical,
                 register,
             )
-        }) {
-            None => {
-                error!("None");
-                return;
-            },
-            Some(Ok(rs)) => rs,
-            Some(Err(err)) => {
-                error!("{err:?}");
-                return;
-            },
+        }) else {
+            return;
         };
         self.apply_deltas(&deltas);
     }

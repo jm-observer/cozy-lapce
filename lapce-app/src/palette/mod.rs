@@ -1504,9 +1504,8 @@ impl PaletteData {
                     let doc = editor.doc();
 
                     doc.lines.update(|lines| {
-                        if let Err(err) = lines.set_line_ending(*kind) {
-                            error!("{:?}", err);
-                        }
+                        // todo maybe should upate content
+                        lines.set_line_ending(*kind);
                     });
                 },
                 PaletteItemContent::SCMReference { name } => {

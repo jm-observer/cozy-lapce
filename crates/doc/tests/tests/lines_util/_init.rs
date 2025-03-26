@@ -242,7 +242,7 @@ fn _init_lines(
         config.clone(),
         buffer,
         None,
-    )?;
+    );
     lines.update_folding_ranges(folding.into())?;
     if let Some(hints) = hints {
         lines.set_inlay_hints(hints)?;

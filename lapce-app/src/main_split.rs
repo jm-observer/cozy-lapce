@@ -2554,9 +2554,7 @@ impl MainSplitData {
                                 read_only: false,
                             });
                             doc.lines.update(|lines| {
-                                if let Err(err) = lines.set_pristine(rev) {
-                                    error!("{:?}", err);
-                                }
+                                lines.set_pristine(rev);
                             });
                             doc.set_syntax(syntax);
                             doc.trigger_syntax_change(None);
@@ -2607,9 +2605,7 @@ impl MainSplitData {
                                 read_only: false,
                             });
                             doc.lines.update(|lines| {
-                                if let Err(err) = lines.set_pristine(rev) {
-                                    error!("{:?}", err);
-                                }
+                                lines.set_pristine(rev);
                             });
                             // doc.set_syntax(syntax);
                             doc.trigger_syntax_change(None);

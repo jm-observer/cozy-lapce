@@ -48,7 +48,6 @@ use crate::{
         buffer::{Buffer, InvalLines, rope_text::RopeText},
         command::EditCommand,
         cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
-        delta_compute::{OriginLinesDelta, resolve_delta_rs},
         diff::{DiffResult, advance, consume_line, is_changed, is_diff, is_empty},
         edit::{Action, EditConf, EditType},
         encoding::{offset_utf8_to_utf16, offset_utf16_to_utf8},
@@ -135,8 +134,8 @@ impl DocLinesManager {
         buffer: Buffer,
         // kind: RwSignal<EditorViewKind>,
         path: Option<PathBuf>,
-    ) -> Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             lines: cx.create_rw_signal(DocLines::new(
                 cx,
                 diagnostics,
@@ -148,8 +147,8 @@ impl DocLinesManager {
                 buffer,
                 // kind,
                 path,
-            )?),
-        })
+            )),
+        }
     }
 
     pub fn with_untracked<O>(&self, f: impl FnOnce(&DocLines) -> O) -> O {
@@ -237,13 +236,13 @@ impl DocLines {
         buffer: Buffer,
         // kind: RwSignal<EditorViewKind>,
         path: Option<PathBuf>,
-    ) -> Result<Self> {
+    ) -> Self {
         let last_line = buffer.last_line() + 1;
         let signals = Signals::new(cx, &editor_style, buffer, (last_line, 0.0));
 
         // log::info!("{}", serde_json::to_string(&config).unwrap());
 
-        let mut lines = Self {
+        Self {
             path,
             signals,
             // layout_event: Listener::new_empty(cx), //
@@ -271,9 +270,7 @@ impl DocLines {
             style_from_lsp: false,
             // folding_items: Default::default(),
             document_highlight: None,
-        };
-        lines.update_lines_new(OriginLinesDelta::default())?;
-        Ok(lines)
+        }
     }
 
     // pub fn update_cache_id(&mut self) {
@@ -3457,17 +3454,17 @@ impl DocLines {
     //     self.signals.screen_lines.update_force(screen_lines);
     // }
 
-    fn _compute_change_lines(
-        &self,
-        deltas: &[(Rope, RopeDelta, InvalLines)],
-    ) -> Result<OriginLinesDelta> {
-        if deltas.len() == 1 {
-            if let Some(delta) = deltas.first() {
-                return resolve_delta_rs(&delta.0, &delta.1);
-            }
-        }
-        Ok(OriginLinesDelta::default())
-    }
+    // fn _compute_change_lines(
+    //     &self,
+    //     deltas: &[(Rope, RopeDelta, InvalLines)],
+    // ) -> Result<OriginLinesDelta> {
+    //     if deltas.len() == 1 {
+    //         if let Some(delta) = deltas.first() {
+    //             return resolve_delta_rs(&delta.0, &delta.1);
+    //         }
+    //     }
+    //     Ok(OriginLinesDelta::default())
+    // }
 
     // /// return [start...end), (start...end]
     // #[allow(clippy::type_complexity)]
@@ -3860,13 +3857,12 @@ impl Debug for EditBuffer<'_> {
 }
 
 impl PubUpdateLines {
-    pub fn init_buffer(&mut self, content: Rope) -> Result<bool> {
-        self.buffer_edit(EditBuffer::Init(content))
+    pub fn init_buffer(&mut self, content: Rope) {
+        self.buffer_edit(EditBuffer::Init(content));
     }
 
-    pub fn buffer_edit(&mut self, edit: EditBuffer) -> Result<bool> {
+    pub fn buffer_edit(&mut self, edit: EditBuffer) -> bool {
         debug!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
-        let mut line_delta = OriginLinesDelta::default();
         match edit {
             EditBuffer::Init(content) => {
                 let indent =
@@ -3884,8 +3880,7 @@ impl PubUpdateLines {
             } => {
                 let rs = self.buffer_mut().edit(iter, edit_type);
                 debug!("buffer_edit EditBuffer {:?} {:?}", rs.1, rs.2);
-                self.apply_delta(&rs.1)?;
-                line_delta = resolve_delta_rs(&rs.0, &rs.1)?;
+                self.apply_delta(&rs.1);
                 response.push(rs);
             },
             EditBuffer::SetPristine(recv) => {
@@ -3893,9 +3888,9 @@ impl PubUpdateLines {
                     self.buffer_mut().set_pristine();
                     self.signals.pristine.update_if_not_equal(true);
                     self.trigger_signals();
-                    Ok(true)
+                    true
                 } else {
-                    Ok(false)
+                    false
                 };
             },
             EditBuffer::Reload {
@@ -3905,7 +3900,7 @@ impl PubUpdateLines {
             } => {
                 let rs = self.buffer_mut().reload(content, set_pristine);
                 debug!("buffer_edit Reload {:?} {:?}", rs.1, rs.2);
-                self.apply_delta(&rs.1)?;
+                self.apply_delta(&rs.1);
                 self.inlay_hints = None;
                 self.folding_ranges.0.clear();
                 self.semantic_styles = None;
@@ -3929,9 +3924,8 @@ impl PubUpdateLines {
                     register,
                 );
                 for delta in &*response {
-                    self.apply_delta(&delta.1)?;
+                    self.apply_delta(&delta.1);
                 }
-                line_delta = self._compute_change_lines(&*response)?;
             },
             EditBuffer::DoEditBuffer {
                 cursor,
@@ -3962,10 +3956,9 @@ impl PubUpdateLines {
                     self.buffer_mut().set_cursor_before(old_cursor);
                     self.buffer_mut().set_cursor_after(cursor.mode().clone());
                     for delta in &*response {
-                        self.apply_delta(&delta.1)?;
+                        self.apply_delta(&delta.1);
                     }
                 }
-                line_delta = self._compute_change_lines(&*response)?;
             },
             EditBuffer::DoInsertBuffer {
                 cursor,
@@ -3990,9 +3983,8 @@ impl PubUpdateLines {
                 self.buffer_mut().set_cursor_before(old_cursor);
                 self.buffer_mut().set_cursor_after(cursor.mode().clone());
                 for delta in &*response {
-                    self.apply_delta(&delta.1)?;
+                    self.apply_delta(&delta.1);
                 }
-                line_delta = self._compute_change_lines(&*response)?;
             },
             EditBuffer::SetCursor {
                 before_cursor,
@@ -4000,7 +3992,7 @@ impl PubUpdateLines {
             } => {
                 self.buffer_mut().set_cursor_after(after_cursor);
                 self.buffer_mut().set_cursor_before(before_cursor);
-                return Ok(false);
+                return false;
             },
         }
         self.signals
@@ -4009,51 +4001,51 @@ impl PubUpdateLines {
         self.signals
             .buffer_rev
             .update_if_not_equal(self.buffer().rev());
-        self.on_update_buffer()?;
-        self.update_lines_new(line_delta)?;
+        if let Err(err) = self.on_update_buffer() {
+            error!("{err}");
+        }
         // self.on_update_lines();
         self.signals.update_paint_text();
 
         self.trigger_signals();
         debug!("after buffer_edit rev={}", self.buffer().rev());
-        Ok(true)
+        true
     }
 
-    pub fn set_line_ending(&mut self, line_ending: LineEnding) -> Result<()> {
-        self.buffer_edit(EditBuffer::SetLineEnding(line_ending))?;
-        Ok(())
+    pub fn set_line_ending(&mut self, line_ending: LineEnding) {
+        self.buffer_edit(EditBuffer::SetLineEnding(line_ending));
     }
 
     pub fn edit_buffer(
         &mut self,
         iter: &[(Selection, &str)],
         edit_type: EditType,
-    ) -> Result<(Rope, RopeDelta, InvalLines)> {
+    ) -> (Rope, RopeDelta, InvalLines) {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::EditBuffer {
             edit_type,
             iter,
             response: &mut rs,
-        })?;
-        Ok(rs.remove(0))
+        });
+        rs.remove(0)
     }
 
     pub fn reload_buffer(
         &mut self,
         content: Rope,
         set_pristine: bool,
-    ) -> Result<(Rope, RopeDelta, InvalLines)> {
+    ) -> (Rope, RopeDelta, InvalLines) {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::Reload {
             content,
             set_pristine,
             response: &mut rs,
-        })?;
-        Ok(rs.remove(0))
+        });
+        rs.remove(0)
     }
 
-    pub fn set_pristine(&mut self, rev: u64) -> Result<bool> {
-        self.buffer_edit(EditBuffer::SetPristine(rev))
+    pub fn set_pristine(&mut self, rev: u64) {
+        self.buffer_edit(EditBuffer::SetPristine(rev));
     }
 
     pub fn set_cursor(
@@ -4061,12 +4053,10 @@ impl PubUpdateLines {
         before_cursor: CursorMode,
         after_cursor: CursorMode,
     ) {
-        if let Err(err) = self.buffer_edit(EditBuffer::SetCursor {
+        self.buffer_edit(EditBuffer::SetCursor {
             before_cursor,
             after_cursor,
-        }) {
-            error!("{err:?}");
-        }
+        });
     }
 
     pub fn execute_motion_mode(
@@ -4076,7 +4066,7 @@ impl PubUpdateLines {
         range: Range<usize>,
         is_vertical: bool,
         register: &mut Register,
-    ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::ExecuteMotionMode {
             cursor,
@@ -4085,8 +4075,8 @@ impl PubUpdateLines {
             is_vertical,
             register,
             response: &mut rs,
-        })?;
-        Ok(rs)
+        });
+        rs
     }
 
     pub fn do_edit_buffer(
@@ -4096,7 +4086,7 @@ impl PubUpdateLines {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
-    ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::with_capacity(1);
         self.buffer_edit(EditBuffer::DoEditBuffer {
             cursor,
@@ -4105,36 +4095,32 @@ impl PubUpdateLines {
             register,
             smart_tab,
             response: &mut rs,
-        })?;
-        Ok(rs)
+        });
+        rs
     }
 
     pub fn do_insert_buffer(
         &mut self,
         cursor: &mut Cursor,
         s: &str,
-    ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::new();
         self.buffer_edit(EditBuffer::DoInsertBuffer {
             cursor,
             s,
             response: &mut rs,
-        })?;
-        Ok(rs)
+        });
+        rs
     }
 
     pub fn clear_completion_lens(&mut self) {
         self.completion_lens = None;
-        if let Err(err) = self.update_lines_new(OriginLinesDelta::default()) {
-            error!("{err:?}")
-        }
         self.on_update_lines();
         self.signals.update_paint_text();
     }
 
     pub fn init_diagnostics(&mut self) -> Result<()> {
         self.init_diagnostics_with_buffer()?;
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
         self.signals.trigger();
@@ -4181,7 +4167,6 @@ impl PubUpdateLines {
         // todo
         // if self.config != config {
         self.config = config;
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4208,7 +4193,6 @@ impl PubUpdateLines {
             },
         }
         // todo improve OriginLinesDelta
-        self.update_lines_new(OriginLinesDelta::default())?;
         // self.check_lines();
         self.signals.update_paint_text();
 
@@ -4247,7 +4231,6 @@ impl PubUpdateLines {
         } else {
             self.inline_completion = Some((completion, new_pos.0, new_pos.1));
         }
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4255,7 +4238,7 @@ impl PubUpdateLines {
         Ok(())
     }
 
-    pub fn apply_delta(&mut self, delta: &RopeDelta) -> Result<()> {
+    pub fn apply_delta(&mut self, delta: &RopeDelta) {
         if self.style_from_lsp {
             if let Some(styles) = &mut self.semantic_styles {
                 styles.1.apply_shape(delta);
@@ -4266,13 +4249,14 @@ impl PubUpdateLines {
         self.syntax.lens.apply_delta(delta);
         self.update_diagnostics(delta);
         self.update_inlay_hints(delta);
-        self.update_completion_lens(delta)?;
+        if let Err(err) = self.update_completion_lens(delta) {
+            error!("{err}");
+        }
         // self.update_lines();
         self.on_update_lines();
         self.signals.update_paint_text();
 
         self.trigger_signals();
-        Ok(())
     }
 
     pub fn trigger_syntax_change(
@@ -4281,7 +4265,6 @@ impl PubUpdateLines {
     ) -> Result<()> {
         self.syntax.cancel_flag.store(1, atomic::Ordering::Relaxed);
         self.syntax.cancel_flag = Arc::new(AtomicUsize::new(0));
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4296,7 +4279,6 @@ impl PubUpdateLines {
         col: usize,
     ) -> Result<()> {
         self.inline_completion = Some((inline_completion, line, col));
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4306,7 +4288,6 @@ impl PubUpdateLines {
 
     pub fn clear_inline_completion(&mut self) -> Result<()> {
         self.inline_completion = None;
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4328,7 +4309,6 @@ impl PubUpdateLines {
         }
         self.update_parser()?;
 
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4338,7 +4318,6 @@ impl PubUpdateLines {
 
     pub fn set_inlay_hints(&mut self, inlay_hint: Spans<InlayHint>) -> Result<()> {
         self.inlay_hints = Some(inlay_hint);
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4367,7 +4346,6 @@ impl PubUpdateLines {
     ) -> Result<()> {
         self.completion_lens = Some(completion_lens);
         self.completion_pos = (line, col);
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4385,7 +4363,6 @@ impl PubUpdateLines {
         }
         self.style_from_lsp = true;
         self.semantic_styles = Some(styles);
-        self.update_lines_new(OriginLinesDelta::default())?;
         self.on_update_lines();
         self.signals.update_paint_text();
 
@@ -4444,9 +4421,6 @@ impl LinesEditorStyle {
         self.signals
             .show_indent_guide
             .update_if_not_equal(new_show_indent_guide);
-        if updated {
-            self.update_lines_new(OriginLinesDelta::default())?;
-        }
         self.trigger_signals();
         Ok(updated)
     }

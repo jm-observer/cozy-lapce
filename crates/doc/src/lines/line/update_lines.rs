@@ -1,40 +1,38 @@
 use std::borrow::Cow;
 
-use anyhow::Result;
 use floem::text::{Attrs, AttrsList, FamilyOwned, LineHeightValue};
 use log::error;
 
 use crate::lines::{
     DocLines,
-    delta_compute::OriginLinesDelta,
     line::{OriginFoldedLine, OriginLine},
 };
 
 impl DocLines {
-    pub fn update_lines_new(
-        &mut self,
-        mut _lines_delta: OriginLinesDelta,
-    ) -> Result<()> {
-        // todo
-        return Ok(());
-        // debug!("update_lines_new");
-        // self.clear();
-        // let line_ending: &'static str =
-        // self.buffer().line_ending().get_chars();
-        //
-        // let all_origin_lines = self.init_all_origin_line_new(&mut
-        // lines_delta)?; check_origin_lines(&all_origin_lines,
-        // self.buffer().len()); let all_origin_folded_lines =
-        // self.init_all_origin_folded_line_new(     &lines_delta,
-        //     &all_origin_lines,
-        //     line_ending
-        // )?;
-        // // 不再支持编辑器折叠（长度超过，则编辑器未换行下折叠）
-        // self.origin_lines = all_origin_lines;
-        // self.origin_folded_lines = all_origin_folded_lines;
-        // self.on_update_lines();
-        // Ok(())
-    }
+    // pub fn update_lines_new(
+    //     &mut self,
+    //     mut _lines_delta: OriginLinesDelta,
+    // ) -> Result<()> {
+    //     // todo
+    //     return Ok(());
+    //     // debug!("update_lines_new");
+    //     // self.clear();
+    //     // let line_ending: &'static str =
+    //     // self.buffer().line_ending().get_chars();
+    //     //
+    //     // let all_origin_lines = self.init_all_origin_line_new(&mut
+    //     // lines_delta)?; check_origin_lines(&all_origin_lines,
+    //     // self.buffer().len()); let all_origin_folded_lines =
+    //     // self.init_all_origin_folded_line_new(     &lines_delta,
+    //     //     &all_origin_lines,
+    //     //     line_ending
+    //     // )?;
+    //     // // 不再支持编辑器折叠（长度超过，则编辑器未换行下折叠）
+    //     // self.origin_lines = all_origin_lines;
+    //     // self.origin_folded_lines = all_origin_folded_lines;
+    //     // self.on_update_lines();
+    //     // Ok(())
+    // // }
 
     // pub fn init_all_origin_line_new(
     //     &self,
