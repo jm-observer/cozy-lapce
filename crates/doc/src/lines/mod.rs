@@ -3756,13 +3756,11 @@ pub enum EditBuffer<'a> {
     EditBuffer {
         iter:      &'a [(Selection, &'a str)],
         edit_type: EditType,
-        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     SetPristine(u64),
     Reload {
         content:      Rope,
         set_pristine: bool,
-        response:     &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     ExecuteMotionMode {
         cursor:      &'a mut Cursor,
@@ -3770,7 +3768,6 @@ pub enum EditBuffer<'a> {
         range:       Range<usize>,
         is_vertical: bool,
         register:    &'a mut Register,
-        response:    &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     DoEditBuffer {
         cursor:    &'a mut Cursor,
@@ -3778,12 +3775,10 @@ pub enum EditBuffer<'a> {
         modal:     bool,
         register:  &'a mut Register,
         smart_tab: bool,
-        response:  &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
     },
     DoInsertBuffer {
-        cursor:   &'a mut Cursor,
-        s:        &'a str,
-        response: &'a mut Vec<(Rope, RopeDelta, InvalLines)>,
+        cursor: &'a mut Cursor,
+        s:      &'a str,
     },
     SetCursor {
         before_cursor: CursorMode,
@@ -3857,11 +3852,19 @@ impl Debug for EditBuffer<'_> {
 }
 
 impl PubUpdateLines {
-    pub fn init_buffer(&mut self, content: Rope) {
-        self.buffer_edit(EditBuffer::Init(content));
-    }
+    // pub fn buffer_edit(
+    //     &mut self,
+    //     edit: EditBuffer,
+    // ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+    //     let rs = self._buffer_edit(edit);
+    //     rs
+    // }
 
-    pub fn buffer_edit(&mut self, edit: EditBuffer) -> bool {
+    pub fn _buffer_edit(
+        &mut self,
+        edit: EditBuffer,
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+        let mut rs = Vec::new();
         debug!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
         match edit {
             EditBuffer::Init(content) => {
@@ -3873,39 +3876,32 @@ impl PubUpdateLines {
             EditBuffer::SetLineEnding(line_ending) => {
                 self.buffer_mut().set_line_ending(line_ending);
             },
-            EditBuffer::EditBuffer {
-                iter,
-                edit_type,
-                response,
-            } => {
-                let rs = self.buffer_mut().edit(iter, edit_type);
-                debug!("buffer_edit EditBuffer {:?} {:?}", rs.1, rs.2);
-                self.apply_delta(&rs.1);
-                response.push(rs);
+            EditBuffer::EditBuffer { iter, edit_type } => {
+                let delta = self.buffer_mut().edit(iter, edit_type);
+                debug!("buffer_edit EditBuffer {:?} {:?}", delta.1, delta.2);
+                self.apply_delta(&delta.1);
+                rs.push(delta);
             },
             EditBuffer::SetPristine(recv) => {
-                return if recv == self.buffer().rev() {
+                if recv == self.buffer().rev() {
                     self.buffer_mut().set_pristine();
                     self.signals.pristine.update_if_not_equal(true);
                     self.trigger_signals();
-                    true
-                } else {
-                    false
-                };
+                }
+                return rs;
             },
             EditBuffer::Reload {
                 content,
                 set_pristine,
-                response,
             } => {
-                let rs = self.buffer_mut().reload(content, set_pristine);
-                debug!("buffer_edit Reload {:?} {:?}", rs.1, rs.2);
-                self.apply_delta(&rs.1);
+                let delta = self.buffer_mut().reload(content, set_pristine);
+                debug!("buffer_edit Reload {:?} {:?}", delta.1, delta.2);
+                self.apply_delta(&delta.1);
                 self.inlay_hints = None;
                 self.folding_ranges.0.clear();
                 self.semantic_styles = None;
                 // line_delta = self._compute_change_lines_one(&rs)?;
-                response.push(rs);
+                rs.push(delta);
             },
             EditBuffer::ExecuteMotionMode {
                 cursor,
@@ -3913,9 +3909,8 @@ impl PubUpdateLines {
                 range,
                 is_vertical,
                 register,
-                response,
             } => {
-                *response = Action::execute_motion_mode(
+                rs = Action::execute_motion_mode(
                     cursor,
                     self.buffer_mut(),
                     motion_mode,
@@ -3923,7 +3918,7 @@ impl PubUpdateLines {
                     is_vertical,
                     register,
                 );
-                for delta in &*response {
+                for delta in &rs {
                     self.apply_delta(&delta.1);
                 }
             },
@@ -3933,12 +3928,11 @@ impl PubUpdateLines {
                 modal,
                 register,
                 smart_tab,
-                response,
             } => {
                 let syntax = &self.syntax;
                 let mut clipboard = SystemClipboard::new();
                 let old_cursor = cursor.mode().clone();
-                *response = Action::do_edit(
+                rs = Action::do_edit(
                     cursor,
                     self.signals.buffer.val_mut(),
                     cmd,
@@ -3952,25 +3946,21 @@ impl PubUpdateLines {
                         auto_indent: true,
                     },
                 );
-                if !response.is_empty() {
+                if !rs.is_empty() {
                     self.buffer_mut().set_cursor_before(old_cursor);
                     self.buffer_mut().set_cursor_after(cursor.mode().clone());
-                    for delta in &*response {
+                    for delta in &rs {
                         self.apply_delta(&delta.1);
                     }
                 }
             },
-            EditBuffer::DoInsertBuffer {
-                cursor,
-                s,
-                response,
-            } => {
+            EditBuffer::DoInsertBuffer { cursor, s } => {
                 let auto_closing_matching_pairs =
                     self.config.auto_closing_matching_pairs;
                 let auto_surround = self.config.auto_surround;
                 let old_cursor = cursor.mode().clone();
                 let syntax = &self.syntax;
-                *response = Action::insert(
+                rs = Action::insert(
                     cursor,
                     self.signals.buffer.val_mut(),
                     s,
@@ -3982,7 +3972,7 @@ impl PubUpdateLines {
                 );
                 self.buffer_mut().set_cursor_before(old_cursor);
                 self.buffer_mut().set_cursor_after(cursor.mode().clone());
-                for delta in &*response {
+                for delta in &rs {
                     self.apply_delta(&delta.1);
                 }
             },
@@ -3992,7 +3982,7 @@ impl PubUpdateLines {
             } => {
                 self.buffer_mut().set_cursor_after(after_cursor);
                 self.buffer_mut().set_cursor_before(before_cursor);
-                return false;
+                return rs;
             },
         }
         self.signals
@@ -4009,109 +3999,90 @@ impl PubUpdateLines {
 
         self.trigger_signals();
         debug!("after buffer_edit rev={}", self.buffer().rev());
-        true
-    }
-
-    pub fn set_line_ending(&mut self, line_ending: LineEnding) {
-        self.buffer_edit(EditBuffer::SetLineEnding(line_ending));
-    }
-
-    pub fn edit_buffer(
-        &mut self,
-        iter: &[(Selection, &str)],
-        edit_type: EditType,
-    ) -> (Rope, RopeDelta, InvalLines) {
-        let mut rs = Vec::with_capacity(1);
-        self.buffer_edit(EditBuffer::EditBuffer {
-            edit_type,
-            iter,
-            response: &mut rs,
-        });
-        rs.remove(0)
-    }
-
-    pub fn reload_buffer(
-        &mut self,
-        content: Rope,
-        set_pristine: bool,
-    ) -> (Rope, RopeDelta, InvalLines) {
-        let mut rs = Vec::with_capacity(1);
-        self.buffer_edit(EditBuffer::Reload {
-            content,
-            set_pristine,
-            response: &mut rs,
-        });
-        rs.remove(0)
-    }
-
-    pub fn set_pristine(&mut self, rev: u64) {
-        self.buffer_edit(EditBuffer::SetPristine(rev));
-    }
-
-    pub fn set_cursor(
-        &mut self,
-        before_cursor: CursorMode,
-        after_cursor: CursorMode,
-    ) {
-        self.buffer_edit(EditBuffer::SetCursor {
-            before_cursor,
-            after_cursor,
-        });
-    }
-
-    pub fn execute_motion_mode(
-        &mut self,
-        cursor: &mut Cursor,
-        motion_mode: MotionMode,
-        range: Range<usize>,
-        is_vertical: bool,
-        register: &mut Register,
-    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
-        let mut rs = Vec::with_capacity(1);
-        self.buffer_edit(EditBuffer::ExecuteMotionMode {
-            cursor,
-            motion_mode,
-            range,
-            is_vertical,
-            register,
-            response: &mut rs,
-        });
         rs
     }
 
-    pub fn do_edit_buffer(
-        &mut self,
-        cursor: &mut Cursor,
-        cmd: &EditCommand,
-        modal: bool,
-        register: &mut Register,
-        smart_tab: bool,
-    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
-        let mut rs = Vec::with_capacity(1);
-        self.buffer_edit(EditBuffer::DoEditBuffer {
-            cursor,
-            cmd,
-            modal,
-            register,
-            smart_tab,
-            response: &mut rs,
-        });
-        rs
-    }
+    // pub fn set_line_ending(&mut self, line_ending: LineEnding) {
+    //     self.buffer_edit(EditBuffer::SetLineEnding(line_ending));
+    // }
 
-    pub fn do_insert_buffer(
-        &mut self,
-        cursor: &mut Cursor,
-        s: &str,
-    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
-        let mut rs = Vec::new();
-        self.buffer_edit(EditBuffer::DoInsertBuffer {
-            cursor,
-            s,
-            response: &mut rs,
-        });
-        rs
-    }
+    // pub fn edit_buffer(
+    //     &mut self,
+    //     iter: &[(Selection, &str)],
+    //     edit_type: EditType,
+    // ) -> (Rope, RopeDelta, InvalLines) {
+    //     self.buffer_edit(EditBuffer::EditBuffer { edit_type, iter })
+    //         .remove(0)
+    // }
+
+    // pub fn reload_buffer(
+    //     &mut self,
+    //     content: Rope,
+    //     set_pristine: bool,
+    // ) -> (Rope, RopeDelta, InvalLines) {
+    //     self.buffer_edit(EditBuffer::Reload {
+    //         content,
+    //         set_pristine,
+    //     })
+    //     .remove(0)
+    // }
+
+    // pub fn set_pristine(&mut self, rev: u64) {
+    //     self.buffer_edit(EditBuffer::SetPristine(rev));
+    // }
+
+    // pub fn set_cursor(
+    //     &mut self,
+    //     before_cursor: CursorMode,
+    //     after_cursor: CursorMode,
+    // ) {
+    //     self.buffer_edit(EditBuffer::SetCursor {
+    //         before_cursor,
+    //         after_cursor,
+    //     });
+    // }
+
+    // pub fn execute_motion_mode(
+    //     &mut self,
+    //     cursor: &mut Cursor,
+    //     motion_mode: MotionMode,
+    //     range: Range<usize>,
+    //     is_vertical: bool,
+    //     register: &mut Register,
+    // ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+    //     self.buffer_edit(EditBuffer::ExecuteMotionMode {
+    //         cursor,
+    //         motion_mode,
+    //         range,
+    //         is_vertical,
+    //         register,
+    //     })
+    // }
+
+    // pub fn do_edit_buffer(
+    //     &mut self,
+    //     cursor: &mut Cursor,
+    //     cmd: &EditCommand,
+    //     modal: bool,
+    //     register: &mut Register,
+    //     smart_tab: bool,
+    // ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+    //     self.buffer_edit(EditBuffer::DoEditBuffer {
+    //         cursor,
+    //         cmd,
+    //         modal,
+    //         register,
+    //         smart_tab,
+    //     })
+    // }
+
+    // pub fn do_insert_buffer(
+    //     &mut self,
+    //     cursor: &mut Cursor,
+    //     s: &str,
+    // ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+    //     self.buffer_edit(EditBuffer::DoInsertBuffer { cursor, s })
+    // }
 
     pub fn clear_completion_lens(&mut self) {
         self.completion_lens = None;

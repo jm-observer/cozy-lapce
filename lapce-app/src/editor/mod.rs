@@ -11,7 +11,7 @@ use anyhow::Result;
 use doc::{
     EditorViewKind,
     lines::{
-        ClickResult, RopeTextPosition,
+        ClickResult, EditBuffer, RopeTextPosition,
         buffer::{
             InvalLines,
             rope_text::{RopeText, RopeTextVal},
@@ -2342,7 +2342,12 @@ impl EditorData {
         if snippet_tabs.is_empty() {
             doc.lines.update(|lines| {
                 cursor.update_selection(lines.buffer(), selection);
-                lines.set_cursor(old_cursor, cursor.mode().clone());
+                // lines.set_cursor(old_cursor, cursor.mode().clone());
+            });
+
+            doc.buffer_edit(EditBuffer::SetCursor {
+                before_cursor: old_cursor,
+                after_cursor:  cursor.mode().clone(),
             });
             self.cursor().set(cursor);
             self.apply_deltas(&[(b_text, delta, inval_lines)]);
@@ -2355,9 +2360,14 @@ impl EditorData {
         selection.add_region(region);
         cursor.set_insert(selection);
 
-        doc.lines.update(|lines| {
-            lines.set_cursor(old_cursor, cursor.mode().clone());
+        // doc.lines.update(|lines| {
+        //     lines.set_cursor(old_cursor, cursor.mode().clone());
+        // });
+        doc.buffer_edit(EditBuffer::SetCursor {
+            before_cursor: old_cursor,
+            after_cursor:  cursor.mode().clone(),
         });
+
         self.cursor().set(cursor);
         self.apply_deltas(&[(b_text, delta, inval_lines)]);
         self.add_snippet_placeholders(snippet_tabs);
@@ -2485,7 +2495,11 @@ impl EditorData {
                     .offset_line_from_top
                     .set(Some(screen_line_index));
             }
-            lines.set_cursor(old_cursor, cursor.mode().clone());
+            // lines.set_cursor(old_cursor, cursor.mode().clone());
+        });
+        doc.buffer_edit(EditBuffer::SetCursor {
+            before_cursor: old_cursor,
+            after_cursor:  cursor.mode().clone(),
         });
         self.cursor().set(cursor);
 

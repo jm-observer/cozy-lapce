@@ -11,7 +11,7 @@ use anyhow::Result;
 use doc::{
     language::LapceLanguage,
     lines::{
-        buffer::rope_text::RopeText, command::FocusCommand,
+        EditBuffer, buffer::rope_text::RopeText, command::FocusCommand,
         editor_command::CommandExecuted, line_ending::LineEnding, mode::Mode,
         movement::Movement,
     },
@@ -1502,11 +1502,11 @@ impl PaletteData {
                         return;
                     };
                     let doc = editor.doc();
-
-                    doc.lines.update(|lines| {
-                        // todo maybe should upate content
-                        lines.set_line_ending(*kind);
-                    });
+                    doc.buffer_edit(EditBuffer::SetLineEnding(*kind));
+                    // doc.lines.update(|lines| {
+                    //     // todo maybe should upate content
+                    //     lines.set_line_ending(*kind);
+                    // });
                 },
                 PaletteItemContent::SCMReference { name } => {
                     self.common

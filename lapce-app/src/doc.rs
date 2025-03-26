@@ -13,7 +13,7 @@ use doc::{
     DiagnosticData,
     language::LapceLanguage,
     lines::{
-        DocLinesManager, RopeTextPosition,
+        DocLinesManager, EditBuffer, RopeTextPosition,
         buffer::{
             Buffer, InvalLines,
             diff::DiffLines,
@@ -381,30 +381,42 @@ impl Doc {
         }
     }
 
-    // /// Create a styling instance for this doc
-    // pub fn styling(self: &Rc<Doc>) -> Rc<DocStyling> {
-    //     Rc::new(DocStyling {
-    //         config: self.common.config,
-    //         doc: self.clone(),
-    //     })
-    // }
+    pub fn buffer_edit(
+        &self,
+        edit: EditBuffer,
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+        self.buffer_edit_with_config(edit, true)
+    }
 
-    // /// Create an [`Editor`] instance from this [`Doc`]. Note that this needs to
-    // /// be registered appropriately to create the [`EditorData`] and such.
-    // pub fn create_editor(self: &Rc<Doc>, cx: Scope) -> Editor {
-    //     // let common = &self.common;
-    //     let editor = Editor::new(cx, self.editor_id);
-
-    //     // editor.register = register;
-    //     // editor.ime_allowed = common.window_common.ime_allowed;
-    //     editor.recreate_view_effects();
-
-    //     editor
-    // }
-
-    // fn editor_data(&self, id: EditorId) -> Option<EditorData> {
-    //     self.editors.editor_untracked(id)
-    // }
+    pub fn buffer_edit_with_config(
+        &self,
+        edit: EditBuffer,
+        need_check_and_update: bool,
+    ) -> Vec<(Rope, RopeDelta, InvalLines)> {
+        let Some((old_rev, rs, new_rev)) = self.lines.try_update(|lines| {
+            let rev = lines.buffer().rev();
+            let rs = lines._buffer_edit(edit);
+            let new_rev = lines.buffer().rev();
+            (rev, rs, new_rev)
+        }) else {
+            return vec![];
+        };
+        if need_check_and_update {
+            assert_eq!(old_rev + rs.len() as u64, new_rev);
+            if let DocContent::File { path, .. } = self.content.get_untracked() {
+                batch(|| {
+                    for (i, (_, delta, _inval)) in rs.iter().enumerate() {
+                        self.common.proxy.update(
+                            path.clone(),
+                            delta.clone(),
+                            old_rev + i as u64 + 1,
+                        );
+                    }
+                });
+            }
+        }
+        rs
+    }
 
     pub fn syntax(&self) -> Syntax {
         self.lines.with_untracked(|x| x.syntax.clone())
@@ -450,45 +462,24 @@ impl Doc {
     //// Initialize the content with some text, this marks the document as loaded.
     pub fn init_content(&self, content: Rope) {
         batch(|| {
-            self.lines.update(|lines| {
-                lines.init_buffer(content);
-            });
+            self.buffer_edit_with_config(EditBuffer::Init(content), false);
             self.loaded.set(true);
             self.on_update(None);
             self.retrieve_head();
         });
     }
 
-    // fn init_parser(&self) {
-    //
-    //     // let code = self.buffer.get_untracked().to_string();
-    //     // let syntax = self.syntax();
-    //     // if syntax.styles.is_some() {
-    //     //     self.parser.borrow_mut().update_code(
-    //     //         code,
-    //     //         &self.buffer.get_untracked(),
-    //     //         Some(&syntax),
-    //     //     );
-    //     // } else {
-    //     //     self.parser.borrow_mut().update_code(
-    //     //         code,
-    //     //         &self.buffer.get_untracked(),
-    //     //         None,
-    //     //     );
-    //     // }
-    // }
-
     /// Reload the document's content, and is what you should typically use when
     /// you want to *set* an existing document's content.
     pub fn reload(&self, content: Rope, set_pristine: bool) {
         // self.code_actions.clear();
         // self.inlay_hints = None;
-        let Some(delta) = self
-            .lines
-            .try_update(|buffer| buffer.reload_buffer(content, set_pristine))
-        else {
-            return;
-        };
+        let delta = self
+            .buffer_edit(EditBuffer::Reload {
+                content,
+                set_pristine,
+            })
+            .remove(0);
         self.apply_deltas(&[delta]);
     }
 
@@ -506,12 +497,13 @@ impl Doc {
         if self.content.with_untracked(|c| c.read_only()) {
             return Vec::new();
         }
-        let Some(deltas) = self
-            .lines
-            .try_update(|lines| lines.do_insert_buffer(cursor, s))
-        else {
-            return vec![];
-        };
+        // let Some(deltas) = self
+        //     .lines
+        //     .try_update(|lines| lines.do_insert_buffer(cursor, s))
+        // else {
+        //     return vec![];
+        // };
+        let deltas = self.buffer_edit(EditBuffer::DoInsertBuffer { cursor, s });
         self.apply_deltas(&deltas);
         deltas
     }
@@ -526,8 +518,14 @@ impl Doc {
         }
 
         let (text, delta, inval_lines) = self
-            .lines
-            .try_update(|buffer| buffer.edit_buffer(edits, edit_type))?;
+            .buffer_edit(EditBuffer::EditBuffer {
+                edit_type,
+                iter: edits,
+            })
+            .remove(0);
+        // let (text, delta, inval_lines) = self
+        //     .lines
+        //     .try_update(|buffer| buffer.edit_buffer(edits, edit_type))?;
         self.apply_deltas(&[(text.clone(), delta.clone(), inval_lines.clone())]);
         Some((text, delta, inval_lines))
     }
@@ -546,11 +544,14 @@ impl Doc {
             debug!("do_edit read_only or not_changing_buffer");
             return Vec::new();
         }
-        let Some(deltas) = self.lines.try_update(|lines| {
-            lines.do_edit_buffer(cursor, cmd, modal, register, smart_tab)
-        }) else {
-            return vec![];
-        };
+
+        let deltas = self.buffer_edit(EditBuffer::DoEditBuffer {
+            cursor,
+            cmd,
+            modal,
+            register,
+            smart_tab,
+        });
         if !deltas.is_empty() {
             self.apply_deltas(&deltas);
         }
@@ -559,18 +560,12 @@ impl Doc {
     }
 
     pub fn apply_deltas(&self, deltas: &[(Rope, RopeDelta, InvalLines)]) {
-        let rev = self.rev() - deltas.len() as u64;
         if let DocContent::File { path, .. } = self.content.get_untracked() {
             batch(|| {
-                for (i, (_, delta, inval)) in deltas.iter().enumerate() {
+                for (_, delta, inval) in deltas.iter() {
                     // self.apply_deltas_for_lines(delta);
                     self.update_find_result(delta);
                     self.update_breakpoints(delta, &path, &inval.old_text);
-                    self.common.proxy.update(
-                        path.clone(),
-                        delta.clone(),
-                        rev + i as u64 + 1,
-                    );
                 }
             });
         }
@@ -1370,11 +1365,12 @@ impl Doc {
         if let DocContent::File { path, .. } = content {
             let rev = self.rev();
             // let buffer = self.lines.with_untracked(|x| x.signal_buffer());
-            let lines = self.lines;
+            let doc = self.clone();
 
             let send = create_ext_action(self.scope, move |result| match result {
                 Ok(_) => {
-                    lines.try_update(|x| x.set_pristine(rev));
+                    // lines.try_update(|x| x.set_pristine(rev));
+                    doc.buffer_edit(EditBuffer::SetPristine(rev));
                     after_action();
                 },
                 Err(err) => error!("{err}"),
@@ -1598,17 +1594,13 @@ impl CommonAction for Doc {
         is_vertical: bool,
         register: &mut Register,
     ) {
-        let Some(deltas) = self.lines.try_update(move |lines| {
-            lines.execute_motion_mode(
-                cursor,
-                motion_mode,
-                range,
-                is_vertical,
-                register,
-            )
-        }) else {
-            return;
-        };
+        let deltas = self.buffer_edit(EditBuffer::ExecuteMotionMode {
+            cursor,
+            motion_mode,
+            range,
+            is_vertical,
+            register,
+        });
         self.apply_deltas(&deltas);
     }
 

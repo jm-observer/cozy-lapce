@@ -8,8 +8,8 @@ use anyhow::Result;
 use doc::{
     DiagnosticData, EditorViewKind,
     lines::{
-        RopeTextPosition, buffer::rope_text::RopeText, command::FocusCommand,
-        cursor::Cursor,
+        EditBuffer, RopeTextPosition, buffer::rope_text::RopeText,
+        command::FocusCommand, cursor::Cursor,
     },
     syntax::Syntax,
 };
@@ -2553,9 +2553,10 @@ impl MainSplitData {
                                 path:      path.clone(),
                                 read_only: false,
                             });
-                            doc.lines.update(|lines| {
-                                lines.set_pristine(rev);
-                            });
+                            // doc.lines.update(|lines| {
+                            //     lines.set_pristine(rev);
+                            // });
+                            doc.buffer_edit(EditBuffer::SetPristine(rev));
                             doc.set_syntax(syntax);
                             doc.trigger_syntax_change(None);
                             action();
@@ -2604,9 +2605,10 @@ impl MainSplitData {
                                 path:      path.clone(),
                                 read_only: false,
                             });
-                            doc.lines.update(|lines| {
-                                lines.set_pristine(rev);
-                            });
+                            // doc.lines.update(|lines| {
+                            //     lines.set_pristine(rev);
+                            // });
+                            doc.buffer_edit(EditBuffer::SetPristine(rev));
                             // doc.set_syntax(syntax);
                             doc.trigger_syntax_change(None);
                             action();
