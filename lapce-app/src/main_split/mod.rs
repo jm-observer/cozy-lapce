@@ -503,12 +503,17 @@ impl MainSplitData {
         if let EditorTabChildId::Editor(editor_id) = child {
             if let Some(editor) = self.editors.editor_untracked(editor_id) {
                 batch(|| {
+                    let is_empty =
+                        edits.as_ref().map(|x| x.is_empty()).unwrap_or(true);
                     editor.go_to_location(
                         location,
                         new_doc,
                         edits,
                         Some(off_top_line),
                     );
+                    if !is_empty {
+                        editor.check_auto_save();
+                    }
                 });
             }
         } else {

@@ -2405,7 +2405,7 @@ impl EditorData {
         });
     }
 
-    fn check_auto_save(&self) {
+    pub fn check_auto_save(&self) {
         let autosave_interval = self
             .common
             .config
@@ -2426,8 +2426,9 @@ impl EditorData {
                 let has_completions = editor.has_completions();
                 let has_has_inline_completions = editor.has_inline_completions();
                 log::warn!(
-                    "check_auto_save {is_current_rec} is_pristine={is_pristine} has_inline_completions={has_has_inline_completions}\
-                    has_completions={has_completions} {:?}",
+                    "check_auto_save {is_current_rec} is_pristine={is_pristine} \
+                     has_inline_completions={has_has_inline_completions} \
+                     has_completions={has_completions} {:?}",
                     doc.content.get_untracked()
                 );
                 if !is_pristine && is_current_rec && !editor.has_completions() {
