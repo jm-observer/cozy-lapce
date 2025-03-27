@@ -57,7 +57,7 @@ impl Buffer {
     }
 
     pub fn save(&mut self, rev: u64, create_parents: bool) -> Result<()> {
-        log::debug!(
+        log::warn!(
             "save request_rev={rev}, read_only={} buffer_rev={}",
             self.read_only,
             self.rev
@@ -67,7 +67,7 @@ impl Buffer {
         }
 
         if self.rev != rev {
-            return Err(anyhow!("not the right rev"));
+            return Err(anyhow!("not the right rev: self.rev={} save.rev={}", self.rev, rev));
         }
         let bak_extension = self.path.extension().map_or_else(
             || OsString::from("bak"),

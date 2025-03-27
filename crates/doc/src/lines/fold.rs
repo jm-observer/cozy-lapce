@@ -340,25 +340,26 @@ impl FoldingRanges {
     //     FoldedRanges(range)
     // }
 
-    pub fn fold_by_offset(&mut self, offset: usize, rope: &Rope) -> Result<()> {
-        let mut last_range = None;
+    pub fn fold_by_offset(
+        &mut self,
+        offset: usize,
+        rope: &Rope,
+    ) -> Result<Option<usize>> {
         for item in self.0.iter_mut() {
             let start = rope.offset_of_line(item.start.line as usize)?
                 + item.start.character as usize;
             let end = rope.offset_of_line(item.end.line as usize)?
                 + item.end.character as usize;
             if start <= offset && offset < end {
-                last_range = Some(item)
+                item.status = FoldingRangeStatus::Fold;
+                return Ok(Some(start));
             } else if end < offset {
                 continue;
             } else {
                 break;
             }
         }
-        if let Some(range) = last_range {
-            range.status = FoldingRangeStatus::Fold;
-        }
-        Ok(())
+        Ok(None)
     }
 
     pub fn to_display_items(&self, lines: &ScreenLines) -> Vec<FoldingDisplayItem> {

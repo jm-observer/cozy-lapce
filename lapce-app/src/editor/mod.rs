@@ -1623,11 +1623,19 @@ impl EditorData {
         }
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        doc.lines.update(|x| {
-            if let Err(e) = x.update_folding_ranges(offset.into()) {
-                error!("{:?}", e);
-            }
-        });
+        let Some(item_start_offset) = doc
+            .lines
+            .try_update(|x| x.update_folding_ranges(offset.into()))
+        else {
+            return Ok(());
+        };
+        let item_start_offset = item_start_offset?;
+        if let Some(item_start_offset) = item_start_offset {
+            let off_top_line = self.upper_lines_of_cursor_with_offset(offset);
+            self.cursor
+                .update(|x| x.set_offset(item_start_offset, false, false));
+            self.common.offset_line_from_top.set(Some(off_top_line));
+        }
         Ok(())
     }
 
@@ -3164,6 +3172,21 @@ impl EditorData {
                 view_id.request_focus();
             }
         }
+    }
+
+    pub fn upper_lines_of_cursor_with_offset(&self, offset: usize) -> Option<usize> {
+        let line_num = self
+            .doc
+            .get_untracked()
+            .lines
+            .with_untracked(|x| x.buffer().line_of_offset(offset));
+        self.screen_lines
+            .with_untracked(|x| x.visual_index_for_origin_line_num(line_num))
+    }
+
+    pub fn upper_lines_of_cursor(&self) -> Option<usize> {
+        let offset = self.cursor.with_untracked(|x| x.offset());
+        self.upper_lines_of_cursor_with_offset(offset)
     }
 
     pub fn pointer_down(&self, pointer_event: &PointerInputEvent) {

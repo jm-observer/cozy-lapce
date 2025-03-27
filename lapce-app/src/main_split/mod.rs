@@ -10,10 +10,7 @@ use std::{
 use anyhow::Result;
 use doc::{
     DiagnosticData, EditorViewKind,
-    lines::{
-        EditBuffer, RopeTextPosition, buffer::rope_text::RopeText,
-        command::FocusCommand, cursor::Cursor,
-    },
+    lines::{EditBuffer, RopeTextPosition, command::FocusCommand, cursor::Cursor},
     syntax::Syntax,
 };
 pub use editors::*;
@@ -469,20 +466,7 @@ impl MainSplitData {
         let mut off_top_line = None;
         // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
         if let Some(tab) = self.get_active_editor_untracked() {
-            let cursor = tab.cursor.get_untracked();
-            let offset = cursor.offset();
-
-            let line_num = tab
-                .doc
-                .get_untracked()
-                .lines
-                .with_untracked(|x| x.buffer().line_of_offset(offset));
-            if let Some(index) = tab
-                .screen_lines
-                .with_untracked(|x| x.visual_index_for_origin_line_num(line_num))
-            {
-                off_top_line = Some(index);
-            }
+            off_top_line = tab.upper_lines_of_cursor();
         }
         let path = location.path.clone();
         let (doc, new_doc) = self.get_doc(
@@ -2235,7 +2219,9 @@ impl MainSplitData {
                         })
                         .collect::<Vec<EditorDiagnostic>>();
                     if !diags.is_empty() {
-                        // log::warn!("{path:?} {:?}", floem::prelude::SignalUpdate::id(&diagnostic.diagnostics_span));
+                        // log::warn!("{path:?} {:?}",
+                        // floem::prelude::SignalUpdate::id(&diagnostic.
+                        // diagnostics_span));
                         Some((path, diags))
                     } else {
                         None

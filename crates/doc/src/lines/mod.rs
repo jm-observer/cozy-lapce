@@ -2686,9 +2686,10 @@ impl DocLines {
         for diag in diagnostics.into_iter() {
             let start = self.buffer().offset_of_position(&diag.range.start)?;
             let end = self.buffer().offset_of_position(&diag.range.end)?;
-            // if diag.severity.as_ref().map(|x| *x == DiagnosticSeverity::ERROR).unwrap_or_default() {
-            //     warn!("init_diagnostics_with_buffer start={start} end={end} {:?}", self.path);
-            // }
+            // if diag.severity.as_ref().map(|x| *x ==
+            // DiagnosticSeverity::ERROR).unwrap_or_default() {
+            //     warn!("init_diagnostics_with_buffer start={start} end={end} {:?}",
+            // self.path); }
             span.add_span(Interval::new(start, end), diag);
         }
         let span = span.build();
@@ -2713,7 +2714,8 @@ impl DocLines {
         //     .map(|x| x == "main.rs")
         //     .unwrap_or(false);
         //
-        // log::warn!("{:?} {:?}", self.path, SignalUpdate::id(&self.diagnostics.diagnostics_span));
+        // log::warn!("{:?} {:?}", self.path,
+        // SignalUpdate::id(&self.diagnostics.diagnostics_span));
         self.diagnostics.diagnostics_span.update(|diagnostics| {
             // if is_debug {
             //     for (interval, diag) in diagnostics.iter() {
@@ -3900,7 +3902,7 @@ impl PubUpdateLines {
         edit: EditBuffer,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::new();
-        debug!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
+        warn!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
         match edit {
             EditBuffer::Init(content) => {
                 let indent =
@@ -4173,8 +4175,12 @@ impl PubUpdateLines {
         Ok(())
     }
 
-    pub fn update_folding_ranges(&mut self, action: UpdateFolding) -> Result<()> {
+    pub fn update_folding_ranges(
+        &mut self,
+        action: UpdateFolding,
+    ) -> Result<Option<usize>> {
         // log::info!("{}", serde_json::to_string(&action).unwrap());
+        let mut fold_item_start = None;
         match action {
             UpdateFolding::UpdateByItem(item) => {
                 self.folding_ranges.update_folding_item(item);
@@ -4187,7 +4193,8 @@ impl PubUpdateLines {
             },
             UpdateFolding::FoldCode(offset) => {
                 let rope = self.signals.buffer.val().text();
-                self.folding_ranges.fold_by_offset(offset, rope)?;
+                fold_item_start =
+                    self.folding_ranges.fold_by_offset(offset, rope)?;
             },
         }
         // todo improve OriginLinesDelta
@@ -4195,7 +4202,7 @@ impl PubUpdateLines {
         self.signals.update_paint_text();
 
         self.trigger_signals();
-        Ok(())
+        Ok(fold_item_start)
     }
 
     pub fn update_inline_completion(&mut self, delta: &RopeDelta) -> Result<()> {
