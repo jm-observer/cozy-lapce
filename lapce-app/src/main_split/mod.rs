@@ -980,7 +980,7 @@ impl MainSplitData {
                             .doc()
                             .content
                             .with_untracked(|content| content.path() == Some(path));
-                        log::warn!("selected={selected} same_path={same_path}");
+                        log::debug!("selected={selected} same_path={same_path}");
                         if !same_path {
                             batch(|| {
                                 editor.update_doc(doc.clone());
@@ -2177,6 +2177,7 @@ impl MainSplitData {
         if file_diagnostics.is_empty() {
             return;
         }
+        // for (_path, digs) in &file_diagnos
         let active_editor = self.active_editor.get_untracked();
         let active_path = active_editor
             .map(|editor| (editor.doc(), editor.cursor()))
@@ -2199,6 +2200,7 @@ impl MainSplitData {
             });
         let (path, position) =
             next_in_file_errors_offset(active_path, &file_diagnostics);
+        // log::warn!("next_error {path:?} {position:?}");
         let location = EditorLocation {
             path,
             position: Some(position),
@@ -2233,6 +2235,7 @@ impl MainSplitData {
                         })
                         .collect::<Vec<EditorDiagnostic>>();
                     if !diags.is_empty() {
+                        // log::warn!("{path:?} {:?}", floem::prelude::SignalUpdate::id(&diagnostic.diagnostics_span));
                         Some((path, diags))
                     } else {
                         None
@@ -3264,9 +3267,7 @@ fn next_in_file_errors_offset(
                                 EditorPosition::Offset(start),
                             );
                         }
-                    }
-
-                    if diagnostic.diagnostic.range.start.line > position.line
+                    } else if diagnostic.diagnostic.range.start.line > position.line
                         || (diagnostic.diagnostic.range.start.line == position.line
                             && diagnostic.diagnostic.range.start.character
                                 > position.character)

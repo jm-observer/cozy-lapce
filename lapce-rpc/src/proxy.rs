@@ -10,6 +10,7 @@ use std::{
 use crossbeam_channel::{Receiver, Sender};
 use indexmap::IndexMap;
 use lapce_xi_rope::RopeDelta;
+use log::{debug};
 use lsp_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CodeAction, CodeActionResponse,
     CodeLens, CompletionItem, Diagnostic, DocumentHighlight, DocumentSymbolResponse,
@@ -1170,6 +1171,7 @@ impl ProxyRpcHandler {
     }
 
     pub fn update(&self, path: PathBuf, delta: RopeDelta, rev: u64) {
+        debug!("update {path:?} {delta:?}");
         self.notification(ProxyNotification::Update { path, delta, rev });
     }
 

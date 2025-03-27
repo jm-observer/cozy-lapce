@@ -2685,36 +2685,24 @@ impl EditorData {
             return;
         }
 
-        let (position, rev, diagnostics) = doc.lines.with_untracked(|buffer| {
-            let buffer = buffer.buffer();
+        let (position, rev, diagnostics) = doc.lines.with_untracked(|x| {
+            let buffer = x.buffer();
             let position = buffer.offset_to_position(offset);
             let rev = doc.rev();
 
             // Get the diagnostics for the current line, which the LSP might use to
             // inform what code actions are available (such as fixes for
             // the diagnostics).
-            let diagnostics = doc.lines.with_untracked(|x| {
-                x.diagnostics.diagnostics_span.with_untracked(|x| {
-                    x.iter()
-                        .filter(|(iv, _diag)| {
-                            // log::warn!("diagnostics_span len {iv:?} {_diag:?}");
-                            iv.start <= offset && iv.end >= offset
-                        })
-                        .map(|(_iv, diag)| diag)
-                        .cloned()
-                        .collect::<Vec<Diagnostic>>()
-                })
+            let diagnostics = x.diagnostics.diagnostics_span.with_untracked(|x| {
+                x.iter()
+                    .filter(|(iv, _diag)| {
+                        // log::warn!("diagnostics_span len {iv:?} {_diag:?}");
+                        iv.start <= offset && iv.end >= offset
+                    })
+                    .map(|(_iv, diag)| diag)
+                    .cloned()
+                    .collect::<Vec<Diagnostic>>()
             });
-            // let diagnostics = doc
-            //     .diagnostics()
-            //     .diagnostics_span
-            //     .get_untracked()
-            //     .iter_chunks(offset..offset)
-            //     .filter(|(iv, _diag)| iv.start <= offset && iv.end >= offset)
-            //     .map(|(_iv, diag)| diag)
-            //     .cloned()
-            //     .collect::<Vec<Diagnostic>>();
-
             (position, rev, diagnostics)
         });
         let position = match position {
@@ -2746,7 +2734,10 @@ impl EditorData {
                 }
             },
         );
-        log::debug!("get_code_actions {position:?} {rev} {diagnostics:?}");
+        log::debug!(
+            "get_code_actions position={position:?} rev={rev} diagnostics.len={}",
+            diagnostics.len()
+        );
 
         self.common.proxy.get_code_actions(
             path,
@@ -2755,7 +2746,8 @@ impl EditorData {
             move |(_, result)| match result {
                 Ok(ProxyResponse::GetCodeActionsResponse { plugin_id, resp }) => {
                     log::debug!(
-                        "GetCodeActionsResponse {plugin_id:?} {rev} {resp:?}"
+                        "GetCodeActionsResponse {plugin_id:?} {rev} resp.len={}",
+                        resp.len()
                     );
 
                     send((plugin_id, resp))

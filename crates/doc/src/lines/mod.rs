@@ -2686,7 +2686,9 @@ impl DocLines {
         for diag in diagnostics.into_iter() {
             let start = self.buffer().offset_of_position(&diag.range.start)?;
             let end = self.buffer().offset_of_position(&diag.range.end)?;
-            // warn!("start={start} end={end} {:?}", diag);
+            // if diag.severity.as_ref().map(|x| *x == DiagnosticSeverity::ERROR).unwrap_or_default() {
+            //     warn!("init_diagnostics_with_buffer start={start} end={end} {:?}", self.path);
+            // }
             span.add_span(Interval::new(start, end), diag);
         }
         let span = span.build();
@@ -2703,8 +2705,41 @@ impl DocLines {
             return;
         }
 
+        // let is_debug = self
+        //     .path
+        //     .as_ref()
+        //     .map(|x| x.file_name())
+        //     .flatten()
+        //     .map(|x| x == "main.rs")
+        //     .unwrap_or(false);
+        //
+        // log::warn!("{:?} {:?}", self.path, SignalUpdate::id(&self.diagnostics.diagnostics_span));
         self.diagnostics.diagnostics_span.update(|diagnostics| {
+            // if is_debug {
+            //     for (interval, diag) in diagnostics.iter() {
+            //         if diag
+            //             .severity
+            //             .as_ref()
+            //             .map(|x| *x == DiagnosticSeverity::ERROR)
+            //             .unwrap_or(false)
+            //         {
+            //             warn!("{interval:?} {:?}", diag.code_description);
+            //         }
+            //     }
+            // }
             diagnostics.apply_shape(delta);
+            // if is_debug {
+            //     for (interval, diag) in diagnostics.iter() {
+            //         if diag
+            //             .severity
+            //             .as_ref()
+            //             .map(|x| *x == DiagnosticSeverity::ERROR)
+            //             .unwrap_or(false)
+            //         {
+            //             warn!("{interval:?} {:?}", diag.code_description);
+            //         }
+            //     }
+            // }
         });
     }
 
@@ -3705,7 +3740,7 @@ impl LinesOnUpdate {
         } else {
             self.parser.update_code(self.signals.buffer.val(), None)?;
         }
-        self.init_diagnostics_with_buffer()?;
+        // self.init_diagnostics_with_buffer()?;
         Ok(())
     }
 

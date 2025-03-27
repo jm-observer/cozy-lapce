@@ -2401,10 +2401,10 @@ impl WindowWorkspaceData {
                         let now_id = diag.id.with_untracked(|x| {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
-                        warn!(
-                            "PublishDiagnostics exec_after {path:?} {now_id} \
-                             id={id}",
-                        );
+                        // warn!(
+                        //     "PublishDiagnostics exec_after {path:?} {now_id} \
+                        //      id={id}",
+                        // );
                         if now_id == id {
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
