@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     path::{Path, PathBuf},
     rc::Rc,
+    sync::atomic::AtomicU64,
 };
 
 use anyhow::Result;
@@ -2267,6 +2268,7 @@ impl MainSplitData {
                 diagnostics_span: self
                     .scope
                     .create_rw_signal(SpansBuilder::new(0).build()),
+                id:               self.scope.create_rw_signal(AtomicU64::new(0)),
             };
             self.diagnostics.update(|d| {
                 d.insert(path.to_path_buf(), diagnostic_data.clone());

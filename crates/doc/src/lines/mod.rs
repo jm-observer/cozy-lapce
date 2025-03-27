@@ -3879,7 +3879,6 @@ impl PubUpdateLines {
             EditBuffer::EditBuffer { iter, edit_type } => {
                 let delta = self.buffer_mut().edit(iter, edit_type);
                 debug!("buffer_edit EditBuffer {:?} {:?}", delta.1, delta.2);
-                self.apply_delta(&delta.1);
                 rs.push(delta);
             },
             EditBuffer::SetPristine(recv) => {
@@ -3896,7 +3895,6 @@ impl PubUpdateLines {
             } => {
                 let delta = self.buffer_mut().reload(content, set_pristine);
                 debug!("buffer_edit Reload {:?} {:?}", delta.1, delta.2);
-                self.apply_delta(&delta.1);
                 self.inlay_hints = None;
                 self.folding_ranges.0.clear();
                 self.semantic_styles = None;
@@ -3918,9 +3916,6 @@ impl PubUpdateLines {
                     is_vertical,
                     register,
                 );
-                for delta in &rs {
-                    self.apply_delta(&delta.1);
-                }
             },
             EditBuffer::DoEditBuffer {
                 cursor,
@@ -3949,9 +3944,6 @@ impl PubUpdateLines {
                 if !rs.is_empty() {
                     self.buffer_mut().set_cursor_before(old_cursor);
                     self.buffer_mut().set_cursor_after(cursor.mode().clone());
-                    for delta in &rs {
-                        self.apply_delta(&delta.1);
-                    }
                 }
             },
             EditBuffer::DoInsertBuffer { cursor, s } => {
@@ -3972,9 +3964,6 @@ impl PubUpdateLines {
                 );
                 self.buffer_mut().set_cursor_before(old_cursor);
                 self.buffer_mut().set_cursor_after(cursor.mode().clone());
-                for delta in &rs {
-                    self.apply_delta(&delta.1);
-                }
             },
             EditBuffer::SetCursor {
                 before_cursor,
@@ -3982,8 +3971,11 @@ impl PubUpdateLines {
             } => {
                 self.buffer_mut().set_cursor_after(after_cursor);
                 self.buffer_mut().set_cursor_before(before_cursor);
-                return rs;
+                return vec![];
             },
+        }
+        for delta in &rs {
+            self.apply_delta(&delta.1);
         }
         self.signals
             .pristine

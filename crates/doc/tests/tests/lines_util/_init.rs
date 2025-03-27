@@ -216,6 +216,7 @@ fn _init_lines(
         expanded:         cx.create_rw_signal(false),
         diagnostics:      cx.create_rw_signal(im::Vector::new()),
         diagnostics_span: cx.create_rw_signal(Spans::default()),
+        id:               cx.create_rw_signal(AtomicU64::new(0)),
     };
     // { x0: 0.0, y0: 0.0, x1: 591.1680297851563, y1:
     // 538.1586303710938 }

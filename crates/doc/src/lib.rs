@@ -1,4 +1,4 @@
-use std::cell::RefMut;
+use std::{cell::RefMut, sync::atomic::AtomicU64};
 
 use cosmic_text::LayoutGlyph;
 use floem::{kurbo::Point, reactive::RwSignal, text::HitPosition};
@@ -20,6 +20,7 @@ pub struct DiagnosticData {
     pub expanded:         RwSignal<bool>,
     pub diagnostics:      RwSignal<im::Vector<Diagnostic>>,
     pub diagnostics_span: RwSignal<Spans<Diagnostic>>,
+    pub id:               RwSignal<AtomicU64>,
 }
 
 #[derive(Clone, Debug)]

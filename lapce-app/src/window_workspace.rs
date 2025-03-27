@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
     sync::{Arc, mpsc::Sender},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use alacritty_terminal::vte::ansi::Handler;
@@ -16,7 +16,7 @@ use doc::lines::{
 };
 use floem::{
     ViewId,
-    action::{TimerToken, remove_overlay},
+    action::{TimerToken, exec_after, remove_overlay},
     ext_event::{create_ext_action, create_signal_from_channel},
     file::FileDialogOptions,
     file_action::open_file,
@@ -2388,19 +2388,41 @@ impl WindowWorkspaceData {
                     .into_iter()
                     .sorted_by_key(|d| d.range.start)
                     .collect();
-                debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
-                // if !diagnostics.is_empty() {
-                //     debug!(
-                //         "PublishDiagnostics {:?} {}",
-                //         path,
-                //         serde_json::to_string(diagnostic_params).unwrap()
-                //     );
-                // }
 
-                self.main_split
-                    .get_diagnostic_data(&path)
-                    .diagnostics
-                    .set(diagnostics);
+                debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
+                let diag = self.main_split.get_diagnostic_data(&path);
+                let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
+                let id = diag.id.with_untracked(|x| {
+                    x.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                });
+                if diagnostics.is_empty() && !old_is_empty {
+                    let docs = self.main_split.docs;
+                    exec_after(Duration::from_millis(100), move |_| {
+                        let now_id = diag.id.with_untracked(|x| {
+                            x.load(std::sync::atomic::Ordering::Relaxed)
+                        });
+                        warn!(
+                            "PublishDiagnostics exec_after {path:?} {now_id} \
+                             id={id}",
+                        );
+                        if now_id == id {
+                            diag.diagnostics.set(diagnostics);
+                            let doc_content = DocContent::File {
+                                path:      path.clone(),
+                                read_only: false,
+                            };
+                            if let Some(doc) = docs.with_untracked(|docs| {
+                                docs.get(&doc_content).cloned()
+                            }) {
+                                // warn!("PublishDiagnostics docs {:?}", path);
+                                doc.init_diagnostics();
+                            }
+                        }
+                    });
+                    return;
+                }
+
+                diag.diagnostics.set(diagnostics);
 
                 let doc_content = DocContent::File {
                     path:      path.clone(),

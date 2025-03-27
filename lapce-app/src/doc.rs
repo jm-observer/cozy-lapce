@@ -5,7 +5,7 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::atomic::{self},
+    sync::atomic::{self, AtomicU64},
 };
 
 use anyhow::Result;
@@ -228,6 +228,7 @@ impl Doc {
             expanded:         cx.create_rw_signal(true),
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
             diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
+            id:               cx.create_rw_signal(AtomicU64::new(0)),
         };
         let syntax = Syntax::plaintext(
             &common.directory.grammars_directory,
@@ -312,6 +313,7 @@ impl Doc {
             expanded:         cx.create_rw_signal(true),
             diagnostics:      cx.create_rw_signal(im::Vector::new()),
             diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
+            id:               cx.create_rw_signal(AtomicU64::new(0)),
         };
         let buffer = Buffer::new("");
         // let kind = cx.create_rw_signal(EditorViewKind::Normal);

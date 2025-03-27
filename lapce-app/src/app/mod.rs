@@ -3936,7 +3936,7 @@ pub async fn launch() -> Result<()> {
     //     logging::panic_hook();
     // }
 
-    let _ = custom_utils::logger::logger_feature(
+    let _logger = custom_utils::logger::logger_feature(
         "lapce",
         "info,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,\
          wasi_experimental_http_wasmtime=warn,hyper=info,reqwest=info,\
