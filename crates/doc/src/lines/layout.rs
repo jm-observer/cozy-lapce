@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::lines::{
-    delta_compute::Offset, phantom_text::PhantomTextMultiLine, style::NewLineStyle,
-    util, util::extra_styles_for_range,
+    phantom_text::PhantomTextMultiLine, style::NewLineStyle, util,
+    util::extra_styles_for_range,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -197,15 +197,15 @@ impl TextLayoutLine {
         self.phantom_text.last_line
     }
 
-    pub fn adjust(&mut self, line_delta: Offset, offset_delta: Offset) {
-        self.phantom_text.adjust(line_delta, offset_delta);
-        self.semantic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset_delta, line_delta));
-        self.diagnostic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset_delta, line_delta));
-    }
+    // pub fn adjust(&mut self, line_delta: Offset, offset_delta: Offset) {
+    //     self.phantom_text.adjust(line_delta, offset_delta);
+    //     self.semantic_styles
+    //         .iter_mut()
+    //         .for_each(|x| x.adjust(offset_delta, line_delta));
+    //     self.diagnostic_styles
+    //         .iter_mut()
+    //         .for_each(|x| x.adjust(offset_delta, line_delta));
+    // }
 
     pub fn extra_style(&self) -> &[LineExtraStyle] {
         &self.extra_style

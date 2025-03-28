@@ -20,7 +20,6 @@ use crate::{
     hit_position_aff,
     lines::{
         cursor::CursorAffinity,
-        delta_compute::Offset,
         phantom_text::{PhantomTextLine, Text},
         style::NewLineStyle,
     },
@@ -77,21 +76,6 @@ impl OriginLine {
             })
             .collect()
     }
-
-    pub fn adjust(&self, offset: Offset, line_offset: Offset) -> Self {
-        let mut obj = self.clone();
-        line_offset.adjust(&mut obj.line_index);
-        offset.adjust(&mut obj.start_offset);
-        offset.adjust(&mut obj.phantom.offset_of_line);
-        line_offset.adjust(&mut obj.phantom.line);
-        obj.semantic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset, line_offset));
-        obj.diagnostic_styles
-            .iter_mut()
-            .for_each(|x| x.adjust(offset, line_offset));
-        obj
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -107,22 +91,22 @@ pub struct OriginFoldedLine {
 }
 
 impl OriginFoldedLine {
-    pub fn adjust(
-        &self,
-        offset: Offset,
-        line_offset: Offset,
-        line_index: usize,
-    ) -> Self {
-        let mut obj = self.clone();
-        offset.adjust(&mut obj.origin_interval.start);
-        offset.adjust(&mut obj.origin_interval.end);
-        line_offset.adjust(&mut obj.origin_line_start);
-        line_offset.adjust(&mut obj.origin_line_end);
-        obj.line_index = line_index;
-        obj.text_layout.adjust(line_offset, offset);
+    // pub fn adjust(
+    //     &self,
+    //     offset: Offset,
+    //     line_offset: Offset,
+    //     line_index: usize,
+    // ) -> Self {
+    //     let mut obj = self.clone();
+    //     offset.adjust(&mut obj.origin_interval.start);
+    //     offset.adjust(&mut obj.origin_interval.end);
+    //     line_offset.adjust(&mut obj.origin_line_start);
+    //     line_offset.adjust(&mut obj.origin_line_end);
+    //     obj.line_index = line_index;
+    //     obj.text_layout.adjust(line_offset, offset);
 
-        obj
-    }
+    //     obj
+    // }
 
     // fn final_offset_of_visual_line(
     //     &self,

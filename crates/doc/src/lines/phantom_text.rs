@@ -11,7 +11,7 @@ use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::lines::{cursor::CursorAffinity, delta_compute::Offset};
+use crate::lines::cursor::CursorAffinity;
 
 /// `PhantomText` is for text that is not in the actual document, but
 /// should be rendered with it.
@@ -219,18 +219,18 @@ impl Text {
         }
     }
 
-    pub fn adjust(&mut self, line_delta: Offset, _offset_delta: Offset) {
-        match self {
-            Text::Phantom { text } => {
-                text.kind.adjust(line_delta);
-                line_delta.adjust(&mut text.line);
-            },
-            Text::OriginText { text } => {
-                line_delta.adjust(&mut text.line);
-            },
-            _ => {},
-        }
-    }
+    // pub fn adjust(&mut self, line_delta: Offset, _offset_delta: Offset) {
+    //     match self {
+    //         Text::Phantom { text } => {
+    //             text.kind.adjust(line_delta);
+    //             line_delta.adjust(&mut text.line);
+    //         },
+    //         Text::OriginText { text } => {
+    //             line_delta.adjust(&mut text.line);
+    //         },
+    //         _ => {},
+    //     }
+    // }
 
     fn merge_to(
         mut self,
@@ -309,21 +309,21 @@ pub enum PhantomTextKind {
 }
 
 impl PhantomTextKind {
-    pub fn adjust(&mut self, line_delta: Offset) {
-        if let Self::LineFoldedRang {
-            next_line,
-            start_position,
-            ..
-        } = self
-        {
-            let mut position_line = start_position.line as usize;
-            line_delta.adjust(&mut position_line);
-            start_position.line = position_line as u32;
-            if let Some(x) = next_line.as_mut() {
-                line_delta.adjust(x)
-            }
-        }
-    }
+    // pub fn adjust(&mut self, line_delta: Offset) {
+    //     if let Self::LineFoldedRang {
+    //         next_line,
+    //         start_position,
+    //         ..
+    //     } = self
+    //     {
+    //         let mut position_line = start_position.line as usize;
+    //         line_delta.adjust(&mut position_line);
+    //         start_position.line = position_line as u32;
+    //         if let Some(x) = next_line.as_mut() {
+    //             line_delta.adjust(x)
+    //         }
+    //     }
+    // }
 }
 
 /// Information about the phantom text on a specific line.
@@ -374,7 +374,11 @@ impl PhantomTextLine {
                     final_offset =
                         final_offset + phantom.text.len() as i32 - len as i32;
                     if origin_text_len as i32 + final_offset < 0 {
-                        error!("{phantom:?} line={line} origin_text_len={origin_text_len} =offset_of_line{offset_of_line}");
+                        error!(
+                            "{phantom:?} line={line} \
+                             origin_text_len={origin_text_len} \
+                             =offset_of_line{offset_of_line}"
+                        );
                     }
                 },
                 _ => {
@@ -1082,18 +1086,18 @@ impl PhantomTextMultiLine {
         combine_with_text(&self.text, origin)
     }
 
-    pub fn adjust(&mut self, line_delta: Offset, offset_delta: Offset) {
-        line_delta.adjust(&mut self.line);
-        line_delta.adjust(&mut self.last_line);
+    // pub fn adjust(&mut self, line_delta: Offset, offset_delta: Offset) {
+    //     line_delta.adjust(&mut self.line);
+    //     line_delta.adjust(&mut self.last_line);
 
-        offset_delta.adjust(&mut self.offset_of_line);
-        // for (line, _, _) in &mut self.len_of_line {
-        //     line_delta(line);
-        // }
-        for text in &mut self.text {
-            text.adjust(line_delta, offset_delta);
-        }
-    }
+    //     offset_delta.adjust(&mut self.offset_of_line);
+    //     // for (line, _, _) in &mut self.len_of_line {
+    //     //     line_delta(line);
+    //     // }
+    //     for text in &mut self.text {
+    //         text.adjust(line_delta, offset_delta);
+    //     }
+    // }
 }
 
 fn usize_offset(val: usize, offset: i32) -> Result<usize> {

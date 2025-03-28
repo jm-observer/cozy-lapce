@@ -9,7 +9,6 @@ use floem::{
 use serde::{Deserialize, Serialize};
 
 use crate::lines::{
-    delta_compute::Offset,
     indent::IndentStyle,
     text::{RenderWhitespace, WrapMethod},
 };
@@ -29,13 +28,13 @@ pub struct NewLineStyle {
                           *                                      */ */
 }
 
-impl NewLineStyle {
-    pub fn adjust(&mut self, offset: Offset, line_offset: Offset) {
-        offset.adjust(&mut self.start_of_buffer);
-        offset.adjust(&mut self.end_of_buffer);
-        line_offset.adjust(&mut self.origin_line);
-    }
-}
+// impl NewLineStyle {
+//     // pub fn adjust(&mut self, offset: Offset, line_offset: Offset) {
+//     //     offset.adjust(&mut self.start_of_buffer);
+//     //     offset.adjust(&mut self.end_of_buffer);
+//     //     line_offset.adjust(&mut self.origin_line);
+//     // }
+// }
 
 prop!(pub WrapProp: WrapMethod {} = WrapMethod::EditorWidth);
 impl StylePropValue for WrapMethod {
