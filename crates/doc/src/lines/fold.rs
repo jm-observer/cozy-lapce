@@ -363,19 +363,24 @@ impl FoldingRanges {
         offset: usize,
         rope: &Rope,
     ) -> Result<Option<usize>> {
+        let mut fold_item: Option<(&mut FoldingRange, usize)> = None;
         for item in self.0.iter_mut() {
             let start = rope.offset_of_line(item.start.line as usize)?
                 + item.start.character as usize;
             let end = rope.offset_of_line(item.end.line as usize)?
                 + item.end.character as usize;
             if start <= offset && offset < end {
-                item.status = FoldingRangeStatus::Fold;
-                return Ok(Some(start));
+                if !fold_item.as_ref().map(|x| x.1 > start).unwrap_or_default() {
+                    fold_item = Some((item, start));
+                }
             } else if end < offset {
                 continue;
             } else {
                 break;
             }
+        }
+        if let Some(item) = fold_item.take() {
+            item.0.status = FoldingRangeStatus::Fold;
         }
         Ok(None)
     }
