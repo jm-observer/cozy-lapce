@@ -2389,6 +2389,18 @@ impl WindowWorkspaceData {
                     .sorted_by_key(|d| d.range.start)
                     .collect();
 
+                // for diag in &diagnostics {
+                //     if let Some(Value::Object(data)) = &diag.data {
+                //         if let Some(Value::String(rendered)) =
+                // data.get("rendered") {             log::error!(
+                //                 "contains_ansi {} {}",
+                //                 contains_ansi(rendered),
+                //                 rendered
+                //             );
+                //         }
+                //     }
+                //     error!("{:?}", diag.data);
+                // }
                 debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 let diag = self.main_split.get_diagnostic_data(&path);
                 let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
@@ -3386,4 +3398,10 @@ fn open_uri(path: &Path) {
             error!("failed to open active file: {path:?}, error: {e}");
         },
     }
+}
+
+pub fn contains_ansi(s: &str) -> bool {
+    // ANSI 转义序列一般以 \x1B (ESC) 开头，紧接着是 '[' 等控制符
+    let ansi_regex = regex::Regex::new(r"\x1B\[[0-9;]*[A-Za-z]").unwrap();
+    ansi_regex.is_match(s)
 }

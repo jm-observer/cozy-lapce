@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use doc::DiagnosticData;
+use doc::diagnostic::DiagnosticData;
 use floem::{
     View,
     peniko::Color,
@@ -97,7 +97,7 @@ fn file_view(
 
     let diagnostics = create_rw_signal(im::Vector::new());
     create_effect(move |_| {
-        let span = diagnostic_data.diagnostics_span.get();
+        let span = diagnostic_data.spans().get();
         let d = if !span.is_empty() {
             span.iter()
                 .filter_map(|(iv, diag)| {

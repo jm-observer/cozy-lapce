@@ -41,8 +41,9 @@ use smallvec::SmallVec;
 use style::NewLineStyle;
 
 use crate::{
-    DiagnosticData, EditorViewKind,
+    EditorViewKind,
     config::EditorConfig,
+    diagnostic::DiagnosticData,
     lines::{
         action::UpdateFolding,
         buffer::{Buffer, InvalLines, rope_text::RopeText},
@@ -2694,7 +2695,7 @@ impl DocLines {
             span.add_span(Interval::new(start, end), diag);
         }
         let span = span.build();
-        self.diagnostics.diagnostics_span.set(span);
+        self.diagnostics.set_spans(span);
         Ok(())
     }
 
@@ -2717,33 +2718,7 @@ impl DocLines {
         //
         // log::warn!("{:?} {:?}", self.path,
         // SignalUpdate::id(&self.diagnostics.diagnostics_span));
-        self.diagnostics.diagnostics_span.update(|diagnostics| {
-            // if is_debug {
-            //     for (interval, diag) in diagnostics.iter() {
-            //         if diag
-            //             .severity
-            //             .as_ref()
-            //             .map(|x| *x == DiagnosticSeverity::ERROR)
-            //             .unwrap_or(false)
-            //         {
-            //             warn!("{interval:?} {:?}", diag.code_description);
-            //         }
-            //     }
-            // }
-            diagnostics.apply_shape(delta);
-            // if is_debug {
-            //     for (interval, diag) in diagnostics.iter() {
-            //         if diag
-            //             .severity
-            //             .as_ref()
-            //             .map(|x| *x == DiagnosticSeverity::ERROR)
-            //             .unwrap_or(false)
-            //         {
-            //             warn!("{interval:?} {:?}", diag.code_description);
-            //         }
-            //     }
-            // }
-        });
+        self.diagnostics.spans_apply_shape(delta);
     }
 
     // /// 语义的样式和方括号的样式
@@ -3062,9 +3037,9 @@ impl DocLines {
             .enable_error_lens
             .then_some(())
             .map(|_| {
-                self.diagnostics.diagnostics_span.with_untracked(|diags| {
+                self.diagnostics.spans().with_untracked(|diags| {
                     diags
-                        .iter_chunks(start_offset..end_offset)
+                        .iter()
                         .filter_map(|(iv, diag)| {
                             let start = iv.start();
                             let end = iv.end();
@@ -3903,7 +3878,11 @@ impl PubUpdateLines {
         edit: EditBuffer,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::new();
-        warn!("buffer_edit {edit:?}, rev={}", self.buffer().rev());
+        warn!(
+            "buffer_edit rev={}, {:?} {edit:?}",
+            self.buffer().rev(),
+            self.path,
+        );
         match edit {
             EditBuffer::Init(content) => {
                 let indent =

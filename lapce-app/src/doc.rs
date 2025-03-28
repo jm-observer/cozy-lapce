@@ -5,12 +5,12 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::atomic::{self, AtomicU64},
+    sync::atomic::{self},
 };
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData,
+    diagnostic::DiagnosticData,
     language::LapceLanguage,
     lines::{
         DocLinesManager, EditBuffer, RopeTextPosition,
@@ -224,12 +224,7 @@ impl Doc {
             });
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
-        let diagnostics = DiagnosticData {
-            expanded:         cx.create_rw_signal(true),
-            diagnostics:      cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
-            id:               cx.create_rw_signal(AtomicU64::new(0)),
-        };
+        let diagnostics = DiagnosticData::new(cx);
         let syntax = Syntax::plaintext(
             &common.directory.grammars_directory,
             &common.directory.queries_directory,
@@ -309,12 +304,9 @@ impl Doc {
         // let lines = cx.create_rw_signal(Lines::new(cx));
         let viewport = Rect::ZERO;
         let editor_style = EditorStyle::default();
-        let diagnostics = DiagnosticData {
-            expanded:         cx.create_rw_signal(true),
-            diagnostics:      cx.create_rw_signal(im::Vector::new()),
-            diagnostics_span: cx.create_rw_signal(SpansBuilder::new(0).build()),
-            id:               cx.create_rw_signal(AtomicU64::new(0)),
-        };
+
+        let diagnostics = DiagnosticData::new(cx);
+
         let buffer = Buffer::new("");
         // let kind = cx.create_rw_signal(EditorViewKind::Normal);
 

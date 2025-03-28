@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
+    path::PathBuf,
     rc::Rc,
     str::FromStr,
     sync::Arc,
@@ -47,7 +48,7 @@ use floem::{
         ReadSignal, RwSignal, Scope, SignalGet, SignalTrack, SignalUpdate,
         SignalWith, batch, use_context,
     },
-    text::FamilyOwned,
+    text::{Attrs, AttrsList, FamilyOwned, LineHeightValue, TextLayout},
 };
 use lapce_core::{
     directory::Directory,
@@ -63,7 +64,7 @@ use log::{debug, error, info};
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
     GotoDefinitionResponse, HoverContents, InlineCompletionTriggerKind, Location,
-    MarkedString, MarkupKind, Range, TextEdit,
+    MarkedString, MarkupKind, Position, Range, TextEdit,
 };
 use nucleo::Utf32Str;
 use view::StickyHeaderInfo;
@@ -2710,7 +2711,7 @@ impl EditorData {
             // Get the diagnostics for the current line, which the LSP might use to
             // inform what code actions are available (such as fixes for
             // the diagnostics).
-            let diagnostics = x.diagnostics.diagnostics_span.with_untracked(|x| {
+            let diagnostics = x.diagnostics.spans().with_untracked(|x| {
                 x.iter()
                     .filter(|(iv, _diag)| {
                         // log::warn!("diagnostics_span len {iv:?} {_diag:?}");
@@ -3764,6 +3765,41 @@ impl EditorData {
 
     fn update_hover(&self, offset: usize) {
         let doc = self.doc();
+
+        if let Some((_severity, msg)) = doc.lines.with_untracked(|x| {
+            x.diagnostics
+                .find_most_serious_diag_by_offset(offset, |severity, diag| {
+                    (severity, diag.message.clone())
+                })
+        }) {
+            let (font_family, editor_fg, font_size) =
+                self.common.config.signal(|config| {
+                    (
+                        config.editor.font_family.val().clone(),
+                        config.color_val(LapceColor::EDITOR_FOREGROUND),
+                        *config.ui.font_size.val() as f32,
+                    )
+                });
+
+            let default_attrs = Attrs::new()
+                .color(editor_fg)
+                .family(&font_family.0)
+                .font_size(font_size)
+                .line_height(LineHeightValue::Normal(1.8));
+            let attrs_list = AttrsList::new(default_attrs);
+            let content = vec![MarkdownContent::Text(TextLayout::new_with_text(
+                &msg, attrs_list,
+            ))];
+            let hover_data = self.common.hover.clone();
+            let editor_id = self.id();
+            batch(|| {
+                hover_data.content.set(content);
+                hover_data.offset.set(offset);
+                hover_data.editor_id.set(editor_id);
+                hover_data.active.set(true);
+            });
+            return;
+        }
         let path = match doc
             .content
             .with_untracked(|content| content.path().cloned())
@@ -3781,11 +3817,15 @@ impl EditorData {
                 return;
             },
         };
+        self.get_hover_from_lsp(offset, path, position);
+    }
+
+    fn get_hover_from_lsp(&self, offset: usize, path: PathBuf, position: Position) {
         let config = self.common.config;
         let hover_data = self.common.hover.clone();
         let editor_id = self.id();
         let directory = self.common.directory.clone();
-        log::info!("update_hover offset={offset} position={position:?} {path:?}");
+        log::info!("get_hover_from_lsp position={position:?} {path:?}");
         let send = create_ext_action(self.scope, move |resp| {
             if let Ok(ProxyResponse::HoverResponse { hover, .. }) = resp {
                 let (

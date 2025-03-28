@@ -6,8 +6,9 @@ use std::{
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData, EditorViewKind,
+    EditorViewKind,
     config::EditorConfig,
+    diagnostic::DiagnosticData,
     language::LapceLanguage,
     lines::{
         DocLines, RopeTextPosition,
@@ -212,12 +213,7 @@ fn _init_lines(
     // 003921569,1.0],"cs":null}}}"##;
     let config: EditorConfig = serde_json::from_str(config_str).unwrap();
     let cx = Scope::new();
-    let diagnostics = DiagnosticData {
-        expanded:         cx.create_rw_signal(false),
-        diagnostics:      cx.create_rw_signal(im::Vector::new()),
-        diagnostics_span: cx.create_rw_signal(Spans::default()),
-        id:               cx.create_rw_signal(AtomicU64::new(0)),
-    };
+    let diagnostics = DiagnosticData::new(cx);
     // { x0: 0.0, y0: 0.0, x1: 591.1680297851563, y1:
     // 538.1586303710938 }
     let view = Rect::new(0.0, 0.0, 591.0, 538.0);

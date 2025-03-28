@@ -4,12 +4,12 @@ use std::{
     collections::HashMap,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::atomic::AtomicU64,
 };
 
 use anyhow::Result;
 use doc::{
-    DiagnosticData, EditorViewKind,
+    EditorViewKind,
+    diagnostic::DiagnosticData,
     lines::{EditBuffer, RopeTextPosition, command::FocusCommand, cursor::Cursor},
     syntax::Syntax,
 };
@@ -38,7 +38,7 @@ use lapce_rpc::{
     plugin::{PluginId, VoltID},
     proxy::ProxyResponse,
 };
-use lapce_xi_rope::{Rope, spans::SpansBuilder};
+use lapce_xi_rope::Rope;
 use log::{error, warn};
 use lsp_types::{
     CodeAction, CodeActionOrCommand, DiagnosticSeverity, DocumentChangeOperation,
@@ -2203,7 +2203,7 @@ impl MainSplitData {
         diagnostics
             .into_iter()
             .filter_map(|(path, diagnostic)| {
-                let span = diagnostic.diagnostics_span.get_untracked();
+                let span = diagnostic.spans().get_untracked();
                 if !span.is_empty() {
                     let diags = span
                         .iter()
@@ -2251,14 +2251,8 @@ impl MainSplitData {
         if let Some(d) = self.diagnostics.with_untracked(|d| d.get(path).cloned()) {
             d
         } else {
-            let diagnostic_data = DiagnosticData {
-                expanded:         self.scope.create_rw_signal(true),
-                diagnostics:      self.scope.create_rw_signal(im::Vector::new()),
-                diagnostics_span: self
-                    .scope
-                    .create_rw_signal(SpansBuilder::new(0).build()),
-                id:               self.scope.create_rw_signal(AtomicU64::new(0)),
-            };
+            let diagnostic_data = DiagnosticData::new(self.scope);
+
             self.diagnostics.update(|d| {
                 d.insert(path.to_path_buf(), diagnostic_data.clone());
             });

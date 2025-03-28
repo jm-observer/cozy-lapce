@@ -1,9 +1,7 @@
-use std::{cell::RefMut, sync::atomic::AtomicU64};
+use std::cell::RefMut;
 
 use cosmic_text::LayoutGlyph;
-use floem::{kurbo::Point, reactive::RwSignal, text::HitPosition};
-use lapce_xi_rope::spans::Spans;
-use lsp_types::Diagnostic;
+use floem::{kurbo::Point, text::HitPosition};
 use serde::{Deserialize, Serialize};
 
 use crate::lines::{diff::DiffResult, layout::TextLayout};
@@ -15,13 +13,7 @@ pub mod syntax;
 // mod meta;
 pub mod config;
 
-#[derive(Clone, Debug)]
-pub struct DiagnosticData {
-    pub expanded:         RwSignal<bool>,
-    pub diagnostics:      RwSignal<im::Vector<Diagnostic>>,
-    pub diagnostics_span: RwSignal<Spans<Diagnostic>>,
-    pub id:               RwSignal<AtomicU64>,
-}
+pub mod diagnostic;
 
 #[derive(Clone, Debug)]
 pub enum EditorViewKind {
