@@ -4197,6 +4197,10 @@ impl PubUpdateLines {
                 fold_item_start =
                     self.folding_ranges.fold_by_offset(offset, rope)?;
             },
+            UpdateFolding::UnFoldCode(offset) => {
+                let rope = self.signals.buffer.val().text();
+                self.folding_ranges.unfold_by_offset(offset, rope)?;
+            },
         }
         // todo improve OriginLinesDelta
         // self.check_lines();

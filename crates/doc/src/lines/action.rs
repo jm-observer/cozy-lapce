@@ -9,6 +9,7 @@ pub enum UpdateFolding {
     UpdateByPhantom(Position),
     New(Vec<FoldingRange>),
     FoldCode(usize),
+    UnFoldCode(usize),
 }
 
 impl From<FoldingDisplayItem> for UpdateFolding {

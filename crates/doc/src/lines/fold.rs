@@ -340,6 +340,24 @@ impl FoldingRanges {
     //     FoldedRanges(range)
     // }
 
+    pub fn unfold_by_offset(&mut self, offset: usize, rope: &Rope) -> Result<()> {
+        for item in self.0.iter_mut() {
+            let start = rope.offset_of_line(item.start.line as usize)?
+                + item.start.character as usize;
+            let end = rope.offset_of_line(item.end.line as usize)?
+                + item.end.character as usize;
+            if start <= offset && offset < end {
+                item.status = FoldingRangeStatus::Unfold;
+                // return Ok(Some(start));
+            } else if end < offset {
+                continue;
+            } else {
+                break;
+            }
+        }
+        Ok(())
+    }
+
     pub fn fold_by_offset(
         &mut self,
         offset: usize,

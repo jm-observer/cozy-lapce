@@ -12,6 +12,7 @@ use doc::{
     EditorViewKind,
     lines::{
         ClickResult, EditBuffer, RopeTextPosition,
+        action::UpdateFolding,
         buffer::{
             InvalLines,
             rope_text::{RopeText, RopeTextVal},
@@ -2468,8 +2469,8 @@ impl EditorData {
                     x.buffer()
                         .text()
                         .slice_to_cow(0..cursor.offset())
-                        .chars()
-                        .filter(|c| c.is_ascii())
+                        .char_indices()
+                        .filter(|c| c.1.is_ascii() && !c.1.is_whitespace())
                         .count()
                 }),
             )
@@ -2494,15 +2495,16 @@ impl EditorData {
             if format_before_save {
                 let offset = rope
                     .slice_to_cow(0..rope.len())
-                    .chars()
-                    .enumerate()
-                    .filter(|(_, c)| c.is_ascii())
+                    .char_indices()
+                    .filter(|(_, c)| c.is_ascii() && !c.is_whitespace())
                     .nth(rev_offset.saturating_sub(1))
                     .map(|(index, _)| index + 1)
                     .unwrap_or_default();
                 cursor.set_offset(offset, false, false);
-                debug!(
-                    "rev_offset={rev_offset} offset={offset}, {screen_line_index:?}"
+                log::debug!(
+                    "rev_offset={rev_offset} offset={offset}, \
+                     {screen_line_index:?} cursor.offset={}",
+                    cursor.offset()
                 );
                 self.common
                     .offset_line_from_top
@@ -2671,6 +2673,13 @@ impl EditorData {
             self.do_text_edit(edits, false);
         }
         self.sync_document_symbol_by_offset(offset);
+        self.doc.get_untracked().lines.update(|x| {
+            if let Err(err) =
+                x.update_folding_ranges(UpdateFolding::UnFoldCode(offset))
+            {
+                error!("UnFoldCode {offset} fail {err}")
+            }
+        });
     }
 
     pub fn get_code_actions(&self) {
