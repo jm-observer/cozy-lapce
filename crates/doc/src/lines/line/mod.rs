@@ -5,7 +5,7 @@ use std::{
     fmt::{Debug, Formatter},
     ops::RangeInclusive,
 };
-
+use std::cell::RefCell;
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
     peniko::Color,
@@ -315,6 +315,10 @@ impl OriginFoldedLine {
 
     pub fn text(&self) -> &[Text] {
         &self.text_layout.phantom_text.text
+    }
+
+    pub fn text_layout(&self) -> &RefCell<TextLayout> {
+        &self.text_layout.text
     }
 
     pub fn cursor_final_col_of_merge_col(

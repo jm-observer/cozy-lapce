@@ -1636,6 +1636,25 @@ impl DocLines {
         })
     }
 
+    fn get_folded_index(&self, line: usize) -> usize {
+        MergeFoldingRangesLine::new(
+            &self.folding_ranges.get_all_folded_folded_range(self.buffer()).0,
+        )
+            .get_origin_folded_line_index(line)
+    }
+
+    fn get_folded_line(&self, line: usize) -> usize {
+        if let Some(folded_range) = MergeFoldingRangesLine::new(
+            &self.folding_ranges.get_all_folded_folded_range(self.buffer()).0,
+        )
+            .get_folded_range_by_line(line)
+        {
+             *folded_range.start()
+        } else {
+            line
+        }
+    }
+
     pub fn init_folded_line_layout_alone(
         &self,
         mut current_origin_line: usize,
@@ -1643,17 +1662,8 @@ impl DocLines {
         let buffer = self.buffer();
         let binding = self.folding_ranges.get_all_folded_range(buffer);
         debug!("{binding:?}");
-        let folded_index = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range(buffer).0,
-        )
-        .get_origin_folded_line_index(current_origin_line);
-        if let Some(folded_range) = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range(buffer).0,
-        )
-        .get_folded_range_by_line(current_origin_line)
-        {
-            current_origin_line = *folded_range.start();
-        }
+        let folded_index = self.get_folded_index(current_origin_line);
+        current_origin_line = self.get_folded_line(current_origin_line);
 
         let mut folded_lines = FoldingRangesLine::new(&binding.0);
 

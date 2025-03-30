@@ -216,9 +216,8 @@ impl<'a> FoldingRangesLine<'a> {
                     } else {
                         (
                             folded.interval.size(),
-                            content_len_of_start_line + folded.interval.end
-                                - start
-                                - offset_of_end_line,
+                            content_len_of_start_line
+                                - start,
                         )
                     };
                     textes.push(PhantomText {
@@ -289,19 +288,24 @@ impl FoldingRanges {
         let mut limit_line = 0;
         let mut peek = self.0.iter().peekable();
         while let Some((interval, item)) = peek.next() {
-            let start_line = buffer.line_of_offset(interval.start);
-            let end_line = buffer.line_of_offset(interval.end);
             let item = item.get_untracked();
-            if start_line < limit_line && limit_line > 0 {
-                continue;
-            }
+
             if item.status.is_folded() {
+                let start_line = buffer.line_of_offset(interval.start);
+                let end_line = buffer.line_of_offset(interval.end);
+                if start_line < limit_line && limit_line > 0 {
+                    continue;
+                }
                 let mut end = end_line;
                 while let Some((next_interval, _next_item)) = peek.peek() {
-                    let next_start_line = buffer.line_of_offset(next_interval.start);
-                    if end_line == next_start_line {
-                        end = buffer.line_of_offset(next_interval.end);
-                        peek.next();
+                    if _next_item.get_untracked().status.is_folded() {
+                        let next_start_line = buffer.line_of_offset(next_interval.start);
+                        if end_line == next_start_line {
+                            end = buffer.line_of_offset(next_interval.end);
+                            peek.next();
+                        } else {
+                            break;
+                        }
                     } else {
                         break;
                     }
@@ -678,7 +682,7 @@ impl FoldedRanges {
 //     Ok(buffer.offset_of_line(positon.line as usize)? + positon.character as
 // usize) }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FoldedRange {
     pub interval:   Interval,
     pub start_line: usize,
@@ -721,7 +725,7 @@ impl FoldedRange {
             } else {
                 (
                     self.interval.size(),
-                    content - start + self.interval.end - folded,
+                    content - start,
                 )
             };
             Some(PhantomText {

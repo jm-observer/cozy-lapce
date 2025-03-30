@@ -10,7 +10,7 @@ use doc::lines::{
 use lapce_xi_rope::Interval;
 use log::{debug, info};
 use smallvec::SmallVec;
-
+use doc::lines::fold::FoldedRange;
 use super::lines_util::*;
 use crate::check_lines_col;
 
@@ -58,9 +58,65 @@ pub fn _test_merge() -> Result<()> {
 
         debug!("{:?}", line);
         line.init_extra_style();
-        for style in line.extra_style() {
-            debug!("{style:?}")
+        let folded = lines.folding_ranges.get_all_folded_folded_range(lines.buffer()).0.remove(0);
+        assert_eq!(folded, FoldedRange {
+            interval: Interval::new(25, 63),
+            start_line: 1,
+            end_line: 3,
+        });
+        // for folded in lines.folding_ranges.get_all_folded_folded_range(lines.buffer()).0 {
+        //     debug!("{:?}", folded);
+        // }
+        let style = line.extra_style()[0].clone();
+        assert_eq!((91, 2, 35), (style.x as usize, style.y as usize, style.width.unwrap() as usize));
+        // for style in line.extra_style() {
+        //     debug!("{style:?}")
+        // }
+        {
+            // for attr in line.text_layout().borrow().buffer.attrs_list().spans() {
+            //     debug!("{attr:?}")
+            // }
+            let text_layout = line.text_layout().borrow();
+            let spans = text_layout.buffer.attrs_list().spans();
+            assert_eq!(*spans[0].0, 4..6);
+            assert_eq!(*spans[1].0, 7..11);
+            assert_eq!(*spans[2].0, 12..17);
+            assert_eq!(*spans[3].0, 18..22);
         }
+
+        {
+            // for text in line.text() {
+            //     debug!("{text:?}")
+            // }
+            let texts = line.text();
+            if let Text::Phantom {
+                text
+            } = &texts[1] {
+                assert_eq!(text.kind, PhantomTextKind::LineFoldedRang {
+                    next_line: Some(3),
+                    len: 3,
+                    all_len: 38,
+                    start_position: 25,
+                });
+                assert_eq!((text.col, text.visual_merge_col, text.origin_merge_col, text.final_col), (12, 12,12, 12));
+            } else {
+                panic!("");
+            }
+            if let Text::Phantom {
+                text
+            } = &texts[2] {
+                assert_eq!(text.kind, PhantomTextKind::LineFoldedRang {
+                    next_line: None,
+                    len: 5,
+                    all_len: 5,
+                    start_position: 25,
+                });
+                assert_eq!((text.col, text.visual_merge_col, text.origin_merge_col, text.final_col), (0, 15, 45, 17));
+            } else {
+                panic!("");
+            }
+        }
+
         let expect_str = "    if true {...} else {\r\n";
         assert_eq!(line.len(), expect_str.len());
         check_lines_col!(
