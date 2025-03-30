@@ -182,6 +182,8 @@ impl DocLinesManager {
 
 #[derive(Clone)]
 pub struct DocLines {
+    pub cx: Scope,
+
     // pub origin_lines:        Vec<OriginLine>,
     // pub origin_folded_lines: Vec<OriginFoldedLine>,
 
@@ -245,6 +247,7 @@ impl DocLines {
         // log::info!("{}", serde_json::to_string(&config).unwrap());
 
         Self {
+            cx,
             path,
             signals,
             // layout_event: Listener::new_empty(cx), //
@@ -1141,7 +1144,9 @@ impl DocLines {
                     ..
                 } = phantom.kind
                 {
-                    self.update_folding_ranges(start_position.into())?;
+                    self.update_folding_ranges(UpdateFolding::UpdateByPhantom(
+                        start_position,
+                    ))?;
                     return Ok(ClickResult::MatchFolded);
                 }
                 ClickResult::MatchWithoutLocation
@@ -2846,7 +2851,7 @@ impl DocLines {
 
     pub fn _log_folding_ranges(&self) {
         info!("folding_ranges");
-        for range in &self.folding_ranges.0 {
+        for (_, range) in self.folding_ranges.0.iter() {
             info!("{:?}", range);
         }
     }
@@ -3913,7 +3918,7 @@ impl PubUpdateLines {
                 let delta = self.buffer_mut().reload(content, set_pristine);
                 debug!("buffer_edit Reload {:?} {:?}", delta.1, delta.2);
                 self.inlay_hints = None;
-                self.folding_ranges.0.clear();
+                // self.folding_ranges.0.clear();
                 self.semantic_styles = None;
                 // line_delta = self._compute_change_lines_one(&rs)?;
                 rs.push(delta);
@@ -4159,26 +4164,28 @@ impl PubUpdateLines {
         &mut self,
         action: UpdateFolding,
     ) -> Result<Option<usize>> {
-        // log::info!("{}", serde_json::to_string(&action).unwrap());
+        log::info!("{}", serde_json::to_string(&action).unwrap());
         let mut fold_item_start = None;
         match action {
             UpdateFolding::UpdateByItem(item) => {
                 self.folding_ranges.update_folding_item(item);
             },
             UpdateFolding::New(ranges) => {
-                self.folding_ranges.update_ranges(ranges);
+                self.folding_ranges.update_ranges(
+                    ranges,
+                    self.signals.buffer.val(),
+                    self.cx,
+                )?;
             },
             UpdateFolding::UpdateByPhantom(position) => {
                 self.folding_ranges.update_by_phantom(position);
             },
             UpdateFolding::FoldCode(offset) => {
-                let rope = self.signals.buffer.val().text();
                 fold_item_start =
-                    self.folding_ranges.fold_by_offset(offset, rope)?;
+                    self.folding_ranges.fold_min_range_by_offset(offset);
             },
-            UpdateFolding::UnFoldCode(offset) => {
-                let rope = self.signals.buffer.val().text();
-                self.folding_ranges.unfold_by_offset(offset, rope)?;
+            UpdateFolding::UnFoldCodeByGoTo(offset) => {
+                self.folding_ranges.unfold_all_range_by_offset(offset)?;
             },
         }
         // todo improve OriginLinesDelta
@@ -4235,7 +4242,9 @@ impl PubUpdateLines {
         } else if let Some(styles) = self.syntax.styles.as_mut() {
             styles.apply_shape(delta);
         }
+        // todo update foldingrange
         self.syntax.lens.apply_delta(delta);
+        self.folding_ranges.0.apply_shape(delta);
         self.update_diagnostics(delta);
         self.update_inlay_hints(delta);
         if let Err(err) = self.update_completion_lens(delta) {

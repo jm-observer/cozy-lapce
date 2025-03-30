@@ -1,15 +1,25 @@
 use std::{cmp::Ordering, iter::Peekable, ops::RangeInclusive, slice::Iter};
 
-use anyhow::Result;
-use floem::peniko::Color;
+use anyhow::{Result, anyhow};
+use floem::{
+    peniko::Color,
+    prelude::{RwSignal, SignalGet, SignalUpdate},
+    reactive::Scope,
+};
 use im::HashMap;
-use lapce_xi_rope::Rope;
+use lapce_xi_rope::{
+    Interval,
+    spans::{Spans, SpansBuilder},
+};
 use log::error;
 use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use super::phantom_text::{PhantomText, PhantomTextKind};
+use super::{
+    RopeTextPosition,
+    phantom_text::{PhantomText, PhantomTextKind},
+};
 use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
     screen_lines::ScreenLines,
@@ -213,7 +223,7 @@ impl<'a> FoldingRangesLine<'a> {
                             next_line,
                             len,
                             all_len,
-                            start_position: folded.start,
+                            start_position: folded.interval.start,
                         },
                         col: start,
                         text,
@@ -238,7 +248,7 @@ impl<'a> FoldingRangesLine<'a> {
                             next_line:      None,
                             len:            folded.end.character as usize,
                             all_len:        folded.end.character as usize,
-                            start_position: folded.start,
+                            start_position: folded.interval.start,
                         },
                         col: 0,
                         text,
@@ -263,8 +273,8 @@ impl<'a> FoldingRangesLine<'a> {
     }
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct FoldingRanges(pub Vec<FoldingRange>);
+#[derive(Default, Clone)]
+pub struct FoldingRanges(pub Spans<RwSignal<FoldingRange>>);
 
 #[derive(Default, Clone, Debug)]
 pub struct FoldedRanges(pub Vec<FoldedRange>);
@@ -275,14 +285,16 @@ impl FoldingRanges {
         let mut range = Vec::new();
         let mut limit_line = 0;
         let mut peek = self.0.iter().peekable();
-        while let Some(item) = peek.next() {
+        while let Some((interval, item)) = peek.next() {
+            let item = item.get_untracked();
             if item.start.line < limit_line && limit_line > 0 {
                 continue;
             }
             if item.status.is_folded() {
                 let start = item.start;
                 let mut end = item.end;
-                while let Some(next_item) = peek.peek() {
+                while let Some((_, next_item)) = peek.peek() {
+                    let next_item = next_item.get_untracked();
                     if item.end.line == next_item.start.line {
                         end = next_item.end;
                         peek.next();
@@ -290,7 +302,11 @@ impl FoldingRanges {
                         break;
                     }
                 }
-                range.push(FoldedRange { start, end });
+                range.push(FoldedRange {
+                    start,
+                    end,
+                    interval,
+                });
                 limit_line = end.line;
             }
         }
@@ -301,14 +317,16 @@ impl FoldingRanges {
         // 不能合并，因为后续是一行一行拼接的。合并会导致中间行缺失
         let mut range = Vec::new();
         let mut limit_line = 0;
-        for item in &self.0 {
+        for (interval, item) in self.0.iter() {
+            let item = item.get_untracked();
             if item.start.line < limit_line && limit_line > 0 {
                 continue;
             }
             if item.status.is_folded() {
                 range.push(FoldedRange {
                     start: item.start,
-                    end:   item.end,
+                    end: item.end,
+                    interval,
                 });
                 limit_line = item.end.line;
             }
@@ -340,49 +358,59 @@ impl FoldingRanges {
     //     FoldedRanges(range)
     // }
 
-    pub fn unfold_by_offset(&mut self, offset: usize, rope: &Rope) -> Result<()> {
-        for item in self.0.iter_mut() {
-            let start = rope.offset_of_line(item.start.line as usize)?
-                + item.start.character as usize;
-            let end = rope.offset_of_line(item.end.line as usize)?
-                + item.end.character as usize;
-            if start <= offset && offset < end {
-                item.status = FoldingRangeStatus::Unfold;
-                // return Ok(Some(start));
-            } else if end < offset {
-                continue;
-            } else {
+    /// 所有包含该offset的折叠都要展开
+    pub fn unfold_all_range_by_offset(&mut self, offset: usize) -> Result<()> {
+        for (iv, item) in self.0.iter() {
+            if item
+                .try_update(|item| {
+                    if iv.contains(offset) {
+                        item.status = FoldingRangeStatus::Unfold;
+                        // return Ok(Some(start));
+                    } else if iv.end < offset {
+                    } else {
+                        return Result::<bool, anyhow::Error>::Ok(true);
+                    }
+                    Ok(false)
+                })
+                .ok_or(anyhow!("update fail"))??
+            {
                 break;
             }
         }
         Ok(())
     }
 
-    pub fn fold_by_offset(
+    /// 最小包含该offset的范围要折叠
+    pub fn fold_min_range_by_offset(&mut self, offset: usize) -> Option<usize> {
+        if let Some((item, iv)) = self.find_range_by_offset(offset) {
+            item.update(|x| x.status = FoldingRangeStatus::Fold);
+            Some(iv)
+        } else {
+            None
+        }
+    }
+
+    pub fn find_range_by_offset(
         &mut self,
         offset: usize,
-        rope: &Rope,
-    ) -> Result<Option<usize>> {
-        let mut fold_item: Option<(&mut FoldingRange, usize)> = None;
-        for item in self.0.iter_mut() {
-            let start = rope.offset_of_line(item.start.line as usize)?
-                + item.start.character as usize;
-            let end = rope.offset_of_line(item.end.line as usize)?
-                + item.end.character as usize;
-            if start <= offset && offset < end {
-                if !fold_item.as_ref().map(|x| x.1 > start).unwrap_or_default() {
-                    fold_item = Some((item, start));
+    ) -> Option<(RwSignal<FoldingRange>, usize)> {
+        let mut fold_item: Option<(RwSignal<FoldingRange>, usize)> = None;
+        for (interval, item) in self.0.iter() {
+            if interval.contains(offset) {
+                if !fold_item
+                    .as_ref()
+                    .map(|x| x.1 > interval.start)
+                    .unwrap_or_default()
+                {
+                    fold_item = Some((*item, interval.start));
                 }
-            } else if end < offset {
+            } else if interval.end < offset {
                 continue;
             } else {
                 break;
             }
         }
-        if let Some(item) = fold_item.take() {
-            item.0.status = FoldingRangeStatus::Fold;
-        }
-        Ok(None)
+        fold_item
     }
 
     pub fn to_display_items(&self, lines: &ScreenLines) -> Vec<FoldingDisplayItem> {
@@ -390,7 +418,8 @@ impl FoldingRanges {
         let mut unfold_start: HashMap<u32, FoldingDisplayItem> = HashMap::new();
         let mut unfold_end = HashMap::new();
         let mut limit_line = 0;
-        for item in &self.0 {
+        for (iv, item) in self.0.iter() {
+            let item = item.get_untracked();
             if item.start.line < limit_line && limit_line > 0 {
                 continue;
             }
@@ -402,9 +431,10 @@ impl FoldingRanges {
                         folded.insert(
                             item.start.line,
                             FoldingDisplayItem {
+                                iv,
                                 position: item.start,
-                                y:        line.folded_line_y() as i32,
-                                ty:       FoldingDisplayType::Folded,
+                                y: line.folded_line_y() as i32,
+                                ty: FoldingDisplayType::Folded,
                             },
                         );
                     }
@@ -418,9 +448,10 @@ impl FoldingRanges {
                             unfold_start.insert(
                                 item.start.line,
                                 FoldingDisplayItem {
+                                    iv,
                                     position: item.start,
-                                    y:        line.folded_line_y() as i32,
-                                    ty:       FoldingDisplayType::UnfoldStart,
+                                    y: line.folded_line_y() as i32,
+                                    ty: FoldingDisplayType::UnfoldStart,
                                 },
                             );
                         }
@@ -432,9 +463,10 @@ impl FoldingRanges {
                             unfold_end.insert(
                                 item.end.line,
                                 FoldingDisplayItem {
+                                    iv,
                                     position: item.end,
-                                    y:        line.folded_line_y() as i32,
-                                    ty:       FoldingDisplayType::UnfoldEnd,
+                                    y: line.folded_line_y() as i32,
+                                    ty: FoldingDisplayType::UnfoldEnd,
                                 },
                             );
                         }
@@ -462,18 +494,34 @@ impl FoldingRanges {
         items
     }
 
-    pub fn update_ranges(&mut self, mut new: Vec<FoldingRange>) {
+    pub fn update_ranges(
+        &mut self,
+        mut new: Vec<FoldingRange>,
+        buffer: &Buffer,
+        cx: Scope,
+    ) -> Result<()> {
         let folded_range = self.get_all_folded_range();
         new.iter_mut().for_each(|x| folded_range.update_status(x));
-        self.0 = new;
+        let mut builder = SpansBuilder::new(buffer.len());
+        for item in new {
+            let start = buffer.offset_of_position(&item.start)?;
+            let end = buffer.offset_of_position(&item.end)?;
+            log::debug!("{start}-{end} {item:?}");
+            let data = cx.create_rw_signal(item);
+            builder.add_span(Interval::new(start, end), data);
+        }
+        self.0 = builder.build();
+        Ok(())
     }
 
     pub fn update_folding_item(&mut self, item: FoldingDisplayItem) {
         match item.ty {
             FoldingDisplayType::UnfoldStart | FoldingDisplayType::Folded => {
-                self.0.iter_mut().find_map(|range| {
-                    if range.start == item.position {
-                        range.status.click();
+                self.0.iter().find_map(|range| {
+                    if range.0 == item.iv {
+                        range.1.update(|x| {
+                            x.status.click();
+                        });
                         Some(())
                     } else {
                         None
@@ -481,9 +529,11 @@ impl FoldingRanges {
                 });
             },
             FoldingDisplayType::UnfoldEnd => {
-                self.0.iter_mut().find_map(|range| {
-                    if range.end == item.position {
-                        range.status.click();
+                self.0.iter().find_map(|range| {
+                    if range.0 == item.iv {
+                        range.1.update(|x| {
+                            x.status.click();
+                        });
                         Some(())
                     } else {
                         None
@@ -493,10 +543,10 @@ impl FoldingRanges {
         }
     }
 
-    pub fn update_by_phantom(&mut self, position: Position) {
-        self.0.iter_mut().find_map(|range| {
-            if range.start == position {
-                range.status.click();
+    pub fn update_by_phantom(&mut self, position: usize) {
+        self.0.iter().find_map(|range| {
+            if range.0.start == position {
+                range.1.update(|x| x.status.click());
                 Some(())
             } else {
                 None
@@ -612,8 +662,9 @@ fn get_offset(buffer: &Buffer, positon: Position) -> Result<usize> {
 
 #[derive(Debug, Clone)]
 pub struct FoldedRange {
-    pub start: Position,
-    pub end:   Position,
+    pub interval: Interval,
+    pub start:    Position,
+    pub end:      Position,
 }
 
 impl FoldedRange {
@@ -667,7 +718,7 @@ impl FoldedRange {
                     next_line,
                     len,
                     all_len,
-                    start_position: self.start,
+                    start_position: self.interval.start,
                 },
                 col: start,
                 text,
@@ -687,7 +738,7 @@ impl FoldedRange {
                     next_line:      None,
                     len:            self.end.character as usize,
                     all_len:        self.end.character as usize,
-                    start_position: self.start,
+                    start_position: self.interval.start,
                 },
                 col: 0,
                 text,
@@ -708,10 +759,10 @@ impl FoldedRange {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoldingRange {
-    pub start:          Position,
-    pub end:            Position,
-    pub status:         FoldingRangeStatus,
-    pub collapsed_text: Option<String>,
+    pub start:  Position,
+    pub end:    Position,
+    pub status: FoldingRangeStatus,
+    // pub collapsed_text: Option<String>,
 }
 
 impl FoldingRange {
@@ -721,7 +772,6 @@ impl FoldingRange {
             start_character,
             end_line,
             end_character,
-            collapsed_text,
             ..
         } = value;
         let status = FoldingRangeStatus::Unfold;
@@ -735,7 +785,7 @@ impl FoldingRange {
                 character: end_character.unwrap_or_default(),
             },
             status,
-            collapsed_text,
+            // collapsed_text,
         }
     }
 }
@@ -773,6 +823,7 @@ impl FoldingRangeStatus {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct FoldingDisplayItem {
     pub position: Position,
+    pub iv:       Interval,
     pub y:        i32,
     pub ty:       FoldingDisplayType,
 }

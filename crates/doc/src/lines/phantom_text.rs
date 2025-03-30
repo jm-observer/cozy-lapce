@@ -7,7 +7,6 @@ use floem::{
 };
 use lapce_xi_rope::Interval;
 use log::{error, info, warn};
-use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
@@ -304,7 +303,7 @@ pub enum PhantomTextKind {
         len:            usize,
         // 包括其他折叠行的长度
         all_len:        usize,
-        start_position: Position,
+        start_position: usize,
     },
 }
 

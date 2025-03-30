@@ -1,4 +1,3 @@
-use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 
 use crate::lines::fold::{FoldingDisplayItem, FoldingRange};
@@ -6,10 +5,10 @@ use crate::lines::fold::{FoldingDisplayItem, FoldingRange};
 #[derive(Debug, Serialize, Deserialize)]
 pub enum UpdateFolding {
     UpdateByItem(FoldingDisplayItem),
-    UpdateByPhantom(Position),
+    UpdateByPhantom(usize),
     New(Vec<FoldingRange>),
     FoldCode(usize),
-    UnFoldCode(usize),
+    UnFoldCodeByGoTo(usize),
 }
 
 impl From<FoldingDisplayItem> for UpdateFolding {
@@ -18,11 +17,11 @@ impl From<FoldingDisplayItem> for UpdateFolding {
     }
 }
 
-impl From<Position> for UpdateFolding {
-    fn from(value: Position) -> Self {
-        Self::UpdateByPhantom(value)
-    }
-}
+// impl From<Position> for UpdateFolding {
+//     fn from(value: Position) -> Self {
+//         Self::UpdateByPhantom(value)
+//     }
+// }
 
 impl From<Vec<FoldingRange>> for UpdateFolding {
     fn from(value: Vec<FoldingRange>) -> Self {

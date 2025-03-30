@@ -1013,8 +1013,9 @@ impl Doc {
                         let folding: Vec<FoldingRange> = resp
                             .unwrap_or_default()
                             .into_iter()
+                            .sorted_by(|x, y| x.start_line.cmp(&y.start_line))
                             .map(FoldingRange::from_lsp)
-                            .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
+
                             .collect();
                         doc.lines.update(|symbol| {
                             if let Err(err) =

@@ -103,6 +103,7 @@ pub fn folded_v1() -> FoldingDisplayItem {
             line:      1,
             character: 12,
         },
+        iv:       Interval::new(29, 69),
         y:        0,
         ty:       FoldingDisplayType::UnfoldStart,
     }
@@ -117,6 +118,7 @@ pub fn folded_v2() -> FoldingDisplayItem {
         },
         y:        0,
         ty:       FoldingDisplayType::UnfoldEnd,
+        iv:       Interval::new(73, 111),
     }
 }
 
@@ -124,13 +126,13 @@ pub fn folded_v2() -> FoldingDisplayItem {
 pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
     Ok(vec![
         serde_json::from_str(
-            r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart"}"#,
+            r#"{"position":{"line":1,"character":12},"y":20,"ty":"UnfoldStart","iv":{"start":25,"end":63}}"#,
         )?,
         serde_json::from_str(
-            r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd"}"#,
+            r#"{"position":{"line":5,"character":5},"y":60,"ty":"UnfoldEnd","iv":{"start":69,"end":107}}"#,
         )?,
         serde_json::from_str(
-            r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart"}"#,
+            r#"{"position":{"line":10,"character":10},"y":120,"ty":"UnfoldStart","iv":{"start":151,"end":459}}"#,
         )?,
     ])
 }
@@ -138,7 +140,7 @@ pub fn init_main_folded_item_2() -> Result<Vec<FoldingDisplayItem>> {
 /// just for init_main_2()
 pub fn init_main_folded_item_3() -> Result<Vec<FoldingDisplayItem>> {
     Ok(vec![serde_json::from_str(
-        r#"{"position":{"line":0,"character":14},"y":0,"ty":"UnfoldStart"}"#,
+        r#"{"position":{"line":0,"character":14},"y":0,"ty":"UnfoldStart","iv":{"start":14,"end":130}}"#,
     )?])
 }
 

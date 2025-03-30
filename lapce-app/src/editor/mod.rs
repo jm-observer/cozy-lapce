@@ -2676,7 +2676,7 @@ impl EditorData {
         self.sync_document_symbol_by_offset(offset);
         self.doc.get_untracked().lines.update(|x| {
             if let Err(err) =
-                x.update_folding_ranges(UpdateFolding::UnFoldCode(offset))
+                x.update_folding_ranges(UpdateFolding::UnFoldCodeByGoTo(offset))
             {
                 error!("UnFoldCode {offset} fail {err}")
             }
