@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, iter::Peekable, ops::RangeInclusive, slice::Iter};
+use std::{iter::Peekable, ops::RangeInclusive, slice::Iter};
 
 use anyhow::{Result, anyhow};
 use floem::{
@@ -51,7 +51,7 @@ impl<'a> MergeFoldingRangesLine<'a> {
             if index == origin_folded_index {
                 return Some(line_num);
             }
-            if let Some(folded) = self.get_folded_range_by_line(line_num as u32) {
+            if let Some(folded) = self.get_folded_range_by_line(line_num) {
                 line_num = *folded.end() + 1;
             } else {
                 line_num += 1;
@@ -63,20 +63,20 @@ impl<'a> MergeFoldingRangesLine<'a> {
 
     pub fn get_folded_range_by_line(
         &mut self,
-        line: u32,
+        line: usize,
     ) -> Option<RangeInclusive<usize>> {
         loop {
             if let Some(folded) = self.folding.peek() {
-                if folded.end.line < line {
+                if folded.end_line < line {
                     self.folding.next();
                     continue;
-                } else if folded.start.line <= line && line <= folded.end.line {
-                    let start_line = folded.start.line;
-                    let mut end_line = folded.end.line;
+                } else if folded.start_line <= line && line <= folded.end_line {
+                    let start_line = folded.start_line;
+                    let mut end_line = folded.end_line;
                     self.folding.next();
                     while let Some(next_folded) = self.folding.peek() {
-                        if next_folded.start.line == end_line {
-                            end_line = next_folded.end.line;
+                        if next_folded.start_line == end_line {
+                            end_line = next_folded.end_line;
                             self.folding.next();
                             continue;
                         } else {
@@ -101,7 +101,7 @@ impl<'a> MergeFoldingRangesLine<'a> {
             if line_num >= line {
                 break;
             }
-            if let Some(folded) = self.get_folded_range_by_line(line_num as u32) {
+            if let Some(folded) = self.get_folded_range_by_line(line_num) {
                 line_num = *folded.end() + 1;
             } else {
                 line_num += 1;
@@ -119,20 +119,20 @@ impl<'a> FoldingRangesLine<'a> {
 
     pub fn get_folded_range_by_line(
         &mut self,
-        line: u32,
+        line: usize,
     ) -> Option<RangeInclusive<usize>> {
         loop {
             if let Some(folded) = self.folding.peek() {
-                if folded.end.line < line {
+                if folded.end_line < line {
                     self.folding.next();
                     continue;
-                } else if folded.start.line <= line && line <= folded.end.line {
-                    let start_line = folded.start.line;
-                    let mut end_line = folded.end.line;
+                } else if folded.start_line <= line && line <= folded.end_line {
+                    let start_line = folded.start_line;
+                    let mut end_line = folded.end_line;
                     self.folding.next();
                     while let Some(next_folded) = self.folding.peek() {
-                        if next_folded.start.line == end_line {
-                            end_line = next_folded.end.line;
+                        if next_folded.start_line == end_line {
+                            end_line = next_folded.end_line;
                             self.folding.next();
                             continue;
                         } else {
@@ -149,13 +149,13 @@ impl<'a> FoldingRangesLine<'a> {
         }
     }
 
-    pub fn contain_position(&mut self, position: Position) -> bool {
+    pub fn contain_offset(&mut self, offset: usize) -> bool {
         loop {
             if let Some(folded) = self.folding.peek() {
-                if folded.end.line < position.line {
+                if folded.interval.end < offset {
                     self.folding.next();
                     continue;
-                } else if folded.start <= position && position <= folded.end {
+                } else if folded.interval.contains(offset) {
                     return true;
                 } else {
                     return false;
@@ -168,7 +168,7 @@ impl<'a> FoldingRangesLine<'a> {
 
     pub fn phantom_text(
         &mut self,
-        line: u32,
+        line: usize,
         buffer: &Buffer,
         inlay_hint_font_size: usize,
         inlay_hint_foreground: Color,
@@ -177,19 +177,25 @@ impl<'a> FoldingRangesLine<'a> {
         let mut textes = SmallVec::<[PhantomText; 6]>::new();
         loop {
             if let Some(folded) = self.folding.peek() {
-                if folded.end.line < line {
+                let offset_of_start_line =
+                    buffer.offset_of_line(folded.start_line)?;
+                let start = folded.interval.start - offset_of_start_line;
+                let offset_of_end_line = buffer.offset_of_line(folded.end_line)?;
+                let content_len_of_start_line =
+                    buffer.line_content(folded.start_line)?.len();
+                if folded.end_line < line {
                     self.folding.next();
                     continue;
-                } else if folded.start.line == line {
-                    let same_line = folded.start.line == folded.end.line;
+                } else if folded.start_line == line {
+                    let same_line = folded.start_line == folded.end_line;
                     let Some(start_char) =
-                        buffer.char_at_offset(get_offset(buffer, folded.start)?)
+                        buffer.char_at_offset(folded.interval.start)
                     else {
                         self.folding.next();
                         continue;
                     };
                     let Some(end_char) =
-                        buffer.char_at_offset(get_offset(buffer, folded.end)? - 1)
+                        buffer.char_at_offset(folded.interval.end - 1)
                     else {
                         self.folding.next();
                         continue;
@@ -202,21 +208,18 @@ impl<'a> FoldingRangesLine<'a> {
                     let next_line = if same_line {
                         None
                     } else {
-                        Some(folded.end.line as usize)
+                        Some(folded.end_line)
                     };
-                    let start = folded.start.character as usize;
+
                     let (all_len, len) = if same_line {
-                        (
-                            folded.end.character as usize - start,
-                            folded.end.character as usize - start,
-                        )
+                        (folded.interval.size(), folded.interval.size())
                     } else {
-                        let folded_end =
-                            buffer.offset_of_line(folded.end.line as usize)?;
-                        let current =
-                            buffer.offset_of_line(folded.start.line as usize)?;
-                        let content = buffer.line_content(line as usize)?.len();
-                        (folded_end - current - start, content - start)
+                        (
+                            folded.interval.size(),
+                            content_len_of_start_line + folded.interval.end
+                                - start
+                                - offset_of_end_line,
+                        )
                     };
                     textes.push(PhantomText {
                         kind: PhantomTextKind::LineFoldedRang {
@@ -241,13 +244,13 @@ impl<'a> FoldingRangesLine<'a> {
                     } else {
                         self.folding.next();
                     }
-                } else if folded.end.line == line {
+                } else if folded.end_line == line {
                     let text = String::new();
                     textes.push(PhantomText {
                         kind: PhantomTextKind::LineFoldedRang {
                             next_line:      None,
-                            len:            folded.end.character as usize,
-                            all_len:        folded.end.character as usize,
+                            len:            folded.interval.end - offset_of_end_line,
+                            all_len:        folded.interval.end - offset_of_end_line,
                             start_position: folded.interval.start,
                         },
                         col: 0,
@@ -281,54 +284,57 @@ pub struct FoldedRanges(pub Vec<FoldedRange>);
 
 impl FoldingRanges {
     /// 将衔接在一起的range合并在一条中，这样便于找到合并行的起始行
-    pub fn get_all_folded_folded_range(&self) -> FoldedRanges {
+    pub fn get_all_folded_folded_range(&self, buffer: &Buffer) -> FoldedRanges {
         let mut range = Vec::new();
         let mut limit_line = 0;
         let mut peek = self.0.iter().peekable();
         while let Some((interval, item)) = peek.next() {
+            let start_line = buffer.line_of_offset(interval.start);
+            let end_line = buffer.line_of_offset(interval.end);
             let item = item.get_untracked();
-            if item.start.line < limit_line && limit_line > 0 {
+            if start_line < limit_line && limit_line > 0 {
                 continue;
             }
             if item.status.is_folded() {
-                let start = item.start;
-                let mut end = item.end;
-                while let Some((_, next_item)) = peek.peek() {
-                    let next_item = next_item.get_untracked();
-                    if item.end.line == next_item.start.line {
-                        end = next_item.end;
+                let mut end = end_line;
+                while let Some((next_interval, _next_item)) = peek.peek() {
+                    let next_start_line = buffer.line_of_offset(next_interval.start);
+                    if end_line == next_start_line {
+                        end = buffer.line_of_offset(next_interval.end);
                         peek.next();
                     } else {
                         break;
                     }
                 }
                 range.push(FoldedRange {
-                    start,
-                    end,
                     interval,
+                    end_line: end,
+                    start_line,
                 });
-                limit_line = end.line;
+                limit_line = end_line;
             }
         }
         FoldedRanges(range)
     }
 
-    pub fn get_all_folded_range(&self) -> FoldedRanges {
+    pub fn get_all_folded_range(&self, buffer: &Buffer) -> FoldedRanges {
         // 不能合并，因为后续是一行一行拼接的。合并会导致中间行缺失
         let mut range = Vec::new();
         let mut limit_line = 0;
         for (interval, item) in self.0.iter() {
             let item = item.get_untracked();
-            if item.start.line < limit_line && limit_line > 0 {
+            let start_line = buffer.line_of_offset(interval.start);
+            let end_line = buffer.line_of_offset(interval.end);
+            if start_line < limit_line && limit_line > 0 {
                 continue;
             }
             if item.status.is_folded() {
                 range.push(FoldedRange {
-                    start: item.start,
-                    end: item.end,
                     interval,
+                    end_line,
+                    start_line,
                 });
-                limit_line = item.end.line;
+                limit_line = end_line;
             }
         }
 
@@ -413,43 +419,49 @@ impl FoldingRanges {
         fold_item
     }
 
-    pub fn to_display_items(&self, lines: &ScreenLines) -> Vec<FoldingDisplayItem> {
+    pub fn to_display_items(
+        &self,
+        lines: &ScreenLines,
+        buffer: &Buffer,
+    ) -> Vec<FoldingDisplayItem> {
         let mut folded = HashMap::new();
-        let mut unfold_start: HashMap<u32, FoldingDisplayItem> = HashMap::new();
+        let mut unfold_start: HashMap<usize, FoldingDisplayItem> = HashMap::new();
         let mut unfold_end = HashMap::new();
         let mut limit_line = 0;
         for (iv, item) in self.0.iter() {
             let item = item.get_untracked();
-            if item.start.line < limit_line && limit_line > 0 {
+            let start_line = buffer.line_of_offset(iv.start);
+            let end_line = buffer.line_of_offset(iv.end);
+            if start_line < limit_line && limit_line > 0 {
                 continue;
             }
             match item.status {
                 FoldingRangeStatus::Fold => {
-                    if let Some(line) = lines
-                        .visual_line_info_for_origin_line(item.start.line as usize)
+                    if let Some(line) =
+                        lines.visual_line_info_for_origin_line(start_line)
                     {
                         folded.insert(
-                            item.start.line,
+                            start_line,
                             FoldingDisplayItem {
                                 iv,
-                                position: item.start,
+                                // position: item.start,
                                 y: line.folded_line_y() as i32,
                                 ty: FoldingDisplayType::Folded,
                             },
                         );
                     }
-                    limit_line = item.end.line;
+                    limit_line = end_line;
                 },
                 FoldingRangeStatus::Unfold => {
                     {
-                        if let Some(line) = lines.visual_line_info_for_origin_line(
-                            item.start.line as usize,
-                        ) {
+                        if let Some(line) =
+                            lines.visual_line_info_for_origin_line(start_line)
+                        {
                             unfold_start.insert(
-                                item.start.line,
+                                start_line,
                                 FoldingDisplayItem {
                                     iv,
-                                    position: item.start,
+                                    // position: item.start,
                                     y: line.folded_line_y() as i32,
                                     ty: FoldingDisplayType::UnfoldStart,
                                 },
@@ -457,14 +469,14 @@ impl FoldingRanges {
                         }
                     }
                     {
-                        if let Some(line) = lines
-                            .visual_line_info_for_origin_line(item.end.line as usize)
+                        if let Some(line) =
+                            lines.visual_line_info_for_origin_line(end_line)
                         {
                             unfold_end.insert(
-                                item.end.line,
+                                end_line,
                                 FoldingDisplayItem {
                                     iv,
-                                    position: item.end,
+                                    // position: item.end,
                                     y: line.folded_line_y() as i32,
                                     ty: FoldingDisplayType::UnfoldEnd,
                                 },
@@ -484,31 +496,35 @@ impl FoldingRanges {
         let mut items: Vec<FoldingDisplayItem> =
             unfold_start.into_iter().map(|x| x.1).collect();
         items.sort_by(|x, y| {
-            let line_rs = x.position.line.cmp(&y.position.line);
-            if let Ordering::Equal = line_rs {
-                x.position.character.cmp(&y.position.character)
-            } else {
-                line_rs
-            }
+            x.iv.start.cmp(&y.iv.start)
+            // let line_rs = x.position.line.cmp(&y.position.line);
+            // if let Ordering::Equal = line_rs {
+            //     x.position.character.cmp(&y.position.character)
+            // } else {
+            //     line_rs
+            // }
         });
         items
     }
 
     pub fn update_ranges(
         &mut self,
-        mut new: Vec<FoldingRange>,
+        new: Vec<FoldingRange>,
         buffer: &Buffer,
         cx: Scope,
     ) -> Result<()> {
-        let folded_range = self.get_all_folded_range();
-        new.iter_mut().for_each(|x| folded_range.update_status(x));
+        let folded_range = self.get_all_folded_range(buffer);
         let mut builder = SpansBuilder::new(buffer.len());
-        for item in new {
+        for mut item in new {
             let start = buffer.offset_of_position(&item.start)?;
             let end = buffer.offset_of_position(&item.end)?;
             log::debug!("{start}-{end} {item:?}");
+            let iv = Interval::new(start, end);
+            if folded_range.find_by_interval(iv) {
+                item.status = FoldingRangeStatus::Fold;
+            }
             let data = cx.create_rw_signal(item);
-            builder.add_span(Interval::new(start, end), data);
+            builder.add_span(iv, data);
         }
         self.0 = builder.build();
         Ok(())
@@ -558,17 +574,20 @@ impl FoldingRanges {
 impl FoldedRanges {
     pub fn folded_line_count(&self) -> usize {
         self.0.iter().fold(0usize, |count, item| {
-            count + item.end.line as usize - item.start.line as usize
+            count + item.end_line - item.start_line
         })
     }
 
+    pub fn find_by_interval(&self, iv: Interval) -> bool {
+        self.0.iter().find(|item| item.interval == iv).is_some()
+    }
+
     pub fn filter_by_line(&self, line: usize) -> Self {
-        let line = line as u32;
         Self(
             self.0
                 .iter()
                 .filter_map(|item| {
-                    if item.start.line <= line && item.end.line >= line {
+                    if item.start_line <= line && item.end_line >= line {
                         Some(item.clone())
                     } else {
                         None
@@ -579,12 +598,11 @@ impl FoldedRanges {
     }
 
     pub fn visual_line(&self, line: usize) -> usize {
-        let line = line as u32;
         for folded in &self.0 {
-            if line <= folded.start.line {
+            if line <= folded.start_line {
                 return line as usize;
-            } else if folded.start.line < line && line <= folded.end.line {
-                return folded.start.line as usize;
+            } else if folded.start_line < line && line <= folded.end_line {
+                return folded.start_line as usize;
             }
         }
         line as usize
@@ -592,39 +610,39 @@ impl FoldedRanges {
 
     /// ??line: 该行是否被折叠。
     /// start_index: 下次检查的起始点
-    pub fn contain_line(&self, start_index: usize, line: u32) -> (bool, usize) {
+    pub fn contain_line(&self, start_index: usize, line: usize) -> (bool, usize) {
         if start_index >= self.0.len() {
             return (false, start_index);
         }
         let mut last_index = start_index;
         for range in self.0[start_index..].iter() {
-            if range.start.line >= line {
+            if range.start_line >= line {
                 return (false, last_index);
                 // todo range.end.line >= line
-            } else if range.start.line < line && range.end.line >= line {
+            } else if range.start_line < line && range.end_line >= line {
                 return (true, last_index);
-            } else if range.end.line < line {
+            } else if range.end_line < line {
                 last_index += 1;
             }
         }
         (false, last_index)
     }
 
-    pub fn contain_position(&self, position: Position) -> bool {
-        self.0
-            .iter()
-            .any(|x| x.start <= position && x.end >= position)
-    }
+    // pub fn contain_position(&self, position: Position) -> bool {
+    //     self.0
+    //         .iter()
+    //         .any(|x| x.start <= position && x.end >= position)
+    // }
 
-    pub fn update_status(&self, folding: &mut FoldingRange) {
-        if self
-            .0
-            .iter()
-            .any(|x| x.start == folding.start && x.end == folding.end)
-        {
-            folding.status = FoldingRangeStatus::Fold
-        }
-    }
+    // pub fn update_status(&self, folding: &mut FoldingRange) {
+    //     if self
+    //         .0
+    //         .iter()
+    //         .any(|x| x.start == folding.start && x.end == folding.end)
+    //     {
+    //         folding.status = FoldingRangeStatus::Fold
+    //     }
+    // }
 
     pub fn into_phantom_text(
         self,
@@ -640,7 +658,7 @@ impl FoldedRanges {
             .filter_map(|x| {
                 match x.into_phantom_text(
                     buffer,
-                    line as u32,
+                    line,
                     inlay_hint_font_size,
                     inlay_hint_foreground,
                     inlay_hint_background,
@@ -656,15 +674,15 @@ impl FoldedRanges {
     }
 }
 
-fn get_offset(buffer: &Buffer, positon: Position) -> Result<usize> {
-    Ok(buffer.offset_of_line(positon.line as usize)? + positon.character as usize)
-}
+// fn get_offset(buffer: &Buffer, positon: Position) -> Result<usize> {
+//     Ok(buffer.offset_of_line(positon.line as usize)? + positon.character as
+// usize) }
 
 #[derive(Debug, Clone)]
 pub struct FoldedRange {
-    pub interval: Interval,
-    pub start:    Position,
-    pub end:      Position,
+    pub interval:   Interval,
+    pub start_line: usize,
+    pub end_line:   usize,
 }
 
 impl FoldedRange {
@@ -672,23 +690,23 @@ impl FoldedRange {
         self,
         buffer: &Buffer,
         // config: &LapceConfig,
-        line: u32,
+        line: usize,
         inlay_hint_font_size: usize,
         inlay_hint_foreground: Color,
         inlay_hint_background: Color,
     ) -> Result<Option<PhantomText>> {
         // info!("line={line} start={:?} end={:?}", self.start,
         // self.end);
-        let same_line = self.end.line == self.start.line;
-        Ok(if self.start.line == line {
-            let Some(start_char) =
-                buffer.char_at_offset(get_offset(buffer, self.start)?)
-            else {
+        let same_line = self.end_line == self.start_line;
+        let folded = buffer.offset_of_line(self.end_line)?;
+        let current = buffer.offset_of_line(self.start_line)?;
+        let content = buffer.line_content(self.start_line)?.len();
+
+        Ok(if self.start_line == line {
+            let Some(start_char) = buffer.char_at_offset(self.interval.start) else {
                 return Ok(None);
             };
-            let Some(end_char) =
-                buffer.char_at_offset(get_offset(buffer, self.end)? - 1)
-            else {
+            let Some(end_char) = buffer.char_at_offset(self.interval.end - 1) else {
                 return Ok(None);
             };
 
@@ -696,22 +714,15 @@ impl FoldedRange {
             text.push(start_char);
             text.push_str("...");
             text.push(end_char);
-            let next_line = if same_line {
-                None
-            } else {
-                Some(self.end.line as usize)
-            };
-            let start = self.start.character as usize;
+            let next_line = if same_line { None } else { Some(self.end_line) };
+            let start = self.interval.start - current;
             let (all_len, len) = if same_line {
-                (
-                    self.end.character as usize - start,
-                    self.end.character as usize - start,
-                )
+                (self.interval.size(), self.interval.size())
             } else {
-                let folded = buffer.offset_of_line(self.end.line as usize)?;
-                let current = buffer.offset_of_line(self.start.line as usize)?;
-                let content = buffer.line_content(line as usize)?.len();
-                (folded - current - start, content - start)
+                (
+                    self.interval.size(),
+                    content - start + self.interval.end - folded,
+                )
             };
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
@@ -731,13 +742,13 @@ impl FoldedRange {
                 visual_merge_col: start,
                 origin_merge_col: start,
             })
-        } else if self.end.line == line {
+        } else if self.end_line == line {
             let text = String::new();
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
                     next_line:      None,
-                    len:            self.end.character as usize,
-                    all_len:        self.end.character as usize,
+                    len:            self.end_line - folded,
+                    all_len:        self.interval.size(),
                     start_position: self.interval.start,
                 },
                 col: 0,
@@ -822,10 +833,10 @@ impl FoldingRangeStatus {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct FoldingDisplayItem {
-    pub position: Position,
-    pub iv:       Interval,
-    pub y:        i32,
-    pub ty:       FoldingDisplayType,
+    // pub position: Position,
+    pub iv: Interval,
+    pub y:  i32,
+    pub ty: FoldingDisplayType,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]

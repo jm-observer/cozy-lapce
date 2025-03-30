@@ -1467,9 +1467,11 @@ impl DocLines {
         let max_val = (y1 / line_height as f64).floor() as usize;
 
         let (folded, changes, is_normal) = match view_kind {
-            EditorViewKind::Normal => {
-                (self.folding_ranges.get_all_folded_range(), vec![], true)
-            },
+            EditorViewKind::Normal => (
+                self.folding_ranges.get_all_folded_range(self.buffer()),
+                vec![],
+                true,
+            ),
             EditorViewKind::Diff { changes, .. } => {
                 (FoldedRanges(vec![]), changes, false)
             },
@@ -1513,7 +1515,8 @@ impl DocLines {
         )?;
 
         let display_items = if is_normal {
-            self.folding_ranges.to_display_items(&screen_lines)
+            self.folding_ranges
+                .to_display_items(&screen_lines, self.buffer())
         } else {
             vec![]
         };
@@ -1637,16 +1640,17 @@ impl DocLines {
         &self,
         mut current_origin_line: usize,
     ) -> Result<OriginFoldedLine> {
-        let binding = self.folding_ranges.get_all_folded_range();
+        let buffer = self.buffer();
+        let binding = self.folding_ranges.get_all_folded_range(buffer);
         debug!("{binding:?}");
         let folded_index = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range().0,
+            &self.folding_ranges.get_all_folded_folded_range(buffer).0,
         )
         .get_origin_folded_line_index(current_origin_line);
         if let Some(folded_range) = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range().0,
+            &self.folding_ranges.get_all_folded_folded_range(buffer).0,
         )
-        .get_folded_range_by_line(current_origin_line as u32)
+        .get_folded_range_by_line(current_origin_line)
         {
             current_origin_line = *folded_range.start();
         }
@@ -1704,9 +1708,9 @@ impl DocLines {
         let line_ending: &'static str = buffer.line_ending().get_chars();
         let last_line = buffer.last_line();
 
-        let binding = self.folding_ranges.get_all_folded_range();
+        let binding = self.folding_ranges.get_all_folded_range(buffer);
         let Some(line_num) = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range().0,
+            &self.folding_ranges.get_all_folded_folded_range(buffer).0,
         )
         .get_line_num(origin_folded_index, last_line) else {
             return Ok(None);
@@ -1826,7 +1830,7 @@ impl DocLines {
                 advance(empty_lines, origin_line_num + empty_count);
             }
             if let Some(range) =
-                folded_lines.get_folded_range_by_line(origin_line_num as u32)
+                folded_lines.get_folded_range_by_line(origin_line_num)
             {
                 origin_line_num = *range.end() + 1;
                 visual_lines.push(VisualLine {
@@ -2243,6 +2247,9 @@ impl DocLines {
             .unwrap_or_default();
 
         let (completion_line, completion_col) = self.completion_pos;
+        let completion_offset =
+            buffer.offset_of_line(completion_line)? + completion_col;
+
         let completion_text = self.config
             .enable_completion_lens
             .then_some(())
@@ -2250,10 +2257,7 @@ impl DocLines {
             // TODO: We're probably missing on various useful completion things to include here!
             .filter(|_| {
                 line == completion_line
-                    && !folded_ranges.contain_position(Position {
-                    line: completion_line as u32,
-                    character: completion_col as u32,
-                })
+                    && !folded_ranges.contain_offset(completion_offset)
             })
             .map(|completion| PhantomText {
                 kind: PhantomTextKind::Completion,
@@ -2279,11 +2283,16 @@ impl DocLines {
             .then_some(())
             .and(self.inline_completion.as_ref())
             .filter(|(_, inline_completion_line, inline_completion_col)| {
+                let Ok(inline_completion_offset) =
+                    buffer.offset_of_line(*inline_completion_line)
+                else {
+                    return false;
+                };
+                let inline_completion_offset =
+                    inline_completion_offset + inline_completion_col;
+
                 line == *inline_completion_line
-                    && !folded_ranges.contain_position(Position {
-                        line:      *inline_completion_line as u32,
-                        character: *inline_completion_col as u32,
-                    })
+                    && !folded_ranges.contain_offset(inline_completion_offset)
             })
             .map(|(completion, _, inline_completion_col)| {
                 PhantomText {
@@ -2315,13 +2324,9 @@ impl DocLines {
         let bg = self.config.inlay_hint_bg;
 
         // may be one more phantom_text?
-        text.append(&mut folded_ranges.phantom_text(
-            line as u32,
-            buffer,
-            font_size,
-            fg,
-            bg,
-        )?);
+        text.append(
+            &mut folded_ranges.phantom_text(line, buffer, font_size, fg, bg)?,
+        );
 
         PhantomTextLine::new(line, origin_text_len, start_offset, text)
     }

@@ -99,26 +99,26 @@ fn _init_code(file: PathBuf) -> (String, Buffer) {
 ///  2|   if true {...} else {\r\n
 pub fn folded_v1() -> FoldingDisplayItem {
     FoldingDisplayItem {
-        position: Position {
-            line:      1,
-            character: 12,
-        },
-        iv:       Interval::new(29, 69),
-        y:        0,
-        ty:       FoldingDisplayType::UnfoldStart,
+        // position: Position {
+        //     line:      1,
+        //     character: 12,
+        // },
+        iv: Interval::new(29, 69),
+        y:  0,
+        ty: FoldingDisplayType::UnfoldStart,
     }
 }
 
 ///  2|   if true {...} else {...}\r\n
 pub fn folded_v2() -> FoldingDisplayItem {
     FoldingDisplayItem {
-        position: Position {
-            line:      5,
-            character: 5,
-        },
-        y:        0,
-        ty:       FoldingDisplayType::UnfoldEnd,
-        iv:       Interval::new(73, 111),
+        // position: Position {
+        //     line:      5,
+        //     character: 5,
+        // },
+        y:  0,
+        ty: FoldingDisplayType::UnfoldEnd,
+        iv: Interval::new(73, 111),
     }
 }
 

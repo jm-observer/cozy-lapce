@@ -45,7 +45,7 @@ pub fn _test_merge() -> Result<()> {
         2 |    if true {
         */
         let line = lines.init_folded_line_layout_alone(1).unwrap();
-        debug!("{:?}", line);
+        // debug!("{:?}", line);
         assert_eq!(line.len_without_rn(), 13);
         check_lines_col!(
             line.text(),
@@ -54,9 +54,13 @@ pub fn _test_merge() -> Result<()> {
             "    if true {\r\n"
         );
         lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
-        let line = lines.init_folded_line_layout_alone(1).unwrap();
+        let mut line = lines.init_folded_line_layout_alone(1).unwrap();
 
         debug!("{:?}", line);
+        line.init_extra_style();
+        for style in line.extra_style() {
+            debug!("{style:?}")
+        }
         let expect_str = "    if true {...} else {\r\n";
         assert_eq!(line.len(), expect_str.len());
         check_lines_col!(
