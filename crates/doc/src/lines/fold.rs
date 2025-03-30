@@ -12,12 +12,10 @@ use lapce_xi_rope::{
     spans::{Spans, SpansBuilder},
 };
 use log::error;
-use lsp_types::Position;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use super::{
-    RopeTextPosition,
     phantom_text::{PhantomText, PhantomTextKind},
 };
 use crate::lines::{
@@ -214,11 +212,7 @@ impl<'a> FoldingRangesLine<'a> {
                     let (all_len, len) = if same_line {
                         (folded.interval.size(), folded.interval.size())
                     } else {
-                        (
-                            folded.interval.size(),
-                            content_len_of_start_line
-                                - start,
-                        )
+                        (folded.interval.size(), content_len_of_start_line - start)
                     };
                     textes.push(PhantomText {
                         kind: PhantomTextKind::LineFoldedRang {
@@ -299,7 +293,8 @@ impl FoldingRanges {
                 let mut end = end_line;
                 while let Some((next_interval, _next_item)) = peek.peek() {
                     if _next_item.get_untracked().status.is_folded() {
-                        let next_start_line = buffer.line_of_offset(next_interval.start);
+                        let next_start_line =
+                            buffer.line_of_offset(next_interval.start);
                         if end_line == next_start_line {
                             end = buffer.line_of_offset(next_interval.end);
                             peek.next();
@@ -513,20 +508,34 @@ impl FoldingRanges {
 
     pub fn update_ranges(
         &mut self,
-        new: Vec<FoldingRange>,
+        new: Vec<lsp_types::FoldingRange>,
         buffer: &Buffer,
         cx: Scope,
     ) -> Result<()> {
         let folded_range = self.get_all_folded_range(buffer);
         let mut builder = SpansBuilder::new(buffer.len());
-        for mut item in new {
-            let start = buffer.offset_of_position(&item.start)?;
-            let end = buffer.offset_of_position(&item.end)?;
+        for item in new {
+            let start = buffer.offset_of_line_col(
+                item.start_line as usize,
+                item.start_character.unwrap_or_default() as usize,
+            )?;
+            let end = buffer.offset_of_line_col(
+                item.end_line as usize,
+                item.end_character.unwrap_or_default() as usize,
+            )?;
+            // let start = buffer.offset_of_position(&item.start)?;
+            // let end = buffer.offset_of_position(&item.end)?;
             log::debug!("{start}-{end} {item:?}");
             let iv = Interval::new(start, end);
-            if folded_range.find_by_interval(iv) {
-                item.status = FoldingRangeStatus::Fold;
-            }
+            let item = if folded_range.find_by_interval(iv) {
+                FoldingRange {
+                    status: FoldingRangeStatus::Fold,
+                }
+            } else {
+                FoldingRange {
+                    status: FoldingRangeStatus::Unfold,
+                }
+            };
             let data = cx.create_rw_signal(item);
             builder.add_span(iv, data);
         }
@@ -723,10 +732,7 @@ impl FoldedRange {
             let (all_len, len) = if same_line {
                 (self.interval.size(), self.interval.size())
             } else {
-                (
-                    self.interval.size(),
-                    content - start,
-                )
+                (self.interval.size(), content - start)
             };
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
@@ -774,36 +780,36 @@ impl FoldedRange {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoldingRange {
-    pub start:  Position,
-    pub end:    Position,
+    // pub start:  Position,
+    // pub end:    Position,
     pub status: FoldingRangeStatus,
     // pub collapsed_text: Option<String>,
 }
 
-impl FoldingRange {
-    pub fn from_lsp(value: lsp_types::FoldingRange) -> Self {
-        let lsp_types::FoldingRange {
-            start_line,
-            start_character,
-            end_line,
-            end_character,
-            ..
-        } = value;
-        let status = FoldingRangeStatus::Unfold;
-        Self {
-            start: Position {
-                line:      start_line,
-                character: start_character.unwrap_or_default(),
-            },
-            end: Position {
-                line:      end_line,
-                character: end_character.unwrap_or_default(),
-            },
-            status,
-            // collapsed_text,
-        }
-    }
-}
+// impl FoldingRange {
+//     pub fn from_lsp(value: lsp_types::FoldingRange) -> Self {
+//         let lsp_types::FoldingRange {
+//             start_line,
+//             start_character,
+//             end_line,
+//             end_character,
+//             ..
+//         } = value;
+//         let status = FoldingRangeStatus::Unfold;
+//         Self {
+//             start: Position {
+//                 line:      start_line,
+//                 character: start_character.unwrap_or_default(),
+//             },
+//             end: Position {
+//                 line:      end_line,
+//                 character: end_character.unwrap_or_default(),
+//             },
+//             status,
+//             // collapsed_text,
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Copy, Serialize, Deserialize)]
 pub struct FoldingPosition {

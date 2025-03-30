@@ -1638,18 +1638,24 @@ impl DocLines {
 
     fn get_folded_index(&self, line: usize) -> usize {
         MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range(self.buffer()).0,
+            &self
+                .folding_ranges
+                .get_all_folded_folded_range(self.buffer())
+                .0,
         )
-            .get_origin_folded_line_index(line)
+        .get_origin_folded_line_index(line)
     }
 
     fn get_folded_line(&self, line: usize) -> usize {
         if let Some(folded_range) = MergeFoldingRangesLine::new(
-            &self.folding_ranges.get_all_folded_folded_range(self.buffer()).0,
+            &self
+                .folding_ranges
+                .get_all_folded_folded_range(self.buffer())
+                .0,
         )
-            .get_folded_range_by_line(line)
+        .get_folded_range_by_line(line)
         {
-             *folded_range.start()
+            *folded_range.start()
         } else {
             line
         }

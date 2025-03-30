@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lines::fold::{FoldingDisplayItem, FoldingRange};
+use crate::lines::fold::{FoldingDisplayItem};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum UpdateFolding {
     UpdateByItem(FoldingDisplayItem),
     UpdateByPhantom(usize),
-    New(Vec<FoldingRange>),
+    New(Vec<lsp_types::FoldingRange>),
     FoldCode(usize),
     UnFoldCodeByGoTo(usize),
 }
@@ -23,8 +23,8 @@ impl From<FoldingDisplayItem> for UpdateFolding {
 //     }
 // }
 
-impl From<Vec<FoldingRange>> for UpdateFolding {
-    fn from(value: Vec<FoldingRange>) -> Self {
+impl From<Vec<lsp_types::FoldingRange>> for UpdateFolding {
+    fn from(value: Vec<lsp_types::FoldingRange>) -> Self {
         Self::New(value)
     }
 }

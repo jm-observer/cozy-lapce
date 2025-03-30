@@ -19,7 +19,7 @@ use doc::{
         },
         cursor::{Cursor, CursorMode},
         diff::{DiffInfo, DiffResult},
-        fold::{FoldingDisplayItem, FoldingDisplayType, FoldingRange},
+        fold::{FoldingDisplayItem, FoldingDisplayType},
         selection::Selection,
         style::EditorStyle,
     },
@@ -35,42 +35,113 @@ use lapce_xi_rope::{
     spans::{Spans, SpansBuilder},
 };
 use log::info;
-use lsp_types::{Diagnostic, InlayHint, Position};
+use lsp_types::{Diagnostic, FoldingRange, InlayHint, Position};
 
 use super::init_semantic_2;
 
 fn _init_lsp_folding_range() -> Vec<FoldingRange> {
-    let folding_range = r#"[{"start":{"line":1,"character":14},"end":{"line":8,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":2,"character":12},"end":{"line":4,"character":5},"status":"Unfold","collapsed_text":null},{"start":{"line":4,"character":11},"end":{"line":6,"character":5},"status":"Unfold","collapsed_text":null}]"#;
-    let folding_range: Vec<FoldingRange> =
-        serde_json::from_str(folding_range).unwrap();
-
-    folding_range
-        .into_iter()
-        .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
-        .collect()
+    // let folding_range =
+    // r#"[{"start":{"line":1,"character":14},"end":{"line":8,"character":1},"
+    // status":"Unfold","collapsed_text":null},{"start":{"line":2,"character":12},"
+    // end":{"line":4,"character":5},"status":"Unfold","collapsed_text":null},{"
+    // start":{"line":4,"character":11},"end":{"line":6,"character":5},"status":"
+    // Unfold","collapsed_text":null}]"#;
+    // let folding_range: Vec<FoldingRange> =
+    //     serde_json::from_str(folding_range).unwrap();
+    vec![
+        FoldingRange {
+            start_line: 1,
+            start_character: Some(14),
+            end_line: 8,
+            end_character: Some(1),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 2,
+            start_character: Some(12),
+            end_line: 4,
+            end_character: Some(5),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 4,
+            start_character: Some(11),
+            end_line: 6,
+            end_character: Some(5),
+            ..Default::default()
+        },
+    ]
 }
 
 fn _init_lsp_folding_range_2() -> Vec<FoldingRange> {
-    let folding_range = r#"[{"startLine":0,"startCharacter":10,"endLine":7,"endCharacter":1},{"startLine":1,"startCharacter":12,"endLine":3,"endCharacter":5},{"startLine":3,"startCharacter":11,"endLine":5,"endCharacter":5},{"startLine":10,"startCharacter":10,"endLine":27,"endCharacter":1}]"#;
-    let folding_range: Vec<lsp_types::FoldingRange> =
-        serde_json::from_str(folding_range).unwrap();
+    // let folding_range = r#"[{"startLine":0,"startCharacter":10,"endLine":7,"endCharacter":1},{"startLine":1,"startCharacter":12,"endLine":3,"endCharacter":5}
+    //  ,{"startLine":3,"startCharacter":11,"endLine":5,"endCharacter":5},{"startLine":10,"startCharacter":10,"endLine":27,"endCharacter":1}]"#;
+    // let folding_range: Vec<lsp_types::FoldingRange> =
+    //     serde_json::from_str(folding_range).unwrap();
 
-    folding_range
-        .into_iter()
-        .map(FoldingRange::from_lsp)
-        .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
-        .collect()
+    // folding_range
+    //     .into_iter()
+    //     .map(FoldingRange::from_lsp)
+    //     .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
+    //     .collect()
+    vec![
+        FoldingRange {
+            start_line: 0,
+            start_character: Some(10),
+            end_line: 7,
+            end_character: Some(1),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 1,
+            start_character: Some(12),
+            end_line: 3,
+            end_character: Some(5),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 3,
+            start_character: Some(11),
+            end_line: 5,
+            end_character: Some(5),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 10,
+            start_character: Some(10),
+            end_line: 27,
+            end_character: Some(1),
+            ..Default::default()
+        },
+    ]
 }
 
 fn _init_lsp_folding_range_3() -> Vec<FoldingRange> {
-    let folding_range = r#"[{"start":{"line":0,"character":14},"end":{"line":6,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":1,"character":12},"end":{"line":3,"character":5},"status":"Unfold","collapsed_text":null},{"start":{"line":3,"character":11},"end":{"line":5,"character":5},"status":"Unfold","collapsed_text":null}]"#;
-    let folding_range: Vec<FoldingRange> =
-        serde_json::from_str(folding_range).unwrap();
-
-    folding_range
-        .into_iter()
-        .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
-        .collect()
+    // let folding_range = r#"[{"start":{"line":0,"character":14},"end":{"line":6,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":1,"character":12},"end":{"line":3,"character":5}
+    // ,"status":"Unfold","collapsed_text":null},{"start":{"line":3,"character":11},"end":{"line":5,"character":5},"status":"Unfold","collapsed_text":null}]"#;
+    vec![
+        FoldingRange {
+            start_line: 0,
+            start_character: Some(14),
+            end_line: 6,
+            end_character: Some(1),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 1,
+            start_character: Some(12),
+            end_line: 3,
+            end_character: Some(5),
+            ..Default::default()
+        },
+        FoldingRange {
+            start_line: 3,
+            start_character: Some(11),
+            end_line: 5,
+            end_character: Some(5),
+            ..Default::default()
+        },
+    ]
 }
 
 fn _init_inlay_hint(buffer: &Buffer, hints: &str) -> Result<Spans<InlayHint>> {
