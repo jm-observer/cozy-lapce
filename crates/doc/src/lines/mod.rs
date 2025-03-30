@@ -1476,7 +1476,7 @@ impl DocLines {
                 (FoldedRanges(vec![]), changes, false)
             },
         };
-        debug!("{folded:?}");
+        // debug!("{folded:?}");
         let folded_line_count = folded.folded_line_count();
         let mut folded_lines = FoldingRangesLine::new(&folded.0);
 
@@ -1667,7 +1667,7 @@ impl DocLines {
     ) -> Result<OriginFoldedLine> {
         let buffer = self.buffer();
         let binding = self.folding_ranges.get_all_folded_range(buffer);
-        debug!("{binding:?}");
+        // debug!("{binding:?}");
         let folded_index = self.get_folded_index(current_origin_line);
         current_origin_line = self.get_folded_line(current_origin_line);
 
@@ -4265,7 +4265,14 @@ impl PubUpdateLines {
         }
         // todo update foldingrange
         self.syntax.lens.apply_delta(delta);
+        for folding in self.folding_ranges.0.iter() {
+            debug!("{:?}", folding.0);
+        }
+        debug!("{:?}", delta);
         self.folding_ranges.0.apply_shape(delta);
+        for folding in self.folding_ranges.0.iter() {
+            debug!("{:?}", folding.0);
+        }
         self.update_diagnostics(delta);
         self.update_inlay_hints(delta);
         if let Err(err) = self.update_completion_lens(delta) {

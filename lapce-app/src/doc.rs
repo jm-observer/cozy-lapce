@@ -23,7 +23,6 @@ use doc::{
         command::EditCommand,
         cursor::Cursor,
         edit::EditType,
-        fold::FoldingRange,
         line_ending::LineEnding,
         mode::MotionMode,
         register::Register,

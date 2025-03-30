@@ -15,9 +15,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use super::{
-    phantom_text::{PhantomText, PhantomTextKind},
-};
+use super::phantom_text::{PhantomText, PhantomTextKind};
 use crate::lines::{
     buffer::{Buffer, rope_text::RopeText},
     screen_lines::ScreenLines,
@@ -525,7 +523,7 @@ impl FoldingRanges {
             )?;
             // let start = buffer.offset_of_position(&item.start)?;
             // let end = buffer.offset_of_position(&item.end)?;
-            log::debug!("{start}-{end} {item:?}");
+            // log::debug!("{start}-{end} {item:?}");
             let iv = Interval::new(start, end);
             let item = if folded_range.find_by_interval(iv) {
                 FoldingRange {
