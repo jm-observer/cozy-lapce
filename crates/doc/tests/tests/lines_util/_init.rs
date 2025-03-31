@@ -37,7 +37,7 @@ use lapce_xi_rope::{
 use log::info;
 use lsp_types::{Diagnostic, FoldingRange, InlayHint, Position};
 
-use super::init_semantic_2;
+use crate::tests::lines_util::init_main_2::init_semantic_2;
 
 fn _init_lsp_folding_range() -> Vec<FoldingRange> {
     // let folding_range =
@@ -73,52 +73,13 @@ fn _init_lsp_folding_range() -> Vec<FoldingRange> {
     ]
 }
 
-fn _init_lsp_folding_range_2() -> Vec<FoldingRange> {
-    // let folding_range = r#"[{"startLine":0,"startCharacter":10,"endLine":7,"endCharacter":1},{"startLine":1,"startCharacter":12,"endLine":3,"endCharacter":5}
-    //  ,{"startLine":3,"startCharacter":11,"endLine":5,"endCharacter":5},{"startLine":10,"startCharacter":10,"endLine":27,"endCharacter":1}]"#;
-    // let folding_range: Vec<lsp_types::FoldingRange> =
-    //     serde_json::from_str(folding_range).unwrap();
-
-    // folding_range
-    //     .into_iter()
-    //     .map(FoldingRange::from_lsp)
-    //     .sorted_by(|x, y| x.start.line.cmp(&y.start.line))
-    //     .collect()
-    vec![
-        FoldingRange {
-            start_line: 0,
-            start_character: Some(10),
-            end_line: 7,
-            end_character: Some(1),
-            ..Default::default()
-        },
-        FoldingRange {
-            start_line: 1,
-            start_character: Some(12),
-            end_line: 3,
-            end_character: Some(5),
-            ..Default::default()
-        },
-        FoldingRange {
-            start_line: 3,
-            start_character: Some(11),
-            end_line: 5,
-            end_character: Some(5),
-            ..Default::default()
-        },
-        FoldingRange {
-            start_line: 10,
-            start_character: Some(10),
-            end_line: 27,
-            end_character: Some(1),
-            ..Default::default()
-        },
-    ]
-}
-
 fn _init_lsp_folding_range_3() -> Vec<FoldingRange> {
-    // let folding_range = r#"[{"start":{"line":0,"character":14},"end":{"line":6,"character":1},"status":"Unfold","collapsed_text":null},{"start":{"line":1,"character":12},"end":{"line":3,"character":5}
-    // ,"status":"Unfold","collapsed_text":null},{"start":{"line":3,"character":11},"end":{"line":5,"character":5},"status":"Unfold","collapsed_text":null}]"#;
+    // let folding_range =
+    // r#"[{"start":{"line":0,"character":14},"end":{"line":6,"character":1},"
+    // status":"Unfold","collapsed_text":null},{"start":{"line":1,"character":12},"
+    // end":{"line":3,"character":5} ,"status":"Unfold","collapsed_text":null},
+    // {"start":{"line":3,"character":11},"end":{"line":5,"character":5},"status":"
+    // Unfold","collapsed_text":null}]"#;
     vec![
         FoldingRange {
             start_line: 0,
@@ -144,7 +105,7 @@ fn _init_lsp_folding_range_3() -> Vec<FoldingRange> {
     ]
 }
 
-fn _init_inlay_hint(buffer: &Buffer, hints: &str) -> Result<Spans<InlayHint>> {
+pub fn _init_inlay_hint(buffer: &Buffer, hints: &str) -> Result<Spans<InlayHint>> {
     // let hints = r#"[{"position":{"line":6,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/simple-ansi-to-style","range":{"start":{"line":8,"character":7},"end":{"line":8,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":6,"character":9},"end":{"line":6,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
     let mut hints: Vec<InlayHint> = serde_json::from_str(hints).unwrap();
     let len = buffer.len();
@@ -156,7 +117,7 @@ fn _init_inlay_hint(buffer: &Buffer, hints: &str) -> Result<Spans<InlayHint>> {
     }
     Ok(hints_span.build())
 }
-fn _init_code(file: PathBuf) -> (String, Buffer) {
+pub fn _init_code(file: PathBuf) -> (String, Buffer) {
     // let code = "pub fn main() {\r\n    if true {\r\n
     // println!(\"startss\");\r\n    } else {\r\n
     // println!(\"startss\");\r\n    }\r\n    let a =
@@ -177,19 +138,6 @@ pub fn folded_v1() -> FoldingDisplayItem {
         iv: Interval::new(29, 69),
         y:  0,
         ty: FoldingDisplayType::UnfoldStart,
-    }
-}
-
-///  2|   if true {...} else {...}\r\n
-pub fn folded_v2() -> FoldingDisplayItem {
-    FoldingDisplayItem {
-        // position: Position {
-        //     line:      5,
-        //     character: 5,
-        // },
-        y:  0,
-        ty: FoldingDisplayType::UnfoldEnd,
-        iv: Interval::new(73, 111),
     }
 }
 
@@ -215,7 +163,7 @@ pub fn init_main_folded_item_3() -> Result<Vec<FoldingDisplayItem>> {
     )?])
 }
 
-fn _init_lines(
+pub fn _init_lines(
     folded: Option<Vec<FoldingDisplayItem>>,
     (code, buffer): (String, Buffer),
     folding: Vec<FoldingRange>,
@@ -327,42 +275,6 @@ fn _init_lines(
 
 fn load_code(file: &Path) -> String {
     std::fs::read_to_string(file).unwrap()
-}
-
-/// main_2.rs
-fn init_diag_2() -> im::Vector<Diagnostic> {
-    let mut diags = im::Vector::new();
-    diags.push_back(serde_json::from_str(r#"{"range":{"start":{"line":6,"character":8},"end":{"line":6,"character":9}},"severity":2,"code":"unused_variables","source":"rustc","message":"unused variable: `a`\n`#[warn(unused_variables)]` on by default","relatedInformation":[{"location":{"uri":"file:///d:/git/check/src/simple-ansi-to-style","range":{"start":{"line":6,"character":8},"end":{"line":6,"character":9}}},"message":"if this is intentional, prefix it with an underscore: `_a`"}],"tags":[1],"data":{"rendered":"warning: unused variable: `a`\n --> src/simple-ansi-to-style:7:9\n  |\n7 |     let a = A;\n  |         ^ help: if this is intentional, prefix it with an underscore: `_a`\n  |\n  = note: `#[warn(unused_variables)]` on by default\n\n"}}"#).unwrap());
-    diags.push_back(serde_json::from_str(r#"{"range":{"start":{"line":6,"character":8},"end":{"line":6,"character":9}},"severity":4,"code":"unused_variables","source":"rustc","message":"if this is intentional, prefix it with an underscore: `_a`","relatedInformation":[{"location":{"uri":"file:///d:/git/check/src/simple-ansi-to-style","range":{"start":{"line":6,"character":8},"end":{"line":6,"character":9}}},"message":"original diagnostic"}]}"#).unwrap());
-    diags.push_back(serde_json::from_str(r#"{"range":{"start":{"line":10,"character":3},"end":{"line":10,"character":7}},"severity":2,"code":"dead_code","source":"rustc","message":"function `test` is never used\n`#[warn(dead_code)]` on by default","tags":[1],"data":{"rendered":"warning: function `test` is never used\n  --> src/simple-ansi-to-style:11:4\n   |\n11 | fn test() {\n   |    ^^^^\n   |\n   = note: `#[warn(dead_code)]` on by default\n\n"}}"#).unwrap());
-    diags
-}
-
-pub fn init_main_2() -> Result<DocLines> {
-    let file: PathBuf = "../../resources/test_code/main_2.rs".into();
-
-    let folding = _init_lsp_folding_range_2();
-    let rs = _init_code(file);
-    let hints = r#"[{"position":{"line":6,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/main.rs","range":{"start":{"line":8,"character":7},"end":{"line":8,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":6,"character":9},"end":{"line":6,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
-    let hints = _init_inlay_hint(&rs.1, hints)?;
-    let (mut lines, _) = _init_lines(None, rs, folding, Some(hints))?;
-    let diags = init_diag_2();
-    let semantic = init_semantic_2();
-
-    lines.diagnostics.diagnostics.update(|x| *x = diags);
-    lines.init_diagnostics()?;
-
-    let mut styles_span = SpansBuilder::new(lines.buffer().len());
-    for style in semantic.styles {
-        if let Some(fg) = style.style.fg_color {
-            styles_span.add_span(Interval::new(style.start, style.end), fg);
-        }
-    }
-    let styles = styles_span.build();
-
-    lines.update_semantic_styles_from_lsp((None, styles), lines.buffer().rev())?;
-
-    Ok(lines)
 }
 
 pub fn init_main() -> Result<DocLines> {

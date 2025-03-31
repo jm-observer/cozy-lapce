@@ -109,6 +109,7 @@ impl ProxyHandler for Dispatcher {
                 self.proxy_rpc.shutdown();
             },
             Update { path, delta, rev } => {
+                log::warn!("Proxy Update {path:?} rev={rev}");
                 let buffer = self.buffers.get_mut(&path).unwrap();
                 let old_text = buffer.rope.clone();
                 if let Err(err) = buffer.update(&delta, rev) {

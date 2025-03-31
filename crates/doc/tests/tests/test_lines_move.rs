@@ -1,28 +1,13 @@
 #![allow(unused_imports, dead_code, unused_mut)]
 
-use std::{path::PathBuf, sync::atomic};
-
 use anyhow::Result;
 use doc::lines::{
     buffer::rope_text::RopeText,
-    cursor::{ColPosition, Cursor, CursorAffinity, CursorMode},
-    fold::{FoldingDisplayItem, FoldingDisplayType},
+    cursor::{ColPosition, CursorAffinity},
     mode::Mode,
-    selection::Selection,
-    word::WordCursor,
 };
-use floem::{
-    kurbo::{Point, Rect},
-    reactive::SignalUpdate,
-};
-use lapce_xi_rope::{DeltaElement, Interval, RopeInfo, spans::SpansBuilder};
-use log::info;
-use lsp_types::Position;
 
-use super::lines_util::{
-    cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
-    init_main_folded_item_2, init_semantic_2,
-};
+use super::lines_util::{init_main_2, init_main_folded_item_2};
 
 #[test]
 fn test_all() -> Result<()> {

@@ -454,29 +454,46 @@ pub fn symbol_panel(
                 ,
             )
                 .style(|s| s.flex_col().absolute().min_width_full()),
-        ).on_resize(move |rect| {
+        // ).on_resize(move |rect| {
+        //     scroll_rect.set(rect);
+        // }
+        ).on_scroll(move |rect| {
+            log::warn!("on_scroll {rect:?}");
             scroll_rect.set(rect);
+        }).ensure_visible(move || {
+            let editor = window_tab_data_clone.main_split.get_active_editor();
+            let scroll_rect = scroll_rect.get_untracked();
+            if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get()) {
+                        let line_height = ui_line_height.get_untracked();
+                        let rect = Rect::new(scroll_rect.x0, (line - 3.0).max(0.0) * line_height, scroll_rect.x0, (line + 3.0) * line_height);
+                        log::warn!("ensure_visible line={line} {rect:?}");
+                        rect
+                    } else {
+                        log::warn!("ensure_visible scroll_rect {scroll_rect:?}");
+                        scroll_rect
+                    }
         })
             .style(
                 |s| s.flex_grow(1.)
             )
-            .scroll_to({
-                move || {
-                    let editor = window_tab_data_clone.main_split.get_active_editor();
-                    if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get()) {
-                        let line_height = ui_line_height.get_untracked();
-                        Some(
-                            (
-                                0.0,
-                                line * line_height - scroll_rect.get_untracked().height() / 2.0,
-                            )
-                                .into(),
-                        )
-                    } else {
-                        None
-                    }
-                }
-            }).debug_name("symbol_panel")
+            // .scroll_to({
+            //     move || {
+            //         let editor = window_tab_data_clone.main_split.get_active_editor();
+            //         if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get()) {
+            //             let line_height = ui_line_height.get_untracked();
+            //             Some(
+            //                 (
+            //                     0.0,
+            //                     line * line_height - scroll_rect.get_untracked().height() / 2.0,
+            //                 )
+            //                     .into(),
+            //             )
+            //         } else {
+            //             None
+            //         }
+            //     }
+            // })
+            .debug_name("symbol_panel")
         )).style(move |x| {
         x.width_full().flex_col().height_full().flex_col()
     })

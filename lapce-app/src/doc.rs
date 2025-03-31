@@ -385,11 +385,17 @@ impl Doc {
             let new_rev = lines.buffer().rev();
             (rev, rs, new_rev)
         }) else {
+            error!("buffer_edit_with_config try update none??!");
             return vec![];
         };
         if need_check_and_update {
             assert_eq!(old_rev + rs.len() as u64, new_rev);
-            if let DocContent::File { path, .. } = self.content.get_untracked() {
+            let content = self.content.get_untracked();
+            log::warn!(
+                "buffer_edit_with_config update {content:?} old_rev={old_rev} \
+                 new_rev={new_rev}",
+            );
+            if let DocContent::File { path, .. } = content {
                 batch(|| {
                     for (i, (_, delta, _inval)) in rs.iter().enumerate() {
                         self.common.proxy.update(

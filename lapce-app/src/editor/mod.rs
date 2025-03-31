@@ -3365,6 +3365,7 @@ impl EditorData {
     }
 
     pub fn sync_document_symbol_by_offset(&self, offset: usize) {
+        log::warn!("sync_document_symbol_by_offset offset={offset}",);
         if self.common.sync_document_symbol.get_untracked() {
             let doc = self.doc();
             let line = doc.lines.with_untracked(|x| {
@@ -3376,8 +3377,9 @@ impl EditorData {
                     if let MatchDocumentSymbol::MatchSymbol(id, scroll_line) =
                         root.match_line_with_children(line as u32)
                     {
-                        log::info!(
-                            "MatchDocumentSymbol::MatchSymbol {:?} line={}",
+                        log::warn!(
+                            "MatchDocumentSymbol::MatchSymbol {:?} line={} \
+                             scroll_line={scroll_line}",
                             id,
                             line
                         );

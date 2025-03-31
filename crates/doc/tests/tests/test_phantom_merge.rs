@@ -2,6 +2,7 @@
 use anyhow::{Result, bail};
 use doc::lines::{
     cursor::CursorAffinity,
+    fold::FoldedRange,
     phantom_text::{
         PhantomText, PhantomTextKind, PhantomTextLine, PhantomTextMultiLine, Text,
         combine_with_text,
@@ -10,9 +11,9 @@ use doc::lines::{
 use lapce_xi_rope::Interval;
 use log::{debug, info};
 use smallvec::SmallVec;
-use doc::lines::fold::FoldedRange;
+
 use super::lines_util::*;
-use crate::check_lines_col;
+use crate::{check_lines_col, tests::lines_util::init_main_2};
 
 // fn empty_data() -> PhantomTextLine {
 //     let text: SmallVec<[PhantomText; 6]> = SmallVec::new();
@@ -58,17 +59,32 @@ pub fn _test_merge() -> Result<()> {
 
         debug!("{:?}", line);
         line.init_extra_style();
-        let folded = lines.folding_ranges.get_all_folded_folded_range(lines.buffer()).0.remove(0);
-        assert_eq!(folded, FoldedRange {
-            interval: Interval::new(25, 63),
-            start_line: 1,
-            end_line: 3,
-        });
-        // for folded in lines.folding_ranges.get_all_folded_folded_range(lines.buffer()).0 {
+        let folded = lines
+            .folding_ranges
+            .get_all_folded_folded_range(lines.buffer())
+            .0
+            .remove(0);
+        assert_eq!(
+            folded,
+            FoldedRange {
+                interval:   Interval::new(25, 63),
+                start_line: 1,
+                end_line:   3,
+            }
+        );
+        // for folded in
+        // lines.folding_ranges.get_all_folded_folded_range(lines.buffer()).0 {
         //     debug!("{:?}", folded);
         // }
         let style = line.extra_style()[0].clone();
-        assert_eq!((91, 2, 35), (style.x as usize, style.y as usize, style.width.unwrap() as usize));
+        assert_eq!(
+            (91, 2, 35),
+            (
+                style.x as usize,
+                style.y as usize,
+                style.width.unwrap() as usize
+            )
+        );
         // for style in line.extra_style() {
         //     debug!("{style:?}")
         // }
@@ -89,29 +105,47 @@ pub fn _test_merge() -> Result<()> {
             //     debug!("{text:?}")
             // }
             let texts = line.text();
-            if let Text::Phantom {
-                text
-            } = &texts[1] {
-                assert_eq!(text.kind, PhantomTextKind::LineFoldedRang {
-                    next_line: Some(3),
-                    len: 3,
-                    all_len: 38,
-                    start_position: 25,
-                });
-                assert_eq!((text.col, text.visual_merge_col, text.origin_merge_col, text.final_col), (12, 12,12, 12));
+            if let Text::Phantom { text } = &texts[1] {
+                assert_eq!(
+                    text.kind,
+                    PhantomTextKind::LineFoldedRang {
+                        next_line:      Some(3),
+                        len:            3,
+                        all_len:        38,
+                        start_position: 25,
+                    }
+                );
+                assert_eq!(
+                    (
+                        text.col,
+                        text.visual_merge_col,
+                        text.origin_merge_col,
+                        text.final_col
+                    ),
+                    (12, 12, 12, 12)
+                );
             } else {
                 panic!("");
             }
-            if let Text::Phantom {
-                text
-            } = &texts[2] {
-                assert_eq!(text.kind, PhantomTextKind::LineFoldedRang {
-                    next_line: None,
-                    len: 5,
-                    all_len: 5,
-                    start_position: 25,
-                });
-                assert_eq!((text.col, text.visual_merge_col, text.origin_merge_col, text.final_col), (0, 15, 45, 17));
+            if let Text::Phantom { text } = &texts[2] {
+                assert_eq!(
+                    text.kind,
+                    PhantomTextKind::LineFoldedRang {
+                        next_line:      None,
+                        len:            5,
+                        all_len:        5,
+                        start_position: 25,
+                    }
+                );
+                assert_eq!(
+                    (
+                        text.col,
+                        text.visual_merge_col,
+                        text.origin_merge_col,
+                        text.final_col
+                    ),
+                    (0, 15, 45, 17)
+                );
             } else {
                 panic!("");
             }

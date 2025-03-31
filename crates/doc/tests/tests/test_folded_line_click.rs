@@ -28,7 +28,6 @@ use crate::tests::lines_util::{
     cursor_insert, folded_v1, folded_v2, init_empty, init_main, init_main_2,
     init_main_3, init_main_folded_item_2, init_main_folded_item_3, init_semantic_2,
 };
-
 // #[test]
 // fn test_all() -> Result<()> {
 //     custom_utils::logger::logger_stdout_debug();
