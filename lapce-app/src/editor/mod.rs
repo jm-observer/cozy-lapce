@@ -228,7 +228,7 @@ impl EditorData {
             else {
                 return ;
             };
-            debug!(
+            log::warn!(
                 "create_effect _compute_screen_lines {val} base={base:?} {:?}",
                 floem::prelude::SignalGet::id(&signal_paint_content)
             );

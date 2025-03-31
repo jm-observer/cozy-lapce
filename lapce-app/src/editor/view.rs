@@ -42,7 +42,7 @@ use floem::{
     },
     prelude::{SvgColor, h_stack},
     reactive::{
-        Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith,
+        Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith, batch,
         create_effect, create_memo, create_rw_signal,
     },
     style::{CursorColor, CursorStyle, Style, TextColor},
@@ -180,19 +180,16 @@ pub fn editor_view(
     name: &'static str,
 ) -> EditorView {
     let id = ViewId::new();
+    let scope = e_data.scope;
     let is_active = create_memo(move |_| is_active(true));
 
     let viewport = e_data.viewport.read_only();
     let screen_lines = e_data.screen_lines.read_only();
-    // .doc()
-    // .lines
-    // .with_untracked(|x| (x.signal_viewport(), x.signal_screen_lines()));
-    // let viewport_rw = e_data.viewport_rw();
 
     let doc = e_data.doc_signal();
     // let lines = doc.with_untracked(|x| x.lines);
     let view_kind = e_data.kind_read();
-    create_effect(move |_| {
+    scope.create_effect(move |_| {
         doc.with(|x| x.lines.with_untracked(|x| x.signal_max_width()))
             .get();
         view_kind.track();
@@ -203,16 +200,7 @@ pub fn editor_view(
         id.request_all();
     });
 
-    // let hide_cursor = e_data.common.window_common.hide_cursor;
-    // create_effect(move |_| {
-    //     hide_cursor.track();
-    //     let occurrences = doc.with(|doc| doc.find_result.occurrences);
-    //     occurrences.track();
-    //     log::warn!("hide_cursor.track");
-    //     id.request_paint();
-    // });
-
-    create_effect(move |last_rev| {
+    scope.create_effect(move |last_rev| {
         let lines = doc.with(|doc| doc.lines);
         let rev = lines.with_untracked(|x| x.signal_buffer_rev()).get();
         if last_rev == Some(rev) {
@@ -225,7 +213,7 @@ pub fn editor_view(
     let config = e_data.common.config;
     let sticky_header_height_signal = e_data.sticky_header_height;
     let editor2 = e_data.clone();
-    create_effect(move |last_rev| {
+    scope.create_effect(move |last_rev| {
         let (line_height, sticky_header) = config.signal(|config| {
             (
                 config.editor.line_height.signal(),
@@ -282,7 +270,7 @@ pub fn editor_view(
     let e_data_event = e_data.clone();
     let e_data_2 = e_data.clone();
     let e_data_3 = e_data.clone();
-    create_effect(move |_| {
+    scope.create_effect(move |_| {
         let active = is_active.get();
         if active && !find_focus.get() {
             if !cursor.with(|c| c.is_insert()) {
@@ -1267,31 +1255,37 @@ pub fn editor_container_view(
         .style(|s| s.width_full().flex_grow(1.0)),
     ))
     .on_cleanup(move || {
-        let editor = editor.get_untracked();
-        editor.cancel_completion();
-        editor.cancel_inline_completion();
-        if editors.contains_untracked(editor.id()) {
-            // editor still exist, so it might be moved to a different editor tab
-            return;
-        }
-        let doc = editor.doc();
-        // ?
-        // editor.scope.dispose();
+        batch(|| {
+            let editor = editor.get_untracked();
+            editor.scope.dispose();
+            // ?
+            // editor.cancel_completion();
+            // editor.cancel_inline_completion();
+            // if editors.contains_untracked(editor.id()) {
+            //     // editor still exist, so it might be moved to a different
+            // editor     // tab
+            //     return;
+            // }
+            // let doc = editor.doc();
+            // // ?
+            // // editor.scope.dispose();
 
-        let scratch_doc_name =
-            if let DocContent::Scratch { name, .. } = doc.content.get_untracked() {
-                Some(name.to_string())
-            } else {
-                None
-            };
-        if let Some(name) = scratch_doc_name {
-            if !scratch_docs
-                .with_untracked(|scratch_docs| scratch_docs.contains_key(&name))
-            {
-                // ?
-                // doc.scope.dispose();
-            }
-        }
+            // let scratch_doc_name = if let DocContent::Scratch { name, .. } =
+            //     doc.content.get_untracked()
+            // {
+            //     Some(name.to_string())
+            // } else {
+            //     None
+            // };
+            // if let Some(name) = scratch_doc_name {
+            //     if !scratch_docs
+            //         .with_untracked(|scratch_docs|
+            // scratch_docs.contains_key(&name))     {
+            //         // ?
+            //         // doc.scope.dispose();
+            //     }
+            // }
+        });
     })
     .style(|s| s.flex_col().absolute().size_pct(100.0, 100.0))
     .debug_name("Editor Container")
@@ -1887,13 +1881,14 @@ fn editor_content(
     debug_breakline: Memo<Option<(usize, PathBuf)>>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
 ) -> impl View {
-    let (cursor, scroll_delta, scroll_to, window_origin) =
-        e_data.with_untracked(|editor| {
+    let (cursor, scroll_delta, scroll_to, window_origin, scope) = e_data
+        .with_untracked(|editor| {
             (
                 editor.cursor().read_only(),
                 editor.scroll_delta.read_only(),
                 editor.scroll_to,
                 editor.window_origin(),
+                editor.scope,
             )
         });
 
@@ -1906,10 +1901,11 @@ fn editor_content(
     //         e_data.cancel_inline_completion();
     //     });
     // }
-    let current_scroll = create_rw_signal(Rect::ZERO);
+
+    let current_scroll = scope.create_rw_signal(Rect::ZERO);
     {
         //
-        create_effect(move |_| {
+        scope.create_effect(move |_| {
             let e_data = e_data.get_untracked();
             e_data.doc_signal().track();
             let cursor = cursor.get();
@@ -1933,7 +1929,7 @@ fn editor_content(
                 e_data.ensure_visible.set(current_scroll.get_untracked());
                 return;
             };
-            log::debug!(
+            log::warn!(
                 "ensure_visible offset={offset} \
                  offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
             );
@@ -1962,7 +1958,7 @@ fn editor_content(
                         (line_height_2, line_height_2),
                     )
                 };
-                log::debug!(
+                log::warn!(
                     "offset_line_from_top viewport={scroll:?} target={rect:?} \
                      backup_point={backup_point:?} offset={offset} \
                      offset_line_from_top={offset_line_from_top:?} height={height} ",
@@ -2030,7 +2026,7 @@ fn editor_content(
         // log::info!("on_resize rect={size:?}");
     })
     .on_scroll(move |rect| {
-        log::info!("on_scroll rect{rect:?}");
+        log::warn!("on_scroll rect{rect:?}");
         let e_data = e_data.get_untracked();
         if rect.y0 != current_scroll.get_untracked().y0 {
             e_data.cancel_completion();
@@ -2050,7 +2046,7 @@ fn editor_content(
     .ensure_visible(move || {
         let ensure_visible = e_data.read_only().with(|x| x.ensure_visible).get();
         let current_scroll = current_scroll.get_untracked();
-        log::info!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
+        log::warn!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
         ensure_visible
     })
     .style(|s| s.size_full().set(PropagatePointerWheel, false))
