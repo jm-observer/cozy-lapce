@@ -41,5 +41,9 @@ fn test_all() -> Result<()> {
     tests::test_diff::_test_changes()?;
     tests::test_diff::_test_1_screen()?;
     tests::test_diff::_test_1_changes()?;
+
+    tests::test_document_symbol::_test_symbol()?;
+
+    tests::test_get_folded_index::_test_folding()?;
     Ok(())
 }

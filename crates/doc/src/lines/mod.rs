@@ -1636,7 +1636,7 @@ impl DocLines {
         })
     }
 
-    fn get_folded_index(&self, line: usize) -> usize {
+    pub fn get_folded_index(&self, line: usize) -> usize {
         MergeFoldingRangesLine::new(
             &self
                 .folding_ranges
@@ -1646,7 +1646,7 @@ impl DocLines {
         .get_origin_folded_line_index(line)
     }
 
-    fn get_folded_line(&self, line: usize) -> usize {
+    pub fn get_folded_line(&self, line: usize) -> usize {
         if let Some(folded_range) = MergeFoldingRangesLine::new(
             &self
                 .folding_ranges
