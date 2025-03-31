@@ -29,8 +29,8 @@ use super::lines_util::{
 #[test]
 fn test_performance() -> Result<()> {
     custom_utils::logger::logger_stdout_debug();
-    let _file: PathBuf = "../../resources/test_code/empty.rs".into();
-    let editor: PathBuf = "../../resources/test_code/editor.rs".into();
+    let _file: PathBuf = "../resources/test_code/empty.rs".into();
+    let editor: PathBuf = "../resources/test_code/editor.rs".into();
     let editor_code = std::fs::read_to_string(editor).unwrap();
     let mut lines = init_empty()?;
 

@@ -81,7 +81,7 @@ fn init_diag_2() -> im::Vector<Diagnostic> {
 }
 
 pub fn init_main_2() -> anyhow::Result<DocLines> {
-    let file: PathBuf = "../../resources/test_code/main_2.rs".into();
+    let file: PathBuf = "../resources/test_code/main_2.rs".into();
 
     let folding = _init_lsp_folding_range_2();
     let rs = _init_code(file);

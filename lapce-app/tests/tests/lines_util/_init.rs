@@ -278,7 +278,7 @@ fn load_code(file: &Path) -> String {
 }
 
 pub fn init_main() -> Result<DocLines> {
-    let file: PathBuf = "../../resources/test_code/main.rs".into();
+    let file: PathBuf = "../resources/test_code/main.rs".into();
     let rs = _init_code(file);
     let hints = r#"[{"position":{"line":7,"character":9},"label":[{"value":": "},{"value":"A","location":{"uri":"file:///d:/git/check/src/main.rs","range":{"start":{"line":9,"character":7},"end":{"line":9,"character":8}}}}],"kind":1,"textEdits":[{"range":{"start":{"line":7,"character":9},"end":{"line":7,"character":9}},"newText":": A"}],"paddingLeft":false,"paddingRight":false}]"#;
     let hints = _init_inlay_hint(&rs.1, hints)?;
@@ -288,7 +288,7 @@ pub fn init_main() -> Result<DocLines> {
 }
 
 pub fn init_main_3() -> Result<DocLines> {
-    let file: PathBuf = "../../resources/test_code/main_3.rs".into();
+    let file: PathBuf = "../resources/test_code/main_3.rs".into();
     let rs = _init_code(file);
     let folding = _init_lsp_folding_range_3();
     let (lines, _) = _init_lines(None, rs, folding, None)?;
@@ -296,8 +296,8 @@ pub fn init_main_3() -> Result<DocLines> {
 }
 
 pub fn init_test_diff() -> Vec<DiffLines> {
-    let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
-    let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
+    let file_old: PathBuf = "../resources/test_code/diff_test/test.rs".into();
+    let file_new: PathBuf = "../resources/test_code/diff_test/test_new.rs".into();
 
     let code_old = load_code(&file_old);
     let code = load_code(&file_new);
@@ -312,9 +312,9 @@ pub fn init_test_diff() -> Vec<DiffLines> {
 }
 
 pub fn init_test_1_diff() -> Vec<DiffLines> {
-    let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
+    let file_old: PathBuf = "../resources/test_code/diff_test_1/test_1.rs".into();
     let file_new: PathBuf =
-        "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+        "../resources/test_code/diff_test_1/test_1_new.rs".into();
 
     let code_old = load_code(&file_old);
     let code = load_code(&file_new);
@@ -329,8 +329,8 @@ pub fn init_test_1_diff() -> Vec<DiffLines> {
 }
 
 pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)> {
-    let file_old: PathBuf = "../../resources/test_code/diff_test/test.rs".into();
-    let file_new: PathBuf = "../../resources/test_code/diff_test/test_new.rs".into();
+    let file_old: PathBuf = "../resources/test_code/diff_test/test.rs".into();
+    let file_new: PathBuf = "../resources/test_code/diff_test/test_new.rs".into();
 
     let diff = init_test_diff();
     let rs_new = _init_code(file_new);
@@ -359,9 +359,9 @@ pub fn init_test() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind
 
 pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKind)>
 {
-    let file_old: PathBuf = "../../resources/test_code/diff_test_1/test_1.rs".into();
+    let file_old: PathBuf = "../resources/test_code/diff_test_1/test_1.rs".into();
     let file_new: PathBuf =
-        "../../resources/test_code/diff_test_1/test_1_new.rs".into();
+        "../resources/test_code/diff_test_1/test_1_new.rs".into();
 
     let diff = init_test_1_diff();
     let rs_new = _init_code(file_new);
@@ -389,7 +389,7 @@ pub fn init_test_1() -> Result<(DocLines, DocLines, EditorViewKind, EditorViewKi
 
 pub fn init_empty() -> Result<DocLines> {
     custom_utils::logger::logger_stdout_debug();
-    let file: PathBuf = "../../resources/test_code/empty.rs".into();
+    let file: PathBuf = "../resources/test_code/empty.rs".into();
 
     let (lines, _) =
         _init_lines(None, _init_code(file), _init_lsp_folding_range(), None)?;

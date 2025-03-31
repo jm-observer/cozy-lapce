@@ -79,9 +79,11 @@ impl SymbolData {
         get_children(self.file, &mut next, min, max, level, path.clone())
     }
 
+    /// line_index: start from 0
+    /// MatchDocumentSymbol: start from 1
     pub fn match_line_with_children(&self, line: u32) -> MatchDocumentSymbol {
         self.file
-            .with_untracked(|x| x.match_line_with_children(line))
+            .with_untracked(|x| x.match_line_index_with_children(line))
     }
 }
 
@@ -127,44 +129,92 @@ impl SymbolInformationItemData {
         count
     }
 
-    pub fn match_line_with_children(&self, line: u32) -> MatchDocumentSymbol {
-        let rs = self.match_line(line);
-        if rs.is_mach() {
-            for (index, child) in self.children.iter().enumerate() {
-                let mut rs_child =
-                    child.with_untracked(|x| x.match_line_with_children(line));
-                if let MatchDocumentSymbol::MatchSymbol(_, match_index) =
-                    &mut rs_child
-                {
-                    self.open.set(true);
-                    match_index.add_assign(index);
-                    return rs_child;
-                } else if rs_child.is_before() {
-                    break;
+    pub fn child_count_untracked(&self) -> usize {
+        let mut count = 1;
+        if self.open.get_untracked() {
+            for child in &self.children {
+                count += child.with_untracked(|x| x.child_count())
+            }
+        }
+        count
+    }
+
+    pub fn find_by_name(&self, name: &str) -> Option<SymbolInformationItemData> {
+        if self.name == name {
+            return Some(self.clone());
+        } else {
+            for child in &self.children {
+                let rs = child.with_untracked(|x| x.find_by_name(name));
+                if rs.is_some() {
+                    return rs;
                 }
             }
         }
-        rs
+        None
+    }
+
+    /// line_index: start from 0
+    /// MatchDocumentSymbol: start from 1
+    pub fn match_line_index_with_children(
+        &self,
+        line_index: u32,
+    ) -> MatchDocumentSymbol {
+        let rs = self.match_line(line_index);
+        match rs {
+            MatchDocumentSymbol::LineBeforeSymbol => {
+                MatchDocumentSymbol::LineBeforeSymbol
+            },
+            MatchDocumentSymbol::MatchSymbol(id, _) => {
+                let mut all_line = 1;
+                for child in self.children.iter() {
+                    let rs_child = child.with_untracked(|x| {
+                        x.match_line_index_with_children(line_index)
+                    });
+                    match rs_child {
+                        MatchDocumentSymbol::LineBeforeSymbol => break,
+                        MatchDocumentSymbol::MatchSymbol(id, count) => {
+                            self.open.set(true);
+                            return MatchDocumentSymbol::MatchSymbol(
+                                id,
+                                count + all_line,
+                            );
+                        },
+                        MatchDocumentSymbol::LineAfterSymbol(count) => {
+                            all_line += count;
+                        },
+                    }
+                }
+                MatchDocumentSymbol::MatchSymbol(id, all_line)
+            },
+            MatchDocumentSymbol::LineAfterSymbol(_) => {
+                MatchDocumentSymbol::LineAfterSymbol(self.child_count_untracked())
+            },
+        }
     }
 
     fn match_line(&self, line: u32) -> MatchDocumentSymbol {
         if self.item.range.start.line > line {
-            MatchDocumentSymbol::BeforeSymbol
+            MatchDocumentSymbol::LineBeforeSymbol
         } else if self.item.range.start.line <= line
             && self.item.range.end.line >= line
         {
+            log::debug!(
+                "match_line name={} start.line={}",
+                self.name,
+                self.item.range.start.line
+            );
             MatchDocumentSymbol::MatchSymbol(self.id, 1)
         } else {
-            MatchDocumentSymbol::AfterSymbol
+            MatchDocumentSymbol::LineAfterSymbol(1)
         }
     }
 }
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum MatchDocumentSymbol {
-    BeforeSymbol,
+    LineBeforeSymbol,
     MatchSymbol(Id, usize),
-    AfterSymbol,
+    LineAfterSymbol(usize),
 }
 impl MatchDocumentSymbol {
     pub fn is_mach(&self) -> bool {
@@ -172,7 +222,15 @@ impl MatchDocumentSymbol {
     }
 
     pub fn is_before(&self) -> bool {
-        *self == MatchDocumentSymbol::BeforeSymbol
+        *self == MatchDocumentSymbol::LineBeforeSymbol
+    }
+
+    pub fn line_index(&self) -> Option<usize> {
+        if let Self::MatchSymbol(_, line) = self {
+            Some(*line)
+        } else {
+            None
+        }
     }
 }
 
@@ -458,7 +516,7 @@ pub fn symbol_panel(
         //     scroll_rect.set(rect);
         // }
         ).on_scroll(move |rect| {
-            log::warn!("on_scroll {rect:?}");
+            log::debug!("on_scroll {rect:?}");
             scroll_rect.set(rect);
         }).ensure_visible(move || {
             let editor = window_tab_data_clone.main_split.get_active_editor();
@@ -466,10 +524,10 @@ pub fn symbol_panel(
             if let Some(line) = editor.and_then(|x| x.doc().document_symbol_data.scroll_to.get()) {
                         let line_height = ui_line_height.get_untracked();
                         let rect = Rect::new(scroll_rect.x0, (line - 3.0).max(0.0) * line_height, scroll_rect.x0, (line + 3.0) * line_height);
-                        log::warn!("ensure_visible line={line} {rect:?}");
+                        log::debug!("ensure_visible line={line} {rect:?}");
                         rect
                     } else {
-                        log::warn!("ensure_visible scroll_rect {scroll_rect:?}");
+                        log::debug!("ensure_visible scroll_rect {scroll_rect:?}");
                         scroll_rect
                     }
         })
