@@ -1636,7 +1636,7 @@ impl EditorData {
             let off_top_line = self.upper_lines_of_cursor_with_offset(offset);
             self.cursor
                 .update(|x| x.set_offset(item_start_offset, false, false));
-            self.common.offset_line_from_top.set(Some(off_top_line));
+            self.common.offset_line_from_top.set(off_top_line);
         }
         Ok(())
     }
@@ -2460,10 +2460,8 @@ impl EditorData {
         let cursor_offset = cursor.offset();
 
         let (screen_line_index, rev_offset) = if format_before_save {
-            let screen_line_index = self.screen_lines.with_untracked(|x| {
-                x.visual_line_for_buffer_offset(cursor_offset)
-                    .map(|(index, _)| index)
-            });
+            let screen_line_index =
+                self.upper_lines_of_cursor_with_offset(cursor_offset);
             (
                 screen_line_index,
                 doc.lines.with_untracked(|x| {
@@ -2507,9 +2505,7 @@ impl EditorData {
                      {screen_line_index:?} cursor.offset={}",
                     cursor.offset()
                 );
-                self.common
-                    .offset_line_from_top
-                    .set(Some(screen_line_index));
+                self.common.offset_line_from_top.set(screen_line_index);
             }
             // lines.set_cursor(old_cursor, cursor.mode().clone());
         });
@@ -2619,7 +2615,7 @@ impl EditorData {
         location: EditorLocation,
         new_doc: bool,
         edits: Option<Vec<TextEdit>>,
-        off_top_line: Option<Option<usize>>,
+        off_top_line: Option<f64>,
     ) {
         if !new_doc {
             self.common.offset_line_from_top.set(off_top_line);
@@ -3184,17 +3180,26 @@ impl EditorData {
         }
     }
 
-    pub fn upper_lines_of_cursor_with_offset(&self, offset: usize) -> Option<usize> {
-        let line_num = self
-            .doc
-            .get_untracked()
-            .lines
-            .with_untracked(|x| x.buffer().line_of_offset(offset));
-        self.screen_lines
-            .with_untracked(|x| x.visual_index_for_origin_line_num(line_num))
+    pub fn upper_lines_of_cursor_with_offset(&self, offset: usize) -> Option<f64> {
+        // let line_num = self
+        //     .doc
+        //     .get_untracked()
+        //     .lines
+        //     .with_untracked(|x| x.buffer().line_of_offset(offset));
+        self.screen_lines.with_untracked(|x| {
+            x.visual_line_for_buffer_offset(offset)
+                .map(|x| x.1.folded_line_y)
+            // match x.visual_position_of_buffer_offset(offset) {
+            //     Ok(position) => position.map(|point| point.y - x.base.y0),
+            //     Err(err) => {
+            //         error!("{err}");
+            //         None
+            //     },
+            // }
+        })
     }
 
-    pub fn upper_lines_of_cursor(&self) -> Option<usize> {
+    pub fn upper_lines_of_cursor(&self) -> Option<f64> {
         let offset = self.cursor.with_untracked(|x| x.offset());
         self.upper_lines_of_cursor_with_offset(offset)
     }

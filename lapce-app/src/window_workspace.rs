@@ -223,7 +223,7 @@ pub struct CommonData {
     pub keyboard_focus:        RwSignal<Option<ViewId>>,
     pub window_common:         Rc<WindowCommonData>,
     pub directory:             Directory,
-    pub offset_line_from_top:  RwSignal<Option<Option<usize>>>,
+    pub offset_line_from_top:  RwSignal<Option<f64>>,
     pub sync_document_symbol:  RwSignal<bool>,
     pub document_highlight_id: RwSignal<u64>,
     pub find_view_id:          RwSignal<Option<ViewId>>,

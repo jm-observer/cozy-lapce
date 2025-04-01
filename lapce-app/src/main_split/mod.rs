@@ -463,7 +463,7 @@ impl MainSplitData {
         if self.common.focus.get_untracked() != Focus::Workbench {
             self.common.focus.set(Focus::Workbench);
         }
-        let mut off_top_line = None;
+        let mut off_top_line: Option<f64> = None;
         // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
         if let Some(tab) = self.get_active_editor_untracked() {
             off_top_line = tab.upper_lines_of_cursor();
@@ -490,12 +490,7 @@ impl MainSplitData {
                 batch(|| {
                     let is_empty =
                         edits.as_ref().map(|x| x.is_empty()).unwrap_or(true);
-                    editor.go_to_location(
-                        location,
-                        new_doc,
-                        edits,
-                        Some(off_top_line),
-                    );
+                    editor.go_to_location(location, new_doc, edits, off_top_line);
                     if !is_empty {
                         editor.check_auto_save();
                     }

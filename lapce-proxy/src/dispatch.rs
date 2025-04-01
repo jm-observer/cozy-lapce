@@ -109,12 +109,20 @@ impl ProxyHandler for Dispatcher {
                 self.proxy_rpc.shutdown();
             },
             Update { path, delta, rev } => {
-                log::warn!("Proxy Update {path:?} rev={rev}");
                 let buffer = self.buffers.get_mut(&path).unwrap();
+                let old_buffer_rev = buffer.rev;
+                log::warn!(
+                    "Proxy Update {path:?} rev={rev} buffer.rev={old_buffer_rev}",
+                );
                 let old_text = buffer.rope.clone();
                 if let Err(err) = buffer.update(&delta, rev) {
                     error!("{err:?}");
                 }
+                log::warn!(
+                    "Proxy Update After {path:?} rev={rev} \
+                     old_buffer_rev={old_buffer_rev} buffer_rev={}",
+                    buffer.rev
+                );
                 self.catalog_rpc.did_change_text_document(
                     &path,
                     rev,

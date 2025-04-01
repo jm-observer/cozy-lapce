@@ -1933,22 +1933,25 @@ fn editor_content(
                 "ensure_visible offset={offset} \
                  offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
             );
-            let ensure_visiable = if let Some(offset_line_from_top) =
-                offset_line_from_top
-            {
+            let ensure_visiable = if let Some(height) = offset_line_from_top {
                 // from jump
-                let height = offset_line_from_top.unwrap_or(5) as f64 * line_height;
-                let line_height_2 = line_height * 2.0;
+                // let height = offset_line_from_top.unwrap_or(5) as f64 *
+                // line_height;
                 let scroll = current_scroll.get_untracked();
+                let line_height_2 = line_height * 2.0;
+                // avoid to at boundary
+                let height = height
+                    .min(scroll.height() - line_height_2)
+                    .max(line_height_2);
                 let backup_point = origin_point;
                 let rect = if scroll != Rect::ZERO {
-                    let mut y0 = (origin_point.y - height).max(0.0);
-                    let mut y1 = y0 + scroll.height();
+                    let y0 = (origin_point.y - height).max(0.0);
+                    let y1 = y0 + scroll.height();
                     // avoid to be hidden
-                    if y1 - origin_point.y < line_height_2 {
-                        y1 += line_height_2;
-                        y0 = (y0 - line_height_2).max(0.0);
-                    }
+                    // if y1 - origin_point.y < line_height_2 {
+                    //     y1 += line_height_2;
+                    //     y0 = (y0 - line_height_2).max(0.0);
+                    // }
                     Rect::new(origin_point.x, y0, origin_point.x, y1)
                 } else {
                     log::error!("ensure_visible viewport is zero",);
