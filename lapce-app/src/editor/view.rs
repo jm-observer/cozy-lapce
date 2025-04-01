@@ -43,7 +43,7 @@ use floem::{
     prelude::{SvgColor, h_stack},
     reactive::{
         Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith, batch,
-        create_effect, create_memo, create_rw_signal,
+        create_memo, create_rw_signal,
     },
     style::{CursorColor, CursorStyle, Style, TextColor},
     taffy::prelude::NodeId,
@@ -1200,8 +1200,8 @@ pub fn editor_container_view(
     editor: RwSignal<EditorData>,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
-    let editors = main_split.editors;
-    let scratch_docs = main_split.scratch_docs;
+    // let editors = main_split.editors;
+    // let scratch_docs = main_split.scratch_docs;
     let replace_active = main_split.common.find.replace_active;
     // let replace_focus = main_split.common.find.replace_focus;
     let debug_breakline = window_tab_data.terminal.breakline;

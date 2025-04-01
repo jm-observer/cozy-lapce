@@ -60,7 +60,7 @@ use lapce_core::{
 };
 use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
-use log::{debug, error, info};
+use log::{error, info};
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
     GotoDefinitionResponse, HoverContents, InlineCompletionTriggerKind, Location,

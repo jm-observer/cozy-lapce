@@ -1778,7 +1778,7 @@ impl MainSplitData {
                 let is_dirty = !doc.is_pristine();
 
                 if is_dirty {
-                    if let DocContent::File { path, read_only } = &doc_content {
+                    if let DocContent::File { path, .. } = &doc_content {
                         self.get_doc_with_force(
                             path.clone(),
                             None,

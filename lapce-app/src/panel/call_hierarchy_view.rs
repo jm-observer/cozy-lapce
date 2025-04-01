@@ -137,7 +137,8 @@ pub fn show_hierarchy_panel(
         common_tab_header(
             window_tab_data.clone(),
             window_tab_data.main_split.hierarchy.clone(),
-        ),
+        )
+        .debug_name("hierarchy head"),
         _show_hierarchy_panel(window_tab_data.clone(), _position, move || {
             VirtualList::new(
                 window_tab_data
@@ -147,7 +148,7 @@ pub fn show_hierarchy_panel(
                     .map(|x| x.root),
             )
         })
-        .debug_name("show hierarchy panel"),
+        .debug_name("hierarchy panel"),
     ))
     .style(|x| x.flex_col().width_full().height_full())
 }

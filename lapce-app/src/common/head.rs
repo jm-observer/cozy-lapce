@@ -319,8 +319,8 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
         self.config
     }
 
-    fn key(&self) -> String {
-        self.content.clone()
+    fn key(&self) -> ViewId {
+        self.id
     }
 }
 
