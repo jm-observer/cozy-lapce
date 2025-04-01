@@ -1255,37 +1255,37 @@ pub fn editor_container_view(
         .style(|s| s.width_full().flex_grow(1.0)),
     ))
     .on_cleanup(move || {
-        batch(|| {
-            let editor = editor.get_untracked();
-            editor.scope.dispose();
-            // ?
-            // editor.cancel_completion();
-            // editor.cancel_inline_completion();
-            // if editors.contains_untracked(editor.id()) {
-            //     // editor still exist, so it might be moved to a different
-            // editor     // tab
-            //     return;
-            // }
-            // let doc = editor.doc();
-            // // ?
-            // // editor.scope.dispose();
+        // batch(|| {
+        // let editor = editor.get_untracked();
+        // editor.scope.dispose();
+        // ?
+        // editor.cancel_completion();
+        // editor.cancel_inline_completion();
+        // if editors.contains_untracked(editor.id()) {
+        //     // editor still exist, so it might be moved to a different
+        // editor     // tab
+        //     return;
+        // }
+        // let doc = editor.doc();
+        // // ?
+        // // editor.scope.dispose();
 
-            // let scratch_doc_name = if let DocContent::Scratch { name, .. } =
-            //     doc.content.get_untracked()
-            // {
-            //     Some(name.to_string())
-            // } else {
-            //     None
-            // };
-            // if let Some(name) = scratch_doc_name {
-            //     if !scratch_docs
-            //         .with_untracked(|scratch_docs|
-            // scratch_docs.contains_key(&name))     {
-            //         // ?
-            //         // doc.scope.dispose();
-            //     }
-            // }
-        });
+        // let scratch_doc_name = if let DocContent::Scratch { name, .. } =
+        //     doc.content.get_untracked()
+        // {
+        //     Some(name.to_string())
+        // } else {
+        //     None
+        // };
+        // if let Some(name) = scratch_doc_name {
+        //     if !scratch_docs
+        //         .with_untracked(|scratch_docs|
+        // scratch_docs.contains_key(&name))     {
+        //         // ?
+        //         // doc.scope.dispose();
+        //     }
+        // }
+        // });
     })
     .style(|s| s.flex_col().absolute().size_pct(100.0, 100.0))
     .debug_name("Editor Container")
