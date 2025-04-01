@@ -15,7 +15,7 @@ use lapce_core::{
     editor_tab::DiffEditorInfo,
     id::{DiffEditorId, EditorId, EditorTabManageId},
 };
-use log::{error};
+use log::error;
 
 use super::{EditorData, view::count_rect};
 use crate::{
@@ -168,12 +168,14 @@ impl DiffEditorData {
         let jump_by_changes_index = self.jump_by_changes_index;
         cx.create_effect(move |_| {
             let (_, left_rev) = left_doc_rev.get();
-            let (left_editor_view, left_doc) = (left.kind_rw(), left.doc_signal().get());
+            let (left_editor_view, left_doc) =
+                (left.kind_rw(), left.doc_signal().get());
 
-            let (right_editor_view, right_doc) = (right.kind_rw(), right.doc_signal().get());
+            let (right_editor_view, right_doc) =
+                (right.kind_rw(), right.doc_signal().get());
             let left_loaded = left_doc.loaded.get();
             let right_loaded = right_doc.loaded.get();
-            if !left_loaded || !right_loaded{
+            if !left_loaded || !right_loaded {
                 return;
             }
             let (left_atomic_rev, left_rope) =
@@ -187,9 +189,9 @@ impl DiffEditorData {
                 });
             let right_data = right.clone();
 
-            // warn!("{:?} {:?}", left_doc.content.get_untracked(), right_doc.content.get_untracked());
-            // warn!("{}", left_content);
-            // warn!("{}", right_content);
+            // warn!("{:?} {:?}", left_doc.content.get_untracked(),
+            // right_doc.content.get_untracked()); warn!("{}",
+            // left_content); warn!("{}", right_content);
 
             let send = {
                 let right_atomic_rev = right_atomic_rev.clone();
@@ -227,7 +229,7 @@ impl DiffEditorData {
                             jump_by_changes_index.try_update(|x| x.take()).flatten();
                         if let Some(jump) = jump_ {
                             if let Err(err) =
-                                count_rect(&right_changes, jump, right_data)
+                                count_rect(&right_changes, jump, &right_data)
                             {
                                 error!("{err}");
                             }

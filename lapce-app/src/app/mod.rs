@@ -1277,7 +1277,6 @@ fn editor_tab_content(
                             false
                         }
                     };
-                    let editor_data = create_rw_signal(editor_data);
                     editor_container_view(
                         window_tab_data.clone(),
                         workspace.clone(),
@@ -1340,12 +1339,12 @@ fn editor_tab_content(
                                 .set(Some(right_viewport.origin().to_vec2()));
                         }
                     });
-                    let left_editor =
-                        create_rw_signal(diff_editor_data.left.clone());
-                    let right_editor =
-                        create_rw_signal(diff_editor_data.right.clone());
+                    let left_editor = diff_editor_data.left.clone();
+                    // create_rw_signal();
+                    let right_editor = diff_editor_data.right.clone();
+                    // create_rw_signal();
                     v_stack((
-                        editor_diff_header(config, right_editor)
+                        editor_diff_header(config, right_editor.clone())
                             .debug_name("editor_diff_header"),
                         stack((
                             container(
@@ -2899,7 +2898,6 @@ fn palette_preview(window_tab_data: WindowWorkspaceData) -> impl View {
     let preview_editor = palette_data.preview_editor;
     let has_preview = palette_data.has_preview_memo;
     let config = palette_data.common.config;
-    let preview_editor = create_rw_signal(preview_editor);
     container(
         container(editor_container_view(
             window_tab_data,

@@ -1,9 +1,6 @@
 use floem::{
     View,
-    prelude::{
-        Decorators, RwSignal, SignalGet, SignalWith, Svg, clip, container, palette,
-        static_label,
-    },
+    prelude::{Decorators, SignalGet, Svg, clip, container, palette, static_label},
     style::{CursorStyle, StyleValue},
     taffy::{AlignItems, JustifyContent},
     views::dyn_stack,
@@ -72,14 +69,15 @@ fn gutter_marker_code_len_svg_view(
 
 pub fn editor_gutter_new(
     window_tab_data: WindowWorkspaceData,
-    e_data: RwSignal<EditorData>,
+    e_data: EditorData,
 ) -> impl View {
-    let (doc, config) = e_data.with_untracked(|e| (e.doc_signal(), e.common.config));
+    let (doc, config) = (e_data.doc_signal(), e_data.common.config);
     let window_tab_data_clone = window_tab_data.clone();
+    let e_data_gutter = e_data.clone();
     container(
         clip(
             dyn_stack(
-                move || gutter_data(window_tab_data_clone.clone(), e_data),
+                move || gutter_data(window_tab_data_clone.clone(), &e_data_gutter),
                 |data| data.clone(),
                 move |data| gutter_data_view(&data, &window_tab_data, doc, config),
             )

@@ -42,7 +42,7 @@ use floem::{
     },
     prelude::{SvgColor, h_stack},
     reactive::{
-        Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith, batch,
+        Memo, RwSignal, SignalGet, SignalTrack, SignalUpdate, SignalWith,
         create_memo, create_rw_signal,
     },
     style::{CursorColor, CursorStyle, Style, TextColor},
@@ -1197,7 +1197,7 @@ pub fn editor_container_view(
     window_tab_data: WindowWorkspaceData,
     workspace: LapceWorkspace,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
-    editor: RwSignal<EditorData>,
+    editor: EditorData,
 ) -> impl View {
     let main_split = window_tab_data.main_split.clone();
     // let editors = main_split.editors;
@@ -1212,18 +1212,19 @@ pub fn editor_container_view(
     let common = main_split.common.clone();
     let config = main_split.common.config;
 
+    let editor_empty = editor.clone();
     stack((
-        editor_breadcrumbs(workspace, editor.get_untracked(), config),
+        editor_breadcrumbs(workspace, editor.clone(), config),
         stack((
-            editor_gutter_new(window_tab_data.clone(), editor),
-            editor_gutter_folding_range(window_tab_data.clone(), editor),
-            editor_content(editor, debug_breakline, is_active),
+            editor_gutter_new(window_tab_data.clone(), editor.clone()),
+            editor_gutter_folding_range(window_tab_data.clone(), editor.clone()),
+            editor_content(editor.clone(), debug_breakline, is_active),
             empty().style(move |s| {
                 let sticky_header = config
                     .signal(|config| config.editor.sticky_header.signal())
                     .get();
                 let (sticky_header_height, editor_view) =
-                    editor.with(|x| (x.sticky_header_height, x.kind_read()));
+                    (editor_empty.sticky_header_height, editor_empty.kind_read());
                 let sticky_header_height = sticky_header_height.get() as f32;
 
                 s.absolute()
@@ -1619,18 +1620,16 @@ fn editor_gutter_folding_view(
 
 fn editor_gutter_folding_range(
     window_tab_data: WindowWorkspaceData,
-    e_data: RwSignal<EditorData>,
+    e_data: EditorData,
 ) -> impl View {
     let config = window_tab_data.common.config;
     dyn_stack(
-        move || e_data.with(|x| x.folding_display_item).get(),
+        move || e_data.folding_display_item.get(),
         move |item| *item,
         move |item| {
             editor_gutter_folding_view(window_tab_data.clone(), item).on_click_stop(
                 {
-                    let lines = e_data
-                        .with_untracked(|x| x.doc_signal())
-                        .with_untracked(|x| x.lines);
+                    let lines = e_data.doc_signal().with_untracked(|x| x.lines);
                     move |_| {
                         lines.update(|x| {
                             if let Err(err) = x.update_folding_ranges(item.into()) {
@@ -1778,7 +1777,7 @@ fn editor_breadcrumbs(
 pub fn count_rect(
     changes: &Vec<DiffResult>,
     index: usize,
-    right_editor: EditorData,
+    right_editor: &EditorData,
 ) -> Result<()> {
     if let Some(change) = changes.get(index) {
         // log::error!("{change:?}");
@@ -1827,16 +1826,16 @@ pub fn count_rect(
 
 pub fn editor_diff_header(
     config: WithLapceConfig,
-    right_editor: RwSignal<EditorData>,
+    right_editor: EditorData,
 ) -> impl View {
     let index = create_rw_signal(0usize);
+    let right_editor_svg = right_editor.clone();
     let view = h_stack((
         common_svg(config, None, LapceIcons::FOLD_UP)
             .style(|x| x.padding_horiz(15.0))
             .on_click_stop(move |_| {
-                let right_editor = right_editor.get_untracked();
                 if let EditorViewKind::Diff { changes, .. } =
-                    right_editor.kind_read().get_untracked()
+                    right_editor_svg.kind_read().get_untracked()
                 {
                     let Some(index) = index.try_update(|x| {
                         if *x == 0 {
@@ -1848,13 +1847,13 @@ pub fn editor_diff_header(
                     }) else {
                         return;
                     };
-                    if let Err(err) = count_rect(&changes, index, right_editor) {
+                    if let Err(err) = count_rect(&changes, index, &right_editor_svg)
+                    {
                         error!("{err}");
                     }
                 }
             }),
         common_svg(config, None, LapceIcons::FOLD_DOWN).on_click_stop(move |_| {
-            let right_editor = right_editor.get_untracked();
             if let EditorViewKind::Diff { changes, .. } =
                 right_editor.kind_read().get_untracked()
             {
@@ -1867,7 +1866,7 @@ pub fn editor_diff_header(
                 }) else {
                     return;
                 };
-                if let Err(err) = count_rect(&changes, index, right_editor) {
+                if let Err(err) = count_rect(&changes, index, &right_editor) {
                     error!("{err}");
                 }
             }
@@ -1877,56 +1876,43 @@ pub fn editor_diff_header(
 }
 
 fn editor_content(
-    e_data: RwSignal<EditorData>,
+    editor: EditorData,
     debug_breakline: Memo<Option<(usize, PathBuf)>>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
 ) -> impl View {
-    let (cursor, scroll_delta, scroll_to, window_origin, scope) = e_data
-        .with_untracked(|editor| {
-            (
-                editor.cursor().read_only(),
-                editor.scroll_delta.read_only(),
-                editor.scroll_to,
-                editor.window_origin(),
-                editor.scope,
-            )
-        });
-
-    // todo ??
-    // {
-    //     create_effect(move |_| {
-    //         is_active(true);
-    //         let e_data = e_data.get_untracked();
-    //         e_data.cancel_completion();
-    //         e_data.cancel_inline_completion();
-    //     });
-    // }
+    let (cursor, scroll_delta, scroll_to, window_origin, scope) = (
+        editor.cursor().read_only(),
+        editor.scroll_delta.read_only(),
+        editor.scroll_to,
+        editor.window_origin(),
+        editor.scope,
+    );
 
     let current_scroll = scope.create_rw_signal(Rect::ZERO);
+
     {
-        //
+        let editor = editor.clone();
         scope.create_effect(move |_| {
-            let e_data = e_data.get_untracked();
-            e_data.doc_signal().track();
+            editor.doc_signal().track();
             let cursor = cursor.get();
             let offset = cursor.offset();
-            let offset_line_from_top = e_data
+            let offset_line_from_top = editor
                 .common
                 .offset_line_from_top
                 .try_update(|x| x.take())
                 .flatten();
-            let line_height = e_data
+            let line_height = editor
                 .common
                 .config
                 .signal(|x| x.editor.line_height.signal())
                 .get() as f64;
 
             let Ok(mut origin_point) =
-                e_data.doc_signal().with(|x| x.lines).with_untracked(|x| {
+                editor.doc_signal().with(|x| x.lines).with_untracked(|x| {
                     x.cursor_position_of_buffer_offset(offset, cursor.affinity)
                 })
             else {
-                e_data.ensure_visible.set(current_scroll.get_untracked());
+                editor.ensure_visible.set(current_scroll.get_untracked());
                 return;
             };
             log::warn!(
@@ -1971,25 +1957,30 @@ fn editor_content(
                 // from click maybe
                 Rect::from_center_size(origin_point, (1.0, line_height * 3.0))
             };
-            e_data.ensure_visible.set(ensure_visiable);
+            editor.ensure_visible.set(ensure_visiable);
         });
     }
 
+    let editor_scroll = editor.clone();
+    let editor_ensure = editor.clone();
+
     scroll({
-        let editor_content_view = editor_view(
-            e_data.get_untracked(),
-            debug_breakline,
-            is_active,
-            "editor",
-        )
-        .style(move |s| {
-            s.absolute()
-                .margin_left(1.0)
-                .min_size_full()
-                .cursor(CursorStyle::Text)
-        });
+        let editor_content_view =
+            editor_view(editor.clone(), debug_breakline, is_active, "editor").style(
+                move |s| {
+                    s.absolute()
+                        .margin_left(1.0)
+                        .min_size_full()
+                        .cursor(CursorStyle::Text)
+                },
+            );
         let id = editor_content_view.id();
-        e_data.with_untracked(|x| x.editor_view_id.set(Some(id)));
+        editor.editor_view_id.set(Some(id));
+
+        let editor_down = editor.clone();
+        let editor_move = editor.clone();
+        let editor_up = editor.clone();
+        let editor_left = editor.clone();
 
         editor_content_view
             // .on_event_cont(EventListener::FocusGained, move |_| {
@@ -2002,22 +1993,22 @@ fn editor_content(
             .on_event_cont(EventListener::PointerDown, move |event| {
                 if let Event::PointerDown(pointer_event) = event {
                     id.request_active();
-                    e_data.get_untracked().pointer_down(pointer_event);
+                    editor_down.pointer_down(pointer_event);
                 }
             })
             .on_event_stop(EventListener::PointerMove, move |event| {
                 if let Event::PointerMove(pointer_event) = event {
-                    e_data.get_untracked().pointer_move(pointer_event);
+                    editor_move.pointer_move(pointer_event);
                 }
             })
             .on_event_stop(EventListener::PointerUp, move |event| {
                 if let Event::PointerUp(pointer_event) = event {
-                    e_data.get_untracked().pointer_up(pointer_event);
+                    editor_up.pointer_up(pointer_event);
                 }
             })
             .on_event_stop(EventListener::PointerLeave, move |event| {
                 if let Event::PointerLeave = event {
-                    e_data.get_untracked().pointer_leave();
+                    editor_left.pointer_leave();
                 }
             })
             .keyboard_navigable()
@@ -2030,13 +2021,12 @@ fn editor_content(
     })
     .on_scroll(move |rect| {
         log::warn!("on_scroll rect{rect:?}");
-        let e_data = e_data.get_untracked();
         if rect.y0 != current_scroll.get_untracked().y0 {
-            e_data.cancel_completion();
-            e_data.cancel_inline_completion();
+            editor_scroll.cancel_completion();
+            editor_scroll.cancel_inline_completion();
         }
-        e_data.viewport.set(rect);
-        e_data.common.hover.active.set(false);
+        editor_scroll.viewport.set(rect);
+        editor_scroll.common.hover.active.set(false);
         current_scroll.set(rect);
     })
     .scroll_to(move || {
@@ -2047,7 +2037,7 @@ fn editor_content(
     })
     .scroll_delta(move || scroll_delta.get())
     .ensure_visible(move || {
-        let ensure_visible = e_data.read_only().with(|x| x.ensure_visible).get();
+        let ensure_visible = editor_ensure.ensure_visible.get();
         let current_scroll = current_scroll.get_untracked();
         log::warn!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
         ensure_visible
@@ -2198,7 +2188,7 @@ fn replace_editor_view(
 }
 
 fn find_view(
-    editor: RwSignal<EditorData>,
+    editor: EditorData,
     replace_active: RwSignal<bool>,
     common: Rc<CommonData>,
     find_str: RwSignal<String>,
@@ -2212,24 +2202,29 @@ fn find_view(
     let focus = common.focus;
     let window_tab_data_replace = window_tab_data.clone();
 
-    let find_pos = create_memo(move |_| {
-        let visual = find_visual.get();
-        if !visual {
-            return (0, 0);
-        }
-        let editor = editor.get_untracked();
-        let cursor = editor.cursor();
-        let offset = cursor.with(|cursor| cursor.offset());
-        let occurrences = editor.doc_signal().get().find_result.occurrences;
-        occurrences.with(|occurrences| {
-            for (i, region) in occurrences.regions().iter().enumerate() {
-                if offset <= region.max() {
-                    return (i + 1, occurrences.regions().len());
-                }
+    let find_pos = create_memo({
+        let editor = editor.clone();
+        move |_| {
+            let visual = find_visual.get();
+            if !visual {
+                return (0, 0);
             }
-            (occurrences.regions().len(), occurrences.regions().len())
-        })
+            let cursor = editor.cursor();
+            let offset = cursor.with(|cursor| cursor.offset());
+            let occurrences = editor.doc_signal().get().find_result.occurrences;
+            occurrences.with(|occurrences| {
+                for (i, region) in occurrences.regions().iter().enumerate() {
+                    if offset <= region.max() {
+                        return (i + 1, occurrences.regions().len());
+                    }
+                }
+                (occurrences.regions().len(), occurrences.regions().len())
+            })
+        }
     });
+
+    let editor_back = editor.clone();
+    let editor_forward = editor.clone();
 
     container(
         stack((
@@ -2269,7 +2264,7 @@ fn find_view(
                 clickable_icon(
                     || LapceIcons::SEARCH_BACKWARD,
                     move || {
-                        editor.get_untracked().search_backward(Modifiers::empty());
+                        editor_back.search_backward(Modifiers::empty());
                     },
                     move || false,
                     || false,
@@ -2280,7 +2275,7 @@ fn find_view(
                 clickable_icon(
                     || LapceIcons::SEARCH_FORWARD,
                     move || {
-                        editor.get_untracked().search_forward(Modifiers::empty());
+                        editor_forward.search_forward(Modifiers::empty());
                     },
                     move || false,
                     || false,
@@ -2290,8 +2285,11 @@ fn find_view(
                 .style(|s| s.padding_left(6.0)),
                 clickable_icon(
                     || LapceIcons::CLOSE,
-                    move || {
-                        editor.get_untracked().clear_search();
+                    {
+                        let editor = editor.clone();
+                        move || {
+                            editor.clear_search();
+                        }
                     },
                     move || false,
                     || false,
@@ -2313,9 +2311,12 @@ fn find_view(
                 ),
                 clickable_icon(
                     || LapceIcons::SEARCH_REPLACE,
-                    move || {
-                        let text = replace_str.get_untracked();
-                        editor.get_untracked().replace_next(&text);
+                    {
+                        let editor = editor.clone();
+                        move || {
+                            let text = replace_str.get_untracked();
+                            editor.replace_next(&text);
+                        }
                     },
                     move || false,
                     || false,
@@ -2325,9 +2326,12 @@ fn find_view(
                 .style(|s| s.padding_left(6.0)),
                 clickable_icon(
                     || LapceIcons::SEARCH_REPLACE_ALL,
-                    move || {
-                        let text = replace_str.get_untracked();
-                        editor.get_untracked().replace_all(&text);
+                    {
+                        let editor = editor.clone();
+                        move || {
+                            let text = replace_str.get_untracked();
+                            editor.replace_all(&text);
+                        }
                     },
                     move || false,
                     || false,
@@ -2363,7 +2367,6 @@ fn find_view(
             // to So that if you have two tabs open side-by-side (and
             // thus two find views), clicking on one will shift the focus
             // to the editor it's attached to
-            let editor = editor.get_untracked();
             if let Some(editor_tab_id) = editor.editor_tab_id.get_untracked() {
                 editor
                     .common
