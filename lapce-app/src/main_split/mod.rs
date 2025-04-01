@@ -1769,6 +1769,39 @@ impl MainSplitData {
         }
     }
 
+    pub fn reload_doc(&self, child: &EditorTabChildId) -> Option<()> {
+        match child {
+            EditorTabChildId::Editor(editor_id) => {
+                let editor = self.editors.editor_untracked(*editor_id)?;
+                let doc = editor.doc();
+                let doc_content = doc.content.get_untracked();
+                let is_dirty = !doc.is_pristine();
+
+                if is_dirty {
+                    if let DocContent::File { path, read_only } = &doc_content {
+                        self.get_doc_with_force(
+                            path.clone(),
+                            None,
+                            false,
+                            doc_content,
+                            true,
+                        );
+                    } else {
+                        self.docs.update(|docs| {
+                            docs.remove(&doc_content);
+                        });
+                    }
+                }
+                None
+            },
+            EditorTabChildId::DiffEditor(_) => None,
+            EditorTabChildId::Settings(_) => None,
+            EditorTabChildId::ThemeColorSettings(_) => None,
+            EditorTabChildId::Keymap(_) => None,
+            EditorTabChildId::Volt(_, _) => None,
+        }
+    }
+
     pub fn split_exchange_active(&self) -> Option<()> {
         let active_editor_tab = self.active_editor_tab.get_untracked()?;
         self.split_exchange(active_editor_tab)?;
@@ -1972,6 +2005,8 @@ impl MainSplitData {
 
                 return Some(());
             }
+        } else {
+            self.reload_doc(&child);
         }
 
         let editor_tabs = self.editor_tabs.get_untracked();

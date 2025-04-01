@@ -341,23 +341,19 @@ impl ProxyHandler for Dispatcher {
         log::debug!("dispatcher handle_request {:?}", rpc);
         match rpc {
             NewBuffer { buffer_id, path } => {
-                let buffer = Buffer::new(buffer_id, path.clone());
-                let content = buffer.rope.to_string();
-                let read_only = buffer.read_only;
-                self.catalog_rpc.did_open_document(
-                    &path,
-                    buffer.language_id.to_string(),
-                    buffer.rev as i32,
-                    content.clone(),
-                    id,
-                );
-                self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
-                self.buffers.insert(path, buffer);
+                let (content, read_only) = self.new_buffer(id, buffer_id, path);
                 self.respond_rpc(
                     id,
                     Ok(ProxyResponse::NewBufferResponse { content, read_only }),
                 );
             },
+            // ReloadBuffer { buffer_id, path } => {
+            //     let (content, read_only) = self.new_buffer(id, buffer_id, path);
+            //     self.respond_rpc(
+            //         id,
+            //         Ok(ProxyResponse::NewBufferResponse { content, read_only }),
+            //     );
+            // },
             BufferHead { path } => {
                 let result = if let Some(workspace) = self.workspace.as_ref() {
                     let result = file_get_head(workspace, &path);
@@ -1398,6 +1394,27 @@ impl Dispatcher {
         self.buffers
             .entry(path.clone())
             .or_insert(Buffer::new(BufferId::next(), path))
+    }
+
+    fn new_buffer(
+        &mut self,
+        id: RequestId,
+        buffer_id: BufferId,
+        path: PathBuf,
+    ) -> (String, bool) {
+        let buffer = Buffer::new(buffer_id, path.clone());
+        let content = buffer.rope.to_string();
+        let read_only = buffer.read_only;
+        self.catalog_rpc.did_open_document(
+            &path,
+            buffer.language_id.to_string(),
+            buffer.rev as i32,
+            content.clone(),
+            id,
+        );
+        self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
+        self.buffers.insert(path, buffer);
+        (content, read_only)
     }
 }
 

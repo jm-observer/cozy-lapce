@@ -65,6 +65,10 @@ pub enum ProxyRequest {
         buffer_id: BufferId,
         path:      PathBuf,
     },
+    // ReloadBuffer {
+    //     buffer_id: BufferId,
+    //     path:      PathBuf,
+    // },
     BufferHead {
         path: PathBuf,
     },
