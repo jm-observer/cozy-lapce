@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt, ops::Range};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 use floem::{
     peniko::Color,
     text::{Attrs, AttrsList},
@@ -723,32 +723,29 @@ impl PhantomTextMultiLine {
         &self,
         origin_merge_col: usize,
     ) -> Result<&Text> {
-        self.text
-            .iter()
-            .find(|x| {
-                match x {
-                    Text::Phantom { text } => {
-                        if text.origin_merge_col <= origin_merge_col
-                            && origin_merge_col <= text.next_origin_merge_col()
-                        {
-                            return true;
-                        }
-                    },
-                    Text::OriginText { text } => {
-                        if text.origin_merge_col_contains(
-                            origin_merge_col,
-                            self.is_last_line,
-                        ) {
-                            return true;
-                        }
-                    },
-                    Text::EmptyLine { .. } => {
-                        return true;
-                    },
-                }
-                false
-            })
-            .ok_or(anyhow!("No merge col found {}", origin_merge_col,))
+        for x in &self.text {
+            match x {
+                Text::Phantom { text } => {
+                    if text.origin_merge_col <= origin_merge_col
+                        && origin_merge_col < text.next_origin_merge_col()
+                    {
+                        return Ok(x);
+                    }
+                },
+                Text::OriginText { text } => {
+                    if text.origin_merge_col_contains(
+                        origin_merge_col,
+                        self.is_last_line,
+                    ) {
+                        return Ok(x);
+                    }
+                },
+                Text::EmptyLine { .. } => {
+                    return Ok(x);
+                },
+            }
+        }
+        bail!("No merge col found {}", origin_merge_col,)
     }
 
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
@@ -789,8 +786,8 @@ impl PhantomTextMultiLine {
         //     warn!("merge_col not found: line={} merge col={}", self.line,
         // merge_col);     return None;
         // };
-        let text = self.text_of_origin_merge_col(origin_merge_col)?;
-        Ok(match text {
+        let text_kind = self.text_of_origin_merge_col(origin_merge_col)?;
+        Ok(match text_kind {
             Text::Phantom { text, .. } => match cursor_affinity {
                 CursorAffinity::Forward => text.next_final_col(),
                 CursorAffinity::Backward => text.final_col,

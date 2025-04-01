@@ -45,5 +45,7 @@ fn test_all() -> Result<()> {
     tests::test_document_symbol::_test_symbol()?;
 
     tests::test_get_folded_index::_test_folding()?;
+
+    tests::test_cursor_position::_test_cursor_position()?;
     Ok(())
 }

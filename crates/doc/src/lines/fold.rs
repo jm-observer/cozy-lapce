@@ -720,7 +720,6 @@ impl FoldedRange {
             let Some(end_char) = buffer.char_at_offset(self.interval.end - 1) else {
                 return Ok(None);
             };
-
             let mut text = String::new();
             text.push(start_char);
             text.push_str("...");
@@ -730,7 +729,7 @@ impl FoldedRange {
             let (all_len, len) = if same_line {
                 (self.interval.size(), self.interval.size())
             } else {
-                (self.interval.size(), content - start)
+                (folded - self.interval.start, content - start)
             };
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
@@ -750,13 +749,14 @@ impl FoldedRange {
                 visual_merge_col: start,
                 origin_merge_col: start,
             })
-        } else if self.end_line == line {
+        } else if self.end_line == line && !same_line {
             let text = String::new();
+            let all_len = self.interval.end - folded;
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
                     next_line:      None,
-                    len:            self.end_line - folded,
-                    all_len:        self.interval.size(),
+                    len:            all_len,
+                    all_len,
                     start_position: self.interval.start,
                 },
                 col: 0,

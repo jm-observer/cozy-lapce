@@ -341,7 +341,7 @@ impl ScreenLines {
         };
         let mut viewpport_point = vl
             .folded_line
-            .hit_position_aff(final_offset, CursorAffinity::Backward)
+            .hit_position_aff(final_offset, affinity)
             .point;
         viewpport_point.y = vl.folded_line_y;
         viewpport_point.add_assign(self.base.origin().to_vec2());
