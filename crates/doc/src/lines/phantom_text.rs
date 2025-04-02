@@ -308,6 +308,9 @@ pub enum PhantomTextKind {
 }
 
 impl PhantomTextKind {
+    pub fn is_folded(&self) -> bool {
+        matches!(self, PhantomTextKind::LineFoldedRang{..})
+    }
     // pub fn adjust(&mut self, line_delta: Offset) {
     //     if let Self::LineFoldedRang {
     //         next_line,

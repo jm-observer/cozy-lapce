@@ -256,6 +256,20 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
         assert_eq!(157, point.unwrap().x as usize);
     }
     {
+        //|    if true {...}[] else {\r\n
+        let point = Point::new(126.5, 25.0);
+        let Some((offset_of_buffer, is_inside, affinity)) = screen_lines
+            .nearest_buffer_offset_of_click(&CursorMode::Normal(0), point)?
+        else {
+            panic!("should not be none");
+        };
+        assert_eq!(lines.buffer().char_at_offset(63).unwrap(), ' ');
+        assert_eq!(
+            (offset_of_buffer, is_inside, affinity),
+            (63, true, CursorAffinity::Backward)
+        );
+    }
+    {
         //|    if true {..[].} else {\r\n
         let point = Point::new(109.7, 30.0);
         let rs = lines.result_of_left_click(point)?;

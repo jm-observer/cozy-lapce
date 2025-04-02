@@ -30,22 +30,22 @@ pub fn _test_cursor_position() -> Result<()> {
     let items = init_main_folded_item_2()?;
 
     let offset = 107;
-    // {
-    //     let screen_lines = lines
-    //         .compute_screen_lines_new(
-    //             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
-    //             EditorViewKind::Normal,
-    //         )?
-    //         .0;
-    //     // |...
-    //     // |}|
-    //     assert_eq!(lines.buffer().char_at_offset(offset), Some('\r'));
-    //     let (_text, final_col) = screen_lines
-    //         .cursor_info_of_buffer_offset(offset, CursorAffinity::Backward)
-    //         .unwrap()
-    //         .unwrap();
-    //     assert_eq!(final_col, 5);
-    // }
+    {
+        let screen_lines = lines
+            .compute_screen_lines_new(
+                Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
+                EditorViewKind::Normal,
+            )?
+            .0;
+        // |...
+        // |}|
+        assert_eq!(lines.buffer().char_at_offset(offset), Some('\r'));
+        let (_text, final_col) = screen_lines
+            .cursor_info_of_buffer_offset(offset, CursorAffinity::Backward)
+            .unwrap()
+            .unwrap();
+        assert_eq!(final_col, 5);
+    }
     lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
     {
         let screen_lines = lines

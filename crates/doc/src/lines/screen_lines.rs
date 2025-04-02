@@ -651,10 +651,10 @@ impl ScreenLines {
         _mode: &CursorMode,
         point: Point,
     ) -> Result<Option<(usize, bool, CursorAffinity)>> {
-        let Some((text, inside)) = self.nearest_visual_line_of_point(point.y) else {
+        let Some((line, inside)) = self.nearest_visual_line_of_point(point.y) else {
             return Ok(None);
         };
-        let info = &text.folded_line;
+        let info = &line.folded_line;
         if !inside {
             let (offset, affi) = info.last_cursor_position();
             return Ok(Some((offset, false, affi)));
@@ -689,7 +689,7 @@ impl ScreenLines {
                                     )
                                 },
                             ));
-                        } else if visual_char_offset == text.next_final_col() {
+                        } else if visual_char_offset == text.next_final_col() && !text.kind.is_folded() {
                             return Ok(Some((
                                 info.origin_interval.start + text.origin_merge_col,
                                 true,
