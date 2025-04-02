@@ -227,6 +227,7 @@ pub struct CommonData {
     pub sync_document_symbol:  RwSignal<bool>,
     pub document_highlight_id: RwSignal<u64>,
     pub find_view_id:          RwSignal<Option<ViewId>>,
+    pub inspect_info:          RwSignal<String>,
 }
 
 impl std::fmt::Debug for CommonData {
@@ -483,6 +484,7 @@ impl WindowWorkspaceData {
             sync_document_symbol: cx.create_rw_signal(true),
             document_highlight_id: cx.create_rw_signal(0),
             find_view_id: cx.create_rw_signal(None),
+            inspect_info: cx.create_rw_signal(String::new()),
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -1743,7 +1745,7 @@ impl WindowWorkspaceData {
                         .send(InternalCommand::OpenFile { path });
                 }
             }
-            InsepectSemanticType => {
+            InspectSemanticType => {
                 if let Some(editor_data) =
                     self.main_split.active_editor.get_untracked()
                 {
@@ -1771,6 +1773,13 @@ impl WindowWorkspaceData {
                         message: semantic,
                     });
                 }
+            }
+            InspectClickInfo => {
+                    // log::info!("{word} {semantic}");
+                    self.show_message("InspectClickInfo", &ShowMessageParams {
+                        typ: MessageType::INFO,
+                        message: self.common.inspect_info.get_untracked(),
+                    });
             }
         }
 

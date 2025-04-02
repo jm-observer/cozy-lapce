@@ -615,9 +615,12 @@ pub enum LapceWorkbenchCommand {
     #[strum(message = "Fold The Current Scope Of The Code")]
     FoldCode,
 
-    #[strum(message = "Insepect Semantic Type")]
-    #[strum(serialize = "insepect_semantic_type")]
-    InsepectSemanticType,
+    #[strum(message = "Inspect Semantic Type")]
+    #[strum(serialize = "inspect_semantic_type")]
+    InspectSemanticType,
+    #[strum(message = "Inspect Click Info")]
+    #[strum(serialize = "inspect_click_info")]
+    InspectClickInfo,
 }
 
 #[derive(Clone, Debug)]

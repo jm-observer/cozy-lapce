@@ -3322,6 +3322,15 @@ impl EditorData {
         match pointer_event.count {
             1 => {
                 self.single_click(pointer_event);
+
+                let (new_offset, cursor_affinity) =
+                    self.cursor.with_untracked(|x| (x.offset(), x.affinity));
+
+                let msg = format!(
+                    "{:?} {new_offset} {cursor_affinity:?}",
+                    pointer_event.pos
+                );
+                self.common.inspect_info.set(msg);
             },
             2 => {
                 self.double_click(pointer_event);
@@ -3730,7 +3739,10 @@ impl EditorData {
                         LapceWorkbenchCommand::PaletteCommand,
                     )),
                     Some(CommandKind::Workbench(
-                        LapceWorkbenchCommand::InsepectSemanticType,
+                        LapceWorkbenchCommand::InspectSemanticType,
+                    )),
+                    Some(CommandKind::Workbench(
+                        LapceWorkbenchCommand::InspectClickInfo,
                     )),
                 ]
             }
