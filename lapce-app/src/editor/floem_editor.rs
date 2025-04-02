@@ -1441,6 +1441,10 @@ pub fn paint_text(
     }
     {
         for (start_offset, end_offset, start_affinity, end_affinity) in selections {
+            // log::warn!(
+            //     "start {start_offset} {start_affinity:?} end {end_offset} \
+            //      {end_affinity:?}"
+            // );
             paint_normal_selection(
                 cx,
                 select_color,

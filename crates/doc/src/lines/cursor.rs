@@ -1,6 +1,6 @@
 use anyhow::Result;
 use lapce_xi_rope::{RopeDelta, Transformer};
-use log::{debug, error, info};
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 use crate::lines::{
@@ -523,11 +523,15 @@ impl Cursor {
         new_cursor: bool,
         new_affinite: Option<CursorAffinity>,
     ) {
-        info!(
-            "cursor set_offset new_offset={offset} modify={modify} \
-             new_cursor={new_cursor} old_offset={}",
-            self.offset()
-        );
+        // log::warn!(
+        //     "cursor set_offset new_offset={offset} modify={modify} \
+        //      new_cursor={new_cursor} old_offset={} new_affinite={new_affinite:?}",
+        //     self.offset()
+        // );
+
+        if let Some(new_affinite) = new_affinite {
+            self.affinity = new_affinite;
+        }
         match &self.mode {
             CursorMode::Normal(_old_offset) => {
                 // todo!()
@@ -580,7 +584,7 @@ impl Cursor {
                     if let Some(region) = selection.first() {
                         let mut new_region =
                             SelRegion::new(region.start, offset, None);
-                        new_region.start_cursor_affi = Some(self.affinity);
+                        new_region.start_cursor_affi = region.start_cursor_affi;
                         new_region.end_cursor_affi = new_affinite;
                         new_selection.add_region(new_region);
                     } else {
@@ -589,7 +593,14 @@ impl Cursor {
                     }
                     self.set_insert(new_selection);
                 } else {
-                    self.set_insert(Selection::caret(offset));
+                    let mut new_selection = Selection::new();
+                    let mut new_region =
+                        SelRegion::new(offset, offset, None);
+                    new_region.start_cursor_affi = new_affinite;
+                    new_region.end_cursor_affi = new_affinite;
+                    new_selection
+                        .add_region(new_region);
+                    self.set_insert(new_selection);
                 }
             },
         }
