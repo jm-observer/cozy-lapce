@@ -422,7 +422,7 @@ pub fn status(
                 config.ui.status_height.signal(),
             )
         });
-        s.border_top(1.0)
+        s.border_top(0.5)
             .border_color(caret_color.get())
             .background(bg.get())
             .flex_basis(status_height.get() as f32)

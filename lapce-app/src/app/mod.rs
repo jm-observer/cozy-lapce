@@ -2057,7 +2057,6 @@ fn main_split(window_tab_data: WindowWorkspaceData) -> impl View {
         s.border_color(caret_color.get())
             .background(bg.get())
             // .apply_if(is_hidden, |s| s.display(Display::None))
-            .width_full()
             .height_full()
             .flex_grow(1.0)
         // .flex_basis(0.0)
@@ -2231,7 +2230,7 @@ fn workbench(window_tab_data: WindowWorkspaceData) -> impl View {
                 .style(move |s| {
                     s.border_color(config.with_color(LapceColor::LAPCE_BORDER))
                         .flex_col()
-                        .border_right(1.0)
+                        .border_right(0.5)
                         .width(PANEL_PICKER_SIZE)
                         .height_pct(100.0)
                 }),
@@ -2276,12 +2275,12 @@ fn workbench(window_tab_data: WindowWorkspaceData) -> impl View {
                     s.apply_if(is_maximized, |s| s.height_full())
                 }),
             ))
-            .style(move |s| s.flex_col().padding(1.0).width_full()),
+            .style(move |s| s.flex_col().padding(1.0).flex_grow(1.0)),
             new_panel_picker(window_tab_data.clone(), PanelContainerPosition::Right)
                 .debug_name("panel right picker")
                 .style(move |s| {
                     s.border_color(config.with_color(LapceColor::LAPCE_BORDER))
-                        .border_left(1.0)
+                        .border_left(0.5)
                         .margin_left(Auto)
                         .flex_col()
                         .width(PANEL_PICKER_SIZE)
@@ -3543,7 +3542,12 @@ fn window_tab(window_tab_data: ReadSignal<WindowWorkspaceData>) -> impl View {
         .on_move(move |point| {
             window_origin.set(point);
         })
-        .style(|s| s.size_full().flex_col())
+        .style(move |s| {
+            let caret_color = config.signal(|config| {
+                config.color(LapceColor::LAPCE_BORDER)
+            });
+            s.size_full().flex_col().border(0.5).border_color(caret_color.get())
+        })
         .debug_name("Base Layer"),
         completion(window_tab_data.clone()),
         hover(window_tab_data.clone()),
