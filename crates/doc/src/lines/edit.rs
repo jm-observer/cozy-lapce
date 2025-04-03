@@ -1457,9 +1457,18 @@ impl Action {
                 vec![(text, delta, inval_lines)]
             },
             DeleteLine => {
-                let selection = if let Some((_, vl)) = screen_lines
-                    .visual_line_for_buffer_offset(cursor.offset())
-                {
+                let line = cursor
+                    .get_selection()
+                    .map(|x| {
+                        if x.0 == x.1 {
+                            screen_lines
+                                .visual_line_for_buffer_offset(cursor.offset())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_default();
+                let selection = if let Some((_, vl)) = line {
                     Selection::region(
                         vl.folded_line.origin_interval.start,
                         vl.folded_line.origin_interval.end,

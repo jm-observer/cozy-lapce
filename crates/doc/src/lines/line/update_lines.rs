@@ -1,12 +1,8 @@
 use std::borrow::Cow;
 
 use floem::text::{Attrs, AttrsList, FamilyOwned, LineHeightValue};
-use log::error;
 
-use crate::lines::{
-    DocLines,
-    line::{OriginFoldedLine, OriginLine},
-};
+use crate::lines::DocLines;
 
 impl DocLines {
     // pub fn update_lines_new(
@@ -308,108 +304,4 @@ impl DocLines {
     //             self.buffer().len()
     //         )
     // }
-}
-
-pub fn check_origin_lines(origin_lines: &[OriginLine], buffer_len: usize) -> bool {
-    let mut offset_line = 0;
-    let mut no_error = true;
-    for (line, origin_line) in origin_lines.iter().enumerate() {
-        if origin_line.line_index != line {
-            no_error = false;
-            error!(
-                "origin_line.line_index={}, but should be {}",
-                origin_line.line_index, line
-            );
-        }
-        if origin_line.start_offset != offset_line {
-            no_error = false;
-            error!(
-                "origin_line.start_offset={}, but should be {}",
-                origin_line.start_offset, offset_line
-            );
-        }
-        offset_line += origin_line.len;
-    }
-    if buffer_len != offset_line {
-        no_error = false;
-        error!(
-            "buffer().len={}, but compute result is {}",
-            buffer_len, offset_line
-        );
-    }
-    no_error
-}
-
-pub fn check_origin_folded_lines(
-    origin_folded_lines: &[OriginFoldedLine],
-    buffer_len: usize,
-) -> bool {
-    let mut line = 0;
-    let mut offset_line = 0;
-    let mut no_error = true;
-    for (line_index, origin_folded_line) in origin_folded_lines.iter().enumerate() {
-        if origin_folded_line.line_index != line_index {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.line_index={}, but should be {}",
-                origin_folded_line, origin_folded_line.line_index, line_index
-            );
-        }
-        if origin_folded_line.origin_line_start != line {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.origin_line_start={}, but should be {}",
-                origin_folded_line, origin_folded_line.origin_line_start, line
-            );
-        }
-        if origin_folded_line.text_layout.phantom_text.line != line {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.origin_line_start={}, but should be {}",
-                origin_folded_line, origin_folded_line.origin_line_start, line
-            );
-        }
-        if origin_folded_line.text_layout.phantom_text.last_line
-            != origin_folded_line.origin_line_end
-        {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.text_layout.phantom_text.last_line={}, \
-                 but should be {}",
-                origin_folded_line,
-                origin_folded_line.text_layout.phantom_text.last_line,
-                origin_folded_line.origin_line_end
-            );
-        }
-        if origin_folded_line.origin_interval.start != offset_line {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.origin_interval.start={}, but should be {}",
-                origin_folded_line,
-                origin_folded_line.origin_interval.start,
-                offset_line
-            );
-        }
-        if origin_folded_line.origin_interval.start
-            != origin_folded_line.text_layout.phantom_text.offset_of_line
-        {
-            no_error = false;
-            error!(
-                "{:?} origin_folded_line.origin_interval.start={}, but should be {}",
-                origin_folded_line,
-                origin_folded_line.origin_interval.start,
-                origin_folded_line.text_layout.phantom_text.offset_of_line
-            );
-        }
-        offset_line += origin_folded_line.origin_interval.size();
-        line = origin_folded_line.origin_line_end + 1;
-    }
-    if buffer_len != offset_line {
-        error!(
-            "buffer().len={}, but compute result is {}",
-            buffer_len, offset_line
-        );
-        no_error = false;
-    }
-    no_error
 }
