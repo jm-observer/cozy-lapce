@@ -54,7 +54,7 @@ pub fn _test_cursor_position() -> Result<()> {
                 EditorViewKind::Normal,
             )?
             .0;
-        // {...}|
+        //     if true {...}|
         assert_eq!(lines.buffer().char_at_offset(offset), Some('\r'));
         let (_text, final_col) = screen_lines
             .cursor_info_of_buffer_offset(offset, CursorAffinity::Backward)
@@ -64,6 +64,29 @@ pub fn _test_cursor_position() -> Result<()> {
 
         let point = screen_lines
             .cursor_position_of_buffer_offset(offset, CursorAffinity::Backward)
+            .unwrap()
+            .unwrap();
+        println!("{:?}", point);
+    }
+
+    {
+        let offset = 118;
+        let screen_lines = lines
+            .compute_screen_lines_new(
+                Rect::from_origin_size((0.0, 0.0), Size::new(1000., 1000.)),
+                EditorViewKind::Normal,
+            )?
+            .0;
+        // {...}|
+        assert_eq!(lines.buffer().char_at_offset(offset), Some(' '));
+        let (_text, final_col) = screen_lines
+            .cursor_info_of_buffer_offset(offset, CursorAffinity::Forward)
+            .unwrap()
+            .unwrap();
+        assert_eq!(final_col, 13);
+
+        let point = screen_lines
+            .cursor_position_of_buffer_offset(offset, CursorAffinity::Forward)
             .unwrap()
             .unwrap();
         println!("{:?}", point);

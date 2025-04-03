@@ -729,8 +729,10 @@ impl PhantomTextMultiLine {
         for x in &self.text {
             match x {
                 Text::Phantom { text } => {
-                    if text.origin_merge_col <= origin_merge_col
-                        && origin_merge_col < text.next_origin_merge_col()
+                    if text.kind.is_folded() && text.origin_merge_col <= origin_merge_col && origin_merge_col < text.next_origin_merge_col() {
+                        return Ok(x);
+                    } else if !text.kind.is_folded() && text.origin_merge_col <= origin_merge_col
+                        && origin_merge_col <= text.next_origin_merge_col()
                     {
                         return Ok(x);
                     }
