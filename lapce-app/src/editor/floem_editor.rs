@@ -1052,6 +1052,7 @@ pub trait CommonAction {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
+        screen_lines: Arc<ScreenLines>,
     ) -> bool;
 }
 

@@ -5,6 +5,7 @@ use itertools::Itertools;
 use lapce_xi_rope::{DeltaElement, Rope, RopeDelta};
 use log::{error, warn};
 
+use super::screen_lines::ScreenLines;
 use crate::lines::{
     buffer::{Buffer, InvalLines, rope_text::RopeText},
     command::EditCommand,
@@ -14,12 +15,11 @@ use crate::lines::{
     register::{Clipboard, Register, RegisterData, RegisterKind},
     selection::{InsertDrift, SelRegion, Selection},
     util::{
-        has_unmatched_pair, matching_char, matching_pair_direction,
-        str_is_pair_left, str_matching_pair,
+        has_unmatched_pair, matching_auto_arround, matching_char,
+        matching_pair_direction, str_is_pair_left, str_matching_pair,
     },
     word::{CharClassification, get_char_property},
 };
-use crate::lines::util::matching_auto_arround;
 
 fn format_start_end(
     buffer: &Buffer,
@@ -879,8 +879,17 @@ impl Action {
         clipboard: &mut T,
         register: &mut Register,
         conf: EditConf,
+        screen_lines: &ScreenLines,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
-        match Self::_do_edit(cursor, buffer, cmd, clipboard, register, conf) {
+        match Self::_do_edit(
+            cursor,
+            buffer,
+            cmd,
+            clipboard,
+            register,
+            conf,
+            screen_lines,
+        ) {
             Ok(rs) => rs,
             Err(err) => {
                 error!("{err:?}");
@@ -903,6 +912,7 @@ impl Action {
             keep_indent,
             auto_indent,
         }: EditConf,
+        screen_lines: &ScreenLines,
     ) -> Result<Vec<(Rope, RopeDelta, InvalLines)>> {
         use EditCommand::*;
         Ok(match cmd {
@@ -1447,15 +1457,24 @@ impl Action {
                 vec![(text, delta, inval_lines)]
             },
             DeleteLine => {
-                let selection = cursor.edit_selection(buffer)?;
-                let range = format_start_end(
-                    buffer,
-                    selection.min_offset()..selection.max_offset(),
-                    true,
-                    false,
-                    1,
-                )?;
-                let selection = Selection::region(range.start, range.end);
+                let selection = if let Some((_, vl)) = screen_lines
+                    .visual_line_for_buffer_offset(cursor.offset())
+                {
+                    Selection::region(
+                        vl.folded_line.origin_interval.start,
+                        vl.folded_line.origin_interval.end,
+                    )
+                } else {
+                    let selection = cursor.edit_selection(buffer)?;
+                    let range = format_start_end(
+                        buffer,
+                        selection.min_offset()..selection.max_offset(),
+                        true,
+                        false,
+                        1,
+                    )?;
+                    Selection::region(range.start, range.end)
+                };
                 let (text, delta, inval_lines) =
                     buffer.edit([(&selection, "")], EditType::Delete);
                 let selection =

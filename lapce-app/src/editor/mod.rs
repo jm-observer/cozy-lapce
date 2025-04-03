@@ -456,8 +456,16 @@ impl EditorData {
             None
         };
 
-        let deltas =
-            batch(|| doc.do_edit(&mut cursor, cmd, modal, &mut register, smart_tab));
+        let deltas = batch(|| {
+            doc.do_edit(
+                &mut cursor,
+                cmd,
+                modal,
+                &mut register,
+                smart_tab,
+                self.screen_lines.get_untracked(),
+            )
+        });
 
         if !deltas.is_empty() {
             if let Some(data) = yank_data {

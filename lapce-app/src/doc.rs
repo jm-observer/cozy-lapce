@@ -5,7 +5,10 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::atomic::{self},
+    sync::{
+        Arc,
+        atomic::{self},
+    },
 };
 
 use anyhow::Result;
@@ -26,6 +29,7 @@ use doc::{
         line_ending::LineEnding,
         mode::MotionMode,
         register::Register,
+        screen_lines::ScreenLines,
         selection::{InsertDrift, Selection},
         style::EditorStyle,
         text::PreeditData,
@@ -529,6 +533,7 @@ impl Doc {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
+        screen_lines: Arc<ScreenLines>,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only())
             && !cmd.not_changing_buffer()
@@ -543,6 +548,7 @@ impl Doc {
             modal,
             register,
             smart_tab,
+            screen_lines,
         });
         if !deltas.is_empty() {
             self.apply_deltas(&deltas);
@@ -1602,8 +1608,17 @@ impl CommonAction for Doc {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
+        screen_lines: Arc<ScreenLines>,
     ) -> bool {
-        let deltas = Doc::do_edit(self, cursor, cmd, modal, register, smart_tab);
+        let deltas = Doc::do_edit(
+            self,
+            cursor,
+            cmd,
+            modal,
+            register,
+            smart_tab,
+            screen_lines,
+        );
         !deltas.is_empty()
     }
 }

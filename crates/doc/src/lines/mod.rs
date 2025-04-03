@@ -3809,11 +3809,12 @@ pub enum EditBuffer<'a> {
         register:    &'a mut Register,
     },
     DoEditBuffer {
-        cursor:    &'a mut Cursor,
-        cmd:       &'a EditCommand,
-        modal:     bool,
-        register:  &'a mut Register,
-        smart_tab: bool,
+        cursor:       &'a mut Cursor,
+        cmd:          &'a EditCommand,
+        modal:        bool,
+        register:     &'a mut Register,
+        smart_tab:    bool,
+        screen_lines: Arc<ScreenLines>,
     },
     DoInsertBuffer {
         cursor: &'a mut Cursor,
@@ -3966,6 +3967,7 @@ impl PubUpdateLines {
                 modal,
                 register,
                 smart_tab,
+                screen_lines,
             } => {
                 let syntax = &self.syntax;
                 let mut clipboard = SystemClipboard::new();
@@ -3983,6 +3985,7 @@ impl PubUpdateLines {
                         keep_indent: true,
                         auto_indent: true,
                     },
+                    &screen_lines,
                 );
                 if !rs.is_empty() {
                     self.buffer_mut().set_cursor_before(old_cursor);
