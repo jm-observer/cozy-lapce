@@ -118,7 +118,7 @@ fn gutter_data_view(
             style
                 .height_full()
                 .width(data_clone.style_width)
-                .font_size(data_clone.style_font_size as f32)
+                .font_size(data_clone.style_font_size as f32 - 1.0)
                 .color(data_clone.style_color)
                 .padding_horiz(4.0)
                 .font_family(StyleValue::Val(data_clone.style_font_family.clone()))

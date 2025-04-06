@@ -59,7 +59,7 @@ impl Lens {
 
     pub fn iter(&self) -> LensIter {
         LensIter {
-            cursor: Cursor::new(&self.0, 0),
+            cursor: Cursor::new_unsafe(&self.0, 0),
             end:    self.len(),
         }
     }
@@ -68,7 +68,7 @@ impl Lens {
         let Interval { start, end } = range.into_interval(self.len());
 
         LensIter {
-            cursor: Cursor::new(&self.0, start),
+            cursor: Cursor::new_unsafe(&self.0, start),
             end,
         }
     }

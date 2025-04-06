@@ -1560,7 +1560,7 @@ fn editor_gutter_folding_view(
             s.size(size, size)
                 .set_style_value(
                     SvgColor,
-                    (Some(Brush::Solid(Color::from_rgba8(0, 0, 0, 120)))).into(),
+                    (Some(Brush::Solid(Color::from_rgba8(0, 0, 0, 80)))).into(),
                 )
                 .hover(|s| {
                     s.cursor(CursorStyle::Pointer)
@@ -1890,6 +1890,8 @@ fn editor_content(
         editor.scope,
     );
 
+    // let config = editor.common.config;
+
     let current_scroll = scope.create_rw_signal(Rect::ZERO);
 
     {
@@ -2044,7 +2046,12 @@ fn editor_content(
         log::warn!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
         ensure_visible
     })
-    .style(|s| s.size_full().set(PropagatePointerWheel, false))
+    .style(move |s| {
+        s.size_full().set(PropagatePointerWheel, false)
+        // .border_left(1.0)
+        // .border_color(config.with_color(LapceColor::LAPCE_BORDER))
+        // .border_right(1.0)
+    })
     .keyboard_navigable()
     .debug_name("Editor Content")
 }
