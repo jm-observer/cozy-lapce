@@ -1049,6 +1049,8 @@ impl View for EditorView {
             source_control_added_color,
             selections,
             selection_color,
+            cursor_offset,
+            e_data,
         ) {
             error!("{err}");
         }

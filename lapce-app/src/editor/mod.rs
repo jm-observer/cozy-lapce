@@ -63,8 +63,9 @@ use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::{error, info};
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
-    GotoDefinitionResponse, HoverContents, InlineCompletionTriggerKind, Location,
-    MarkedString, MarkupKind, Position, Range, TextEdit,
+    DiagnosticSeverity, GotoDefinitionResponse, HoverContents,
+    InlineCompletionTriggerKind, Location, MarkedString, MarkupKind, Position,
+    Range, TextEdit,
 };
 use nucleo::Utf32Str;
 use view::StickyHeaderInfo;
@@ -3790,33 +3791,71 @@ impl EditorData {
         show_context_menu(menu, None);
     }
 
-    fn update_hover(&self, offset: usize) {
-        let doc = self.doc();
+    fn find_most_serious_diag_by_offset_for_paint(
+        &self,
+        offset: usize,
+    ) -> Option<TextLayout> {
+        let (_severity, msg) = self.doc().lines.with_untracked(|x| {
+            x.diagnostics
+                .find_most_serious_diag_by_offset(offset, |severity, diag| {
+                    (severity, diag.message.replace(['\n', '\r'], ""))
+                })
+        })?;
+        let (font_family, editor_fg, font_size) =
+            self.common.config.signal(|config| {
+                use DiagnosticSeverity;
+                let color = match _severity {
+                    DiagnosticSeverity::ERROR => {
+                        config.color_val(LapceColor::LAPCE_ERROR)
+                    },
+                    _ => config.color_val(LapceColor::LAPCE_WARN),
+                };
+                (
+                    config.editor.font_family.val().clone(),
+                    color,
+                    *config.ui.font_size.val() as f32,
+                )
+            });
 
-        if let Some((_severity, msg)) = doc.lines.with_untracked(|x| {
+        let default_attrs = Attrs::new()
+            .color(editor_fg)
+            .family(&font_family.0)
+            .font_size(font_size - 1.0)
+            .line_height(LineHeightValue::Normal(1.8));
+        let attrs_list = AttrsList::new(default_attrs);
+        Some(TextLayout::new_with_text(&msg, attrs_list))
+    }
+
+    fn find_most_serious_diag_by_offset(&self, offset: usize) -> Option<TextLayout> {
+        let (_severity, msg) = self.doc().lines.with_untracked(|x| {
             x.diagnostics
                 .find_most_serious_diag_by_offset(offset, |severity, diag| {
                     (severity, diag.message.clone())
                 })
-        }) {
-            let (font_family, editor_fg, font_size) =
-                self.common.config.signal(|config| {
-                    (
-                        config.editor.font_family.val().clone(),
-                        config.color_val(LapceColor::EDITOR_FOREGROUND),
-                        *config.ui.font_size.val() as f32,
-                    )
-                });
+        })?;
+        let (font_family, editor_fg, font_size) =
+            self.common.config.signal(|config| {
+                (
+                    config.editor.font_family.val().clone(),
+                    config.color_val(LapceColor::EDITOR_FOREGROUND),
+                    *config.ui.font_size.val() as f32,
+                )
+            });
 
-            let default_attrs = Attrs::new()
-                .color(editor_fg)
-                .family(&font_family.0)
-                .font_size(font_size)
-                .line_height(LineHeightValue::Normal(1.8));
-            let attrs_list = AttrsList::new(default_attrs);
-            let content = vec![MarkdownContent::Text(TextLayout::new_with_text(
-                &msg, attrs_list,
-            ))];
+        let default_attrs = Attrs::new()
+            .color(editor_fg)
+            .family(&font_family.0)
+            .font_size(font_size)
+            .line_height(LineHeightValue::Normal(1.8));
+        let attrs_list = AttrsList::new(default_attrs);
+        Some(TextLayout::new_with_text(&msg, attrs_list))
+    }
+
+    fn update_hover(&self, offset: usize) {
+        let doc = self.doc();
+
+        if let Some(text) = self.find_most_serious_diag_by_offset(offset) {
+            let content = vec![MarkdownContent::Text(text)];
             let hover_data = self.common.hover.clone();
             let editor_id = self.id();
             batch(|| {

@@ -20,6 +20,8 @@ use floem::{
 };
 use log::error;
 
+use super::EditorData;
+
 // pub(crate) const CHAR_WIDTH: f64 = 7.5;
 
 // /// The main structure for the editor view itself.
@@ -1390,6 +1392,8 @@ pub fn paint_text(
     diff_color: Color,
     selections: Vec<(usize, usize, Option<CursorAffinity>, Option<CursorAffinity>)>,
     select_color: Color,
+    cursor_offset: usize,
+    editor: &EditorData,
 ) -> Result<()> {
     {
         let mut visual_lines = screen_lines.visual_lines.iter().peekable();
@@ -1495,6 +1499,37 @@ pub fn paint_text(
                 line_info.folded_line.borrow_text().layout_runs(),
                 Point::new(0.0, y),
             );
+
+            if line_info
+                .folded_line
+                .origin_interval
+                .contains(cursor_offset)
+            {
+                let line_w = line_info
+                    .folded_line
+                    .borrow_text()
+                    .layout_runs()
+                    .fold(0.0, |sum, line| sum + line.line_w)
+                    as f64;
+                if line_w < viewport.x1 {
+                    if let Some(text) = editor
+                        .find_most_serious_diag_by_offset_for_paint(cursor_offset)
+                    {
+                        cx.draw_text_with_layout(
+                            text.layout_runs(),
+                            Point::new(line_w + 20.0, y),
+                        );
+                    }
+                }
+            }
+
+            // for line in line_info.folded_line.borrow_text().layout_runs() {
+            //     log::warn!(
+            //         "line_index={} line_w={}",
+            //         line_info.folded_line.line_index,
+            //         line.line_w,
+            //     );
+            // }
         }
     }
     if is_active && !hide_cursor {
