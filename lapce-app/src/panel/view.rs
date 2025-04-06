@@ -28,7 +28,7 @@ use crate::{
     panel::{
         call_hierarchy_view::show_hierarchy_panel, data::PanelData,
         document_symbol::symbol_panel, implementation_view::implementation_panel,
-        references_view::references_panel, rust_build_panel::build_panel,
+        references_view::references_panel,
     },
     window_workspace::{DragContent, WindowWorkspaceData},
 };
@@ -406,7 +406,8 @@ fn panel_view_by_kind(
             implementation_panel(window_tab_data.clone(), position).into_any()
         },
         PanelKind::Build => {
-            build_panel(window_tab_data.clone(), position).into_any()
+            empty().into_any()
+            // build_panel(window_tab_data.clone(), position).into_any()
         },
     }
 }

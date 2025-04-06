@@ -4,6 +4,7 @@ use lapce_core::panel::PanelContainerPosition;
 
 use crate::window_workspace::WindowWorkspaceData;
 
+#[allow(dead_code)]
 pub fn build_panel(
     window_tab_data: WindowWorkspaceData,
     _position: PanelContainerPosition,

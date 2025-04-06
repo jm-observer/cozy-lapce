@@ -870,13 +870,13 @@ impl View for EditorView {
             let height = last_line_height.max(line_height).max(viewport_size.height);
             // log::info!("height={height} width={width} {}",
             // editor.max_line_width());
-            let margin_bottom =
-                viewport_size.height.min(last_line_height) - line_height;
+            // let margin_bottom =
+            //     viewport_size.height.min(last_line_height) - line_height;
 
             let style = Style::new()
                 .width(width)
                 .height(height)
-                .margin_bottom(margin_bottom)
+                // .margin_bottom(margin_bottom)
                 .to_taffy_style();
             self.id.set_taffy_style(inner_node, style);
 
