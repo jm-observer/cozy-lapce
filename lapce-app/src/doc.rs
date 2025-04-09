@@ -1427,15 +1427,11 @@ impl Doc {
     pub fn find_enclosing_brackets(&self, offset: usize) -> Option<(usize, usize)> {
         let rev = self.rev();
         self.lines.with_untracked(|x| {
-            (!x.syntax.text.is_empty() && x.syntax.rev == rev)
-                .then(|| x.syntax.find_enclosing_pair(offset))
-                // If syntax.text is empty, either the buffer is empty or we don't have syntax support
-                // for the current language.
-                // Try a language unaware search for enclosing brackets in case it is the latter.
-                .unwrap_or_else(|| {
-                        WordCursor::new(x.buffer().text(), offset)
-                            .find_enclosing_pair()
-                })
+            if !x.syntax.text.is_empty() && x.syntax.rev == rev {
+                x.syntax.find_enclosing_pair(offset)
+            } else {
+                WordCursor::new(x.buffer().text(), offset).find_enclosing_pair()
+            }
         })
     }
 }

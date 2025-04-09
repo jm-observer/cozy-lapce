@@ -645,7 +645,7 @@ fn debug_stack_traces(
 }
 
 fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
-    let breakpoints = window_tab_data.terminal.debug.breakpoints;
+    let breakpoints = window_tab_data.common.breakpoints;
     let proxy = window_tab_data.common.proxy.clone();
     let daps = window_tab_data.terminal.debug.daps;
     let config = window_tab_data.common.config;

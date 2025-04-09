@@ -4,6 +4,8 @@
 
 📘 中文版说明请见：[README.zh-CN.md](./README.zh-CN.md)
 
+![Cozy Lapce Main Interface](./resources/image/screenshot-main.png)
+
 ---
 
 ## Differences from Lapce

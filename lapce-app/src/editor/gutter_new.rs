@@ -17,7 +17,7 @@ pub fn gutter_data(
     window_tab_data: WindowWorkspaceData,
     e_data: &EditorData,
 ) -> Vec<GutterData> {
-    let breakpoints = window_tab_data.terminal.debug.breakpoints;
+    let breakpoints = window_tab_data.terminal.common.breakpoints;
     let doc = e_data.doc_signal().get();
     let content = doc.content.get();
     let breakpoints = if let Some(path) = content.path() {

@@ -46,7 +46,7 @@ use lapce_core::{
 use lapce_rpc::{
     RpcError,
     core::CoreNotification,
-    dap_types::{ConfigSource, RunDebugConfig},
+    dap_types::{ConfigSource, RunDebugConfig, SourceBreakpoint},
     file::{Naming, PathObject},
     plugin::PluginId,
     proxy::{ProxyResponse, ProxyRpcHandler, ProxyStatus},
@@ -235,6 +235,38 @@ impl std::fmt::Debug for CommonData {
         f.debug_struct("CommonData")
             .field("workspace", &self.workspace)
             .finish()
+    }
+}
+
+impl CommonData {
+    pub fn source_breakpoints(
+        &self,
+    ) -> std::collections::HashMap<PathBuf, Vec<SourceBreakpoint>> {
+        self.breakpoints
+            .get_untracked()
+            .iter()
+            .map(|(path, breakpoints)| {
+                (
+                    path.to_path_buf(),
+                    breakpoints
+                        .iter()
+                        .filter_map(|(_, b)| {
+                            if b.active {
+                                Some(SourceBreakpoint {
+                                    line:          b.line + 1,
+                                    column:        None,
+                                    condition:     None,
+                                    hit_condition: None,
+                                    log_message:   None,
+                                })
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                )
+            })
+            .collect()
     }
 }
 
@@ -582,7 +614,7 @@ impl WindowWorkspaceData {
             main_split.clone(),
         );
         if let Some(workspace_info) = workspace_info.as_ref() {
-            terminal.debug.breakpoints.set(
+            terminal.common.breakpoints.set(
                 workspace_info
                     .breakpoints
                     .clone()
@@ -1799,13 +1831,11 @@ impl WindowWorkspaceData {
             InternalCommand::MakeConfirmed => {
                 if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
                     if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
-                        if let Some(data) = x.get(&tab_id) {
-                            Some(data.with_untracked(|manage| {
+                        x.get(&tab_id).map(|data| {
+                            data.with_untracked(|manage| {
                                 manage.active_child().confirmed_mut()
-                            }))
-                        } else {
-                            None
-                        }
+                            })
+                        })
                     }) {
                         confirmed.set(true);
                     }
@@ -2568,7 +2598,7 @@ impl WindowWorkspaceData {
             CoreNotification::DapBreakpointsResp {
                 path, breakpoints, ..
             } => {
-                self.terminal.debug.breakpoints.update(|all_breakpoints| {
+                self.terminal.common.breakpoints.update(|all_breakpoints| {
                     if let Some(current_breakpoints) = all_breakpoints.get_mut(path)
                     {
                         let mut line_changed = HashSet::new();
@@ -2731,7 +2761,7 @@ impl WindowWorkspaceData {
             panel:       self.panel.panel_info(),
             breakpoints: self
                 .terminal
-                .debug
+                .common
                 .breakpoints
                 .get_untracked()
                 .into_iter()

@@ -4,7 +4,7 @@
 #false
 
 [color-theme]
-name = "Jetbrains Light"
+name = "Jb Light"
 
 [color-theme.base]
 black = "#383A42"

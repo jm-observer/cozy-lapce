@@ -46,7 +46,7 @@ pub fn _test_cursor_position() -> Result<()> {
             .unwrap();
         assert_eq!(final_col, 5);
     }
-    lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
+    lines.update_folding_ranges((*items.get(1).unwrap()).into())?;
     {
         let screen_lines = lines
             .compute_screen_lines_new(

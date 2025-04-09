@@ -48,34 +48,6 @@ impl RunDebugData {
             breakpoints,
         }
     }
-
-    pub fn source_breakpoints(&self) -> HashMap<PathBuf, Vec<SourceBreakpoint>> {
-        self.breakpoints
-            .get_untracked()
-            .iter()
-            .map(|(path, breakpoints)| {
-                (
-                    path.to_path_buf(),
-                    breakpoints
-                        .iter()
-                        .filter_map(|(_, b)| {
-                            if b.active {
-                                Some(SourceBreakpoint {
-                                    line:          b.line + 1,
-                                    column:        None,
-                                    condition:     None,
-                                    hit_condition: None,
-                                    log_message:   None,
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect(),
-                )
-            })
-            .collect()
-    }
 }
 
 #[derive(Clone, PartialEq)]

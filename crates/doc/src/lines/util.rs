@@ -238,16 +238,7 @@ pub fn matching_char(c: char) -> Option<char> {
 }
 
 pub fn matching_auto_arround(c: char) -> bool {
-    match c {
-        '{' |
-        '(' |
-        '[' |
-        '"' |
-        '\'' |
-        '<' |
-        '`' => true,
-        _ => false,
-    }
+    matches!(c, '{' | '(' | '[' | '"' | '\'' | '<' | '`')
 }
 
 pub fn has_unmatched_pair(line: &str) -> bool {

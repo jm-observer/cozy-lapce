@@ -653,10 +653,10 @@ impl LapceConfigSignal {
 
     pub fn color_val(&self, name: &str) -> Color {
         match self.color.ui.get(name) {
-            Some(c) => c.val().clone(),
+            Some(c) => *c.val(),
             None => {
                 error!("Failed to find key: {name}");
-                self.default_color.val().clone()
+                *self.default_color.val()
             },
         }
     }

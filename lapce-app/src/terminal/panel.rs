@@ -416,9 +416,10 @@ impl TerminalPanelData {
                     // if let Some(mut run_debug) = run_debug {
                     if run_debug.mode == RunDebugMode::Debug {
                         update_executable(&mut run_debug, raw);
+
                         self.common.proxy.dap_start(
                             run_debug.config,
-                            self.debug.source_breakpoints(),
+                            self.common.source_breakpoints(),
                         )
                     } else {
                         terminal.new_process(Some(run_debug));
@@ -521,7 +522,7 @@ impl TerminalPanelData {
                 // let daps = self.debug.daps.get_untracked();
                 self.common
                     .proxy
-                    .dap_restart(config, self.debug.source_breakpoints());
+                    .dap_restart(config, self.common.source_breakpoints());
                 term_id
             },
         };
@@ -735,7 +736,7 @@ impl TerminalPanelData {
     pub fn dap_start(&self, config: RunDebugConfig) {
         self.common
             .proxy
-            .dap_start(config, self.debug.source_breakpoints());
+            .dap_start(config, self.common.source_breakpoints());
     }
 
     pub fn dap_pause(&self, term_id: TermId) -> Option<()> {

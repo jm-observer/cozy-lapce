@@ -92,7 +92,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 6);
-        assert_eq!(is_inside, true);
+        assert!(is_inside);
         assert_eq!(affinity, CursorAffinity::Backward);
     }
     // empty of first line(line_index=0)
