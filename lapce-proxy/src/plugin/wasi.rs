@@ -401,47 +401,6 @@ pub async fn find_all_volts(
     plugins
 }
 
-/// Returns an instance of "VoltMetadata" or an error if there is no file in the
-/// path, the contents of the file cannot be read into a string, or the content
-/// read cannot be converted to an instance of "VoltMetadata".
-///
-/// # Examples
-///
-/// ```
-/// use std::fs::File;
-/// use std::io::Write;
-/// use lapce_proxy::plugin::wasi::load_volt;
-/// use lapce_rpc::plugin::VoltMetadata;
-///
-/// let parent_path = std::env::current_dir().unwrap();
-/// let mut file = File::create(parent_path.join("volt.toml")).unwrap();
-/// let _ = writeln!(file, "name = \"plugin\" \n version = \"0.1\"");
-/// let _ = writeln!(file, "display-name = \"Plugin\" \n author = \"Author\"");
-/// let _ = writeln!(file, "description = \"Useful plugin\"");///
-/// let volt_metadata = match load_volt(&parent_path) {
-///     Ok(volt_metadata) => volt_metadata,
-///     Err(error) => panic!("{}", error),
-/// };
-/// assert_eq!(
-///     volt_metadata,
-///     VoltMetadata {
-///         name: "plugin".to_string(),
-///         version: "0.1".to_string(),
-///         display_name: "Plugin".to_string(),
-///         author: "Author".to_string(),
-///         description: "Useful plugin".to_string(),
-///         icon: None,
-///         repository: None,
-///         wasm: None,
-///         color_themes: None,
-///         icon_themes: None,
-///         dir: parent_path.canonicalize().ok(),
-///         activation: None,
-///         config: None
-///     }
-/// );
-/// let _ = std::fs::remove_file(parent_path.join("volt.toml"));
-/// ```
 pub fn sync_load_volt(path: &Path) -> Result<VoltMetadata> {
     let path = path.canonicalize()?;
     let mut file = fs::File::open(path.join("volt.toml"))?;
