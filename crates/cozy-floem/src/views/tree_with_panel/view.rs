@@ -11,7 +11,7 @@ use crate::views::{
     drag_line::x_drag_line,
     panel::panel,
     svg_from_fn,
-    tree_with_panel::data::{Level, TreePanelData},
+    tree_with_panel::data::{Level, TreeNodeData, TreePanelData},
 };
 
 pub fn tree_with_panel(data: TreePanelData) -> impl View {
@@ -39,7 +39,7 @@ fn view_tree(data: TreePanelData) -> impl View {
             // VirtualDirection::Vertical,
             // VirtualItemSize::Fixed(Box::new(move || 20.0)),
             move || node.get(),
-            move |(_index, _, _data)| _data.display_id.clone(),
+            move |(_index, _, _data): &(usize, usize, TreeNodeData)| _data.display_id.clone(),
             move |(_, retract, rw_data)| {
                 let id = rw_data.display_id.clone();
                 let level = rw_data.level;

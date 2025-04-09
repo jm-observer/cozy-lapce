@@ -337,8 +337,7 @@ impl CompletionData {
                 let offset = self.offset + self.input.len();
                 // TODO: will need to be adjusted to use visual line.
                 //   Could just store the offset in doc.
-                let (line, col) = match rope.offset_to_line_col(offset)
-                {
+                let (line, col) = match rope.offset_to_line_col(offset) {
                     Ok(rs) => rs,
                     Err(err) => {
                         error!("{err:?}");

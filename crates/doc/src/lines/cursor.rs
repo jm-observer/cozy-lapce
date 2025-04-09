@@ -594,12 +594,10 @@ impl Cursor {
                     self.set_insert(new_selection);
                 } else {
                     let mut new_selection = Selection::new();
-                    let mut new_region =
-                        SelRegion::new(offset, offset, None);
+                    let mut new_region = SelRegion::new(offset, offset, None);
                     new_region.start_cursor_affi = new_affinite;
                     new_region.end_cursor_affi = new_affinite;
-                    new_selection
-                        .add_region(new_region);
+                    new_selection.add_region(new_region);
                     self.set_insert(new_selection);
                 }
             },

@@ -26,7 +26,8 @@ jobs:
   build:
     name: Rust on ${{ matrix.os }}
     if: github.event.pull_request.draft == false
-    needs: [fmt, clippy]
+#    needs: [fmt, clippy]
+    needs: [fmt]
     strategy:
       fail-fast: false
       matrix:

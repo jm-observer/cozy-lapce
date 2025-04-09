@@ -930,7 +930,6 @@ fn color_section_list(
                             let origin = base.with_untracked(|x| x.get(new_value.trim_start_matches("$")).map(|x| x.signal()));
                             new_value = origin.map(|x| x.get()).unwrap_or_default();
                         }
-                        
                         let color = Color::from_str(&new_value).ok();
                         s.border(1)
                             .border_radius(6)

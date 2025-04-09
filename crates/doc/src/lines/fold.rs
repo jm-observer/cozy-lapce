@@ -754,8 +754,8 @@ impl FoldedRange {
             let all_len = self.interval.end - folded;
             Some(PhantomText {
                 kind: PhantomTextKind::LineFoldedRang {
-                    next_line:      None,
-                    len:            all_len,
+                    next_line: None,
+                    len: all_len,
                     all_len,
                     start_position: self.interval.start,
                 },

@@ -1064,7 +1064,7 @@ dependencies = [
  "cargo_metadata",
  "doc",
  "floem",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "log",
  "parking_lot",
  "tokio",
@@ -1449,7 +1449,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "im",
  "itertools 0.12.1",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "libloading",
  "log",
  "lsp-types",
@@ -1758,6 +1758,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1797,6 +1798,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.14.0",
@@ -1822,6 +1824,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "smallvec",
 ]
@@ -1829,6 +1832,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "cosmic-text",
  "futures",
@@ -1844,6 +1848,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "anyhow",
  "floem_renderer",
@@ -1856,6 +1861,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
 dependencies = [
  "anyhow",
  "floem-vger",
@@ -3318,7 +3324,7 @@ dependencies = [
  "lapce-core",
  "lapce-proxy",
  "lapce-rpc",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "log",
  "lsp-types",
  "notify 5.2.0",
@@ -3367,7 +3373,7 @@ dependencies = [
  "include_dir",
  "itertools 0.12.1",
  "lapce-rpc",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "libloading",
  "log",
  "lsp-types",
@@ -3410,7 +3416,7 @@ dependencies = [
  "jsonrpc-lite",
  "lapce-core",
  "lapce-rpc",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "libc",
  "locale_config",
  "log",
@@ -3446,7 +3452,7 @@ dependencies = [
  "crossbeam-channel",
  "human-sort",
  "indexmap",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "log",
  "lsp-types",
  "parking_lot",
@@ -3458,8 +3464,9 @@ dependencies = [
 [[package]]
 name = "lapce-xi-rope"
 version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6516aaa99c5059dc1a1bc02ed782d5e524699c1b4330028a6bed8259f9d9ff0a"
 dependencies = [
- "anyhow",
  "bytecount",
  "memchr",
  "regex",
@@ -3470,9 +3477,9 @@ dependencies = [
 [[package]]
 name = "lapce-xi-rope"
 version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6516aaa99c5059dc1a1bc02ed782d5e524699c1b4330028a6bed8259f9d9ff0a"
+source = "git+https://github.com/jm-observer/xi-editor.git#6b2e36a3d80697e8db9bdb2db8ba0a4b27f034a3"
 dependencies = [
+ "anyhow",
  "bytecount",
  "memchr",
  "regex",
@@ -5030,7 +5037,7 @@ dependencies = [
  "cozy-floem",
  "doc",
  "floem",
- "lapce-xi-rope 0.3.2",
+ "lapce-xi-rope 0.3.2 (git+https://github.com/jm-observer/xi-editor.git)",
  "log",
  "parking_lot",
  "serde_json",
@@ -5717,9 +5724,9 @@ dependencies = [
 
 [[package]]
 name = "taffy"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50e3102cd96acfdb0b3f037cb06e9b40d3dca1d7c6e4742147441daf6f34e8a6"
+checksum = "ab4f4d046dd956a47a7e1a2947083d7ac3e6aa3cfaaead36173ceaa5ab11878c"
 dependencies = [
  "arrayvec",
  "grid",

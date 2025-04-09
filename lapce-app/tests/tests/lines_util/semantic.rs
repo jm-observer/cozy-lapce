@@ -22,4 +22,3 @@ pub struct SemanticStyles {
     pub len:    usize,
     pub styles: Vec<LineStyle>,
 }
-

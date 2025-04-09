@@ -689,7 +689,9 @@ impl ScreenLines {
                                     )
                                 },
                             ));
-                        } else if visual_char_offset == text.next_final_col() && !text.kind.is_folded() {
+                        } else if visual_char_offset == text.next_final_col()
+                            && !text.kind.is_folded()
+                        {
                             return Ok(Some((
                                 info.origin_interval.start + text.origin_merge_col,
                                 true,

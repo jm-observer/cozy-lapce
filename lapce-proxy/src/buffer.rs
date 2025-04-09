@@ -67,7 +67,11 @@ impl Buffer {
         }
 
         if self.rev != rev {
-            return Err(anyhow!("not the right rev: self.rev={} save.rev={}", self.rev, rev));
+            return Err(anyhow!(
+                "not the right rev: self.rev={} save.rev={}",
+                self.rev,
+                rev
+            ));
         }
         let bak_extension = self.path.extension().map_or_else(
             || OsString::from("bak"),

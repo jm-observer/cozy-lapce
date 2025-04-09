@@ -309,7 +309,7 @@ pub enum PhantomTextKind {
 
 impl PhantomTextKind {
     pub fn is_folded(&self) -> bool {
-        matches!(self, PhantomTextKind::LineFoldedRang{..})
+        matches!(self, PhantomTextKind::LineFoldedRang { .. })
     }
     // pub fn adjust(&mut self, line_delta: Offset) {
     //     if let Self::LineFoldedRang {
@@ -729,9 +729,13 @@ impl PhantomTextMultiLine {
         for x in &self.text {
             match x {
                 Text::Phantom { text } => {
-                    if text.kind.is_folded() && text.origin_merge_col <= origin_merge_col && origin_merge_col < text.next_origin_merge_col() {
+                    if text.kind.is_folded()
+                        && text.origin_merge_col <= origin_merge_col
+                        && origin_merge_col < text.next_origin_merge_col()
+                    {
                         return Ok(x);
-                    } else if !text.kind.is_folded() && text.origin_merge_col <= origin_merge_col
+                    } else if !text.kind.is_folded()
+                        && text.origin_merge_col <= origin_merge_col
                         && origin_merge_col <= text.next_origin_merge_col()
                     {
                         return Ok(x);

@@ -1,11 +1,11 @@
 pub mod update_lines;
 
 use std::{
-    cell::RefMut,
+    cell::{RefCell, RefMut},
     fmt::{Debug, Formatter},
     ops::RangeInclusive,
 };
-use std::cell::RefCell;
+
 use floem::{
     kurbo::{Point, Rect, Size, Vec2},
     peniko::Color,

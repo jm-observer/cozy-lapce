@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lines::fold::{FoldingDisplayItem};
+use crate::lines::fold::FoldingDisplayItem;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum UpdateFolding {
