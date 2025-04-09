@@ -445,6 +445,7 @@ impl_from_to_ptr! {
     ///
     /// ```
     /// use doc::lines::char_buffer::CharBuffer;
+    /// use std::sync::Arc;
     ///
     ///
     /// let c: CharBuffer = CharBuffer::from('a');
