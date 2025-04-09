@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release"
+        required: false
+        default: nightly
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  pull_request:
+    paths:
+      # trigger release workflow only if this file changed
+      - .github/workflows/release.yml
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tagname:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: vars
+        shell: bash
+        run: echo "sha_short=${GITHUB_SHA::7}" | tee -a $GITHUB_OUTPUT
+
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+        run: echo 'TAG_NAME=nightly-${{ steps.vars.outputs.sha_short }}' | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+
+      - id: tag
+        run: echo "tag=$TAG_NAME" | tee -a $GITHUB_OUTPUT
+
+  windows:
+    runs-on: windows-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update rust
+        run: rustup update --no-self-update
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Build
+        run: cargo build --frozen --profile release-lto
+
+      - name: Create msi installer
+        run: |
+          candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
+            -out "./lapce.wixobj" "extra/windows/wix/lapce.wxs"
+
+          light.exe -ext WixUIExtension -ext WixUtilExtension \
+            -out "./Lapce-windows.msi" -sice:ICE61 -sice:ICE91 \
+            "./lapce.wixobj"
+
+      - name: Create portable
+        shell: pwsh
+        run: |
+          cargo build --profile release-lto --features lapce-app/portable
+          Compress-Archive ./target/release-lto/lapce.exe ./Lapce-windows-portable.zip
+
+      - name: Create lapce-proxy archive
+        shell: pwsh
+        run: |
+          $file = [System.IO.File]::Open((Join-Path $PWD '.\target\release-lto\lapce-proxy.exe'), [System.IO.FileMode]::Open)
+          $archive = [System.IO.File]::Create((Join-Path $PWD '.\lapce-proxy-windows-x86_64.gz'))
+          $compressor = [System.IO.Compression.GZipStream]::new($archive, [System.IO.Compression.CompressionMode]::Compress)
+          $file.CopyTo($compressor)
+          Start-Sleep -Seconds 10
+          $compressor.close()
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-windows
+          path: |
+            ./lapce-proxy-windows-*.gz
+            ./Lapce-windows-portable.zip
+            ./Lapce-windows.msi
+          retention-days: 1
+
+  publish:
+    needs:
+      - windows
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      # Must perform checkout first, since it deletes the target directory
+      # before running, and would therefore delete the downloaded artifacts
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'schedule'
+        run: echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+
+      - if: env.TAG_NAME == 'nightly'
+        run: |
+          {
+            echo 'SUBJECT=Lapce development build'
+            echo 'PRERELEASE=--prerelease'
+          } | tee -a $GITHUB_ENV
+
+      - if: env.TAG_NAME == 'nightly' && github.event_name != 'pull_request'
+        name: Re-Tag nightly
+        run: |
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+
+      - if: env.TAG_NAME != 'nightly'
+        run: |
+          {
+            echo 'SUBJECT=Lapce release build'
+            echo 'PRERELEASE='
+          } | tee -a $GITHUB_ENV
+
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        env:
+          DEBUG: api
+        run: |
+          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
+            lapce-windows/*

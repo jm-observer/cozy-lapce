@@ -14,7 +14,7 @@ on:
   pull_request:
     paths:
       # trigger release workflow only if this file changed
-      - .github-backup/workflows/release.yml
+      - .github/workflows/release.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
