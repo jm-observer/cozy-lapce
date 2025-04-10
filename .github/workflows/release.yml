@@ -95,14 +95,34 @@ jobs:
 #          Start-Sleep -Seconds 10
 #          $compressor.close()
 
-      - uses: actions/upload-artifact@v4
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: lapce-windows
+#          path: |
+#            ./Lapce-windows-portable.zip
+#            ./Lapce-windows.msi
+#          retention-days: 1
+
+      - name: Upload artifact for nightly
+        if: env.RELEASE_TAG_NAME == 'nightly'
+        uses: actions/upload-artifact@v4
         with:
           name: lapce-windows
           path: |
-#            ./lapce-proxy-windows-*.gz
             ./Lapce-windows-portable.zip
             ./Lapce-windows.msi
           retention-days: 1
+
+      - name: Upload artifact for release
+        if: env.RELEASE_TAG_NAME != 'nightly'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lapce-windows
+          path: |
+            ./Lapce-windows-portable.zip
+            ./Lapce-windows.msi
+          retention-days: 30
+
 
   publish:
     needs:
