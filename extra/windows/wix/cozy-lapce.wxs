@@ -3,7 +3,7 @@
     <Product Name="Lapce" Id="*" UpgradeCode="9c09a374-1135-4782-959f-2dec376a1dfa" Language="1033" Codepage="1252" Version="0.4.2" Manufacturer="Lapce">
         <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"/>
         <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
-        <Icon Id="cozy-lapce.exe" SourceFile=".\extra\windows\lapce.ico"/>
+        <Icon Id="lapce.exe" SourceFile=".\extra\windows\lapce.ico"/>
         <WixVariable Id="WixUILicenseRtf" Value=".\extra\windows\wix\license.rtf"/>
         <Property Id="ARPPRODUCTICON" Value="cozy-lapce.exe"/>
         <MediaTemplate EmbedCab="yes"/>
@@ -29,14 +29,14 @@
         <!-- Application binaries -->
         <DirectoryRef Id="LapceProgramFiles">
             <Component Id="LapceExe" Guid="*">
-                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="cozy-lapce.exe" KeyPath="yes"/>
+                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="lapce.exe" KeyPath="yes"/>
             </Component>
         </DirectoryRef>
 
         <DirectoryRef Id="LapceProgramMenu">
             <!-- Application shortcut -->
             <Component Id="LapceShortcut" Guid="7d3d3a8e-febb-4759-8eca-873676d5066a">
-                <Shortcut Id="LapceShortcutFile" Icon="cozy-lapce.exe" Name="Lapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
+                <Shortcut Id="LapceShortcutFile" Icon="lapce.exe" Name="Lapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
                 <RemoveFolder Id="LapceProgramMenu" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\Microsoft\Lapce" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
             </Component>

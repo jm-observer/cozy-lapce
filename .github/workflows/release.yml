@@ -61,15 +61,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update rust
-        run: rustup update --no-self-update
-
-      - name: Fetch dependencies
-        run: cargo fetch --locked
-
-      - name: Build
-        run: cargo build --frozen --profile release-lto -j1
-
       - name: Create msi installer
         run: |
           candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
@@ -78,6 +69,15 @@ jobs:
           light.exe -ext WixUIExtension -ext WixUtilExtension \
             -out "./cozy-lapce-windows.msi" -sice:ICE61 -sice:ICE91 \
             "./cozy-lapce.wixobj"
+
+      - name: Update rust
+        run: rustup update --no-self-update
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Build
+        run: cargo build --frozen --profile release-lto -j1
 
       - name: Create portable
         shell: pwsh
