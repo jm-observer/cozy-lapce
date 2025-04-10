@@ -68,7 +68,7 @@ jobs:
         run: cargo fetch --locked
 
       - name: Build
-        run: cargo build --frozen --profile release-lto
+        run: cargo build --frozen --profile release-lto -j1
 
       - name: Create msi installer
         run: |

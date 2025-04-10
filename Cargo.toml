@@ -142,7 +142,7 @@ dev = ["lapce-app/dev"]
 
 [profile.release-lto]
 inherits      = "release"
-lto           = true
+lto           = "thin"
 codegen-units = 1
 
 [profile.release]
