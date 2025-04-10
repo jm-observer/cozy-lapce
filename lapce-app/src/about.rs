@@ -24,10 +24,10 @@ struct AboutUri {}
 
 impl AboutUri {
     const CODICONS: &'static str = "https://github.com/microsoft/vscode-codicons";
-    const DISCORD: &'static str = "https://discord.gg/n8tGJ6Rn6D";
-    const GITHUB: &'static str = "https://github.com/lapce/lapce";
-    const LAPCE: &'static str = "https://lapce.dev";
-    const MATRIX: &'static str = "https://matrix.to/#/#lapce-editor:matrix.org";
+    // const DISCORD: &'static str = "https://discord.gg/n8tGJ6Rn6D";
+    const GITHUB: &'static str = "https://github.com/jm-observer/cozy-lapce";
+    // const LAPCE: &'static str = "https://lapce.dev";
+    // const MATRIX: &'static str = "https://matrix.to/#/#lapce-editor:matrix.org";
 }
 
 #[derive(Clone, Debug)]
@@ -116,13 +116,13 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
                 s.margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_DIM))
             }),
-            web_link(
-                || "Website".to_string(),
-                || AboutUri::LAPCE.to_string(),
-                move || config.with_color(LapceColor::EDITOR_LINK),
-                internal_command,
-            )
-            .style(|s| s.margin_top(20.0)),
+            // web_link(
+            //     || "Website".to_string(),
+            //     || AboutUri::LAPCE.to_string(),
+            //     move || config.with_color(LapceColor::EDITOR_LINK),
+            //     internal_command,
+            // )
+            // .style(|s| s.margin_top(20.0)),
             web_link(
                 || "GitHub".to_string(),
                 || AboutUri::GITHUB.to_string(),
@@ -130,20 +130,20 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
                 internal_command,
             )
             .style(|s| s.margin_top(10.0)),
-            web_link(
-                || "Discord".to_string(),
-                || AboutUri::DISCORD.to_string(),
-                move || config.with_color(LapceColor::EDITOR_LINK),
-                internal_command,
-            )
-            .style(|s| s.margin_top(10.0)),
-            web_link(
-                || "Matrix".to_string(),
-                || AboutUri::MATRIX.to_string(),
-                move || config.with_color(LapceColor::EDITOR_LINK),
-                internal_command,
-            )
-            .style(|s| s.margin_top(10.0)),
+            // web_link(
+            //     || "Discord".to_string(),
+            //     || AboutUri::DISCORD.to_string(),
+            //     move || config.with_color(LapceColor::EDITOR_LINK),
+            //     internal_command,
+            // )
+            // .style(|s| s.margin_top(10.0)),
+            // web_link(
+            //     || "Matrix".to_string(),
+            //     || AboutUri::MATRIX.to_string(),
+            //     move || config.with_color(LapceColor::EDITOR_LINK),
+            //     internal_command,
+            // )
+            // .style(|s| s.margin_top(10.0)),
             label(|| "Attributions".to_string()).style(move |s| {
                 s.font_bold()
                     .color(config.with_color(LapceColor::EDITOR_DIM))

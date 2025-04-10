@@ -1,11 +1,10 @@
 [package]
-name         = "lapce"
+name         = "cozy-lapce"
 version      = { workspace = true }
 authors      = { workspace = true }
 edition      = { workspace = true }
 license      = { workspace = true }
-rust-version = { workspace = true }
-default-run  = "lapce"
+default-run  = "cozy-lapce"
 
 [dependencies]
 lapce-app   = { path = "./lapce-app", default-features = false }
@@ -13,7 +12,7 @@ lapce-proxy = { path = "./lapce-proxy" }
 tokio = {workspace = true}
 
 [[bin]]
-name = "lapce"
+name = "cozy-lapce"
 path = "lapce-app/src/bin/lapce.rs"
 
 [[bin]]
@@ -24,12 +23,11 @@ path = "lapce-proxy/src/bin/lapce-proxy.rs"
 members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "crates/*"]
 
 [workspace.package]
-version      = "0.4.2"
+version      = "0.1.0"
 edition      = "2021"
-rust-version = "1.77.0"
 license      = "Apache-2.0"
 homepage     = "https://lapce.dev"
-authors      = ["Dongdong Zhou <dzhou121@gmail.com>"]
+authors      = ["Jiemin Huang <huangjiemin@gmail.com>"]
 
 [workspace.dependencies]
 anyhow            = { version = "1.0" }
@@ -148,16 +146,3 @@ codegen-units = 1
 [profile.release]
 debug           = true
 panic = 'unwind'
-
-
-# A profile which compiles all (non-workspace) dependencies in release mode
-# but Lapce code in dev mode. This gives a good debugging experience for your
-# code and fast performance of other people's code. After the initial
-# build subsequent ones are as fast as dev mode builds.
-# See https://doc.rust-lang.org/cargo/reference/profiles.html
-# To use this profile:
-#   cargo build --profile fastdev
-#   cargo run --profile fastdev --bin lapce
-
-[profile.fastdev]
-inherits = "dev"

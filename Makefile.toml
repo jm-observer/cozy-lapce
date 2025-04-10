@@ -3,32 +3,31 @@
 default_to_workspace = false # 启用工作空间支持
 
 [tasks.release.windows]
-#cmd /c if exist "C:\Users\36225\Desktop\lapce.exe" del /f "C:\Users\36225\Desktop\lapce.exe"
 script = '''
-cmd /c copy /Y "target\release\lapce.exe" "C:\Users\36225\Desktop\"
+cmd /c copy /Y "target\release\cozy-lapce.exe" "C:\Users\36225\Desktop\"
 '''
 dependencies = ["_build-release"]
 
 [tasks.run-dev]
 script = '''
-cargo run --profile fastdev --bin lapce --no-default-features --features dev -- -w -n
+cargo run --bin cozy-lapce --no-default-features --features dev -- -w -n
 '''
 dependencies = ["_build-dev"]
 
 [tasks._build-dev]
 description = "Build the project"
 command = "cargo"
-args = ["build", "--profile", "fastdev", "--features", "dev", "--no-default-features", "--bin", "lapce"]
+args = ["build", "--features", "dev", "--no-default-features", "--bin", "cozy-lapce"]
 [tasks._build-release]
 command = "cargo"
-args = ["build", "--release", "--bin", "lapce"]
+args = ["build", "--release", "--bin", "cozy-lapce"]
 
 [tasks.run-prod]
 script = '''
-cargo run --profile fastdev --bin lapce -- -w -n
+cargo run --bin cozy-lapce -- -w -n
 '''
 dependencies = ["_build-prod"]
 [tasks._build-prod]
 description = "Build the project"
 command = "cargo"
-args = ["build", "--bin", "lapce"]
+args = ["build", "--bin", "cozy-lapce"]
