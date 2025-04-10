@@ -10,7 +10,6 @@ on:
       - lapce-**
       - crates
       - examples
-      - .github/workflows/ci.yml
 
 name: CI
 
