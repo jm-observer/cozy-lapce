@@ -76,14 +76,14 @@ jobs:
             -out "./cozy-lapce.wixobj" "extra/windows/wix/cozy-lapce.wxs"
 
           light.exe -ext WixUIExtension -ext WixUtilExtension \
-            -out "./cozy-lapce-windows.msi" -sice:ICE61 -sice:ICE91 \
+            -out "./CozyLapce-windows.msi" -sice:ICE61 -sice:ICE91 \
             "./cozy-lapce.wixobj"
 
       - name: Create portable
         shell: pwsh
         run: |
           cargo build --profile release-lto --features lapce-app/portable
-          Compress-Archive ./target/release-lto/cozy-lapce.exe ./Lapce-windows-portable.zip
+          Compress-Archive ./target/release-lto/cozy-lapce.exe ./CozyLapce-windows-portable.zip
 
 #      - name: Create lapce-proxy archive
 #        shell: pwsh
@@ -99,8 +99,8 @@ jobs:
 #        with:
 #          name: lapce-windows
 #          path: |
-#            ./Lapce-windows-portable.zip
-#            ./Lapce-windows.msi
+#            ./CozyLapce-windows-portable.zip
+#            ./CozyLapce-windows.msi
 #          retention-days: 1
 
       - name: Upload artifact for nightly
@@ -109,8 +109,8 @@ jobs:
         with:
           name: lapce-windows
           path: |
-            ./Lapce-windows-portable.zip
-            ./Lapce-windows.msi
+            ./CozyLapce-windows-portable.zip
+            ./CozyLapce-windows.msi
           retention-days: 1
 
       - name: Upload artifact for release
@@ -119,8 +119,8 @@ jobs:
         with:
           name: lapce-windows
           path: |
-            ./Lapce-windows-portable.zip
-            ./Lapce-windows.msi
+            ./CozyLapce-windows-portable.zip
+            ./CozyLapce-windows.msi
           retention-days: 30
 
 
