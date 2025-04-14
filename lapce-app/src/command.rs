@@ -22,7 +22,9 @@ use strum::{EnumMessage, IntoEnumIterator};
 use strum_macros::{Display, EnumIter, EnumMessage, EnumString, IntoStaticStr};
 
 use crate::{
-    alert::AlertButton, doc::Doc, editor::location::EditorLocation,
+    alert::AlertButton,
+    doc::Doc,
+    editor::{DocSignal, location::EditorLocation},
     editor_tab::EditorTabChildId,
 };
 
@@ -820,6 +822,10 @@ pub enum InternalCommand {
         terminal_id: TerminalTabId,
     },
     DocumentHighlight,
+    AddOrRemoveBreakPoint {
+        doc:      DocSignal,
+        line_num: usize,
+    },
 }
 
 #[derive(Clone)]

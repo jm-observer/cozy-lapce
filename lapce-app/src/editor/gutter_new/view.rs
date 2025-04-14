@@ -30,7 +30,7 @@ fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
         let (icon_size, color) = config.signal(|config| {
             (
                 config.ui.icon_size.signal(),
-                config.color(LapceColor::DEBUG_BREAKPOINT_HOVER),
+                config.color(LapceColor::DEBUG_BREAKPOINT),
             )
         });
         let size = icon_size.get() as f64;
@@ -114,18 +114,23 @@ fn gutter_data_view(
     let line_height = window_tab_data.common.ui_line_height;
     let paint_point_y = data.paint_point_y;
     container((
-        static_label(data_clone.display_line_num()).style(move |style| {
-            style
-                .height_full()
-                .width(data_clone.style_width)
-                .font_size(data_clone.style_font_size as f32 - 1.0)
-                .color(data_clone.style_color)
-                .padding_horiz(4.0)
-                .font_family(StyleValue::Val(data_clone.style_font_family.clone()))
-                .align_items(AlignItems::Center)
-                .justify_content(JustifyContent::FlexEnd)
-        }),
-        marker_view(data, window_tab_data.clone(), config, doc),
+        static_label(data_clone.display_line_num())
+            .style(move |style| {
+                style
+                    .height_full()
+                    .width(data_clone.style_width)
+                    .font_size(data_clone.style_font_size as f32 - 1.0)
+                    .color(data_clone.style_color)
+                    .padding_horiz(4.0)
+                    .font_family(StyleValue::Val(
+                        data_clone.style_font_family.clone(),
+                    ))
+                    .align_items(AlignItems::Center)
+                    .justify_content(JustifyContent::FlexEnd)
+            })
+            .debug_name("line_num"),
+        marker_view(data, window_tab_data.clone(), config, doc)
+            .debug_name("break_point"),
     ))
     .style(move |style| {
         style
@@ -141,6 +146,7 @@ fn marker_view(
     config: WithLapceConfig,
     doc_signal: DocSignal,
 ) -> impl View {
+    let window_tab_data_click = window_tab_data.clone();
     let svg = match data.marker {
         GutterMarker::None => gutter_marker_none_svg_view(config),
         GutterMarker::CodeLen => gutter_marker_code_len_svg_view(
@@ -150,6 +156,7 @@ fn marker_view(
         ),
         GutterMarker::Breakpoint => gutter_marker_breakpoint_svg_view(config),
     };
+    let origin_line_start = data.origin_line_start;
     container(svg)
         .style(move |s| {
             let size = config.with_icon_size() as f64;
@@ -163,7 +170,15 @@ fn marker_view(
                 .justify_center()
                 .items_center()
         })
-        .on_click_stop(|_| {
+        .on_click_stop(move |_| {
+            if let Some(line) = origin_line_start {
+                window_tab_data_click.common.internal_command.send(
+                    crate::command::InternalCommand::AddOrRemoveBreakPoint {
+                        doc:      doc_signal,
+                        line_num: line,
+                    },
+                );
+            }
             warn!("todo add/delete breakpoint");
         })
 }

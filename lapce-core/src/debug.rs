@@ -109,4 +109,9 @@ pub enum BreakpointAction<'a> {
         path: &'a Path,
         line: usize,
     },
+    AddOrRemove {
+        path:   &'a Path,
+        line:   usize,
+        offset: usize,
+    },
 }

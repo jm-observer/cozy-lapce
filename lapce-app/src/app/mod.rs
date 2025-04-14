@@ -484,17 +484,22 @@ impl AppData {
                     })
                 });
 
-                cur_window_tab.run_internal_command(InternalCommand::GoToLocation {
-                    location: EditorLocation {
-                        path: file.path.clone(),
-                        position,
-                        scroll_offset: None,
-                        // Create a new editor for the file, so we don't change any
-                        // current unconfirmed editor
-                        ignore_unconfirmed: true,
-                        same_editor_tab: false,
+                if let Err(err) = cur_window_tab.run_internal_command(
+                    InternalCommand::GoToLocation {
+                        location: EditorLocation {
+                            path: file.path.clone(),
+                            position,
+                            scroll_offset: None,
+                            // Create a new editor for the file, so we don't change
+                            // any current unconfirmed
+                            // editor
+                            ignore_unconfirmed: true,
+                            same_editor_tab: false,
+                        },
                     },
-                });
+                ) {
+                    error!("{}", err);
+                }
             }
         }
 

@@ -456,6 +456,27 @@ pub fn update_breakpoints(
                 (breakpoints.clone(), path)
             })
             .unwrap(),
+        BreakpointAction::AddOrRemove { path, line, offset } => breakpoints
+            .try_update(|breakpoints| {
+                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
+                if let std::collections::btree_map::Entry::Vacant(e) =
+                    breakpoints.entry(line)
+                {
+                    e.insert(LapceBreakpoint {
+                        id: None,
+                        verified: false,
+                        message: None,
+                        line,
+                        offset,
+                        dap_line: None,
+                        active: true,
+                    });
+                } else {
+                    breakpoints.remove(&line);
+                }
+                (breakpoints.clone(), path)
+            })
+            .unwrap(),
     };
 
     let source_breakpoints: Vec<SourceBreakpoint> = path_breakpoints
