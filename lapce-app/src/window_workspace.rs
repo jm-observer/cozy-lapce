@@ -2275,7 +2275,7 @@ impl WindowWorkspaceData {
                         // can just reset one of them.
                         match self.common.focus.get_untracked() {
                             Focus::Panel(PanelKind::Terminal) => {
-                                if let Some(tab) = self.terminal.active_tab(false) {
+                                if let Some(tab) = self.terminal.active_tab_untracked() {
                                     if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
                                         // log::info!("BlinkCursor Terminal {:?}", id.data().as_ffi());
                                         id.request_paint();

@@ -6,7 +6,6 @@ use floem::{
     views::dyn_stack,
 };
 use lapce_core::icon::LapceIcons;
-use log::{error, warn};
 
 use crate::{
     config::{WithLapceConfig, color::LapceColor},
@@ -58,7 +57,7 @@ fn gutter_marker_code_len_svg_view(
                     let Some((plugin_id, offset, lens)) =
                         code_lens.get(&line).cloned()
                     else {
-                        error!("code_lens is empty: {} {:?}", line, code_lens);
+                        log::error!("code_lens is empty: {} {:?}", line, code_lens);
                         return;
                     };
                     window_tab_data.show_code_lens(true, plugin_id, offset, lens);
@@ -179,6 +178,5 @@ fn marker_view(
                     },
                 );
             }
-            warn!("todo add/delete breakpoint");
         })
 }

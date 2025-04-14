@@ -31,8 +31,10 @@ use itertools::Itertools;
 use lapce_core::{
     debug::{RunDebugConfigs, RunDebugMode},
     doc::DocContent,
-    workspace::{LapceWorkspace, LapceWorkspaceType, SshHost, WslHost},
+    workspace::{LapceWorkspace, LapceWorkspaceType, SshHost},
 };
+#[cfg(windows)]
+use lapce_core::workspace::WslHost;
 use lapce_rpc::proxy::ProxyResponse;
 use lapce_xi_rope::Rope;
 use log::{error, info};

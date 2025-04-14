@@ -254,7 +254,7 @@ fn debug_processes(
         let terminal = terminal.clone();
         let local_terminal = terminal.clone();
         dyn_stack(
-            move || local_terminal.run_debug_process(true),
+            move || local_terminal.run_debug_process_tracked(),
             |(term_id, p)| (*term_id, p.stopped),
             move |(term_id, p)| {
                 let terminal = terminal.clone();

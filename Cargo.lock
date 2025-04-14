@@ -1774,7 +1774,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1814,7 +1814,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.14.0",
@@ -1840,7 +1840,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "smallvec",
 ]
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "cosmic-text",
  "futures",
@@ -1864,7 +1864,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "anyhow",
  "floem_renderer",
@@ -1877,7 +1877,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-4#1975ce77637f3c64c65705e12af618e2719fce3f"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
 dependencies = [
  "anyhow",
  "floem-vger",
@@ -3349,11 +3349,11 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
- "toml 0.5.11",
+ "toml 0.8.19",
  "toml_edit 0.20.7",
  "unicode-width 0.1.14",
  "url",
- "windows-sys 0.45.0",
+ "windows-sys 0.59.0",
  "zip",
  "zstd",
 ]
@@ -3431,7 +3431,7 @@ dependencies = [
  "serde_json",
  "tar",
  "tokio",
- "toml 0.5.11",
+ "toml 0.8.19",
  "trash",
  "url",
  "vte 0.14.1",
@@ -5424,9 +5424,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 dependencies = [
  "serde",
 ]

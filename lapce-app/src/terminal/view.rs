@@ -108,7 +108,7 @@ pub fn terminal_view(
 
         let mut is_focused = false;
         if let Focus::Panel(PanelKind::Terminal) = focus {
-            let tab = terminal_panel_data.active_tab(true);
+            let tab = terminal_panel_data.active_tab_tracked();
             if let Some(terminal) = tab {
                 is_focused = terminal.term_id == term_id;
             }

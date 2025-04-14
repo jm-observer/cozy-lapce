@@ -154,20 +154,20 @@ impl TerminalPanelData {
         }
     }
 
-    pub fn active_tab(&self, tracked: bool) -> Option<TerminalData> {
-        if tracked {
-            self.tab_infos.with(|info| {
-                info.active_tab().map(|x| x.1.clone())
-                // info.tabs
-                //     .get(info.active)
-                //     .or_else(|| info.tabs.last())
-                //     .cloned()
-                //     .map(|(_, tab)| tab)
-            })
-        } else {
-            self.tab_infos
-                .with_untracked(|info| info.active_tab().map(|x| x.1.clone()))
-        }
+    pub fn active_tab_tracked(&self) -> Option<TerminalData> {
+        self.tab_infos.with(|info| {
+            info.active_tab().map(|x| x.1.clone())
+            // info.tabs
+            //     .get(info.active)
+            //     .or_else(|| info.tabs.last())
+            //     .cloned()
+            //     .map(|(_, tab)| tab)
+        })
+    }
+
+    pub fn active_tab_untracked(&self) -> Option<TerminalData> {
+        self.tab_infos
+            .with_untracked(|info| info.active_tab().map(|x| x.1.clone()))
     }
 
     pub fn key_down<'a>(
@@ -179,7 +179,7 @@ impl TerminalPanelData {
             self.new_tab(None);
         }
 
-        let terminal = self.active_tab(false);
+        let terminal = self.active_tab_untracked();
         if let Some(terminal) = terminal {
             let handle = keypress.key_down(event, &terminal);
             let mode = terminal.get_mode();
@@ -564,7 +564,7 @@ impl TerminalPanelData {
     }
 
     pub fn update_debug_active_term(&self) {
-        let terminal = self.active_tab(false);
+        let terminal = self.active_tab_untracked();
         // let terminal = tab.map(|tab| tab.active_terminal(false));
         if let Some(terminal) = terminal {
             let term_id = terminal.term_id;
@@ -648,30 +648,15 @@ impl TerminalPanelData {
         Ok(())
     }
 
-    pub fn run_debug_process(
-        &self,
-        tracked: bool,
-    ) -> Vec<(TermId, RunDebugProcess)> {
+    pub fn run_debug_process_tracked(&self) -> Vec<(TermId, RunDebugProcess)> {
         let mut processes = Vec::new();
-        if tracked {
-            self.tab_infos.with(|info| {
-                for tab in &info.tabs {
-                    if let Some(run_debug) = tab.data.with(|x| x.run_debug.clone()) {
-                        processes.push((tab.term_id, run_debug));
-                    }
+        self.tab_infos.with(|info| {
+            for tab in &info.tabs {
+                if let Some(run_debug) = tab.data.with(|x| x.run_debug.clone()) {
+                    processes.push((tab.term_id, run_debug));
                 }
-            });
-        } else {
-            self.tab_infos.with_untracked(|info| {
-                for tab in &info.tabs {
-                    if let Some(run_debug) =
-                        tab.data.with_untracked(|x| x.run_debug.clone())
-                    {
-                        processes.push((tab.term_id, run_debug));
-                    }
-                }
-            });
-        }
+            }
+        });
         processes.sort_by_key(|(_, process)| process.created);
         processes
     }
