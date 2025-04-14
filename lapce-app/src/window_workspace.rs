@@ -8,7 +8,7 @@ use std::{
 };
 
 use alacritty_terminal::vte::ansi::Handler;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use cozy_floem::views::{panel::DocStyle, tree_with_panel::data::TreePanelData};
 use doc::lines::{
     buffer::rope_text::RopeText, command::FocusCommand,
@@ -2363,10 +2363,9 @@ cmd.wait()?;
                     }
             InternalCommand::AddOrRemoveBreakPoint { doc, line_num } =>  {
                 let (offset, content) =  doc.with_untracked(|x| {
-                    
                     (x.lines.with_untracked(|x| x.buffer().offset_of_line(line_num)),
-                    x.content.get_untracked())});
-                    
+                    x.content.get_untracked())
+                });
                     let offset = offset?;
                 if let Some(path) = content.path() {
                     let breakpoints = self.common.breakpoints;
