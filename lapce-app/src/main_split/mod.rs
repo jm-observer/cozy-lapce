@@ -279,7 +279,6 @@ impl MainSplitData {
             EditorTabChildId::Editor(editor_id) => {
                 let editor = self.editors.editor_untracked(editor_id)?;
                 let handle = keypress.key_down(event, &editor);
-                editor.get_code_actions();
                 Some(handle)
             },
             EditorTabChildId::DiffEditor(diff_editor_id) => {
@@ -293,7 +292,6 @@ impl MainSplitData {
                     &diff_editor.left
                 };
                 let handle = keypress.key_down(event, editor);
-                editor.get_code_actions();
                 Some(handle)
             },
             EditorTabChildId::Settings(_) => None,

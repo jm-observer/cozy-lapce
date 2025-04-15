@@ -62,8 +62,8 @@ use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::{error, info};
 use lsp_types::{
-    CodeActionResponse, CompletionItem, CompletionTextEdit, Diagnostic,
-    DiagnosticSeverity, GotoDefinitionResponse, HoverContents,
+    CodeActionOrCommand, CodeActionResponse, CompletionItem, CompletionTextEdit,
+    Diagnostic, DiagnosticSeverity, GotoDefinitionResponse, HoverContents,
     InlineCompletionTriggerKind, Location, MarkedString, MarkupKind, Position,
     Range, TextEdit,
 };
@@ -1126,7 +1126,7 @@ impl EditorData {
                 }
             },
             FocusCommand::ShowCodeActions => {
-                self.show_code_actions(false);
+                self.show_code_actions();
             },
             FocusCommand::SearchWholeWordForward => {
                 self.search_whole_word_forward(mods);
@@ -2690,7 +2690,7 @@ impl EditorData {
         });
     }
 
-    pub fn get_code_actions(&self) {
+    pub fn show_code_actions(&self) {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -2702,11 +2702,21 @@ impl EditorData {
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        let exists = doc
+        let code_actions = doc
             .code_actions()
-            .with_untracked(|c| c.contains_key(&offset));
+            .with_untracked(|c| c.get(&offset).cloned());
 
-        if exists {
+        if let Some((plugin_id, code_actions)) = code_actions {
+            if !code_actions.is_empty() {
+                self.common.internal_command.send(
+                    InternalCommand::ShowCodeActions {
+                        offset,
+                        mouse_click: false,
+                        plugin_id,
+                        code_actions,
+                    },
+                );
+            }
             return;
         }
 
@@ -2738,7 +2748,7 @@ impl EditorData {
             },
         };
         log::debug!(
-            "get_code_actions {path:?} {offset} {exists} diagnostics.is_empty={}",
+            "get_code_actions {path:?} {offset} diagnostics.is_empty={}",
             diagnostics.is_empty()
         );
         if diagnostics.is_empty() {
@@ -2749,12 +2759,23 @@ impl EditorData {
             c.insert(offset, (PluginId(0), im::Vector::new()));
         });
 
+        let common = self.common.clone();
         let send = create_ext_action(
             self.scope,
             move |resp: (PluginId, CodeActionResponse)| {
                 if doc.rev() == rev {
+                    let code_actions: im::Vector<CodeActionOrCommand> =
+                        resp.1.into();
+                    common
+                        .internal_command
+                        .send(InternalCommand::ShowCodeActions {
+                            offset,
+                            mouse_click: false,
+                            plugin_id: resp.0,
+                            code_actions: code_actions.clone(),
+                        });
                     doc.code_actions().update(|c| {
-                        c.insert(offset, (resp.0, resp.1.into()));
+                        c.insert(offset, (resp.0, code_actions));
                     });
                 }
             },
@@ -2783,26 +2804,6 @@ impl EditorData {
                 },
             },
         );
-    }
-
-    pub fn show_code_actions(&self, mouse_click: bool) {
-        let offset = self.cursor().with_untracked(|c| c.offset());
-        let doc = self.doc();
-        let code_actions = doc
-            .code_actions()
-            .with_untracked(|c| c.get(&offset).cloned());
-        if let Some((plugin_id, code_actions)) = code_actions {
-            if !code_actions.is_empty() {
-                self.common.internal_command.send(
-                    InternalCommand::ShowCodeActions {
-                        offset,
-                        mouse_click,
-                        plugin_id,
-                        code_actions,
-                    },
-                );
-            }
-        }
     }
 
     fn do_save(&self, after_action: impl FnOnce() + 'static) {
