@@ -1097,42 +1097,37 @@ impl PaletteData {
         if let Some(run_toml) =
             self.common.workspace.run_and_debug_path_with_create()?
         {
-            let (doc, new_doc) = self.main_split.get_doc_with_force(
+            let (doc, _new_doc) = self.main_split.get_doc_with_force(
                 run_toml.clone(),
                 None,
                 false,
                 DocContent::File {
                     path:      run_toml.clone(),
-                    read_only: true,
+                    read_only: false,
                 },
                 true,
             );
-            if !new_doc {
-                let content = doc.lines.with_untracked(|x| x.buffer().to_string());
-                self.set_run_configs(content, run_id, &input_str)?;
-            } else {
-                let loaded = doc.loaded;
-                let palette = self.clone();
-                self.common.scope.create_effect(move |prev_loaded| {
-                    if prev_loaded == Some(true) {
-                        return true;
+            let loaded = doc.loaded;
+            let palette = self.clone();
+            self.common.scope.create_effect(move |prev_loaded| {
+                if prev_loaded == Some(true) {
+                    return true;
+                }
+                let loaded = loaded.get();
+                if loaded {
+                    let content =
+                        doc.lines.with_untracked(|x| x.buffer().to_string());
+                    if content.is_empty() {
+                        doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
                     }
-                    let loaded = loaded.get();
-                    if loaded {
-                        let content =
-                            doc.lines.with_untracked(|x| x.buffer().to_string());
-                        if content.is_empty() {
-                            doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
-                        }
-                        if let Err(err) =
-                            palette.set_run_configs(content, run_id, &input_str)
-                        {
-                            error!("{err}");
-                        }
+                    if let Err(err) =
+                        palette.set_run_configs(content, run_id, &input_str)
+                    {
+                        error!("{err}");
                     }
-                    loaded
-                });
-            }
+                }
+                loaded
+            });
         }
         Ok(())
     }

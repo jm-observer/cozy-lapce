@@ -8,7 +8,7 @@ use std::{
     time::SystemTime,
 };
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use doc::lines::buffer::rope_text::CharIndicesJoin;
 use lapce_core::encoding::offset_utf8_to_utf16;
 use lapce_rpc::buffer::BufferId;
@@ -122,7 +122,7 @@ impl Buffer {
         rev: u64,
     ) -> Result<Option<TextDocumentContentChangeEvent>> {
         if self.rev + 1 != rev {
-            return Ok(None);
+            bail!("not right rev,expect: {}, but: {}", self.rev + 1, rev);
         }
         self.rev += 1;
         let content_change = get_document_content_changes(delta, self)?;

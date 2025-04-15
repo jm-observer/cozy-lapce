@@ -3914,8 +3914,12 @@ impl PubUpdateLines {
             EditBuffer::Init(content) => {
                 let indent =
                     IndentStyle::from_str(self.syntax.language.indent_unit());
-                self.buffer_mut().init_content(content);
-                self.buffer_mut().detect_indent(|| indent);
+                let mut buffer = Buffer::new("");
+                buffer.init_content(content);
+                buffer.detect_indent(|| indent);
+                self.signals.buffer_rev.update_force(buffer.rev());
+                self.signals.pristine.update_force(buffer.is_pristine());
+                self.signals.buffer.update_force(buffer);
             },
             EditBuffer::SetLineEnding(line_ending) => {
                 self.buffer_mut().set_line_ending(line_ending);

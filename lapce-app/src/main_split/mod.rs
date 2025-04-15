@@ -397,11 +397,20 @@ impl MainSplitData {
     ) -> (Rc<Doc>, bool) {
         let cx = self.scope;
         let doc = self.docs.with_untracked(|docs| docs.get(&content).cloned());
-        if let Some(doc) = doc
-            && !force
-        {
-            (doc, false)
+        let doc = if let Some(doc) = doc {
+            // log::warn!(
+            //     "get_doc_with_force {path:?} {lsp_req} force={force} \
+            //      content={content:?} doc is some"
+            // );
+            if !force {
+                return (doc, false);
+            }
+            doc
         } else {
+            // log::warn!(
+            //     "get_doc_with_force {path:?} {lsp_req} force={force} \
+            //      content={content:?} doc is new"
+            // );
             let diagnostic_data = self.get_diagnostic_data(&path);
 
             let doc = Doc::new(
@@ -415,44 +424,40 @@ impl MainSplitData {
             self.docs.update(|docs| {
                 docs.insert(content, doc.clone());
             });
-
-            {
-                let doc = doc.clone();
-                let local_doc = doc.clone();
-                let send = create_ext_action(cx, move |result| {
-                    if let Ok(ProxyResponse::NewBufferResponse {
-                        content,
-                        read_only,
-                    }) = result
-                    {
-                        local_doc.init_content(Rope::from(content));
-                        if read_only {
-                            local_doc.content.update(|content| {
-                                if let DocContent::File { read_only, .. } = content {
-                                    *read_only = true;
-                                }
-                            });
-                        } else if let Some(unsaved) = unsaved {
-                            local_doc.reload(Rope::from(unsaved), false);
-                        }
+            doc
+        };
+        {
+            let doc = doc.clone();
+            let local_doc = doc.clone();
+            let send = create_ext_action(cx, move |result| {
+                if let Ok(ProxyResponse::NewBufferResponse { content, read_only }) =
+                    result
+                {
+                    local_doc.init_content(Rope::from(content));
+                    if read_only {
+                        local_doc.content.update(|content| {
+                            if let DocContent::File { read_only, .. } = content {
+                                *read_only = true;
+                            }
+                        });
+                    } else if let Some(unsaved) = unsaved {
+                        local_doc.reload(Rope::from(unsaved), false);
                     }
-                });
+                }
+            });
 
-                self.common.proxy.new_buffer(
-                    doc.buffer_id,
-                    path,
-                    move |(_, result)| {
-                        send(result);
-                    },
-                );
-            }
-            if lsp_req {
-                doc.get_code_lens();
-                doc.get_folding_range();
-                doc.get_document_symbol();
-            }
-            (doc, true)
+            self.common
+                .proxy
+                .new_buffer(doc.buffer_id, path, move |(_, result)| {
+                    send(result);
+                });
         }
+        if lsp_req {
+            doc.get_code_lens();
+            doc.get_folding_range();
+            doc.get_document_symbol();
+        }
+        (doc, true)
     }
 
     pub fn go_to_location(
