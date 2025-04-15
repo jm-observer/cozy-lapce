@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use floem::{
     View,
     event::EventListener,
@@ -27,7 +29,7 @@ use crate::{
 };
 
 fn left(
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     lapce_command: Listener<LapceCommand>,
     workbench_command: Listener<LapceWorkbenchCommand>,
     config: WithLapceConfig,
@@ -150,7 +152,7 @@ fn left(
 }
 
 fn middle(
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     main_split: MainSplitData,
     workbench_command: Listener<LapceWorkbenchCommand>,
     config: WithLapceConfig,

@@ -1774,7 +1774,7 @@ checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 [[package]]
 name = "floem"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "bitflags 2.8.0",
  "clipboard-win",
@@ -1814,7 +1814,7 @@ dependencies = [
 [[package]]
 name = "floem-editor-core"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.14.0",
@@ -1840,7 +1840,7 @@ dependencies = [
 [[package]]
 name = "floem_reactive"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "smallvec",
 ]
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "floem_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "cosmic-text",
  "futures",
@@ -1864,7 +1864,7 @@ dependencies = [
 [[package]]
 name = "floem_tiny_skia_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "anyhow",
  "floem_renderer",
@@ -1877,7 +1877,7 @@ dependencies = [
 [[package]]
 name = "floem_vger_renderer"
 version = "0.2.0"
-source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#4c4a7cb4f9270716a3bf88bf892867d9a3da5049"
+source = "git+https://github.com/jm-observer/floem?branch=main-fork-5#6ffa5fbb711c7f1d646e349f656595c8b81e9313"
 dependencies = [
  "anyhow",
  "floem-vger",

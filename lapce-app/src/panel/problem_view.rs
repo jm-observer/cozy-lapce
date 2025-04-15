@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use doc::diagnostic::DiagnosticData;
 use floem::{
@@ -85,7 +85,7 @@ fn problem_section(
 }
 
 fn file_view(
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     path: PathBuf,
     diagnostic_data: DiagnosticData,
     severity: DiagnosticSeverity,

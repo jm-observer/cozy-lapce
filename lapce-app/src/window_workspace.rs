@@ -194,7 +194,7 @@ pub struct WorkProgress {
 
 #[derive(Clone)]
 pub struct CommonData {
-    pub workspace:             LapceWorkspace,
+    pub workspace:             Arc<LapceWorkspace>,
     pub scope:                 Scope,
     pub focus:                 SignalManager<Focus>,
     pub keypress:              RwSignal<KeyPressData>,
@@ -274,7 +274,7 @@ impl CommonData {
 pub struct WindowWorkspaceData {
     pub scope:                     Scope,
     pub window_tab_id:             WindowTabId,
-    pub workspace:                 LapceWorkspace,
+    pub workspace:                 Arc<LapceWorkspace>,
     pub palette:                   PaletteData,
     pub main_split:                MainSplitData,
     pub file_explorer:             FileExplorerData,
@@ -394,7 +394,7 @@ impl KeyPressFocus for WindowWorkspaceData {
 impl WindowWorkspaceData {
     pub fn new(
         cx: Scope,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         window_common: Rc<WindowCommonData>,
         directory: &Directory,
         local_task: LocalTaskRequester,
@@ -908,7 +908,7 @@ impl WindowWorkspaceData {
                                     .duration_since(std::time::UNIX_EPOCH)
                                     .unwrap()
                                     .as_secs(),
-                            };
+                            }.into();
                             window_command
                                 .send(WindowCommand::SetWorkspace { workspace });
                         }
@@ -922,7 +922,7 @@ impl WindowWorkspaceData {
                         kind: LapceWorkspaceType::Local,
                         path: None,
                         last_open: 0,
-                    };
+                    }.into();
                     window_command.send(WindowCommand::SetWorkspace { workspace });
                 }
             }
@@ -1089,7 +1089,7 @@ impl WindowWorkspaceData {
             NewWindowTab => {
                 self.common.window_common.window_command.send(
                     WindowCommand::NewWorkspaceTab {
-                        workspace: LapceWorkspace::default(),
+                        workspace: LapceWorkspace::default().into(),
                         end: false,
                     },
                 );
@@ -1235,7 +1235,7 @@ impl WindowWorkspaceData {
                             kind: LapceWorkspaceType::Local,
                             path: None,
                             last_open: 0,
-                        },
+                        }.into(),
                     },
                 );
             }
@@ -3226,11 +3226,11 @@ cmd.wait()?;
         for folder in folders {
             self.common.window_common.window_command.send(
                 WindowCommand::NewWorkspaceTab {
-                    workspace: LapceWorkspace {
+                    workspace: Arc::new(LapceWorkspace {
                         kind:      self.workspace.kind.clone(),
                         path:      Some(folder.path.clone()),
                         last_open: 0,
-                    },
+                    }),
                     end:       false,
                 },
             );

@@ -33,7 +33,7 @@ pub struct WindowInfo {
     pub pos:       Point,
     pub maximised: bool,
     #[serde(default)]
-    pub workspace: LapceWorkspace,
+    pub workspace: Arc<LapceWorkspace>,
 }
 
 #[derive(Clone)]
@@ -227,7 +227,7 @@ impl WindowData {
         match cmd {
             WindowCommand::SetWorkspace { workspace } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
-                db.update_recent_workspace(&workspace, &self.local_task);
+                db.update_recent_workspace(workspace.clone(), &self.local_task);
                 if let Err(err) =
                     db.insert_window_tab(self.window_tabs.get_untracked().clone())
                 {
@@ -251,7 +251,7 @@ impl WindowData {
                 end: _end,
             } => {
                 let db: Arc<LapceDb> = use_context().unwrap();
-                db.update_recent_workspace(&workspace, &self.local_task);
+                db.update_recent_workspace(workspace.clone(), &self.local_task);
                 log::info!("NewWorkspaceTab {:?}", workspace);
                 // workspace.watch_project_setting(&self.watcher);
                 let window_tab = WindowWorkspaceData::new(
@@ -354,7 +354,7 @@ impl WindowData {
     }
 
     pub fn info(&self) -> WindowInfo {
-        let workspace: LapceWorkspace =
+        let workspace: Arc<LapceWorkspace> =
             self.window_tabs.get_untracked().workspace.clone();
         WindowInfo {
             size: self.common.size.get_untracked(),

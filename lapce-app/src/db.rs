@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::Result;
 use floem::{peniko::kurbo::Vec2, reactive::SignalGet};
@@ -27,11 +30,11 @@ const RECENT_WORKSPACES: &str = "recent_workspaces";
 
 pub enum SaveEvent {
     App(AppInfo),
-    Workspace(LapceWorkspace, WorkspaceInfo),
-    RecentWorkspace(LapceWorkspace),
+    Workspace(Arc<LapceWorkspace>, WorkspaceInfo),
+    RecentWorkspace(Arc<LapceWorkspace>),
     Doc(DocInfo),
     DisabledVolts(Vec<VoltID>),
-    WorkspaceDisabledVolts(LapceWorkspace, Vec<VoltID>),
+    WorkspaceDisabledVolts(Arc<LapceWorkspace>, Vec<VoltID>),
     PanelOrder(PanelOrder),
 }
 
@@ -83,7 +86,7 @@ impl LapceDb {
 
     pub fn save_workspace_disabled_volts(
         &self,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         volts: Vec<VoltID>,
         requester: &LocalTaskRequester,
     ) {
@@ -100,7 +103,7 @@ impl LapceDb {
 
     pub fn insert_workspace_disabled_volts(
         &self,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         volts: Vec<VoltID>,
     ) -> Result<()> {
         let folder = self
@@ -134,18 +137,21 @@ impl LapceDb {
 
     pub fn update_recent_workspace(
         &self,
-        workspace: &LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         requester: &LocalTaskRequester,
     ) {
         if workspace.path.is_none() {
             return;
         }
         requester.notification(LocalNotification::DbSaveEvent(
-            SaveEvent::RecentWorkspace(workspace.clone()),
+            SaveEvent::RecentWorkspace(workspace),
         ));
     }
 
-    pub fn insert_recent_workspace(&self, workspace: LapceWorkspace) -> Result<()> {
+    pub fn insert_recent_workspace(
+        &self,
+        workspace: Arc<LapceWorkspace>,
+    ) -> Result<()> {
         let mut workspaces = self.recent_workspaces().unwrap_or_default();
 
         let mut exits = false;
@@ -160,7 +166,7 @@ impl LapceDb {
             }
         }
         if !exits {
-            let mut workspace = workspace;
+            let mut workspace = workspace.as_ref().clone();
             workspace.last_open = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::SystemTime};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use alacritty_terminal::{
     grid::Dimensions,
@@ -62,7 +62,7 @@ pub struct TerminalView {
     proxy:                 ProxyRpcHandler,
     // launch_error: RwSignal<Option<String>>,
     internal_command:      Listener<InternalCommand>,
-    workspace:             LapceWorkspace,
+    workspace:             Arc<LapceWorkspace>,
     hyper_regs:            Vec<Regex>,
     previous_mouse_action: MouseAction,
     current_mouse_action:  MouseAction,
@@ -78,7 +78,7 @@ pub fn terminal_view(
     terminal_panel_data: TerminalPanelData,
     // launch_error: RwSignal<Option<String>>,
     internal_command: Listener<InternalCommand>,
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     terminal: TerminalData,
 ) -> TerminalView {
     let id = ViewId::new();

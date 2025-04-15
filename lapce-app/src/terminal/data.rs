@@ -47,7 +47,7 @@ use crate::{
 pub struct TerminalData {
     pub scope:     Scope,
     pub term_id:   TermId,
-    pub workspace: LapceWorkspace,
+    pub workspace: Arc<LapceWorkspace>,
     pub common:    Rc<CommonData>,
     pub data:      RwSignal<TerminalSignalData>,
 }
@@ -331,7 +331,7 @@ impl KeyPressFocus for TerminalData {
 impl TerminalData {
     pub fn new(
         cx: Scope,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
     ) -> Self {
@@ -340,7 +340,7 @@ impl TerminalData {
 
     pub fn new_run_debug(
         cx: Scope,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,

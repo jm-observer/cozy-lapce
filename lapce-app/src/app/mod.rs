@@ -247,10 +247,10 @@ impl AppData {
         } else {
             config
         };
-        let workspace = LapceWorkspace {
+        let workspace = Arc::new(LapceWorkspace {
             path: folder,
             ..Default::default()
-        };
+        });
         let app_data = self.clone();
         floem::new_window(
             move |window_id| {
@@ -352,11 +352,11 @@ impl AppData {
                     size,
                     pos,
                     maximised: false,
-                    workspace: LapceWorkspace {
+                    workspace: Arc::new(LapceWorkspace {
                         kind:      workspace_type,
                         path:      Some(dir.path.to_owned()),
                         last_open: 0,
-                    },
+                    }),
                 };
 
                 pos += (50.0, 50.0);
@@ -418,7 +418,7 @@ impl AppData {
                 size:      Size::new(800.0, 600.0),
                 pos:       Point::ZERO,
                 maximised: false,
-                workspace: LapceWorkspace::default(),
+                workspace: LapceWorkspace::default().into(),
             });
             // info.tabs = TabsInfo {
             //     active_tab: 0,
@@ -2316,7 +2316,7 @@ fn workbench(window_tab_data: WindowWorkspaceData) -> impl View {
 }
 
 fn palette_item(
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     i: usize,
     item: PaletteItem,
     index: ReadSignal<usize>,

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use doc::lines::line_ending::LineEnding;
 use lapce_core::{
@@ -39,7 +39,7 @@ pub enum PaletteItemContent {
         cmd: LapceCommand,
     },
     Workspace {
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
     },
     Reference {
         path:     PathBuf,

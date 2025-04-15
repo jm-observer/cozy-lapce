@@ -3,6 +3,7 @@ use std::{
     ops::{AddAssign, SubAssign},
     path::PathBuf,
     rc::Rc,
+    sync::Arc,
 };
 
 use anyhow::{Result, bail};
@@ -1196,7 +1197,7 @@ fn get_sticky_header_info(
 
 pub fn editor_container_view(
     window_tab_data: WindowWorkspaceData,
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     is_active: impl Fn(bool) -> bool + 'static + Copy,
     editor: EditorData,
 ) -> impl View {
@@ -1651,7 +1652,7 @@ fn editor_gutter_folding_range(
 }
 
 fn editor_breadcrumbs(
-    workspace: LapceWorkspace,
+    workspace: Arc<LapceWorkspace>,
     e_data: EditorData,
     config: WithLapceConfig,
 ) -> impl View {

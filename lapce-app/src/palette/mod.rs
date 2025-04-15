@@ -127,7 +127,7 @@ impl RunResult {
 
 #[derive(Clone)]
 pub struct PaletteData {
-    pub workspace:             LapceWorkspace,
+    pub workspace:             Arc<LapceWorkspace>,
     pub status:                RwSignal<PaletteStatus>,
     pub index:                 RwSignal<usize>,
     pub preselect_index:       RwSignal<Option<usize>>,
@@ -165,7 +165,7 @@ impl std::fmt::Debug for PaletteData {
 impl PaletteData {
     pub fn new(
         cx: Scope,
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         main_split: MainSplitData,
         keypress: ReadSignal<KeyPressData>,
         source_control: SourceControlData,
@@ -697,7 +697,9 @@ impl PaletteData {
                     },
                 };
                 Some(PaletteItem {
-                    content: PaletteItemContent::Workspace { workspace: w },
+                    content: PaletteItemContent::Workspace {
+                        workspace: Arc::new(w),
+                    },
                     filter_text,
                     score: 0,
                     indices: vec![],
@@ -1385,13 +1387,13 @@ impl PaletteData {
                 PaletteItemContent::SshHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: LapceWorkspace {
+                            workspace: Arc::new(LapceWorkspace {
                                 kind:      LapceWorkspaceType::RemoteSSH(
                                     host.clone(),
                                 ),
                                 path:      None,
                                 last_open: 0,
-                            },
+                            }),
                         },
                     );
                 },
@@ -1399,13 +1401,13 @@ impl PaletteData {
                 PaletteItemContent::WslHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: LapceWorkspace {
+                            workspace: Arc::new(LapceWorkspace {
                                 kind:      LapceWorkspaceType::RemoteWSL(
                                     host.clone(),
                                 ),
                                 path:      None,
                                 last_open: 0,
-                            },
+                            }),
                         },
                     );
                 },
@@ -1527,11 +1529,11 @@ impl PaletteData {
             let ssh = SshHost::from_string(&input);
             self.common.window_common.window_command.send(
                 WindowCommand::SetWorkspace {
-                    workspace: LapceWorkspace {
+                    workspace: Arc::new(LapceWorkspace {
                         kind:      LapceWorkspaceType::RemoteSSH(ssh),
                         path:      None,
                         last_open: 0,
-                    },
+                    }),
                 },
             );
         }

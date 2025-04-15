@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc};
+use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use doc::lines::{command::*, editor_command::Command};
 use floem::{ViewId, keyboard::Modifiers, peniko::kurbo::Vec2};
@@ -831,13 +831,13 @@ pub enum InternalCommand {
 #[derive(Clone)]
 pub enum WindowCommand {
     SetWorkspace {
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
     },
     CloseWorkspaceTab {
         index: Option<usize>,
     },
     NewWorkspaceTab {
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         end:       bool,
     },
     NextWorkspaceTab,

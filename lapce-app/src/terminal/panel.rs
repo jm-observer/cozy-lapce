@@ -72,7 +72,7 @@ impl TerminalTabInfo {
 #[derive(Clone)]
 pub struct TerminalPanelData {
     pub cx:         Scope,
-    pub workspace:  LapceWorkspace,
+    pub workspace:  Arc<LapceWorkspace>,
     pub tab_infos:  RwSignal<TerminalTabInfo>,
     // pub tabs:       Tabs<TerminalData>,
     pub debug:      RunDebugData,
@@ -83,7 +83,7 @@ pub struct TerminalPanelData {
 
 impl TerminalPanelData {
     pub fn new(
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
         main_split: MainSplitData,

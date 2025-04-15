@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use floem::reactive::{RwSignal, Scope, SignalWith};
 use lapce_core::{
@@ -18,7 +18,7 @@ pub struct TerminalTabData {
 
 impl TerminalTabData {
     pub fn new(
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
     ) -> Self {
@@ -28,7 +28,7 @@ impl TerminalTabData {
     /// Create the information for a terminal tab, which can contain multiple
     /// terminals.
     pub fn new_run_debug(
-        workspace: LapceWorkspace,
+        workspace: Arc<LapceWorkspace>,
         run_debug: Option<RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
