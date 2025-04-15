@@ -3,7 +3,7 @@ use floem::{
     prelude::{Decorators, SignalGet, Svg, clip, container, palette, static_label},
     style::{CursorStyle, StyleValue},
     taffy::{AlignItems, JustifyContent},
-    views::dyn_stack,
+    views::{dyn_stack, svg},
 };
 use lapce_core::icon::LapceIcons;
 
@@ -13,7 +13,6 @@ use crate::{
         DocSignal, EditorData,
         gutter_new::{GutterData, GutterMarker, gutter_data},
     },
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

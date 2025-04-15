@@ -9,7 +9,7 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{Thickness, VerticalScrollAsHorizontal, scroll},
-        stack, tab,
+        stack, svg, tab,
     },
 };
 use lapce_core::{icon::LapceIcons, id::TerminalTabId, panel::PanelKind};
@@ -19,7 +19,6 @@ use crate::{
     command::{InternalCommand, LapceWorkbenchCommand},
     config::color::LapceColor,
     listener::Listener,
-    svg,
     terminal::{data::TerminalData, panel::TerminalPanelData, view::terminal_view},
     window_workspace::{Focus, WindowWorkspaceData},
 };

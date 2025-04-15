@@ -13,7 +13,7 @@ use floem::{
     style::{AlignItems, CursorStyle, Position, Style},
     text::Style as FontStyle,
     views::{
-        Container, Decorators, container, dyn_stack, label, scroll, stack,
+        Container, Decorators, container, dyn_stack, label, scroll, stack, svg,
         virtual_stack,
     },
 };
@@ -35,7 +35,6 @@ use crate::{
     panel::view::PanelBuilder,
     plugin::PluginData,
     source_control::SourceControlData,
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

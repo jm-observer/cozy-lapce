@@ -7,7 +7,7 @@ use floem::{
     reactive::{SignalGet, SignalUpdate},
     style::{CursorStyle, Style},
     views::{
-        Decorators, container, label, scroll, stack, text_input, virtual_stack,
+        Decorators, container, label, scroll, stack, svg, text_input, virtual_stack,
     },
 };
 use lapce_core::{
@@ -25,7 +25,6 @@ use crate::{
     focus_text::focus_text,
     global_search::{GlobalSearchData, SearchItem},
     listener::Listener,
-    svg,
     window_workspace::{Focus, WindowWorkspaceData},
 };
 

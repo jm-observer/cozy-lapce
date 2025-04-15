@@ -20,7 +20,6 @@ use crate::{
         color::LapceColor,
         ui::{TabCloseButton, TabSeparatorHeight},
     },
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

@@ -22,7 +22,7 @@ use floem::{
     style::CursorStyle,
     views::{
         Decorators, container, dyn_container, dyn_stack, empty, img, label,
-        rich_text, scroll, stack, text,
+        rich_text, scroll, stack, svg, text,
     },
 };
 use indexmap::IndexMap;
@@ -43,7 +43,6 @@ use crate::{
     local_task::{LocalRequest, LocalResponse},
     markdown::{MarkdownContent, parse_markdown},
     panel::plugin_view::VOLT_DEFAULT_PNG,
-    svg,
     web_link::web_link,
     window_workspace::CommonData,
 };

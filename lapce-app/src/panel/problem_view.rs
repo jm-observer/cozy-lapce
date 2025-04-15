@@ -8,7 +8,7 @@ use floem::{
         SignalGet, SignalUpdate, SignalWith, create_effect, create_rw_signal,
     },
     style::{CursorStyle, Style},
-    views::{Decorators, container, dyn_stack, label, scroll, stack},
+    views::{Decorators, container, dyn_stack, label, scroll, stack, svg},
 };
 use lapce_core::{
     icon::LapceIcons,
@@ -25,7 +25,6 @@ use crate::{
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     lsp::path_from_url,
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

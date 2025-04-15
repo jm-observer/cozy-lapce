@@ -11,7 +11,7 @@ use floem::{
     style::CursorStyle,
     views::{
         Decorators, VirtualVector, container, dyn_container, img, label,
-        scroll::scroll, stack, virtual_stack,
+        scroll::scroll, stack, svg, virtual_stack,
     },
 };
 use indexmap::IndexMap;
@@ -30,7 +30,6 @@ use crate::{
     command::InternalCommand,
     config::color::LapceColor,
     plugin::{AvailableVoltData, InstalledVoltData, PluginData, VoltIcon},
-    svg,
     window_workspace::{Focus, WindowWorkspaceData},
 };
 pub const VOLT_DEFAULT_PNG: &[u8] = include_bytes!("../../../extra/images/volt.png");

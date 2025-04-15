@@ -7,7 +7,8 @@ use floem::{
     style::CursorStyle,
     text::Style as FontStyle,
     views::{
-        Decorators, container, dyn_stack, label, scroll, stack, text, virtual_stack,
+        Decorators, container, dyn_stack, label, scroll, stack, svg, text,
+        virtual_stack,
     },
 };
 use lapce_core::{
@@ -29,7 +30,6 @@ use crate::{
     editor::location::{EditorLocation, EditorPosition},
     listener::Listener,
     settings::checkbox,
-    svg,
     terminal::panel::TerminalPanelData,
     window_workspace::WindowWorkspaceData,
 };

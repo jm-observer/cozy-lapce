@@ -10,7 +10,7 @@ use floem::{
     peniko::kurbo::Rect,
     reactive::{Scope, SignalGet, SignalTrack, SignalUpdate, SignalWith},
     style::{CursorStyle, Style},
-    views::{Decorators, container, dyn_stack, label, scroll, stack, text},
+    views::{Decorators, container, dyn_stack, label, scroll, stack, svg, text},
 };
 use lapce_core::{
     icon::LapceIcons,
@@ -26,7 +26,6 @@ use crate::{
     editor::view::editor_view,
     settings::checkbox,
     source_control::SourceControlData,
-    svg,
     window_workspace::{Focus, WindowWorkspaceData},
 };
 pub fn source_control_panel(

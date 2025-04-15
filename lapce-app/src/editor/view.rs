@@ -51,7 +51,7 @@ use floem::{
     views::{
         Decorators, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack, text_input,
+        stack, svg, text_input,
     },
 };
 use lapce_core::{doc::DocContent, icon::LapceIcons, workspace::LapceWorkspace};
@@ -66,7 +66,6 @@ use crate::{
     config::{LapceConfig, WithLapceConfig, color::LapceColor, editor::WrapStyle},
     editor::{floem_editor::paint_text, gutter_new::view::editor_gutter_new},
     keypress::KeyPressFocus,
-    svg,
     window_workspace::{CommonData, Focus, WindowWorkspaceData},
 };
 

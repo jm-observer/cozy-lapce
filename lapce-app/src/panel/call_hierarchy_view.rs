@@ -5,7 +5,7 @@ use floem::{
     reactive::{RwSignal, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container, empty, label, scroll, stack,
+        Decorators, VirtualVector, container, empty, label, scroll, stack, svg,
         virtual_stack,
     },
 };
@@ -17,7 +17,6 @@ use crate::{
     common::{TabHead, common_tab_header},
     config::color::LapceColor,
     editor::location::EditorLocation,
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

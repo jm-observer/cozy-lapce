@@ -22,7 +22,7 @@ use floem::{
     views::{
         Decorators, VirtualVector, container, dyn_stack, empty, label,
         scroll::{PropagatePointerWheel, scroll},
-        stack, text, virtual_stack,
+        stack, svg, text, virtual_stack,
     },
 };
 use indexmap::IndexMap;
@@ -41,7 +41,6 @@ use crate::{
     },
     keypress::KeyPressFocus,
     plugin::InstalledVoltData,
-    svg,
     window_workspace::{CommonData, WindowWorkspaceData},
 };
 

@@ -7,7 +7,7 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container, h_stack, label, scroll, stack,
+        Decorators, VirtualVector, container, h_stack, label, scroll, stack, svg,
         virtual_stack,
     },
 };
@@ -16,7 +16,7 @@ use lsp_types::{DocumentSymbol, Position, Range, SymbolKind};
 
 use crate::{
     command::InternalCommand, common_svg, config::color::LapceColor,
-    editor::location::EditorLocation, svg, window_workspace::WindowWorkspaceData,
+    editor::location::EditorLocation, window_workspace::WindowWorkspaceData,
 };
 
 #[derive(Clone, Debug)]

@@ -5,13 +5,12 @@ use floem::{
     event::EventListener,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
-    views::{Decorators, container, dyn_stack, label, stack},
+    views::{Decorators, container, dyn_stack, label, stack, svg},
 };
 use lapce_core::icon::LapceIcons;
 
 use crate::{
     config::{WithLapceConfig, color::LapceColor},
-    svg,
     window_workspace::CommonData,
 };
 

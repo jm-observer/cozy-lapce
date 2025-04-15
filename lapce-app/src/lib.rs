@@ -52,23 +52,11 @@ extern crate core;
 extern crate windows_sys as windows;
 
 use floem::{
-    View,
     prelude::{Decorators, SignalGet, Svg},
-    reactive::create_effect,
+    views::svg,
 };
 
 use crate::config::WithLapceConfig;
-
-pub fn svg(svg_str: impl Fn() -> String + 'static) -> Svg {
-    let content = svg_str();
-    let svg = floem::views::svg(content);
-    let id = svg.id();
-    create_effect(move |_| {
-        let new_svg_str = svg_str();
-        id.update_state(new_svg_str);
-    });
-    svg
-}
 
 pub fn common_svg(
     config: WithLapceConfig,

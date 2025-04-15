@@ -2467,10 +2467,6 @@ cmd.wait()?;
                         let now_id = diag.id.with_untracked(|x| {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
-                        // warn!(
-                        //     "PublishDiagnostics exec_after {path:?} {now_id} \
-                        //      id={id}",
-                        // );
                         if now_id == id {
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
@@ -2483,6 +2479,11 @@ cmd.wait()?;
                                 // warn!("PublishDiagnostics docs {:?}", path);
                                 doc.init_diagnostics();
                             }
+                        } else {
+                            warn!(
+                                "PublishDiagnostics exec_after {path:?} {now_id} \
+                                 id={id}",
+                            );
                         }
                     });
                     return;

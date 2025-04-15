@@ -201,7 +201,9 @@ impl KeyPressFocus for GlobalSearchData {
         CommandExecuted::Yes
     }
 
-    fn receive_char(&self, _c: &str) {}
+    fn receive_char(&self, _c: &str) {
+        log::error!("Global receive_char {_c}");
+    }
 }
 
 impl VirtualVector<SearchItem> for GlobalSearchData {

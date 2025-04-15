@@ -8,7 +8,7 @@ use floem::{
         ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo,
     },
     style::{AlignItems, CursorStyle, JustifyContent},
-    views::{Decorators, container, drag_window_area, empty, label, stack},
+    views::{Decorators, container, drag_window_area, empty, label, stack, svg},
 };
 use lapce_core::{icon::LapceIcons, meta, workspace::LapceWorkspace};
 use lapce_rpc::proxy::ProxyStatus;
@@ -22,7 +22,6 @@ use crate::{
     config::{WithLapceConfig, color::LapceColor},
     listener::Listener,
     main_split::MainSplitData,
-    svg,
     update::ReleaseInfo,
     window_workspace::WindowWorkspaceData,
 };

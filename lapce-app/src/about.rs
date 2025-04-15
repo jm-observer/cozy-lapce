@@ -7,7 +7,7 @@ use floem::{
     keyboard::Modifiers,
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::{CursorStyle, Display, Position},
-    views::{Decorators, container, label, stack},
+    views::{Decorators, container, label, stack, svg},
 };
 use lapce_core::meta::VERSION;
 
@@ -15,7 +15,6 @@ use crate::{
     command::CommandKind,
     config::color::LapceColor,
     keypress::KeyPressFocus,
-    svg,
     web_link::web_link,
     window_workspace::{Focus, SignalManager, WindowWorkspaceData},
 };

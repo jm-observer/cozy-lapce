@@ -5,7 +5,8 @@ use floem::{
     reactive::{RwSignal, Scope, SignalGet, SignalUpdate},
     style::CursorStyle,
     views::{
-        Decorators, VirtualVector, container, label, scroll, stack, virtual_stack,
+        Decorators, VirtualVector, container, label, scroll, stack, svg,
+        virtual_stack,
     },
 };
 use im::HashMap;
@@ -19,7 +20,6 @@ use crate::{
     common::{TabHead, common_tab_header},
     config::color::LapceColor,
     editor::location::EditorLocation,
-    svg,
     window_workspace::WindowWorkspaceData,
 };
 

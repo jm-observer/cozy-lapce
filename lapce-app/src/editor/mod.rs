@@ -2239,7 +2239,7 @@ impl EditorData {
     }
 
     fn apply_completion_item(&self, item: &CompletionItem) -> anyhow::Result<()> {
-        log::debug!("apply_completion_item {:?}", item);
+        log::info!("apply_completion_item {:?}", item);
         let doc = self.doc();
         let buffer = doc.lines.with_untracked(|x| x.buffer().clone());
         let cursor = self.cursor().get_untracked();
@@ -2310,7 +2310,9 @@ impl EditorData {
                         _ => {},
                     }
                 },
-                CompletionTextEdit::InsertAndReplace(_) => (),
+                CompletionTextEdit::InsertAndReplace(_) => {
+                    todo!("CompletionTextEdit::InsertAndReplace");
+                },
             }
         }
 

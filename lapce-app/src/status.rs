@@ -6,7 +6,7 @@ use floem::{
     event::EventPropagation,
     reactive::{Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo},
     style::{AlignItems, CursorStyle, Display, FlexWrap},
-    views::{Decorators, dyn_stack, label, stack},
+    views::{Decorators, dyn_stack, label, stack, svg},
 };
 use indexmap::IndexMap;
 use lapce_core::{
@@ -25,7 +25,6 @@ use crate::{
     listener::Listener,
     palette::kind::PaletteKind,
     source_control::SourceControlData,
-    svg,
     window_workspace::{WindowWorkspaceData, WorkProgress},
 };
 

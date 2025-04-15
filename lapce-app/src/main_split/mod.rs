@@ -2071,6 +2071,7 @@ impl MainSplitData {
     }
 
     pub fn run_code_action(&self, plugin_id: PluginId, action: CodeActionOrCommand) {
+        log::info!("run_code_action {action:?}");
         match action {
             CodeActionOrCommand::Command(command) => {
                 self.run_code_lens(
