@@ -32,11 +32,11 @@ jobs:
     name: Rust on ${{ matrix.os }}
     if: github.event.pull_request.draft == false
 #    needs: [fmt, clippy]
-    needs: [fmt]
+    needs: [check]
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest ]
+        os: [ ubuntu-latest, windows-latest ]
         # os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -112,3 +112,31 @@ jobs:
 #
 #      - name: Run clippy
 #        run: cargo clippy
+
+  check:
+    name: Check on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest]
+        # os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update toolchain
+        run: |
+          rustup update --no-self-update
+
+      - name: Install dependencies on Ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo make ubuntu-deps
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Run check
+        run: cargo check
