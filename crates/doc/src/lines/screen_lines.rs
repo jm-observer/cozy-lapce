@@ -300,7 +300,7 @@ impl ScreenLines {
         };
         let merge_col = buffer_offset - vl.folded_line.origin_interval.start;
         let Some(final_offset) =
-            vl.folded_line.final_col_of_origin_merge_col(merge_col)?
+            vl.folded_line.final_col_of_origin_merge_col(merge_col)
         else {
             return Ok(None);
         };

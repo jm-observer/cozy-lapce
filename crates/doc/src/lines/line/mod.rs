@@ -331,13 +331,10 @@ impl OriginFoldedLine {
             .cursor_final_col_of_origin_merge_col(merge_col, cursor_affinity)
     }
 
-    pub fn final_col_of_origin_merge_col(
-        &self,
-        merge_col: usize,
-    ) -> anyhow::Result<Option<usize>> {
+    pub fn final_col_of_origin_merge_col(&self, merge_col: usize) -> Option<usize> {
         self.text_layout
             .phantom_text
-            .final_col_of_origin_merge_col(merge_col)
+            .final_col_of_origin_merge_col_only_origin_text(merge_col)
     }
 
     pub fn last_origin_merge_col(&self) -> Option<usize> {

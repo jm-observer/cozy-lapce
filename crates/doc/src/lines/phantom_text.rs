@@ -757,6 +757,22 @@ impl PhantomTextMultiLine {
         bail!("No merge col found {}", origin_merge_col,)
     }
 
+    pub fn origin_text_of_origin_merge_col(
+        &self,
+        origin_merge_col: usize,
+    ) -> Option<&Text> {
+        for x in &self.text {
+            if let Text::OriginText { text } = x {
+                if text
+                    .origin_merge_col_contains(origin_merge_col, self.is_last_line)
+                {
+                    return Some(x);
+                }
+            }
+        }
+        None
+    }
+
     /// 最终文本的原始文本位移。若为幽灵则返回none.超过最终文本长度，
     /// 则返回none(不应该在此情况下调用该方法)
     pub fn origin_col_of_final_offset(
@@ -784,6 +800,25 @@ impl PhantomTextMultiLine {
             ),
             Text::EmptyLine { .. } => None,
         })
+    }
+
+    pub fn final_col_of_origin_merge_col_only_origin_text(
+        &self,
+        origin_merge_col: usize,
+    ) -> Option<usize> {
+        for x in &self.text {
+            if let Text::OriginText { text } = x {
+                if text
+                    .origin_merge_col_contains(origin_merge_col, self.is_last_line)
+                {
+                    return Some(
+                        text.final_col.start + origin_merge_col
+                            - text.origin_merge_col.start,
+                    );
+                }
+            }
+        }
+        None
     }
 
     pub fn cursor_final_col_of_origin_merge_col(
