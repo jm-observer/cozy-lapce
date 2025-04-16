@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use log::error;
 use url::Url;
 
 // Rust-analyzer returns paths in the form of "file:///<drive>:/...", which gets parsed into URL
@@ -76,7 +75,7 @@ pub fn path_from_url(url: &Url) -> PathBuf {
 
 #[cfg(not(windows))]
 pub fn path_from_url(url: &Url) -> PathBuf {
-    event!(Level::DEBUG, "Converting `{:?}` to path", url);
+    // event!(Level::DEBUG, "Converting `{:?}` to path", url);
     url.to_file_path().unwrap_or_else(|_| {
         let path = url.path();
         if let Ok(path) = percent_encoding::percent_decode_str(path).decode_utf8() {

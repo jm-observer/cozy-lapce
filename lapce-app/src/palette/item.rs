@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use doc::lines::line_ending::LineEnding;
 use lapce_core::{
     debug::RunDebugMode,
-    workspace::{LapceWorkspace, SshHost, WslHost},
+    workspace::{LapceWorkspace, SshHost},
 };
 use lapce_rpc::dap_types::RunDebugConfig;
 use lsp_types::{Range, SymbolKind};
