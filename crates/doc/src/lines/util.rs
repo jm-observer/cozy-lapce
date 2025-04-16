@@ -122,7 +122,7 @@ pub fn get_document_highlight(
 pub fn extra_styles_for_range<'a>(
     text_layout: &'a mut RefMut<TextLayout>,
     start: usize,
-    end: usize,
+    len: usize,
     bg_color: Option<Color>,
     under_line: Option<Color>,
     wave_line: Option<Color>,
@@ -130,7 +130,7 @@ pub fn extra_styles_for_range<'a>(
     adjust_y: bool,
 ) -> impl Iterator<Item = LineExtraStyle> + 'a {
     let start_hit = text_layout.hit_position(start);
-    let end_hit = text_layout.hit_position(end);
+    let end_hit = text_layout.hit_position(start + len);
 
     text_layout
         .layout_runs()

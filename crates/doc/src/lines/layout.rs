@@ -212,6 +212,9 @@ impl TextLayoutLine {
     }
 
     pub fn init_extra_style(&mut self) {
+        // if !self.diagnostic_styles.is_empty() {
+        //     log::error!("init={} len={}", self.init, self.diagnostic_styles.len());
+        // }
         if !self.init {
             self.extra_style.clear();
             if let Err(err) = self.apply_diagnostic_styles_2() {
@@ -240,7 +243,7 @@ impl TextLayoutLine {
             let iter = extra_styles_for_range(
                 layout,
                 phantom.final_col,
-                phantom.final_col + phantom.text.len(),
+                phantom.text.len(),
                 phantom.bg,
                 phantom.under_line,
                 None,
@@ -272,7 +275,7 @@ impl TextLayoutLine {
                 let styles = util::extra_styles_for_range(
                     layout,
                     start,
-                    end,
+                    end - start,
                     Some(fg_color),
                     None,
                     None,
@@ -294,34 +297,30 @@ impl TextLayoutLine {
         for NewLineStyle {
             fg_color,
             start_of_buffer,
-            end_of_buffer,
+            len,
+            // end_of_buffer,
             ..
         } in line_styles
         {
             let start = phantom_text.final_col_of_origin_merge_col(
                 *start_of_buffer - phantom_text.offset_of_line,
             )?;
-            let end = phantom_text.final_col_of_origin_merge_col(
-                *end_of_buffer - phantom_text.offset_of_line,
-            )?;
-            match (start, end) {
-                (Some(start), Some(end)) => {
-                    let styles = util::extra_styles_for_range(
-                        layout,
-                        start,
-                        end,
-                        None,
-                        None,
-                        Some(*fg_color),
-                        None,
-                        true,
-                    );
-                    self.extra_style.extend(styles);
-                },
-                _ => {
-                    // maybe be folded
-                    continue;
-                },
+            // let end = phantom_text.final_col_of_origin_merge_col(
+            //     *end_of_buffer - phantom_text.offset_of_line,
+            // )?;
+            // log::error!("start={start:?}-{len}, len={}", self.extra_style.len());
+            if let Some(start) = start {
+                let styles = util::extra_styles_for_range(
+                    layout,
+                    start,
+                    *len,
+                    None,
+                    None,
+                    Some(*fg_color),
+                    None,
+                    true,
+                );
+                self.extra_style.extend(styles);
             }
         }
         Ok(())

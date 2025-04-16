@@ -3075,6 +3075,12 @@ impl DocLines {
                                 && end <= end_offset
                                 && severity < DiagnosticSeverity::HINT
                             {
+                                // log::error!(
+                                //     "start={start} end={end} \
+                                //      start_offset={start_offset}, \
+                                //      end_offset={end_offset}, {:?} ",
+                                //     severity
+                                // );
                                 let color =
                                     self.config.color_of_diagnostic(severity)?;
                                 Some(NewLineStyle {
