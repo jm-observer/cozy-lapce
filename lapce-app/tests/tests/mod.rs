@@ -8,3 +8,4 @@ pub mod test_get_folded_index;
 pub mod test_lines_move;
 pub mod test_phantom_merge;
 pub mod test_rope_cursor;
+pub mod test_visual_line_info_of_buffer_offset;

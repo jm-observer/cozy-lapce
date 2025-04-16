@@ -47,5 +47,7 @@ fn test_all() -> Result<()> {
     tests::test_get_folded_index::_test_folding()?;
 
     tests::test_cursor_position::_test_cursor_position()?;
+
+    tests::test_visual_line_info_of_buffer_offset::_test_visual_line_info_of_buffer_offset()?;
     Ok(())
 }
