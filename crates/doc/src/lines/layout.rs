@@ -309,7 +309,7 @@ impl TextLayoutLine {
                     let styles = util::extra_styles_for_range(
                         layout,
                         start,
-                        end + 1,
+                        end,
                         None,
                         None,
                         Some(*fg_color),
