@@ -213,8 +213,8 @@ impl TextLayoutLine {
 
     pub fn init_extra_style(&mut self) {
         // if !self.diagnostic_styles.is_empty() {
-        //     log::error!("init={} len={}", self.init, self.diagnostic_styles.len());
-        // }
+        //     log::error!("init={} len={}", self.init,
+        // self.diagnostic_styles.len()); }
         if !self.init {
             self.extra_style.clear();
             if let Err(err) = self.apply_diagnostic_styles_2() {

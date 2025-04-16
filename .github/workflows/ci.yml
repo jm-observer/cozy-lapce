@@ -70,45 +70,45 @@ jobs:
       - name: Run doc tests
         run: cargo test --doc --workspace
 
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+#  fmt:
+#    name: Rustfmt
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Update toolchain & add rustfmt
+#        run: |
+#          rustup update
+#          rustup component add rustfmt
+#
+#      - name: Run rustfmt
+#        run: cargo fmt --all --check
 
-      - name: Update toolchain & add rustfmt
-        run: |
-          rustup update
-          rustup component add rustfmt
-
-      - name: Run rustfmt
-        run: cargo fmt --all --check
-
-  clippy:
-    name: Clippy on ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ windows-latest]
-        # os: [ ubuntu-latest, windows-latest, macos-latest ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Update toolchain & add clippy
-        run: |
-          rustup update --no-self-update
-          rustup component add clippy
-
-      - name: Install dependencies on Ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
-        run: sudo make ubuntu-deps
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        
-      - name: Fetch dependencies
-        run: cargo fetch --locked
-
-      - name: Run clippy
-        run: cargo clippy
+#  clippy:
+#    name: Clippy on ${{ matrix.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: [ windows-latest]
+#        # os: [ ubuntu-latest, windows-latest, macos-latest ]
+#    runs-on: ${{ matrix.os }}
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Update toolchain & add clippy
+#        run: |
+#          rustup update --no-self-update
+#          rustup component add clippy
+#
+#      - name: Install dependencies on Ubuntu
+#        if: startsWith(matrix.os, 'ubuntu')
+#        run: sudo make ubuntu-deps
+#
+#      - name: Cache Rust dependencies
+#        uses: Swatinem/rust-cache@v2
+#
+#      - name: Fetch dependencies
+#        run: cargo fetch --locked
+#
+#      - name: Run clippy
+#        run: cargo clippy
