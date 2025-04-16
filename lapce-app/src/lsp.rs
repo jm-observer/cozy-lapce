@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+#[cfg(windows)]
+use log::error;
 use url::Url;
 
 // Rust-analyzer returns paths in the form of "file:///<drive>:/...", which gets parsed into URL
@@ -9,9 +11,6 @@ use url::Url;
 #[cfg(windows)]
 pub fn path_from_url(url: &Url) -> PathBuf {
     use percent_encoding::percent_decode_str;
-
-    // event!(Level::DEBUG, "Converting `{:?}` to path", url);
-
     if let Ok(path) = url.to_file_path() {
         return path;
     }
@@ -27,13 +26,9 @@ pub fn path_from_url(url: &Url) -> PathBuf {
     };
 
     if let Some(path) = path.strip_prefix('/') {
-        // event!(Level::DEBUG, "Found `/` prefix");
         if let Some((maybe_drive_letter, _path_second_part)) =
             path.split_once(['/', '\\'])
         {
-            // event!(Level::DEBUG, maybe_drive_letter);
-            // event!(Level::DEBUG, path_second_part);
-
             let b = maybe_drive_letter.as_bytes();
 
             if !b.is_empty() && !b[0].is_ascii_alphabetic() {
@@ -43,7 +38,6 @@ pub fn path_from_url(url: &Url) -> PathBuf {
             match maybe_drive_letter.len() {
                 2 => match maybe_drive_letter.chars().nth(1) {
                     Some(':') => {
-                        // event!(Level::DEBUG, "Returning path `{:?}`", path);
                         return PathBuf::from(path);
                     },
                     v => {
@@ -53,7 +47,6 @@ pub fn path_from_url(url: &Url) -> PathBuf {
                 4 => {
                     if maybe_drive_letter.contains("%3A") {
                         let path = path.replace("%3A", ":");
-                        // event!(Level::DEBUG, "Returning path `{:?}`", path);
                         return PathBuf::from(path);
                     } else {
                         error!(
@@ -69,13 +62,11 @@ pub fn path_from_url(url: &Url) -> PathBuf {
         }
     }
 
-    // event!(Level::DEBUG, "Returning unmodified path `{:?}`", path);
     PathBuf::from(path.into_owned())
 }
 
 #[cfg(not(windows))]
 pub fn path_from_url(url: &Url) -> PathBuf {
-    // event!(Level::DEBUG, "Converting `{:?}` to path", url);
     url.to_file_path().unwrap_or_else(|_| {
         let path = url.path();
         if let Ok(path) = percent_encoding::percent_decode_str(path).decode_utf8() {

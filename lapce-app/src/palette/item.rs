@@ -62,7 +62,7 @@ pub enum PaletteItemContent {
     },
     #[cfg(windows)]
     WslHost {
-        host: WslHost,
+        host: lapce_core::workspace::WslHost,
     },
     RunAndDebug {
         mode:   RunDebugMode,
