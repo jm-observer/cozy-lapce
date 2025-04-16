@@ -50,7 +50,7 @@ use lapce_core::{
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
 use log::{debug, error};
-use lsp_types::{CodeActionOrCommand, CodeLens, Diagnostic, DocumentSymbolResponse};
+use lsp_types::{CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
@@ -89,25 +89,20 @@ pub struct DocInfo {
     pub cursor_offset: usize,
 }
 
-/// (Offset -> (Plugin the code actions are from, Code Actions))
-pub type CodeActions =
-    im::HashMap<usize, (PluginId, im::Vector<CodeActionOrCommand>)>;
-
 pub type AllCodeLens = im::HashMap<usize, (PluginId, usize, im::Vector<CodeLens>)>;
 
 #[derive(Clone)]
 pub struct Doc {
-    pub name:         Option<String>,
-    pub scope:        Scope,
-    pub buffer_id:    BufferId,
-    pub content:      RwSignal<DocContent>,
-    pub cache_rev:    RwSignal<u64>,
+    pub name:      Option<String>,
+    pub scope:     Scope,
+    pub buffer_id: BufferId,
+    pub content:   RwSignal<DocContent>,
+    pub cache_rev: RwSignal<u64>,
     /// Whether the buffer's content has been loaded/initialized into the
     /// buffer.
-    pub loaded:       RwSignal<bool>,
+    pub loaded:    RwSignal<bool>,
     // pub kind: RwSignal<EditorViewKind>,
-    pub code_actions: RwSignal<CodeActions>,
-    pub code_lens:    RwSignal<AllCodeLens>,
+    pub code_lens: RwSignal<AllCodeLens>,
 
     /// Stores information about different versions of the document from source
     /// control.
@@ -190,7 +185,6 @@ impl Doc {
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
-            code_actions: cx.create_rw_signal(im::HashMap::new()),
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
@@ -270,7 +264,6 @@ impl Doc {
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
             loaded: cx.create_rw_signal(true),
             find_result: FindResult::new(cx),
-            code_actions: cx.create_rw_signal(im::HashMap::new()),
             // preedit: PreeditData::new(cx),
             common,
             code_lens: cx.create_rw_signal(im::HashMap::new()),
@@ -356,7 +349,6 @@ impl Doc {
             loaded: cx.create_rw_signal(false),
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
-            code_actions: cx.create_rw_signal(im::HashMap::new()),
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
@@ -620,7 +612,6 @@ impl Doc {
             self.find_result.reset();
             self.get_semantic_styles();
             // self.do_bracket_colorization();
-            self.clear_code_actions();
             self.clear_style_cache();
             self.get_code_lens();
             self.get_document_symbol();
@@ -721,12 +712,6 @@ impl Doc {
 
     fn clear_style_cache(&self) {
         self.clear_text_cache();
-    }
-
-    fn clear_code_actions(&self) {
-        self.code_actions.update(|c| {
-            c.clear();
-        });
     }
 
     /// Inform any dependents on this document that they should clear any cached
@@ -998,7 +983,6 @@ impl Doc {
     pub fn init_diagnostics(&self) {
         batch(|| {
             self.clear_text_cache();
-            self.clear_code_actions();
             self.lines.update(|x| {
                 if let Err(err) = x.init_diagnostics() {
                     error!("{err:?}");
@@ -1415,10 +1399,6 @@ impl Doc {
                 error!("{err:?}");
             }
         })
-    }
-
-    pub fn code_actions(&self) -> RwSignal<CodeActions> {
-        self.code_actions
     }
 
     /// Returns the offsets of the brackets enclosing the given offset.

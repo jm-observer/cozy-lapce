@@ -2702,24 +2702,6 @@ impl EditorData {
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        let code_actions = doc
-            .code_actions()
-            .with_untracked(|c| c.get(&offset).cloned());
-
-        if let Some((plugin_id, code_actions)) = code_actions {
-            if !code_actions.is_empty() {
-                self.common.internal_command.send(
-                    InternalCommand::ShowCodeActions {
-                        offset,
-                        mouse_click: false,
-                        plugin_id,
-                        code_actions,
-                    },
-                );
-            }
-            return;
-        }
-
         let (position, rev, diagnostics) = doc.lines.with_untracked(|x| {
             let buffer = x.buffer();
             let position = buffer.offset_to_position(offset);
@@ -2754,10 +2736,6 @@ impl EditorData {
         if diagnostics.is_empty() {
             return;
         }
-        // insert some empty data, so that we won't make the request again
-        doc.code_actions().update(|c| {
-            c.insert(offset, (PluginId(0), im::Vector::new()));
-        });
 
         let common = self.common.clone();
         let send = create_ext_action(
@@ -2774,9 +2752,6 @@ impl EditorData {
                             plugin_id: resp.0,
                             code_actions: code_actions.clone(),
                         });
-                    doc.code_actions().update(|c| {
-                        c.insert(offset, (resp.0, code_actions));
-                    });
                 }
             },
         );
