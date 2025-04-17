@@ -36,8 +36,8 @@ impl LapceIcons {
     pub const DEBUG: &'static str = "debug";
     pub const DEBUG_ALT: &'static str = "debug_alt";
     pub const DEBUG_BREAKPOINT: &'static str = "debug_breakpoint";
-    pub const DEBUG_BREAKPOINT_VERIFIED: &'static str = "debug_breakpoint_verified";
     pub const DEBUG_BREAKPOINT_INACTIVE: &'static str = "debug_breakpoint_inactive";
+    pub const DEBUG_BREAKPOINT_VERIFIED: &'static str = "debug_breakpoint_verified";
     pub const DEBUG_CONSOLE: &'static str = "debug_console";
     pub const DEBUG_CONTINUE: &'static str = "debug_continue";
     pub const DEBUG_DISCONNECT: &'static str = "debug_disconnect";
