@@ -215,7 +215,7 @@ impl EditorData {
             let kind = kind.get();
             let signal_paint_content =
                 lines.with_untracked(|x| x.signal_paint_content());
-            let val = signal_paint_content.get();
+            signal_paint_content.track();
             let Some((screen_lines_val, folding_display_item_val, visual_lines_val)) = lines
                 .try_update(|x| {
                     match x.compute_screen_lines_new(base, kind) {
@@ -229,10 +229,10 @@ impl EditorData {
             else {
                 return ;
             };
-            log::warn!(
-                "create_effect _compute_screen_lines {val} base={base:?} {:?}",
-                floem::prelude::SignalGet::id(&signal_paint_content)
-            );
+            // log::warn!(
+            //     "create_effect _compute_screen_lines {val} base={base:?} {:?}",
+            //     floem::prelude::SignalGet::id(&signal_paint_content)
+            // );
             visual_lines.set(visual_lines_val);
             screen_lines.set(screen_lines_val);
             folding_display_item.set(folding_display_item_val);
@@ -3366,7 +3366,7 @@ impl EditorData {
     }
 
     pub fn sync_document_symbol_by_offset(&self, offset: usize) {
-        log::warn!("sync_document_symbol_by_offset offset={offset}",);
+        // log::warn!("sync_document_symbol_by_offset offset={offset}",);
         if self.common.sync_document_symbol.get_untracked() {
             let doc = self.doc();
             let line = doc.lines.with_untracked(|x| {
@@ -3378,12 +3378,12 @@ impl EditorData {
                     if let MatchDocumentSymbol::MatchSymbol(id, scroll_line) =
                         root.match_line_with_children(line as u32)
                     {
-                        log::warn!(
-                            "MatchDocumentSymbol::MatchSymbol {:?} line={} \
-                             scroll_line={scroll_line}",
-                            id,
-                            line
-                        );
+                        // log::warn!(
+                        //     "MatchDocumentSymbol::MatchSymbol {:?} line={} \
+                        //      scroll_line={scroll_line}",
+                        //     id,
+                        //     line
+                        // );
                         batch(|| {
                             doc.document_symbol_data.select.set(Some(id));
                             doc.document_symbol_data

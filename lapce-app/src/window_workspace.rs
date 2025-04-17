@@ -2463,11 +2463,15 @@ cmd.wait()?;
                 });
                 if diagnostics.is_empty() && !old_is_empty {
                     let docs = self.main_split.docs;
-                    exec_after(Duration::from_millis(100), move |_| {
+                    exec_after(Duration::from_millis(500), move |_| {
                         let now_id = diag.id.with_untracked(|x| {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
                         if now_id == id {
+                            warn!(
+                                "PublishDiagnostics exec_after {path:?} \
+                                 {now_id}={id}",
+                            );
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
                                 path:      path.clone(),

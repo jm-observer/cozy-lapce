@@ -1919,10 +1919,7 @@ fn editor_content(
                 editor.ensure_visible.set(current_scroll.get_untracked());
                 return;
             };
-            log::warn!(
-                "ensure_visible offset={offset} \
-                 offset_line_from_top={offset_line_from_top:?} {origin_point:?}",
-            );
+
             let ensure_visiable = if let Some(height) = offset_line_from_top {
                 // from jump
                 // let height = offset_line_from_top.unwrap_or(5) as f64 *
@@ -1959,8 +1956,23 @@ fn editor_content(
                 rect
             } else {
                 // from click maybe
-                Rect::from_center_size(origin_point, (1.0, line_height * 3.0))
+                // let viewport = editor.viewport.get_untracked().size();
+                // log::warn!("viewport={viewport:?}");
+                //
+                // Rect::from_center_size(
+                //     origin_point,
+                //     (viewport.width, viewport.height),
+                // )
+                Rect::from_center_size(origin_point, (2.0, line_height * 6.0))
             };
+            log::warn!(
+                "ensure_visible offset={offset} \
+                 offset_line_from_top={offset_line_from_top:?} origin_point.y={} \
+                 ensure_visiable={}-{}",
+                origin_point.y,
+                ensure_visiable.y0,
+                ensure_visiable.y1
+            );
             editor.ensure_visible.set(ensure_visiable);
         });
     }
