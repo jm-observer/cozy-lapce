@@ -16,6 +16,7 @@ on:
       - lapce-**
       - crates
       - examples
+  workflow_dispatch:
 
 name: CI
 
