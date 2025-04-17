@@ -128,9 +128,9 @@ jobs:
         run: |
           rustup update --no-self-update
 
-      - name: Install dependencies on Ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
-        run: sudo make ubuntu-deps
+      # - name: Install dependencies on Ubuntu
+      #   if: startsWith(matrix.os, 'ubuntu')
+      #   run: sudo make ubuntu-deps
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
