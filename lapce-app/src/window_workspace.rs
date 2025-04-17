@@ -71,7 +71,7 @@ use crate::{
     completion::{CompletionData, CompletionStatus},
     config::{LapceConfig, WithLapceConfig},
     db::LapceDb,
-    debug::{DapData, update_breakpoints},
+    debug::{BreakPoints, DapData, update_breakpoints},
     editor::location::{EditorLocation, EditorPosition},
     editor_tab::EditorTabChildId,
     file_explorer::data::FileExplorerData,
@@ -218,7 +218,7 @@ pub struct CommonData {
     pub config:                WithLapceConfig,
     pub proxy_status:          RwSignal<Option<ProxyStatus>>,
     pub mouse_hover_timer:     RwSignal<TimerToken>,
-    pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+    pub breakpoints:           BreakPoints,
     // the current focused view which will receive keyboard events
     pub keyboard_focus:        RwSignal<Option<ViewId>>,
     pub window_common:         Rc<WindowCommonData>,
@@ -242,31 +242,7 @@ impl CommonData {
     pub fn source_breakpoints(
         &self,
     ) -> std::collections::HashMap<PathBuf, Vec<SourceBreakpoint>> {
-        self.breakpoints
-            .get_untracked()
-            .iter()
-            .map(|(path, breakpoints)| {
-                (
-                    path.to_path_buf(),
-                    breakpoints
-                        .iter()
-                        .filter_map(|(_, b)| {
-                            if b.active {
-                                Some(SourceBreakpoint {
-                                    line:          b.line + 1,
-                                    column:        None,
-                                    condition:     None,
-                                    hit_condition: None,
-                                    log_message:   None,
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect(),
-                )
-            })
-            .collect()
+        self.breakpoints.source_breakpoints_untracked()
     }
 }
 
@@ -508,7 +484,9 @@ impl WindowWorkspaceData {
             proxy_status,
             mouse_hover_timer: cx.create_rw_signal(TimerToken::INVALID),
             window_origin: cx.create_rw_signal(Point::ZERO),
-            breakpoints: cx.create_rw_signal(BTreeMap::new()),
+            breakpoints: BreakPoints {
+                breakpoints: cx.create_rw_signal(BTreeMap::new()),
+            },
             keyboard_focus: cx.create_rw_signal(None),
             window_common: window_common.clone(),
             directory: directory.clone(),
@@ -2618,40 +2596,11 @@ cmd.wait()?;
             CoreNotification::DapBreakpointsResp {
                 path, breakpoints, ..
             } => {
-                self.terminal.common.breakpoints.update(|all_breakpoints| {
-                    if let Some(current_breakpoints) = all_breakpoints.get_mut(path)
-                    {
-                        let mut line_changed = HashSet::new();
-                        let mut i = 0;
-                        for (_, current_breakpoint) in current_breakpoints.iter_mut()
-                        {
-                            if !current_breakpoint.active {
-                                continue;
-                            }
-                            if let Some(breakpoint) = breakpoints.get(i) {
-                                current_breakpoint.id = breakpoint.id;
-                                current_breakpoint.verified = breakpoint.verified;
-                                current_breakpoint
-                                    .message
-                                    .clone_from(&breakpoint.message);
-                                if let Some(new_line) = breakpoint.line {
-                                    if current_breakpoint.line + 1 != new_line {
-                                        line_changed.insert(current_breakpoint.line);
-                                        current_breakpoint.line =
-                                            new_line.saturating_sub(1);
-                                    }
-                                }
-                            }
-                            i += 1;
-                        }
-                        for line in line_changed {
-                            if let Some(changed) = current_breakpoints.remove(&line)
-                            {
-                                current_breakpoints.insert(changed.line, changed);
-                            }
-                        }
-                    }
-                });
+                log::error!("DapBreakpointsResp {path:?} {breakpoints:?}");
+                self.terminal
+                    .common
+                    .breakpoints
+                    .update_by_dap_resp(path, breakpoints);
             },
             CoreNotification::OpenFileChanged { path, content } => {
                 self.main_split.open_file_changed(path, content);
@@ -2779,16 +2728,7 @@ cmd.wait()?;
         WorkspaceInfo {
             split:       main_split_data.get_untracked().split_info(self),
             panel:       self.panel.panel_info(),
-            breakpoints: self
-                .terminal
-                .common
-                .breakpoints
-                .get_untracked()
-                .into_iter()
-                .map(|(path, breakpoints)| {
-                    (path, breakpoints.into_values().collect::<Vec<_>>())
-                })
-                .collect(),
+            breakpoints: self.terminal.common.breakpoints.clone_for_hashmap(),
         }
     }
 

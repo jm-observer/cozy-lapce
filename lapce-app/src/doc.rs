@@ -11,7 +11,6 @@ use std::{
     },
 };
 
-use anyhow::Result;
 use doc::{
     diagnostic::DiagnosticData,
     language::LapceLanguage,
@@ -44,11 +43,9 @@ use floem::{
     text::FamilyOwned,
 };
 use itertools::Itertools;
-use lapce_core::{
-    debug::LapceBreakpoint, doc::DocContent, workspace::LapceWorkspace,
-};
+use lapce_core::{doc::DocContent, workspace::LapceWorkspace};
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
-use lapce_xi_rope::{Interval, Rope, RopeDelta, Transformer, spans::SpansBuilder};
+use lapce_xi_rope::{Interval, Rope, RopeDelta, spans::SpansBuilder};
 use log::{debug, error};
 use lsp_types::{CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
@@ -1053,40 +1050,10 @@ impl Doc {
     }
 
     fn update_breakpoints(&self, delta: &RopeDelta, path: &Path, old_text: &Rope) {
-        if self
-            .common
-            .breakpoints
-            .with_untracked(|breakpoints| breakpoints.contains_key(path))
-        {
-            self.common.breakpoints.update(|breakpoints| {
-                if let Some(path_breakpoints) = breakpoints.get_mut(path) {
-                    let mut transformer = Transformer::new(delta);
-                    self.lines.with_untracked(|buffer| {
-                        let buffer = buffer.buffer();
-                        *path_breakpoints = path_breakpoints
-                            .clone()
-                            .into_values()
-                            .map(|mut b| {
-                                let offset = old_text.offset_of_line(b.line)?;
-                                let offset = transformer.transform(offset, false);
-                                let line = buffer.line_of_offset(offset);
-                                b.line = line;
-                                b.offset = offset;
-                                Ok((b.line, b))
-                            })
-                            .filter_map(
-                                |x: Result<(usize, LapceBreakpoint)>| match x {
-                                    Ok(rs) => Some(rs),
-                                    Err(err) => {
-                                        error!("{err:?}");
-                                        None
-                                    },
-                                },
-                            )
-                            .collect();
-                    });
-                }
-            });
+        if self.common.breakpoints.contains_path(path) {
+            self.common
+                .breakpoints
+                .update_by_rope_delta(delta, path, old_text, self.lines);
         }
     }
 

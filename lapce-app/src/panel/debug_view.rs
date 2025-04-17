@@ -655,14 +655,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
     container(
         scroll(
             dyn_stack(
-                move || {
-                    breakpoints
-                        .get()
-                        .into_iter()
-                        .flat_map(|(path, breakpoints)| {
-                            breakpoints.into_values().map(move |b| (path.clone(), b))
-                        })
-                },
+                move || breakpoints.view_data(),
                 move |(path, breakpoint)| {
                     (path.clone(), breakpoint.line, breakpoint.active)
                 },

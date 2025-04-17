@@ -21,9 +21,7 @@ pub fn gutter_data(
     let doc = e_data.doc_signal().get();
     let content = doc.content.get();
     let breakpoints = if let Some(path) = content.path() {
-        breakpoints
-            .with(|b| b.get(path).cloned())
-            .unwrap_or_default()
+        breakpoints.get_by_path_tracked(path)
     } else {
         Default::default()
     };

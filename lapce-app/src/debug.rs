@@ -1,9 +1,10 @@
 use std::{
-    collections::{BTreeMap, HashMap},
-    path::PathBuf,
+    collections::{BTreeMap, HashMap, HashSet},
+    path::{Path, PathBuf},
     rc::Rc,
 };
 
+use doc::lines::{DocLinesManager, buffer::rope_text::RopeText};
 use floem::{
     ext_event::create_ext_action,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
@@ -19,6 +20,8 @@ use lapce_rpc::{
     proxy::{ProxyResponse, ProxyRpcHandler},
     terminal::TermId,
 };
+use lapce_xi_rope::{Rope, RopeDelta, Transformer};
+use log::error;
 
 use crate::{
     command::InternalCommand,
@@ -26,18 +29,268 @@ use crate::{
     window_workspace::CommonData,
 };
 
+#[derive(Clone, Copy)]
+pub struct BreakPoints {
+    pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+}
+
+impl BreakPoints {
+    pub fn clone_for_hashmap(&self) -> HashMap<PathBuf, Vec<LapceBreakpoint>> {
+        self.breakpoints
+            .get_untracked()
+            .into_iter()
+            .map(|(path, breakpoints)| {
+                (path, breakpoints.into_values().collect::<Vec<_>>())
+            })
+            .collect()
+    }
+
+    pub fn set(
+        &self,
+        breakpoints: BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>,
+    ) {
+        self.breakpoints.set(breakpoints);
+    }
+
+    pub fn add_or_remove_by_path_line_offset(
+        &self,
+        path: &Path,
+        line: usize,
+        offset: usize,
+    ) -> BTreeMap<usize, LapceBreakpoint> {
+        self.breakpoints
+            .try_update(|breakpoints| {
+                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
+                if let std::collections::btree_map::Entry::Vacant(e) =
+                    breakpoints.entry(line)
+                {
+                    e.insert(LapceBreakpoint {
+                        id: None,
+                        verified: false,
+                        message: None,
+                        line,
+                        offset,
+                        dap_line: None,
+                        active: true,
+                    });
+                } else {
+                    breakpoints.remove(&line);
+                }
+                breakpoints.clone()
+            })
+            .unwrap()
+    }
+
+    pub fn add_by_path_line_offset(
+        &self,
+        path: &Path,
+        line: usize,
+        offset: usize,
+    ) -> BTreeMap<usize, LapceBreakpoint> {
+        self.breakpoints
+            .try_update(|breakpoints| {
+                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
+                if let std::collections::btree_map::Entry::Vacant(e) =
+                    breakpoints.entry(line)
+                {
+                    e.insert(LapceBreakpoint {
+                        id: None,
+                        verified: false,
+                        message: None,
+                        line,
+                        offset,
+                        dap_line: None,
+                        active: true,
+                    });
+                } else {
+                    let mut toggle_active = false;
+                    if let Some(breakpint) = breakpoints.get_mut(&line) {
+                        if !breakpint.active {
+                            breakpint.active = true;
+                            toggle_active = true;
+                        }
+                    }
+                    if !toggle_active {
+                        breakpoints.remove(&line);
+                    }
+                }
+                breakpoints.clone()
+            })
+            .unwrap()
+    }
+
+    pub fn toggle_by_path_line(
+        &self,
+        path: &Path,
+        line: usize,
+    ) -> BTreeMap<usize, LapceBreakpoint> {
+        self.breakpoints
+            .try_update(|breakpoints| {
+                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
+                if let Some(breakpint) = breakpoints.get_mut(&line) {
+                    breakpint.active = !breakpint.active;
+                }
+                breakpoints.clone()
+            })
+            .unwrap()
+    }
+
+    pub fn remove_by_path_line(
+        &self,
+        path: &Path,
+        line: usize,
+    ) -> BTreeMap<usize, LapceBreakpoint> {
+        self.breakpoints
+            .try_update(|breakpoints| {
+                let path_breakpoints =
+                    breakpoints.entry(path.to_path_buf()).or_default();
+                path_breakpoints.remove(&line);
+                if path_breakpoints.is_empty() {
+                    breakpoints.remove(path);
+                    BTreeMap::new()
+                } else {
+                    path_breakpoints.clone()
+                }
+            })
+            .unwrap()
+    }
+
+    pub fn get_by_path_tracked(
+        &self,
+        path: &Path,
+    ) -> BTreeMap<usize, LapceBreakpoint> {
+        self.breakpoints
+            .with(|x| x.get(path).cloned().unwrap_or_default())
+    }
+
+    pub fn update_by_dap_resp(
+        &self,
+        path: &PathBuf,
+        breakpoints: &Vec<dap_types::Breakpoint>,
+    ) {
+        self.breakpoints.update(|all_breakpoints| {
+            if let Some(current_breakpoints) = all_breakpoints.get_mut(path) {
+                let mut line_changed = HashSet::new();
+                let mut i = 0;
+                for (_, current_breakpoint) in current_breakpoints.iter_mut() {
+                    if !current_breakpoint.active {
+                        continue;
+                    }
+                    if let Some(breakpoint) = breakpoints.get(i) {
+                        current_breakpoint.id = breakpoint.id;
+                        current_breakpoint.verified = breakpoint.verified;
+                        current_breakpoint.message.clone_from(&breakpoint.message);
+                        if let Some(new_line) = breakpoint.line {
+                            if current_breakpoint.line + 1 != new_line {
+                                line_changed.insert(current_breakpoint.line);
+                                current_breakpoint.line = new_line.saturating_sub(1);
+                            }
+                        }
+                    }
+                    i += 1;
+                }
+                for line in line_changed {
+                    if let Some(changed) = current_breakpoints.remove(&line) {
+                        current_breakpoints.insert(changed.line, changed);
+                    }
+                }
+            }
+        });
+    }
+
+    pub fn update_by_rope_delta(
+        &self,
+        delta: &RopeDelta,
+        path: &Path,
+        old_text: &Rope,
+        lines: DocLinesManager,
+    ) {
+        self.breakpoints.update(|breakpoints| {
+            if let Some(path_breakpoints) = breakpoints.get_mut(path) {
+                let mut transformer = Transformer::new(delta);
+                lines.with_untracked(|buffer| {
+                    let buffer = buffer.buffer();
+                    *path_breakpoints = path_breakpoints
+                        .clone()
+                        .into_values()
+                        .map(|mut b| {
+                            let offset = old_text.offset_of_line(b.line)?;
+                            let offset = transformer.transform(offset, false);
+                            let line = buffer.line_of_offset(offset);
+                            b.line = line;
+                            b.offset = offset;
+                            Ok((b.line, b))
+                        })
+                        .filter_map(|x: anyhow::Result<(usize, LapceBreakpoint)>| {
+                            match x {
+                                Ok(rs) => Some(rs),
+                                Err(err) => {
+                                    error!("{err:?}");
+                                    None
+                                },
+                            }
+                        })
+                        .collect();
+                });
+            }
+        })
+    }
+
+    pub fn source_breakpoints_untracked(
+        &self,
+    ) -> std::collections::HashMap<PathBuf, Vec<SourceBreakpoint>> {
+        self.breakpoints
+            .get_untracked()
+            .iter()
+            .map(|(path, breakpoints)| {
+                (
+                    path.to_path_buf(),
+                    breakpoints
+                        .iter()
+                        .filter_map(|(_, b)| {
+                            if b.active {
+                                Some(SourceBreakpoint {
+                                    line:          b.line + 1,
+                                    column:        None,
+                                    condition:     None,
+                                    hit_condition: None,
+                                    log_message:   None,
+                                })
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+
+    pub fn contains_path(&self, path: &Path) -> bool {
+        self.breakpoints.with_untracked(|x| x.contains_key(path))
+    }
+
+    pub fn view_data(
+        &self,
+    ) -> impl IntoIterator<Item = (PathBuf, LapceBreakpoint)> {
+        self.breakpoints
+            .get()
+            .into_iter()
+            .flat_map(|(path, breakpoints)| {
+                breakpoints.into_values().map(move |b| (path.clone(), b))
+            })
+    }
+}
+
 #[derive(Clone)]
 pub struct RunDebugData {
     pub active_term: RwSignal<Option<TermId>>,
     pub daps:        RwSignal<im::HashMap<DapId, DapData>>,
-    pub breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+    pub breakpoints: BreakPoints,
 }
 
 impl RunDebugData {
-    pub fn new(
-        cx: Scope,
-        breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
-    ) -> Self {
+    pub fn new(cx: Scope, breakpoints: BreakPoints) -> Self {
         let active_term: RwSignal<Option<TermId>> = cx.create_rw_signal(None);
         let daps: RwSignal<im::HashMap<DapId, DapData>> =
             cx.create_rw_signal(im::HashMap::new());
@@ -400,83 +653,24 @@ impl DapVariable {
 pub fn update_breakpoints(
     daps: RwSignal<im::HashMap<DapId, DapData>>,
     proxy: ProxyRpcHandler,
-    breakpoints: RwSignal<BTreeMap<PathBuf, BTreeMap<usize, LapceBreakpoint>>>,
+    breakpoints: BreakPoints,
     action: BreakpointAction,
 ) {
     let (path_breakpoints, path) = match action {
-        BreakpointAction::Remove { path, line } => breakpoints
-            .try_update(|breakpoints| {
-                let path_breakpoints =
-                    breakpoints.entry(path.to_path_buf()).or_default();
-                path_breakpoints.remove(&line);
-                if path_breakpoints.is_empty() {
-                    breakpoints.remove(path);
-                    (BTreeMap::new(), path)
-                } else {
-                    (path_breakpoints.clone(), path)
-                }
-            })
-            .unwrap(),
-        BreakpointAction::Add { path, line, offset } => breakpoints
-            .try_update(|breakpoints| {
-                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
-                if let std::collections::btree_map::Entry::Vacant(e) =
-                    breakpoints.entry(line)
-                {
-                    e.insert(LapceBreakpoint {
-                        id: None,
-                        verified: false,
-                        message: None,
-                        line,
-                        offset,
-                        dap_line: None,
-                        active: true,
-                    });
-                } else {
-                    let mut toggle_active = false;
-                    if let Some(breakpint) = breakpoints.get_mut(&line) {
-                        if !breakpint.active {
-                            breakpint.active = true;
-                            toggle_active = true;
-                        }
-                    }
-                    if !toggle_active {
-                        breakpoints.remove(&line);
-                    }
-                }
-                (breakpoints.clone(), path)
-            })
-            .unwrap(),
-        BreakpointAction::Toggle { path, line } => breakpoints
-            .try_update(|breakpoints| {
-                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
-                if let Some(breakpint) = breakpoints.get_mut(&line) {
-                    breakpint.active = !breakpint.active;
-                }
-                (breakpoints.clone(), path)
-            })
-            .unwrap(),
-        BreakpointAction::AddOrRemove { path, line, offset } => breakpoints
-            .try_update(|breakpoints| {
-                let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
-                if let std::collections::btree_map::Entry::Vacant(e) =
-                    breakpoints.entry(line)
-                {
-                    e.insert(LapceBreakpoint {
-                        id: None,
-                        verified: false,
-                        message: None,
-                        line,
-                        offset,
-                        dap_line: None,
-                        active: true,
-                    });
-                } else {
-                    breakpoints.remove(&line);
-                }
-                (breakpoints.clone(), path)
-            })
-            .unwrap(),
+        BreakpointAction::Remove { path, line } => {
+            (breakpoints.remove_by_path_line(path, line), path)
+        },
+        BreakpointAction::Add { path, line, offset } => (
+            breakpoints.add_by_path_line_offset(path, line, offset),
+            path,
+        ),
+        BreakpointAction::Toggle { path, line } => {
+            (breakpoints.toggle_by_path_line(path, line), path)
+        },
+        BreakpointAction::AddOrRemove { path, line, offset } => (
+            breakpoints.add_or_remove_by_path_line_offset(path, line, offset),
+            path,
+        ),
     };
 
     let source_breakpoints: Vec<SourceBreakpoint> = path_breakpoints
