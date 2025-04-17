@@ -29,8 +29,9 @@ impl LapceColor {
     pub const COMPLETION_LENS_FOREGROUND: &'static str =
         "completion_lens.foreground";
     pub const DEBUG_BREAKPOINT: &'static str = "debug.breakpoint";
-    pub const DEBUG_BREAKPOINT_COMMITED: &'static str = "debug.breakpoint.commited";
     pub const DEBUG_BREAKPOINT_HOVER: &'static str = "debug.breakpoint.hover";
+    pub const DEBUG_BREAKPOINT_VERIFIED: &'static str = "debug.breakpoint.verified";
+    pub const DEBUG_BREAKPOINT_INACTIVE: &'static str = "debug.breakpoint.inactive";
     pub const EDITOR_BACKGROUND: &'static str = "editor.background";
     pub const EDITOR_BRACKET: &'static str = "editor.bracket";
     pub const EDITOR_CARET: &'static str = "editor.caret";

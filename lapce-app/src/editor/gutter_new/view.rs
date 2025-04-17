@@ -36,6 +36,36 @@ fn gutter_marker_breakpoint_svg_view(config: WithLapceConfig) -> Svg {
     })
 }
 
+fn gutter_marker_breakpoint_verified_svg_view(config: WithLapceConfig) -> Svg {
+    svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT_VERIFIED)).style(
+        move |s| {
+            let (icon_size, color) = config.signal(|config| {
+                (
+                    config.ui.icon_size.signal(),
+                    config.color(LapceColor::DEBUG_BREAKPOINT_VERIFIED),
+                )
+            });
+            let size = icon_size.get() as f64;
+            s.size(size, size).color(color.get())
+        },
+    )
+}
+
+fn gutter_marker_breakpoint_inactive_svg_view(config: WithLapceConfig) -> Svg {
+    svg(move || config.with_ui_svg(LapceIcons::DEBUG_BREAKPOINT_INACTIVE)).style(
+        move |s| {
+            let (icon_size, color) = config.signal(|config| {
+                (
+                    config.ui.icon_size.signal(),
+                    config.color(LapceColor::DEBUG_BREAKPOINT_INACTIVE),
+                )
+            });
+            let size = icon_size.get() as f64;
+            s.size(size, size).color(color.get())
+        },
+    )
+}
+
 fn gutter_marker_code_len_svg_view(
     window_tab_data: WindowWorkspaceData,
     line: Option<usize>,
@@ -153,6 +183,12 @@ fn marker_view(
             doc_signal,
         ),
         GutterMarker::Breakpoint => gutter_marker_breakpoint_svg_view(config),
+        GutterMarker::BreakpointVerified => {
+            gutter_marker_breakpoint_verified_svg_view(config)
+        },
+        GutterMarker::BreakpointInactive => {
+            gutter_marker_breakpoint_inactive_svg_view(config)
+        },
     };
     let origin_line_start = data.origin_line_start;
     container(svg)

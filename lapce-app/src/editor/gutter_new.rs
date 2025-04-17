@@ -77,19 +77,45 @@ pub fn gutter_data(
                                 style_font_size,
                                 style_font_family: font_family.1.clone(),
                             }
-                        } else if breakpoints
-                            .contains_key(&text.folded_line.origin_line_start)
+                        } else if let Some(breakpoint) =
+                            breakpoints.get(&text.folded_line.origin_line_start)
                         {
-                            GutterData {
-                                origin_line_start: Some(
-                                    text.folded_line.origin_line_start,
-                                ),
-                                paint_point_y: text.folded_line_y,
-                                marker: GutterMarker::Breakpoint,
-                                style_color,
-                                style_width: width,
-                                style_font_size,
-                                style_font_family: font_family.1.clone(),
+                            if breakpoint.verified {
+                                GutterData {
+                                    origin_line_start: Some(
+                                        text.folded_line.origin_line_start,
+                                    ),
+                                    paint_point_y: text.folded_line_y,
+                                    marker: GutterMarker::BreakpointVerified,
+                                    style_color,
+                                    style_width: width,
+                                    style_font_size,
+                                    style_font_family: font_family.1.clone(),
+                                }
+                            } else if breakpoint.active {
+                                GutterData {
+                                    origin_line_start: Some(
+                                        text.folded_line.origin_line_start,
+                                    ),
+                                    paint_point_y: text.folded_line_y,
+                                    marker: GutterMarker::Breakpoint,
+                                    style_color,
+                                    style_width: width,
+                                    style_font_size,
+                                    style_font_family: font_family.1.clone(),
+                                }
+                            } else {
+                                GutterData {
+                                    origin_line_start: Some(
+                                        text.folded_line.origin_line_start,
+                                    ),
+                                    paint_point_y: text.folded_line_y,
+                                    marker: GutterMarker::BreakpointInactive,
+                                    style_color,
+                                    style_width: width,
+                                    style_font_size,
+                                    style_font_family: font_family.1.clone(),
+                                }
                             }
                         } else {
                             GutterData {
@@ -163,7 +189,9 @@ impl Hash for GutterData {
 pub enum GutterMarker {
     None,
     CodeLen,
-    Breakpoint, // CodeLenAndBreakPoint,
+    Breakpoint,
+    BreakpointInactive,
+    BreakpointVerified, // CodeLenAndBreakPoint,
 }
 
 #[derive(Debug, Clone, Hash, Copy, Eq, PartialEq)]

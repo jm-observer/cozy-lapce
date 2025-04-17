@@ -169,6 +169,8 @@ decorator = "$purple"
 "activity.current" = "$primary-background"
 
 "debug.breakpoint" = "$red"
+"debug.breakpoint.verified" = "$red"
+"debug.breakpoint.inactive" = "$red"
 "debug.breakpoint.hover" = "#E06C7566"
 
 "panel.background" = "$secondary-background"
