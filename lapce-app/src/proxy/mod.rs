@@ -15,12 +15,10 @@ use lapce_rpc::{
     core::{CoreHandler, CoreNotification, CoreRpcHandler},
     plugin::VoltID,
     proxy::{ProxyRpcHandler, ProxyStatus},
-    terminal::TermId,
 };
 use log::error;
 
 use self::{remote::start_remote, ssh::SshRemote};
-use crate::terminal::event::TermEvent;
 
 mod remote;
 mod ssh;
@@ -28,8 +26,7 @@ mod ssh;
 mod wsl;
 
 pub struct Proxy {
-    pub tx:      Sender<CoreNotification>,
-    pub term_tx: Sender<(TermId, TermEvent)>,
+    pub tx: Sender<CoreNotification>,
 }
 
 #[derive(Clone)]
@@ -51,12 +48,10 @@ pub fn new_proxy(
     disabled_volts: Vec<VoltID>,
     extra_plugin_paths: Vec<PathBuf>,
     plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
-    term_tx: Sender<(TermId, TermEvent)>,
     directory: &Directory,
 ) -> ProxyData {
     let proxy_rpc = ProxyRpcHandler::new();
     let core_rpc = CoreRpcHandler::new();
-
     {
         let core_rpc = core_rpc.clone();
         let proxy_rpc = proxy_rpc.clone();
@@ -124,7 +119,7 @@ pub fn new_proxy(
         std::thread::Builder::new()
             .name("CoreRpcHandler".to_owned())
             .spawn(move || {
-                let mut proxy = Proxy { tx, term_tx };
+                let mut proxy = Proxy { tx };
                 core_rpc.mainloop(&mut proxy);
                 core_rpc.notification(CoreNotification::ProxyStatus {
                     status: ProxyStatus::Connected,
@@ -144,15 +139,15 @@ pub fn new_proxy(
 
 impl CoreHandler for Proxy {
     fn handle_notification(&mut self, rpc: lapce_rpc::core::CoreNotification) {
-        if let CoreNotification::UpdateTerminal { term_id, content } = &rpc {
-            if let Err(err) = self
-                .term_tx
-                .send((*term_id, TermEvent::UpdateContent(content.to_vec())))
-            {
-                log::error!("{:?}", err);
-            }
-            return;
-        }
+        // if let CoreNotification::UpdateTerminal { term_id, content } = &rpc {
+        //     if let Err(err) = self
+        //         .term_tx
+        //         .send((*term_id, TermEvent::UpdateContent(content.to_vec())))
+        //     {
+        //         log::error!("{:?}", err);
+        //     }
+        //     return;
+        // }
         if let Err(err) = self.tx.send(rpc) {
             log::error!("{:?}", err);
         }

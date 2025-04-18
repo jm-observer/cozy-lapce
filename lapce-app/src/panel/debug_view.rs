@@ -686,7 +686,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             move || {
                                 update_breakpoints(
                                     daps,
-                                    proxy.clone(),
+                                    proxy.proxy_rpc.clone(),
                                     breakpoints,
                                     BreakpointAction::Remove {
                                         path: &full_path_for_close,
@@ -715,7 +715,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                             .on_click_stop(move |_| {
                                 update_breakpoints(
                                     daps,
-                                    toggle_proxy.clone(),
+                                    toggle_proxy.proxy_rpc.clone(),
                                     breakpoints,
                                     BreakpointAction::Toggle {
                                         path: &full_path,

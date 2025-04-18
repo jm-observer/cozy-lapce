@@ -444,11 +444,13 @@ impl MainSplitData {
                 }
             });
 
-            self.common
-                .proxy
-                .new_buffer(doc.buffer_id, path, move |(_, result)| {
+            self.common.proxy.proxy_rpc.new_buffer(
+                doc.buffer_id,
+                path,
+                move |(_, result)| {
                     send(result);
-                });
+                },
+            );
         }
         if lsp_req {
             doc.get_code_lens();
@@ -534,9 +536,12 @@ impl MainSplitData {
                 }
             })
         };
-        self.common.proxy.get_buffer_head(path, move |(_, result)| {
-            send(result);
-        });
+        self.common
+            .proxy
+            .proxy_rpc
+            .get_buffer_head(path, move |(_, result)| {
+                send(result);
+            });
 
         self.get_editor_tab_child(
             EditorTabChildSource::DiffEditor { left, right },
@@ -2097,7 +2102,7 @@ impl MainSplitData {
         let send = create_ext_action(self.scope, move |edit| {
             main_split.apply_workspace_edit(&edit);
         });
-        self.common.proxy.code_action_resolve(
+        self.common.proxy.proxy_rpc.code_action_resolve(
             action,
             plugin_id,
             move |(_, result)| {
@@ -2414,7 +2419,7 @@ impl MainSplitData {
                         }
                     })
                 };
-                self.common.proxy.save_buffer_as(
+                self.common.proxy.proxy_rpc.save_buffer_as(
                     buffer_id,
                     path,
                     rev,
@@ -2466,7 +2471,7 @@ impl MainSplitData {
                         }
                     })
                 };
-                self.common.proxy.save_buffer_as(
+                self.common.proxy.proxy_rpc.save_buffer_as(
                     buffer_id,
                     path,
                     rev,
@@ -3177,7 +3182,7 @@ impl MainSplitData {
                                 doc.init_content(Rope::from(content));
                             }
                         });
-                        common.proxy.get_buffer_head(
+                        common.proxy.proxy_rpc.get_buffer_head(
                             history.path.clone(),
                             move |(_, result)| {
                                 send(result);

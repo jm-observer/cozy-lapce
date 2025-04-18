@@ -280,7 +280,7 @@ impl GlobalSearchData {
                         }
                     })
                 };
-                global_search.common.proxy.global_search(
+                global_search.common.proxy.proxy_rpc.global_search(
                     pattern,
                     case_sensitive,
                     whole_word,

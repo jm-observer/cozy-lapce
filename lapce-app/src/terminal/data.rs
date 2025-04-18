@@ -33,10 +33,7 @@ use lapce_rpc::{
 use parking_lot::RwLock;
 use url::Url;
 
-use super::{
-    event::TermEvent,
-    raw::{EventProxy, RawTerminal},
-};
+use super::raw::{EventProxy, RawTerminal};
 use crate::{
     command::CommandKind,
     keypress::{KeyPressFocus, condition::Condition},
@@ -317,7 +314,7 @@ impl KeyPressFocus for TerminalData {
     fn receive_char(&self, c: &str) {
         self.data.with_untracked(|x| {
             if x.mode == Mode::Terminal {
-                self.common.proxy.terminal_write(
+                self.common.proxy.proxy_rpc.terminal_write(
                     self.term_id,
                     x.raw_id,
                     c.to_string(),
@@ -397,8 +394,7 @@ impl TerminalData {
         let raw = Arc::new(RwLock::new(RawTerminal::new(
             term_id,
             raw_id,
-            common.proxy.clone(),
-            common.term_notification_tx.clone(),
+            common.clone(),
         )));
 
         let mut profile = profile.unwrap_or_default();
@@ -443,13 +439,16 @@ impl TerminalData {
         }
 
         {
-            let raw = raw.clone();
-            if let Err(err) =
-                common.term_tx.send((term_id, TermEvent::NewTerminal(raw)))
-            {
-                log::error!("{:?}", err);
-            }
-            common.proxy.new_terminal(term_id, raw_id, profile);
+            // let raw = raw.clone();
+            // if let Err(err) =
+            //     common.term_tx.send((term_id, TermEvent::NewTerminal(raw)))
+            // {
+            //     log::error!("{:?}", err);
+            // }
+            common
+                .proxy
+                .proxy_rpc
+                .new_terminal(term_id, raw_id, profile);
         }
 
         (raw, raw_id, launch_error)
@@ -784,6 +783,7 @@ impl TerminalData {
 
         self.common
             .proxy
+            .proxy_rpc
             .terminal_resize(self.term_id, width, height);
     }
 
@@ -797,9 +797,12 @@ impl TerminalData {
             (None, x.raw_id)
         });
         if let Some(dap_id) = dap_id {
-            self.common.proxy.dap_stop(dap_id);
+            self.common.proxy.proxy_rpc.dap_stop(dap_id);
         }
-        self.common.proxy.terminal_close(self.term_id, raw_id);
+        self.common
+            .proxy
+            .proxy_rpc
+            .terminal_close(self.term_id, raw_id);
     }
 }
 

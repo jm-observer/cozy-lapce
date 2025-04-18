@@ -4,6 +4,7 @@ use alacritty_terminal::{grid::Dimensions, term::test::TermSize};
 use anyhow::{Result, anyhow};
 use doc::lines::mode::Mode;
 use floem::{
+    ViewId,
     ext_event::create_ext_action,
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
 };
@@ -30,7 +31,7 @@ use crate::{
     debug::{DapData, DapVariable, RunDebugData},
     keypress::{EventRef, KeyPressData, KeyPressFocus, KeyPressHandle},
     main_split::MainSplitData,
-    terminal::{event::TermEvent, raw::RawTerminal},
+    terminal::raw::RawTerminal,
     window_workspace::{CommonData, Focus},
 };
 pub struct TerminalTabInfo {
@@ -79,6 +80,7 @@ pub struct TerminalPanelData {
     pub breakline:  Memo<Option<(usize, PathBuf)>>,
     pub common:     Rc<CommonData>,
     pub main_split: MainSplitData,
+    view_id:        RwSignal<ViewId>,
 }
 
 impl TerminalPanelData {
@@ -87,6 +89,7 @@ impl TerminalPanelData {
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
         main_split: MainSplitData,
+        view_id: RwSignal<ViewId>,
     ) -> Self {
         // let terminal_tab =
         //     TerminalTabData::new(workspace.clone(), profile, common.clone());
@@ -151,6 +154,7 @@ impl TerminalPanelData {
             breakline,
             common,
             main_split,
+            view_id,
         }
     }
 
@@ -289,6 +293,10 @@ impl TerminalPanelData {
         }
     }
 
+    pub fn request_paint(&self) {
+        self.view_id.get_untracked().request_paint();
+    }
+
     pub fn get_terminal(&self, term_id: TermId) -> Option<TerminalData> {
         self.tab_infos.with_untracked(|info| {
             for tab in &info.tabs {
@@ -374,6 +382,14 @@ impl TerminalPanelData {
         }
     }
 
+    pub fn terminal_update_content(&self, term_id: &TermId, content: &Vec<u8>) {
+        if let Some(terminal) = self.get_terminal(*term_id) {
+            let raw = terminal.data.with_untracked(|x| x.raw.clone());
+            raw.write().update_content(content);
+            self.view_id.get_untracked().request_paint();
+        }
+    }
+
     pub fn terminal_stopped(&self, term_id: &TermId, exit_code: Option<i32>) {
         log::error!("terminal_stopped exit_code={exit_code:?}");
         if let Some(terminal) = self.get_terminal(*term_id) {
@@ -418,7 +434,7 @@ impl TerminalPanelData {
                     if run_debug.mode == RunDebugMode::Debug {
                         update_executable(&mut run_debug, raw);
 
-                        self.common.proxy.dap_start(
+                        self.common.proxy.proxy_rpc.dap_start(
                             run_debug.config,
                             self.common.source_breakpoints(),
                         )
@@ -494,7 +510,10 @@ impl TerminalPanelData {
         let term_size = TermSize::new(width, height);
         let new_term_id = match run_debug.mode {
             RunDebugMode::Run => {
-                self.common.proxy.terminal_close(terminal.term_id, raw_id);
+                self.common
+                    .proxy
+                    .proxy_rpc
+                    .terminal_close(terminal.term_id, raw_id);
                 let mut run_debug = run_debug;
                 run_debug.stopped = false;
                 run_debug.is_prelaunch = true;
@@ -512,9 +531,11 @@ impl TerminalPanelData {
                 terminal.data.update(|terminals| {
                     *terminals = new_terminal;
                 });
-                self.common
-                    .proxy
-                    .terminal_resize(terminal.term_id, width, height);
+                self.common.proxy.proxy_rpc.terminal_resize(
+                    terminal.term_id,
+                    width,
+                    height,
+                );
 
                 self.debug.active_term.set(Some(terminal.term_id));
                 term_id
@@ -525,6 +546,7 @@ impl TerminalPanelData {
                 // let daps = self.debug.daps.get_untracked();
                 self.common
                     .proxy
+                    .proxy_rpc
                     .dap_restart(config, self.common.source_breakpoints());
                 term_id
             },
@@ -627,10 +649,13 @@ impl TerminalPanelData {
         );
         match run_debug.mode {
             RunDebugMode::Run => {
-                self.common.proxy.terminal_close(terminal.term_id, raw_id);
                 self.common
-                    .term_tx
-                    .send((terminal.term_id, TermEvent::CloseTerminal))?;
+                    .proxy
+                    .proxy_rpc
+                    .terminal_close(terminal.term_id, raw_id);
+                // self.common
+                //     .term_tx
+                //     .send((terminal.term_id, TermEvent::CloseTerminal))?;
             },
             RunDebugMode::Debug => {
                 let dap_id = run_debug.config.dap_id;
@@ -640,7 +665,7 @@ impl TerminalPanelData {
                     .flatten()
                     .ok_or(anyhow!("not found dap data {dap_id:?}"))?;
 
-                self.common.proxy.dap_stop(dap_id);
+                self.common.proxy.proxy_rpc.dap_stop(dap_id);
                 // terminal close by dap
                 // self.common
                 //     .term_tx
@@ -672,6 +697,7 @@ impl TerminalPanelData {
                         let dap_id = run_debug.config.dap_id;
                         self.common
                             .proxy
+                            .proxy_rpc
                             .dap_process_id(dap_id, process_id, *term_id);
                     }
                 }
@@ -717,13 +743,14 @@ impl TerminalPanelData {
                 .and_then(|dap| dap.thread_id.get_untracked())
         });
         let thread_id = thread_id.unwrap_or_default();
-        self.common.proxy.dap_continue(dap_id, thread_id);
+        self.common.proxy.proxy_rpc.dap_continue(dap_id, thread_id);
         Some(())
     }
 
     pub fn dap_start(&self, config: RunDebugConfig) {
         self.common
             .proxy
+            .proxy_rpc
             .dap_start(config, self.common.source_breakpoints());
     }
 
@@ -737,7 +764,7 @@ impl TerminalPanelData {
                 .and_then(|dap| dap.thread_id.get_untracked())
         });
         let thread_id = thread_id.unwrap_or_default();
-        self.common.proxy.dap_pause(dap_id, thread_id);
+        self.common.proxy.proxy_rpc.dap_pause(dap_id, thread_id);
         Some(())
     }
 
@@ -751,7 +778,7 @@ impl TerminalPanelData {
                 .and_then(|dap| dap.thread_id.get_untracked())
         });
         let thread_id = thread_id.unwrap_or_default();
-        self.common.proxy.dap_step_over(dap_id, thread_id);
+        self.common.proxy.proxy_rpc.dap_step_over(dap_id, thread_id);
         Some(())
     }
 
@@ -765,7 +792,7 @@ impl TerminalPanelData {
                 .and_then(|dap| dap.thread_id.get_untracked())
         });
         let thread_id = thread_id.unwrap_or_default();
-        self.common.proxy.dap_step_into(dap_id, thread_id);
+        self.common.proxy.proxy_rpc.dap_step_into(dap_id, thread_id);
         Some(())
     }
 
@@ -779,7 +806,7 @@ impl TerminalPanelData {
                 .and_then(|dap| dap.thread_id.get_untracked())
         });
         let thread_id = thread_id.unwrap_or_default();
-        self.common.proxy.dap_step_out(dap_id, thread_id);
+        self.common.proxy.proxy_rpc.dap_step_out(dap_id, thread_id);
         Some(())
     }
 
@@ -864,7 +891,7 @@ impl TerminalPanelData {
                 }
             });
 
-            self.common.proxy.dap_get_scopes(
+            self.common.proxy.proxy_rpc.dap_get_scopes(
                 dap_id,
                 frame_id,
                 move |(_, result)| {

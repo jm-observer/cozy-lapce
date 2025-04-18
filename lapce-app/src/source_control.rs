@@ -103,6 +103,9 @@ impl SourceControlData {
         }
 
         self.editor.reset();
-        self.common.proxy.git_commit(message.to_string(), diffs);
+        self.common
+            .proxy
+            .proxy_rpc
+            .git_commit(message.to_string(), diffs);
     }
 }

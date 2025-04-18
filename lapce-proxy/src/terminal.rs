@@ -342,7 +342,8 @@ impl Terminal {
                 },
                 Ok(n) => {
                     total += n;
-                    core_rpc.update_terminal(self.term_id, buf[..n].to_vec());
+                    core_rpc
+                        .terminal_update_content(self.term_id, buf[..n].to_vec());
                 },
                 Err(err) => match err.kind() {
                     ErrorKind::Interrupted | ErrorKind::WouldBlock => {

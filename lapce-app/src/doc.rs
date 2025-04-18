@@ -391,7 +391,7 @@ impl Doc {
             if let DocContent::File { path, .. } = content {
                 batch(|| {
                     for (i, (_, delta, _inval)) in rs.iter().enumerate() {
-                        self.common.proxy.update(
+                        self.common.proxy.proxy_rpc.update(
                             path.clone(),
                             delta.clone(),
                             old_rev + i as u64 + 1,
@@ -768,6 +768,7 @@ impl Doc {
         let local_task = self.common.local_task.clone();
         self.common
             .proxy
+            .proxy_rpc
             .get_semantic_tokens(path, move |(_, result)| {
                 if let Ok(ProxyResponse::GetSemanticTokens { styles, result_id }) =
                     result
@@ -856,9 +857,12 @@ impl Doc {
                     });
                 }
             });
-            self.common.proxy.get_code_lens(path, move |(_, result)| {
-                send(result);
-            });
+            self.common
+                .proxy
+                .proxy_rpc
+                .get_code_lens(path, move |(_, result)| {
+                    send(result);
+                });
         }
     }
 
@@ -896,11 +900,12 @@ impl Doc {
                 }
             });
 
-            self.common
-                .proxy
-                .get_document_symbols(path, move |(_, result)| {
+            self.common.proxy.proxy_rpc.get_document_symbols(
+                path,
+                move |(_, result)| {
                     send(result);
-                });
+                },
+            );
         }
     }
 
@@ -937,34 +942,38 @@ impl Doc {
             }
         });
 
-        self.common.proxy.get_inlay_hints(path, move |(_, result)| {
-            if let Ok(ProxyResponse::GetInlayHints { mut hints }) = result {
-                // log::info!("{}", serde_json::to_string(&hints).unwrap());
-                // Sort the inlay hints by their position, as the LSP does not
-                // guarantee that it will provide them in the order
-                // that they are in within the file as well, Spans
-                // does not iterate in the order that they appear
-                hints.sort_by(|left, right| left.position.cmp(&right.position));
+        self.common
+            .proxy
+            .proxy_rpc
+            .get_inlay_hints(path, move |(_, result)| {
+                if let Ok(ProxyResponse::GetInlayHints { mut hints }) = result {
+                    // log::info!("{}", serde_json::to_string(&hints).unwrap());
+                    // Sort the inlay hints by their position, as the LSP does not
+                    // guarantee that it will provide them in the order
+                    // that they are in within the file as well, Spans
+                    // does not iterate in the order that they appear
+                    hints.sort_by(|left, right| left.position.cmp(&right.position));
 
-                let mut hints_span = SpansBuilder::new(len);
-                for hint in hints {
-                    let offset = match buffer.offset_of_position(&hint.position) {
-                        Ok(rs) => rs,
-                        Err(err) => {
-                            error!("{err:?}");
-                            continue;
-                        },
+                    let mut hints_span = SpansBuilder::new(len);
+                    for hint in hints {
+                        let offset = match buffer.offset_of_position(&hint.position)
+                        {
+                            Ok(rs) => rs,
+                            Err(err) => {
+                                error!("{err:?}");
+                                continue;
+                            },
+                        }
+                        .min(len);
+                        hints_span.add_span(
+                            Interval::new(offset, (offset + 1).min(len)),
+                            hint,
+                        );
                     }
-                    .min(len);
-                    hints_span.add_span(
-                        Interval::new(offset, (offset + 1).min(len)),
-                        hint,
-                    );
+                    let hints = hints_span.build();
+                    send(hints);
                 }
-                let hints = hints_span.build();
-                send(hints);
-            }
-        });
+            });
     }
 
     pub fn diagnostics(&self) -> DiagnosticData {
@@ -1019,11 +1028,12 @@ impl Doc {
                 }
             });
 
-            self.common
-                .proxy
-                .get_lsp_folding_range(path, move |(_, result)| {
+            self.common.proxy.proxy_rpc.get_lsp_folding_range(
+                path,
+                move |(_, result)| {
                     send(result);
-                });
+                },
+            );
         }
     }
 
@@ -1239,7 +1249,7 @@ impl Doc {
 
             let path = path.clone();
             let proxy = self.common.proxy.clone();
-            proxy.get_buffer_head(path, move |(_, result)| {
+            proxy.proxy_rpc.get_buffer_head(path, move |(_, result)| {
                 send(result);
             });
         }
@@ -1324,9 +1334,12 @@ impl Doc {
                 Err(err) => error!("{err}"),
             });
 
-            self.common.proxy.save(rev, path, true, move |(_, result)| {
-                send(result);
-            })
+            self.common
+                .proxy
+                .proxy_rpc
+                .save(rev, path, true, move |(_, result)| {
+                    send(result);
+                })
         }
     }
 

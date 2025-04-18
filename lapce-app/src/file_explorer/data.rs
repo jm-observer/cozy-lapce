@@ -256,7 +256,10 @@ impl FileExplorerData {
         };
 
         // Ask the proxy for the directory information
-        self.common.proxy.read_dir(path.to_path_buf(), send);
+        self.common
+            .proxy
+            .proxy_rpc
+            .read_dir(path.to_path_buf(), send);
     }
 
     /// Returns `true` if `path` exists in the file explorer tree and is a
@@ -619,7 +622,7 @@ impl FileExplorerData {
                 "Move File to Trash"
             };
             menu = menu.entry(MenuItem::new(trash_text).action(move || {
-                proxy.trash_path(path.clone(), |(_, res)| {
+                proxy.proxy_rpc.trash_path(path.clone(), |(_, res)| {
                     if let Err(err) = res {
                         log::warn!("Failed to trash path: {:?}", err);
                     }

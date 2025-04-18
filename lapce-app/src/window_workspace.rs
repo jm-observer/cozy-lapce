@@ -49,7 +49,7 @@ use lapce_rpc::{
     dap_types::{ConfigSource, RunDebugConfig, SourceBreakpoint},
     file::{Naming, PathObject},
     plugin::PluginId,
-    proxy::{ProxyResponse, ProxyRpcHandler, ProxyStatus},
+    proxy::{ProxyResponse, ProxyStatus},
     source_control::FileDiff,
     terminal::TermId,
 };
@@ -93,10 +93,7 @@ use crate::{
     proxy::{ProxyData, new_proxy},
     rename::RenameData,
     source_control::SourceControlData,
-    terminal::{
-        event::{TermEvent, TermNotification, terminal_update_process},
-        panel::TerminalPanelData,
-    },
+    terminal::panel::TerminalPanelData,
     window::{CursorBlink, WindowCommonData},
 };
 
@@ -208,9 +205,7 @@ pub struct CommonData {
     pub internal_command:      Listener<InternalCommand>,
     pub lapce_command:         Listener<LapceCommand>,
     pub workbench_command:     Listener<LapceWorkbenchCommand>,
-    pub term_tx:               Sender<(TermId, TermEvent)>,
-    pub term_notification_tx:  Sender<TermNotification>,
-    pub proxy:                 ProxyRpcHandler,
+    pub proxy:                 ProxyData,
     pub local_task:            LocalTaskRequester,
     pub view_id:               RwSignal<ViewId>,
     pub ui_line_height:        Memo<f64>,
@@ -408,18 +403,18 @@ impl WindowWorkspaceData {
             cx.create_rw_signal(KeyPressData::new(cx, &config_val, directory));
         let proxy_status = cx.create_rw_signal(None);
 
-        let (term_tx, term_rx) = std::sync::mpsc::channel();
-        let (term_notification_tx, term_notification_rx) =
-            std::sync::mpsc::channel();
-        {
-            let term_notification_tx = term_notification_tx.clone();
-            std::thread::Builder::new()
-                .name("terminal update process".to_owned())
-                .spawn(move || {
-                    terminal_update_process(term_rx, term_notification_tx);
-                })
-                .unwrap();
-        }
+        // let (term_tx, term_rx) = std::sync::mpsc::channel();
+        // let (term_notification_tx, term_notification_rx) =
+        //     std::sync::mpsc::channel();
+        // {
+        //     let term_notification_tx = term_notification_tx.clone();
+        //     std::thread::Builder::new()
+        //         .name("terminal update process".to_owned())
+        //         .spawn(move || {
+        //             terminal_update_process(term_rx, term_notification_tx);
+        //         })
+        //         .unwrap();
+        // }
 
         let read_config = config.read_only();
         let write_only = config.write_only();
@@ -428,7 +423,6 @@ impl WindowWorkspaceData {
             all_disabled_volts,
             window_common.extra_plugin_paths.as_ref().clone(),
             config_val.plugins.clone(),
-            term_tx.clone(),
             directory,
         );
         // let (config, set_config) = cx.create_signal(config);
@@ -473,9 +467,7 @@ impl WindowWorkspaceData {
             internal_command,
             lapce_command,
             workbench_command,
-            term_tx,
-            term_notification_tx,
-            proxy: proxy.proxy_rpc.clone(),
+            proxy: proxy.clone(),
             view_id,
             ui_line_height,
             dragging: cx.create_rw_signal(None),
@@ -590,6 +582,7 @@ impl WindowWorkspaceData {
                 .with_untracked(|config| config.terminal.get_default_profile()),
             common.clone(),
             main_split.clone(),
+            view_id,
         );
         if let Some(workspace_info) = workspace_info.as_ref() {
             terminal.common.breakpoints.set(
@@ -621,24 +614,24 @@ impl WindowWorkspaceData {
             proxy.core_rpc.clone(),
         );
 
-        {
-            let notification = create_signal_from_channel(term_notification_rx);
-            let terminal = terminal.clone();
-            cx.create_effect(move |_| {
-                notification.with(|notification| {
-                    if let Some(notification) = notification.as_ref() {
-                        match notification {
-                            TermNotification::SetTitle { term_id, title } => {
-                                terminal.set_title(term_id, title);
-                            },
-                            TermNotification::RequestPaint => {
-                                view_id.get_untracked().request_paint();
-                            },
-                        }
-                    }
-                });
-            });
-        }
+        // {
+        //     let notification = create_signal_from_channel(term_notification_rx);
+        //     let terminal = terminal.clone();
+        //     cx.create_effect(move |_| {
+        //         notification.with(|notification| {
+        //             if let Some(notification) = notification.as_ref() {
+        //                 match notification {
+        //                     TermNotification::SetTitle { term_id, title } => {
+        //                         terminal.set_title(term_id, title);
+        //                     },
+        //                     TermNotification::RequestPaint => {
+        //                         view_id.get_untracked().request_paint();
+        //                     },
+        //                 }
+        //             }
+        //         });
+        //     });
+        // }
 
         let about_data = AboutData::new(cx, common.focus);
         let alert_data = AlertBoxData::new(cx, common.clone());
@@ -793,6 +786,7 @@ impl WindowWorkspaceData {
         if !change_plugins.is_empty() {
             self.common
                 .proxy
+                .proxy_rpc
                 .update_plugin_configs(config.plugins.clone());
             if config.core.auto_reload_plugin {
                 let mut plugin_metas: HashMap<
@@ -810,7 +804,7 @@ impl WindowWorkspaceData {
                     .collect();
                 for name in change_plugins {
                     if let Some(meta) = plugin_metas.remove(&name) {
-                        self.common.proxy.reload_volt(meta);
+                        self.common.proxy.proxy_rpc.reload_volt(meta);
                     } else {
                         log::error!("not found volt metadata of {}", name);
                     }
@@ -1454,16 +1448,18 @@ impl WindowWorkspaceData {
                 {
                     match diff {
                         FileDiff::Added(path) => {
-                            self.common.proxy.trash_path(path, Box::new(|(_, _)| {}));
+                            self.common.proxy.proxy_rpc
+            .trash_path(path, Box::new(|(_, _)| {}));
                         }
                         FileDiff::Modified(path) | FileDiff::Deleted(path) => {
-                            self.common.proxy.git_discard_files_changes(vec![path]);
+                            self.common.proxy.proxy_rpc
+            .git_discard_files_changes(vec![path]);
                         }
                         FileDiff::Renamed(old_path, new_path) => {
                             self.common
                                 .proxy
-                                .git_discard_files_changes(vec![old_path]);
-                            self.common.proxy.trash_path(new_path, Box::new(|(_, _)| {}));
+                                .proxy_rpc.git_discard_files_changes(vec![old_path]);
+                            self.common.proxy.proxy_rpc.trash_path(new_path, Box::new(|(_, _)| {}));
                         }
                     }
                 }
@@ -1619,7 +1615,7 @@ impl WindowWorkspaceData {
                         let offset = editor_data.cursor().with_untracked(|c| c.offset());
                         let line = editor_data.doc()
                             .lines.with_untracked(|x| x.buffer().line_of_offset(offset));
-                        self.common.proxy.git_get_remote_file_url(
+                        self.common.proxy.proxy_rpc.git_get_remote_file_url(
                             path,
                             create_ext_action(self.scope, move |(_, result)| {
                                 if let Ok(ProxyResponse::GitGetRemoteFileUrl {
@@ -1897,7 +1893,7 @@ impl WindowWorkspaceData {
                             },
                         );
 
-                        self.common.proxy.test_create_at_path(new_path, send);
+                        self.common.proxy.proxy_rpc.test_create_at_path(new_path, send);
                     }
             InternalCommand::FinishRenamePath {
                         current_path,
@@ -1982,7 +1978,7 @@ impl WindowWorkspaceData {
                         self.file_explorer.naming.update(Naming::set_pending);
                         self.common
                             .proxy
-                            .rename_path(current_path.clone(), new_path, send);
+                            .proxy_rpc.rename_path(current_path.clone(), new_path, send);
                     }
             InternalCommand::FinishNewNode { is_dir, path } => {
                         let file_explorer = self.file_explorer.clone();
@@ -2021,9 +2017,9 @@ impl WindowWorkspaceData {
 
                         self.file_explorer.naming.update(Naming::set_pending);
                         if is_dir {
-                            self.common.proxy.create_directory(path, send);
+                            self.common.proxy.proxy_rpc.create_directory(path, send);
                         } else {
-                            self.common.proxy.create_file(path, send);
+                            self.common.proxy.proxy_rpc.create_file(path, send);
                         }
                     }
             InternalCommand::FinishDuplicate { source, path } => {
@@ -2047,7 +2043,7 @@ impl WindowWorkspaceData {
                         );
 
                         self.file_explorer.naming.update(Naming::set_pending);
-                        self.common.proxy.duplicate_path(source, path, send);
+                        self.common.proxy.proxy_rpc.duplicate_path(source, path, send);
                     }
             InternalCommand::GoToLocation { location } => {
                         if let Err(err) = self.main_split.go_to_location(location, None) {
@@ -2347,7 +2343,7 @@ cmd.wait()?;
                     let offset = offset?;
                 if let Some(path) = content.path() {
                     let breakpoints = self.common.breakpoints;
-                let proxy = self.common.proxy.clone();
+                let proxy = self.common.proxy.proxy_rpc.clone();
                 let daps = self.terminal.debug.daps;
                 update_breakpoints(daps, proxy, breakpoints, lapce_core::debug::BreakpointAction::AddOrRemove { path: &path, line: line_num, offset  });
                 }
@@ -2433,7 +2429,7 @@ cmd.wait()?;
                 //     }
                 //     error!("{:?}", diag.data);
                 // }
-                debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
+                log::warn!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 let diag = self.main_split.get_diagnostic_data(&path);
                 let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
                 let task_id = diag.id.with_untracked(|x| {
@@ -2447,10 +2443,10 @@ cmd.wait()?;
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
                         if now_id == task_id {
-                            // warn!(
-                            //     "PublishDiagnostics equal exec_after {path:?} \
-                            //      {now_id}={task_id}",
-                            // );
+                            warn!(
+                                "PublishDiagnostics equal exec_after {path:?} \
+                                 {now_id}={task_id}",
+                            );
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
                                 path:      path.clone(),
@@ -2462,11 +2458,11 @@ cmd.wait()?;
                                 // warn!("PublishDiagnostics docs {:?}", path);
                                 doc.init_diagnostics();
                             }
-                            // } else {
-                            //     warn!(
-                            //         "PublishDiagnostics exec_after {path:?} \
-                            //          now_id={now_id} id={task_id}",
-                            //     );
+                            } else {
+                                warn!(
+                                    "PublishDiagnostics exec_after {path:?} \
+                                     now_id={now_id} id={task_id}",
+                                );
                         }
                     });
                     return;
@@ -2508,13 +2504,13 @@ cmd.wait()?;
             },
             CoreNotification::TerminalProcessStopped { term_id, exit_code } => {
                 info!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
-                if let Err(err) = self
-                    .common
-                    .term_tx
-                    .send((*term_id, TermEvent::CloseTerminal))
-                {
-                    error!("{:?}", err);
-                }
+                // if let Err(err) = self
+                //     .common
+                //     .term_tx
+                //     .send((*term_id, TermEvent::CloseTerminal))
+                // {
+                //     error!("{:?}", err);
+                // }
                 self.terminal.terminal_stopped(term_id, *exit_code);
                 if self
                     .terminal
@@ -2526,6 +2522,28 @@ cmd.wait()?;
                     }
                     self.common.focus.set(Focus::Workbench);
                 }
+            },
+            CoreNotification::TerminalUpdateContent { term_id, content } => {
+                info!("UpdateTerminal {term_id:?}");
+                self.terminal.terminal_update_content(term_id, content);
+                if self
+                    .terminal
+                    .tab_infos
+                    .with_untracked(|info| info.tabs.is_empty())
+                {
+                    if self.panel.is_panel_visible(&PanelKind::Terminal) {
+                        self.panel.hide_panel(&PanelKind::Terminal);
+                    }
+                    self.common.focus.set(Focus::Workbench);
+                }
+            },
+            CoreNotification::TerminalSetTitle { term_id, title } => {
+                info!("TerminalSetTitle {term_id:?}");
+                self.terminal.set_title(term_id, title);
+            },
+            CoreNotification::TerminalRequestPaint => {
+                info!("TerminalRequestPaint");
+                self.terminal.request_paint()
             },
             CoreNotification::TerminalLaunchFailed { term_id, error } => {
                 self.terminal.launch_failed(term_id, error);
@@ -3353,7 +3371,7 @@ cmd.wait()?;
                 Ok(_) => {},
             },
         );
-        self.common.proxy.call_hierarchy_incoming(
+        self.common.proxy.proxy_rpc.call_hierarchy_incoming(
             path,
             item.get_untracked().item.as_ref().clone(),
             send,

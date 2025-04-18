@@ -446,7 +446,7 @@ impl PluginData {
             };
         });
         if info.wasm {
-            self.common.proxy.install_volt(info);
+            self.common.proxy.proxy_rpc.install_volt(info);
         } else {
             let plugin = self.clone();
             let send = create_ext_action(self.common.scope, move |(meta, icon)| {
@@ -479,7 +479,7 @@ impl PluginData {
             d.remove(&id);
         });
         if !self.plugin_disabled(&id) {
-            self.common.proxy.enable_volt(volt);
+            self.common.proxy.proxy_rpc.enable_volt(volt);
         }
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_disabled_volts(
@@ -493,7 +493,7 @@ impl PluginData {
         self.disabled.update(|d| {
             d.insert(id);
         });
-        self.common.proxy.disable_volt(volt);
+        self.common.proxy.proxy_rpc.disable_volt(volt);
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_disabled_volts(
             self.disabled.get_untracked().into_iter().collect(),
@@ -507,7 +507,7 @@ impl PluginData {
             d.remove(&id);
         });
         if !self.plugin_disabled(&id) {
-            self.common.proxy.enable_volt(volt);
+            self.common.proxy.proxy_rpc.enable_volt(volt);
         }
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
@@ -522,7 +522,7 @@ impl PluginData {
         self.workspace_disabled.update(|d| {
             d.insert(id);
         });
-        self.common.proxy.disable_volt(volt);
+        self.common.proxy.proxy_rpc.disable_volt(volt);
         let db: Arc<LapceDb> = use_context().unwrap();
         db.save_workspace_disabled_volts(
             self.common.workspace.clone(),
@@ -533,7 +533,7 @@ impl PluginData {
 
     pub fn uninstall_volt(&self, volt: VoltMetadata) {
         if volt.wasm.is_some() {
-            self.common.proxy.remove_volt(volt);
+            self.common.proxy.proxy_rpc.remove_volt(volt);
         } else if let Some(dir) = &volt.dir {
             let plugin = self.clone();
             let info = volt.info();
@@ -558,7 +558,7 @@ impl PluginData {
     }
 
     pub fn reload_volt(&self, volt: VoltMetadata) {
-        self.common.proxy.reload_volt(volt);
+        self.common.proxy.proxy_rpc.reload_volt(volt);
     }
 
     pub fn plugin_controls(&self, meta: VoltMetadata, latest: VoltInfo) -> Menu {

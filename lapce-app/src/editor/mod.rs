@@ -1410,7 +1410,7 @@ impl EditorData {
             }
         });
         let proxy = self.common.proxy.clone();
-        self.common.proxy.get_definition(
+        self.common.proxy.proxy_rpc.get_definition(
             offset,
             path.clone(),
             position,
@@ -1437,7 +1437,7 @@ impl EditorData {
                         },
                     } {
                         if location.range.start == start_position {
-                            proxy.get_references(
+                            proxy.proxy_rpc.get_references(
                                 path.clone(),
                                 position,
                                 move |(_, result)| {
@@ -1521,7 +1521,7 @@ impl EditorData {
             start: _start_position,
             end:   position,
         };
-        self.common.proxy.show_call_hierarchy(
+        self.common.proxy.proxy_rpc.show_call_hierarchy(
             path,
             position,
             create_ext_action(self.scope, move |(_, result)| {
@@ -1594,7 +1594,7 @@ impl EditorData {
         })?;
         // let (_start_position, position) = (_start_position?, position?);
         let common = self.common.clone();
-        let id = self.common.proxy.document_highlight(
+        let id = self.common.proxy.proxy_rpc.document_highlight(
             path,
             position,
             create_ext_action(self.scope, move |(id, result)| {
@@ -1693,7 +1693,7 @@ impl EditorData {
             }
         });
         let proxy = self.common.proxy.clone();
-        self.common.proxy.get_references(
+        self.common.proxy.proxy_rpc.get_references(
             path,
             position,
             create_ext_action(self.scope, move |(_, result)| {
@@ -1702,7 +1702,7 @@ impl EditorData {
                 {
                     {
                         if !references.is_empty() {
-                            proxy.references_resolve(
+                            proxy.proxy_rpc.references_resolve(
                                 references,
                                 update_implementation,
                             );
@@ -1759,7 +1759,7 @@ impl EditorData {
             }
         });
         let proxy = self.common.proxy.clone();
-        self.common.proxy.go_to_implementation(
+        self.common.proxy.proxy_rpc.go_to_implementation(
             path,
             position,
             create_ext_action(self.scope, {
@@ -1771,7 +1771,7 @@ impl EditorData {
                     {
                         let locations = map_to_location(resp);
                         if !locations.is_empty() {
-                            proxy.references_resolve(
+                            proxy.proxy_rpc.references_resolve(
                                 locations,
                                 update_implementation,
                             );
@@ -1989,7 +1989,7 @@ impl EditorData {
 
         inline_completion.update(|c| c.status = InlineCompletionStatus::Started);
 
-        self.common.proxy.get_inline_completions(
+        self.common.proxy.proxy_rpc.get_inline_completions(
             path,
             position,
             trigger_kind,
@@ -2050,7 +2050,7 @@ impl EditorData {
                         log::error!("{:?}", err);
                     }
                 });
-                self.common.proxy.completion_resolve(
+                self.common.proxy.proxy_rpc.completion_resolve(
                     item.plugin_id,
                     item.item.clone(),
                     move |(_, result)| {
@@ -2146,7 +2146,7 @@ impl EditorData {
                     };
                     completion.request(
                         self.id(),
-                        &self.common.proxy,
+                        &self.common.proxy.proxy_rpc,
                         path.clone(),
                         "".to_string(),
                         start_pos,
@@ -2166,7 +2166,7 @@ impl EditorData {
                     };
                     completion.request(
                         self.id(),
-                        &self.common.proxy,
+                        &self.common.proxy.proxy_rpc,
                         path,
                         input,
                         position,
@@ -2202,7 +2202,7 @@ impl EditorData {
             };
             completion.request(
                 self.id(),
-                &self.common.proxy,
+                &self.common.proxy.proxy_rpc,
                 path.clone(),
                 "".to_string(),
                 start_pos,
@@ -2221,7 +2221,7 @@ impl EditorData {
                 };
                 completion.request(
                     self.id(),
-                    &self.common.proxy,
+                    &self.common.proxy.proxy_rpc,
                     path,
                     input,
                     position,
@@ -2760,7 +2760,7 @@ impl EditorData {
             diagnostics.len()
         );
 
-        self.common.proxy.get_code_actions(
+        self.common.proxy.proxy_rpc.get_code_actions(
             path,
             position,
             diagnostics,
@@ -2844,10 +2844,12 @@ impl EditorData {
                 editor.do_save(after_action);
             });
 
-            let proxy = self.common.proxy.clone();
-            proxy.get_document_formatting(path, move |(_, result)| {
-                send(result);
-            });
+            self.common.proxy.proxy_rpc.get_document_formatting(
+                path,
+                move |(_, result)| {
+                    send(result);
+                },
+            );
         } else {
             self.do_save(after_action);
         }
@@ -2869,10 +2871,12 @@ impl EditorData {
                 }
             });
 
-            let proxy = self.common.proxy.clone();
-            proxy.get_document_formatting(path, move |(_, result)| {
-                send(result);
-            });
+            self.common.proxy.proxy_rpc.get_document_formatting(
+                path,
+                move |(_, result)| {
+                    send(result);
+                },
+            );
         }
     }
 
@@ -3066,11 +3070,13 @@ impl EditorData {
                 });
             }
         });
-        self.common
-            .proxy
-            .prepare_rename(path, position, move |(_, result)| {
+        self.common.proxy.proxy_rpc.prepare_rename(
+            path,
+            position,
+            move |(_, result)| {
                 send(result);
-            });
+            },
+        );
         Ok(())
     }
 
@@ -3906,9 +3912,12 @@ impl EditorData {
                 });
             }
         });
-        self.common.proxy.get_hover(0, path, position, |(_, resp)| {
-            send(resp);
-        });
+        self.common
+            .proxy
+            .proxy_rpc
+            .get_hover(0, path, position, |(_, resp)| {
+                send(resp);
+            });
     }
 
     pub fn max_line_width(&self) -> f64 {

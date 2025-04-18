@@ -567,7 +567,7 @@ impl PaletteData {
                     );
                 }
             });
-        self.common.proxy.get_files(move |(_, result)| {
+        self.common.proxy.proxy_rpc.get_files(move |(_, result)| {
             if let Ok(ProxyResponse::GetFilesResponse { items }) = result {
                 send(items);
             }
@@ -798,11 +798,12 @@ impl PaletteData {
             }
         });
 
-        self.common
-            .proxy
-            .get_document_symbols(path, move |(_, result)| {
+        self.common.proxy.proxy_rpc.get_document_symbols(
+            path,
+            move |(_, result)| {
                 send(result);
-            });
+            },
+        );
     }
 
     fn format_document_symbol_resp(
@@ -913,7 +914,7 @@ impl PaletteData {
             }
         });
 
-        let id = self.common.proxy.get_workspace_symbols(
+        let id = self.common.proxy.proxy_rpc.get_workspace_symbols(
             input.to_string(),
             move |(id, result)| {
                 send((id, result));
@@ -925,7 +926,7 @@ impl PaletteData {
     fn update_workspace_id(&self, id: u64) {
         if let Some(_old_id) = self.workspace_document_id.get_untracked() {
             // todo
-            self.common.proxy.lsp_cancel(_old_id);
+            self.common.proxy.proxy_rpc.lsp_cancel(_old_id);
         }
         self.workspace_document_id.set(Some(id));
     }

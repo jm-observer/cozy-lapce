@@ -535,7 +535,7 @@ impl DapData {
                 });
             }
         });
-        self.common.proxy.dap_variable(
+        self.common.proxy.proxy_rpc.dap_variable(
             self.dap_id,
             reference,
             move |(_, result)| {

@@ -1,4 +1,4 @@
-use std::sync::mpsc::Sender;
+use std::{rc::Rc, sync::mpsc::Sender};
 
 use alacritty_terminal::{
     Term,
@@ -12,40 +12,37 @@ use alacritty_terminal::{
     },
     vte::ansi,
 };
-use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
+use lapce_rpc::{
+    proxy::{ProxyNotification, ProxyRpcHandler},
+    terminal::TermId,
+};
 
-use super::event::TermNotification;
+use crate::window_workspace::CommonData;
 
 pub struct EventProxy {
-    term_id:              TermId,
-    raw_id:               u64,
-    proxy:                ProxyRpcHandler,
-    term_notification_tx: Sender<TermNotification>,
+    term_id: TermId,
+    raw_id:  u64,
+    common:  Rc<CommonData>,
 }
 
 impl EventListener for EventProxy {
     fn send_event(&self, event: alacritty_terminal::event::Event) {
         match event {
             alacritty_terminal::event::Event::PtyWrite(s) => {
-                self.proxy.terminal_write(self.term_id, self.raw_id, s);
+                self.common.proxy.proxy_rpc.terminal_write(
+                    self.term_id,
+                    self.raw_id,
+                    s,
+                );
             },
             alacritty_terminal::event::Event::MouseCursorDirty => {
-                if let Err(err) = self
-                    .term_notification_tx
-                    .send(TermNotification::RequestPaint)
-                {
-                    log::error!("{:?}", err);
-                }
+                self.common.proxy.core_rpc.terminal_paint();
             },
             alacritty_terminal::event::Event::Title(s) => {
-                if let Err(err) =
-                    self.term_notification_tx.send(TermNotification::SetTitle {
-                        term_id: self.term_id,
-                        title:   s,
-                    })
-                {
-                    log::error!("{:?}", err);
-                }
+                self.common
+                    .proxy
+                    .core_rpc
+                    .terminal_set_title(self.term_id, s);
             },
             _ => (),
         }
@@ -60,12 +57,7 @@ pub struct RawTerminal {
 }
 
 impl RawTerminal {
-    pub fn new(
-        term_id: TermId,
-        raw_id: u64,
-        proxy: ProxyRpcHandler,
-        term_notification_tx: Sender<TermNotification>,
-    ) -> Self {
+    pub fn new(term_id: TermId, raw_id: u64, common: Rc<CommonData>) -> Self {
         let config = alacritty_terminal::term::Config {
             semantic_escape_chars: ",│`|\"' ()[]{}<>\t".to_string(),
             ..Default::default()
@@ -73,8 +65,7 @@ impl RawTerminal {
         let event_proxy = EventProxy {
             raw_id,
             term_id,
-            proxy,
-            term_notification_tx,
+            common,
         };
 
         let size = TermSize::new(50, 30);
@@ -89,9 +80,9 @@ impl RawTerminal {
         }
     }
 
-    pub fn update_content(&mut self, content: Vec<u8>) {
+    pub fn update_content(&mut self, content: &Vec<u8>) {
         for byte in content {
-            self.parser.advance(&mut self.term, byte);
+            self.parser.advance(&mut self.term, *byte);
         }
     }
 

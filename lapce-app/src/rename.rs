@@ -128,7 +128,7 @@ impl RenameData {
                         .send(InternalCommand::ApplyWorkspaceEdit { edit });
                 }
             });
-            self.common.proxy.rename(
+            self.common.proxy.proxy_rpc.rename(
                 path,
                 position,
                 new_name.to_string(),

@@ -131,7 +131,7 @@ pub fn terminal_view(
         id,
         term_id,
         config,
-        proxy,
+        proxy: proxy.proxy_rpc,
         size: Size::ZERO,
         is_focused: false,
         internal_command,

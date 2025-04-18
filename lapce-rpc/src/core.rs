@@ -109,10 +109,15 @@ pub enum CoreNotification {
     DiffInfo {
         diff: DiffInfo,
     },
-    UpdateTerminal {
+    TerminalUpdateContent {
         term_id: TermId,
         content: Vec<u8>,
     },
+    TerminalSetTitle {
+        term_id: TermId,
+        title:   String,
+    },
+    TerminalRequestPaint,
     TerminalLaunchFailed {
         term_id: TermId,
         error:   String,
@@ -363,8 +368,19 @@ impl CoreRpcHandler {
         self.notification(CoreNotification::TerminalLaunchFailed { term_id, error });
     }
 
-    pub fn update_terminal(&self, term_id: TermId, content: Vec<u8>) {
-        self.notification(CoreNotification::UpdateTerminal { term_id, content });
+    pub fn terminal_update_content(&self, term_id: TermId, content: Vec<u8>) {
+        self.notification(CoreNotification::TerminalUpdateContent {
+            term_id,
+            content,
+        });
+    }
+
+    pub fn terminal_paint(&self) {
+        self.notification(CoreNotification::TerminalRequestPaint);
+    }
+
+    pub fn terminal_set_title(&self, term_id: TermId, title: String) {
+        self.notification(CoreNotification::TerminalSetTitle { term_id, title });
     }
 
     pub fn update_rust_build_panel(&self, _rev: u64, _styled_text: StyledText) {
