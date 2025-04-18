@@ -2437,7 +2437,8 @@ cmd.wait()?;
                 let diag = self.main_split.get_diagnostic_data(&path);
                 let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
                 let task_id = diag.id.with_untracked(|x| {
-                    x.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                    x.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    x.load(std::sync::atomic::Ordering::Relaxed)
                 });
                 if diagnostics.is_empty() && !old_is_empty {
                     let docs = self.main_split.docs;
@@ -2446,10 +2447,10 @@ cmd.wait()?;
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
                         if now_id == task_id {
-                            warn!(
-                                "PublishDiagnostics equal exec_after {path:?} \
-                                 {now_id}={task_id}",
-                            );
+                            // warn!(
+                            //     "PublishDiagnostics equal exec_after {path:?} \
+                            //      {now_id}={task_id}",
+                            // );
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
                                 path:      path.clone(),
@@ -2461,11 +2462,11 @@ cmd.wait()?;
                                 // warn!("PublishDiagnostics docs {:?}", path);
                                 doc.init_diagnostics();
                             }
-                        } else {
-                            warn!(
-                                "PublishDiagnostics exec_after {path:?} \
-                                 now_id={now_id} id={task_id}",
-                            );
+                            // } else {
+                            //     warn!(
+                            //         "PublishDiagnostics exec_after {path:?} \
+                            //          now_id={now_id} id={task_id}",
+                            //     );
                         }
                     });
                     return;
