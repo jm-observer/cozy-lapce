@@ -375,6 +375,7 @@ impl TerminalPanelData {
     }
 
     pub fn terminal_stopped(&self, term_id: &TermId, exit_code: Option<i32>) {
+        log::error!("terminal_stopped exit_code={exit_code:?}");
         if let Some(terminal) = self.get_terminal(*term_id) {
             let (is_some, raw) = terminal
                 .data
@@ -425,6 +426,8 @@ impl TerminalPanelData {
                         terminal.new_process(Some(run_debug));
                     }
                     // }
+                } else if !was_prelaunch && run_debug.mode == RunDebugMode::Debug {
+                    terminal.common.breakpoints.update_by_stopped();
                 }
             } else {
                 todo!("???")

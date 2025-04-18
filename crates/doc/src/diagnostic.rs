@@ -7,7 +7,7 @@ use floem::{
 use lapce_xi_rope::{RopeDelta, spans::Spans};
 use lsp_types::{Diagnostic, DiagnosticSeverity};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct DiagnosticData {
     pub expanded:     RwSignal<bool>,
     pub diagnostics:  RwSignal<im::Vector<Diagnostic>>,

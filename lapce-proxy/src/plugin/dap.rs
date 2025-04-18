@@ -222,6 +222,7 @@ impl DapClient {
     }
 
     fn handle_host_event(&mut self, event: &DapEvent) -> Result<()> {
+        log::warn!("handle_host_event event: {event:?}");
         match event {
             DapEvent::Initialized(_) => {
                 for (path, breakpoints) in self.breakpoints.clone().into_iter() {

@@ -129,6 +129,7 @@ impl BreakPoints {
                 let breakpoints = breakpoints.entry(path.to_path_buf()).or_default();
                 if let Some(breakpint) = breakpoints.get_mut(&line) {
                     breakpint.active = !breakpint.active;
+                    breakpint.verified = false;
                 }
                 breakpoints.clone()
             })
@@ -236,6 +237,14 @@ impl BreakPoints {
         })
     }
 
+    pub fn update_by_stopped(&self) {
+        self.breakpoints.update(|breakpoints| {
+            breakpoints
+                .iter_mut()
+                .for_each(|x| x.1.iter_mut().for_each(|x| x.1.verified = false));
+        })
+    }
+
     pub fn source_breakpoints_untracked(
         &self,
     ) -> std::collections::HashMap<PathBuf, Vec<SourceBreakpoint>> {
@@ -270,9 +279,7 @@ impl BreakPoints {
         self.breakpoints.with_untracked(|x| x.contains_key(path))
     }
 
-    pub fn view_data(
-        &self,
-    ) -> impl IntoIterator<Item = (PathBuf, LapceBreakpoint)> {
+    pub fn view_data(&self) -> impl IntoIterator<Item = (PathBuf, LapceBreakpoint)> {
         self.breakpoints
             .get()
             .into_iter()

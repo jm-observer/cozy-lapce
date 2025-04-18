@@ -2436,7 +2436,7 @@ cmd.wait()?;
                 debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 let diag = self.main_split.get_diagnostic_data(&path);
                 let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
-                let id = diag.id.with_untracked(|x| {
+                let task_id = diag.id.with_untracked(|x| {
                     x.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
                 });
                 if diagnostics.is_empty() && !old_is_empty {
@@ -2445,10 +2445,10 @@ cmd.wait()?;
                         let now_id = diag.id.with_untracked(|x| {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
-                        if now_id == id {
+                        if now_id == task_id {
                             warn!(
-                                "PublishDiagnostics exec_after {path:?} \
-                                 {now_id}={id}",
+                                "PublishDiagnostics equal exec_after {path:?} \
+                                 {now_id}={task_id}",
                             );
                             diag.diagnostics.set(diagnostics);
                             let doc_content = DocContent::File {
@@ -2463,8 +2463,8 @@ cmd.wait()?;
                             }
                         } else {
                             warn!(
-                                "PublishDiagnostics exec_after {path:?} {now_id} \
-                                 id={id}",
+                                "PublishDiagnostics exec_after {path:?} \
+                                 now_id={now_id} id={task_id}",
                             );
                         }
                     });
