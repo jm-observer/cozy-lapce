@@ -3,7 +3,7 @@ use std::{
     fmt::Debug,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{Arc, mpsc::Sender},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -17,7 +17,7 @@ use doc::lines::{
 use floem::{
     ViewId,
     action::{TimerToken, exec_after, remove_overlay},
-    ext_event::{create_ext_action, create_signal_from_channel},
+    ext_event::create_ext_action,
     file::FileDialogOptions,
     file_action::open_file,
     keyboard::Modifiers,
@@ -2431,14 +2431,18 @@ cmd.wait()?;
                 // }
                 log::warn!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 let diag = self.main_split.get_diagnostic_data(&path);
-                let old_is_empty = diag.diagnostics.with_untracked(|x| x.is_empty());
+                let old_len = diag.diagnostics.with_untracked(|x| x.len());
                 let task_id = diag.id.with_untracked(|x| {
                     x.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     x.load(std::sync::atomic::Ordering::Relaxed)
                 });
-                if diagnostics.is_empty() && !old_is_empty {
+                if diagnostics.is_empty() && old_len > 0 {
+                    let time = match old_len {
+                        1 => 600u64,
+                        _ => 2000,
+                    };
                     let docs = self.main_split.docs;
-                    exec_after(Duration::from_millis(500), move |_| {
+                    exec_after(Duration::from_millis(time), move |_| {
                         let now_id = diag.id.with_untracked(|x| {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
@@ -2458,11 +2462,11 @@ cmd.wait()?;
                                 // warn!("PublishDiagnostics docs {:?}", path);
                                 doc.init_diagnostics();
                             }
-                            } else {
-                                warn!(
-                                    "PublishDiagnostics exec_after {path:?} \
-                                     now_id={now_id} id={task_id}",
-                                );
+                        } else {
+                            warn!(
+                                "PublishDiagnostics exec_after {path:?} \
+                                 now_id={now_id} id={task_id}",
+                            );
                         }
                     });
                     return;

@@ -157,7 +157,7 @@ impl ScreenLines {
     ) -> Option<(&VisualOriginText, &VisualOriginText)> {
         let first = self.visual_lines.iter().find_map(|x| {
             if let VisualLineInfo::OriginText { text } = x {
-                return Some(text);
+                Some(text)
             } else {
                 None
             }

@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::mpsc::Sender};
+use std::rc::Rc;
 
 use alacritty_terminal::{
     Term,
@@ -12,10 +12,7 @@ use alacritty_terminal::{
     },
     vte::ansi,
 };
-use lapce_rpc::{
-    proxy::{ProxyNotification, ProxyRpcHandler},
-    terminal::TermId,
-};
+use lapce_rpc::terminal::TermId;
 
 use crate::window_workspace::CommonData;
 

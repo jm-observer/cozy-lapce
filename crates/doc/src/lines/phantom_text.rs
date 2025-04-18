@@ -211,11 +211,7 @@ pub enum Text {
 
 impl Text {
     pub fn is_phantom(&self) -> bool {
-        if let Text::Phantom { .. } = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Text::Phantom { .. })
     }
 
     // pub fn adjust(&mut self, line_delta: Offset, _offset_delta: Offset) {

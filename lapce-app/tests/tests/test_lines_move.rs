@@ -187,8 +187,8 @@ pub fn test_move_up() -> Result<()> {
     // }
 
     // lines._log_folded_lines();
-    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
-    lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
+    lines.update_folding_ranges((*items.first().unwrap()).into())?;
+    lines.update_folding_ranges((*items.get(1).unwrap()).into())?;
 
     // lines.log();
     {

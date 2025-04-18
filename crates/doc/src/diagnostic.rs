@@ -74,10 +74,8 @@ impl DiagnosticData {
             let mut final_diag = None;
             x.iter().for_each(|(range, diag)| {
                 if range.contains(offset) {
-                    let diag_severty = diag
-                        .severity
-                        .clone()
-                        .unwrap_or(DiagnosticSeverity::INFORMATION);
+                    let diag_severty =
+                        diag.severity.unwrap_or(DiagnosticSeverity::INFORMATION);
                     if diag_severty < severty {
                         severty = diag_severty;
                         final_diag = Some(diag);
@@ -98,10 +96,8 @@ impl DiagnosticData {
             let mut final_diag = None;
             x.iter().for_each(|(range, diag)| {
                 if limit_start <= range.start && range.end <= limit_end {
-                    let diag_severty = diag
-                        .severity
-                        .clone()
-                        .unwrap_or(DiagnosticSeverity::INFORMATION);
+                    let diag_severty =
+                        diag.severity.unwrap_or(DiagnosticSeverity::INFORMATION);
                     if diag_severty < severty {
                         severty = diag_severty;
                         final_diag = Some(diag);

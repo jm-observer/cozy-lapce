@@ -85,7 +85,7 @@ pub fn parse_markdown(
                     if let Some(attrs) = attribute_for_tag(
                         default_attrs,
                         &tag,
-                        &code_font_family,
+                        code_font_family,
                         font_size,
                         markdown_blockquote,
                         editor_link,
@@ -109,7 +109,7 @@ pub fn parse_markdown(
 
                             highlight_as_code(
                                 &mut attr_list,
-                                default_attrs.family(&code_font_family),
+                                default_attrs.family(code_font_family),
                                 language,
                                 &last_text,
                                 start_offset,

@@ -36,13 +36,13 @@ impl ThemeColorSignal {
             .color
             .syntax
             .iter()
-            .map(|x| (x.0.clone(), SignalManager::new(cx, x.1.clone())))
+            .map(|x| (x.0.clone(), SignalManager::new(cx, *x.1)))
             .collect();
         let ui = config
             .color
             .ui
             .iter()
-            .map(|x| (x.0.clone(), SignalManager::new(cx, x.1.clone())))
+            .map(|x| (x.0.clone(), SignalManager::new(cx, *x.1)))
             .collect();
         Self { syntax, ui }
     }
@@ -52,14 +52,14 @@ impl ThemeColorSignal {
             let Some(signal) = self.syntax.get_mut(key) else {
                 return;
             };
-            signal.update_and_trigger_if_not_equal(val.clone());
+            signal.update_and_trigger_if_not_equal(*val);
         });
 
         config.color.ui.iter().for_each(|(key, val)| {
             let Some(signal) = self.ui.get_mut(key) else {
                 return;
             };
-            signal.update_and_trigger_if_not_equal(val.clone());
+            signal.update_and_trigger_if_not_equal(*val);
         });
     }
 }

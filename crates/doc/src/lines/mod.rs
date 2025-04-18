@@ -3144,7 +3144,7 @@ impl DocLines {
                             )));
                         } else {
                             // next merge col
-                            while let Some(text) = iter.next() {
+                            for text in iter.by_ref() {
                                 if let Text::OriginText { text } = text {
                                     if folded_line.is_last_char(text.final_col.start)
                                     {

@@ -55,7 +55,7 @@ impl EditorGutterView {
         let gutter_padding_right = self.gutter_padding_right.get_untracked() as f64;
 
         let changes =
-            changes_colors_screen(&e_data, changes, added, modified_color, removed)?;
+            changes_colors_screen(e_data, changes, added, modified_color, removed)?;
         for (y, height, removed, color) in changes {
             let height = if removed {
                 10.0

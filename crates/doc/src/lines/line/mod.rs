@@ -388,6 +388,11 @@ impl OriginFoldedLine {
         self.text_layout.text.borrow().text_len
     }
 
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// note:
     /// len_without_rn of final content
     pub fn len_without_rn(&self) -> usize {

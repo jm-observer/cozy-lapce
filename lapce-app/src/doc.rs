@@ -977,7 +977,7 @@ impl Doc {
     }
 
     pub fn diagnostics(&self) -> DiagnosticData {
-        self.lines.with_untracked(|x| x.diagnostics.clone())
+        self.lines.with_untracked(|x| x.diagnostics)
     }
 
     // /// Update the diagnostics' positions after an edit so that they appear in

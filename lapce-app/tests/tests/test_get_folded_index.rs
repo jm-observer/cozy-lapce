@@ -53,7 +53,7 @@ pub fn _test_folding() -> Result<()> {
             0
         );
     }
-    lines.update_folding_ranges(items.get(1).unwrap().clone().into())?;
+    lines.update_folding_ranges((*items.get(1).unwrap()).into())?;
     assert_eq!(lines.get_folded_index(6), 4);
     assert_eq!(lines.get_folded_line(4), 3);
     {
@@ -65,7 +65,7 @@ pub fn _test_folding() -> Result<()> {
             2
         );
     }
-    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+    lines.update_folding_ranges((*items.first().unwrap()).into())?;
     assert_eq!(lines.get_folded_index(6), 2);
     assert_eq!(lines.get_folded_line(4), 1);
     {

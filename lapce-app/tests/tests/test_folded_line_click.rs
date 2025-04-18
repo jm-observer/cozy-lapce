@@ -105,7 +105,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 0);
-        assert_eq!(is_inside, false);
+        assert!(!is_inside);
         assert_eq!(affinity, CursorAffinity::Backward);
     }
     // empty of end line(line_index=1 offset with \r\n [2..19))
@@ -123,7 +123,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             lines.buffer().char_at_offset(offset_of_buffer).unwrap(),
             '\r'
         );
-        assert_eq!(is_inside, false);
+        assert!(!is_inside);
         assert_eq!(affinity, CursorAffinity::Backward);
 
         let (_visual_line, final_col, ..) =
@@ -143,7 +143,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 124);
-        assert_eq!(is_inside, true);
+        assert!(is_inside);
         assert_eq!(affinity, CursorAffinity::Backward);
 
         let point = Point::new(87.7, 150.0);
@@ -153,7 +153,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 124);
-        assert_eq!(is_inside, true);
+        assert!(is_inside);
         assert_eq!(affinity, CursorAffinity::Forward);
     }
 

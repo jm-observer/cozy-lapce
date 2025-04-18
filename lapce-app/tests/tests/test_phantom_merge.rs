@@ -54,7 +54,7 @@ pub fn _test_merge() -> Result<()> {
             "    if true {\r\n",
             "    if true {\r\n"
         );
-        lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+        lines.update_folding_ranges((*items.first().unwrap()).into())?;
         let mut line = lines.init_folded_line_layout_alone(1).unwrap();
 
         debug!("{:?}", line);

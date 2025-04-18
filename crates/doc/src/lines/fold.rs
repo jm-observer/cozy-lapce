@@ -79,7 +79,7 @@ impl<'a> MergeFoldingRangesLine<'a> {
                             break;
                         }
                     }
-                    return Some(start_line as usize..=end_line as usize);
+                    return Some(start_line..=end_line);
                 } else {
                     return None;
                 }
@@ -135,7 +135,7 @@ impl<'a> FoldingRangesLine<'a> {
                             break;
                         }
                     }
-                    return Some(start_line as usize..=end_line as usize);
+                    return Some(start_line..=end_line);
                 } else {
                     return None;
                 }
@@ -151,10 +151,8 @@ impl<'a> FoldingRangesLine<'a> {
                 if folded.interval.end < offset {
                     self.folding.next();
                     continue;
-                } else if folded.interval.contains(offset) {
-                    return true;
                 } else {
-                    return false;
+                    return folded.interval.contains(offset);
                 }
             } else {
                 return false;

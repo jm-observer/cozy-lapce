@@ -433,7 +433,8 @@ impl TextLayout {
         let text_len_without_rn = new_text.len();
         // log::info!("{new_text:?}");
         let ending = LineEnding::None;
-        let text_layout = Self {
+
+        Self {
             text_len,
             text_len_without_rn,
             line,
@@ -453,9 +454,7 @@ impl TextLayout {
             tab_width: 8,
             scratch: Default::default(),
             init: false,
-        };
-
-        text_layout
+        }
     }
 
     pub fn new_with_config<T: Into<String>>(

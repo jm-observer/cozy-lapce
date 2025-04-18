@@ -340,7 +340,7 @@ pub fn editor_view(
         let doc = doc.get_untracked();
         if let Event::ImeCommit(text) = event {
             e_data_3.clear_preedit(&doc);
-            e_data_event.receive_char(&text);
+            e_data_event.receive_char(text);
         }
         EventPropagation::Stop
     })

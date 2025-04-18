@@ -94,7 +94,7 @@ impl TerminalData {
 
 impl KeyPressFocus for TerminalData {
     fn get_mode(&self) -> Mode {
-        self.data.with_untracked(|x| x.mode.clone())
+        self.data.with_untracked(|x| x.mode)
     }
 
     fn check_condition(&self, condition: Condition) -> bool {

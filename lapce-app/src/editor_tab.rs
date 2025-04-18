@@ -143,7 +143,7 @@ impl EditorTabChildId {
                     Some((ref path, is_pritine)) => {
                         let icon_theme =
                             config.signal(|config| config.icon_theme.signal());
-                        let (svg, color) = icon_theme.with(|x| x.file_svg(&path));
+                        let (svg, color) = icon_theme.with(|x| x.file_svg(path));
 
                         // let (svg, color) =
                         //     config.with(|config| config.file_svg(path));

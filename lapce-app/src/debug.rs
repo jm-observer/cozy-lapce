@@ -167,7 +167,7 @@ impl BreakPoints {
     pub fn update_by_dap_resp(
         &self,
         path: &PathBuf,
-        breakpoints: &Vec<dap_types::Breakpoint>,
+        breakpoints: &[dap_types::Breakpoint],
     ) {
         self.breakpoints.update(|all_breakpoints| {
             if let Some(current_breakpoints) = all_breakpoints.get_mut(path) {

@@ -994,10 +994,10 @@ impl MainSplitData {
                                 diff_editor.jump_by_changes_index.set(Some(0));
                             });
                         }
-                    } else {
-                        if let Some(diff_editor) = diff_editors.get(diff_editor_id) {
-                            diff_editor.jump_by_changes_index.set(Some(0));
-                        }
+                    } else if let Some(diff_editor) =
+                        diff_editors.get(diff_editor_id)
+                    {
+                        diff_editor.jump_by_changes_index.set(Some(0));
                     }
                     true
                 },
