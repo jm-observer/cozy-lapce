@@ -194,7 +194,7 @@ pub fn _test_buffer_offset_of_click() -> Result<()> {
             panic!("should not be none");
         };
         assert_eq!(offset_of_buffer, 143);
-        assert_eq!(is_inside, true);
+        assert!(is_inside);
         assert_eq!(affinity, CursorAffinity::Backward);
     }
     // lines._log_folded_lines();
@@ -211,7 +211,7 @@ pub fn _test_buffer_offset_of_click_2() -> Result<()> {
     let mut lines = init_main_2()?;
 
     let items = init_main_folded_item_2()?;
-    lines.update_folding_ranges(items.get(0).unwrap().clone().into())?;
+    lines.update_folding_ranges((*items.first().unwrap()).into())?;
     let screen_lines = lines
         .compute_screen_lines_new(
             Rect::from_origin_size((0.0, 0.0), Size::new(1000., 800.)),
@@ -290,7 +290,7 @@ pub fn _test_buffer_offset_of_click_3() -> Result<()> {
     let mut lines = init_main_2()?;
 
     let items = init_main_folded_item_2()?;
-    lines.update_folding_ranges(items.get(0).cloned().unwrap().into())?;
+    lines.update_folding_ranges(items.first().cloned().unwrap().into())?;
     lines.update_folding_ranges(items.get(1).cloned().unwrap().into())?;
 
     lines.log();
@@ -376,7 +376,7 @@ pub fn _test_main_3_buffer_offset_of_click() -> Result<()> {
     let mut lines = init_main_3()?;
 
     let items = init_main_folded_item_3()?;
-    lines.update_folding_ranges(items.get(0).cloned().unwrap().into())?;
+    lines.update_folding_ranges(items.first().cloned().unwrap().into())?;
     lines.log();
 
     {

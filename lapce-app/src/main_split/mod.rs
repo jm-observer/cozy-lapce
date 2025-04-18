@@ -2293,7 +2293,7 @@ impl MainSplitData {
             let diagnostic_data = DiagnosticData::new(self.scope);
 
             self.diagnostics.update(|d| {
-                d.insert(path.to_path_buf(), diagnostic_data.clone());
+                d.insert(path.to_path_buf(), diagnostic_data);
             });
             diagnostic_data
         }

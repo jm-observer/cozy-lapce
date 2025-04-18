@@ -951,7 +951,7 @@ impl View for EditorView {
                 highlight_current_line,
                 cursor_offset,
                 cursor.affinity,
-                get_selection(&cursor),
+                get_selection(cursor),
             )
         });
         let screen_lines = self.editor.screen_lines.get_untracked();
@@ -1777,7 +1777,7 @@ fn editor_breadcrumbs(
 }
 
 pub fn count_rect(
-    changes: &Vec<DiffResult>,
+    changes: &[DiffResult],
     index: usize,
     right_editor: &EditorData,
 ) -> Result<()> {

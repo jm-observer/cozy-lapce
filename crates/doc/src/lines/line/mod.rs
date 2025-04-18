@@ -422,11 +422,11 @@ impl OriginFoldedLine {
     // }
 
     pub fn extra_style(&self) -> &[LineExtraStyle] {
-        &self.text_layout.extra_style()
+        self.text_layout.extra_style()
     }
 
     pub fn document_highlight_style(&self) -> &[LineExtraStyle] {
-        &self.text_layout.document_highlight_style()
+        self.text_layout.document_highlight_style()
     }
 
     pub fn whitespaces(&self) -> &Option<Vec<(char, (f64, f64))>> {

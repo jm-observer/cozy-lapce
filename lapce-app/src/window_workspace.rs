@@ -2345,7 +2345,7 @@ cmd.wait()?;
                     let breakpoints = self.common.breakpoints;
                 let proxy = self.common.proxy.proxy_rpc.clone();
                 let daps = self.terminal.debug.daps;
-                update_breakpoints(daps, proxy, breakpoints, lapce_core::debug::BreakpointAction::AddOrRemove { path: &path, line: line_num, offset  });
+                update_breakpoints(daps, proxy, breakpoints, lapce_core::debug::BreakpointAction::AddOrRemove { path, line: line_num, offset  });
                 }
             },
         }

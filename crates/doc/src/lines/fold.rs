@@ -30,7 +30,7 @@ pub struct MergeFoldingRangesLine<'a> {
 }
 
 impl<'a> MergeFoldingRangesLine<'a> {
-    pub fn new(folding: &'a Vec<FoldedRange>) -> Self {
+    pub fn new(folding: &'a [FoldedRange]) -> Self {
         let folding = folding.iter().peekable();
         Self { folding }
     }
@@ -108,7 +108,7 @@ impl<'a> MergeFoldingRangesLine<'a> {
     }
 }
 impl<'a> FoldingRangesLine<'a> {
-    pub fn new(folding: &'a Vec<FoldedRange>) -> Self {
+    pub fn new(folding: &'a [FoldedRange]) -> Self {
         let folding = folding.iter().peekable();
         Self { folding }
     }
@@ -224,7 +224,7 @@ impl<'a> FoldingRangesLine<'a> {
                         bg: Some(inlay_hint_background),
                         under_line: None,
                         final_col: start,
-                        line: line as usize,
+                        line,
                         visual_merge_col: start,
                         origin_merge_col: start,
                     });
@@ -249,7 +249,7 @@ impl<'a> FoldingRangesLine<'a> {
                         bg: None,
                         under_line: None,
                         final_col: 0,
-                        line: line as usize,
+                        line,
                         visual_merge_col: 0,
                         origin_merge_col: 0,
                     });
@@ -588,7 +588,7 @@ impl FoldedRanges {
     }
 
     pub fn find_by_interval(&self, iv: Interval) -> bool {
-        self.0.iter().find(|item| item.interval == iv).is_some()
+        self.0.iter().any(|item| item.interval == iv)
     }
 
     pub fn filter_by_line(&self, line: usize) -> Self {
@@ -609,12 +609,12 @@ impl FoldedRanges {
     pub fn visual_line(&self, line: usize) -> usize {
         for folded in &self.0 {
             if line <= folded.start_line {
-                return line as usize;
+                return line;
             } else if folded.start_line < line && line <= folded.end_line {
-                return folded.start_line as usize;
+                return folded.start_line;
             }
         }
-        line as usize
+        line
     }
 
     /// ??line: 该行是否被折叠。
@@ -743,7 +743,7 @@ impl FoldedRange {
                 bg: Some(inlay_hint_background),
                 under_line: None,
                 final_col: start,
-                line: line as usize,
+                line,
                 visual_merge_col: start,
                 origin_merge_col: start,
             })
@@ -764,7 +764,7 @@ impl FoldedRange {
                 bg: None,
                 under_line: None,
                 final_col: 0,
-                line: line as usize,
+                line,
                 visual_merge_col: 0,
                 origin_merge_col: 0,
             })

@@ -26,7 +26,7 @@ pub fn parse_markdown(
     text: &str,
     line_height: f64,
     directory: &Directory,
-    code_font_family: &Vec<FamilyOwned>,
+    code_font_family: &[FamilyOwned],
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,
@@ -167,7 +167,7 @@ pub fn parse_markdown(
             Event::Code(text) => {
                 attr_list.add_span(
                     pos..pos + text.len(),
-                    default_attrs.family(&code_font_family),
+                    default_attrs.family(code_font_family),
                 );
                 current_text.push_str(&text);
                 pos += text.len();
@@ -179,7 +179,7 @@ pub fn parse_markdown(
                 attr_list.add_span(
                     pos..pos + text.len(),
                     default_attrs
-                        .family(&code_font_family)
+                        .family(code_font_family)
                         .color(markdown_blockquote),
                 );
                 current_text.push_str(&text);

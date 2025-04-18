@@ -725,7 +725,7 @@ impl ScreenLines {
             );
         } else {
             let (offset, affi) = info.last_cursor_position();
-            return Ok(Some((offset, false, affi)));
+            Ok(Some((offset, false, affi)))
         }
     }
 
