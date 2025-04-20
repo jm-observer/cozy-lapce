@@ -119,6 +119,7 @@ pub fn get_document_highlight(
     highs
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn extra_styles_for_range<'a>(
     text_layout: &'a mut RefMut<TextLayout>,
     start: usize,

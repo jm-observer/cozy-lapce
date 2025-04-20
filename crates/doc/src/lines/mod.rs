@@ -1531,9 +1531,7 @@ impl DocLines {
         line_height: usize,
         y0: f64,
         base: Rect,
-        change_lines: &mut Peekable<
-            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>,
-        >,
+        change_lines: &mut PeekDiff,
         folded_lines: &mut FoldingRangesLine,
     ) -> Result<ScreenLines> {
         let mut max_width = 0.0;
@@ -1773,6 +1771,7 @@ impl DocLines {
         Ok(Some(folded_line))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn init_folded_line_2(
         &self,
         current_origin_line: usize,
@@ -1820,9 +1819,7 @@ impl DocLines {
     pub fn generate_visual_lines(
         &mut self,
         last_line: usize,
-        empty_lines: &mut Peekable<
-            Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>,
-        >,
+        empty_lines: &mut PeekDiff,
         folded_lines: &mut FoldingRangesLine,
     ) -> Vec<VisualLine> {
         // 合并后，起始行
@@ -2203,12 +2200,8 @@ impl DocLines {
             .map(|x| {
                 let mut styles =
                     SmallVec::<[crate::lines::phantom_text::PhantomText; 6]>::new();
-                loop {
-                    if let Some((Interval { start, .. }, _)) = x.peek() {
-                        if end_offset <= *start {
-                            break;
-                        }
-                    } else {
+                while let Some((Interval { start, .. }, _)) = x.peek() {
+                    if end_offset <= *start {
                         break;
                     }
                     if let Some((Interval { start, end }, inlay_hint)) = x.next() {
@@ -2474,12 +2467,8 @@ impl DocLines {
         let semantic_styles = semantic_styles
             .map(|x| {
                 let mut styles = vec![];
-                loop {
-                    if let Some((Interval { start, .. }, _)) = x.peek() {
-                        if end_offset <= *start {
-                            break;
-                        }
-                    } else {
+                while let Some((Interval { start, .. }, _)) = x.peek() {
+                    if end_offset <= *start {
                         break;
                     }
                     if let Some((Interval { start, end }, fg_color)) = x.next() {
@@ -4565,3 +4554,5 @@ pub struct InfoOfBufferOffset {
     /// 在整个文档的空间位置
     pub point_of_document:            Point,
 }
+
+type PeekDiff<'a> = Peekable<Filter<Iter<'a, DiffResult>, fn(&&DiffResult) -> bool>>;

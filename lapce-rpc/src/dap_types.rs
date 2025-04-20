@@ -173,6 +173,7 @@ pub enum DapEvent {
     Memory(Memory),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum DapPayload {

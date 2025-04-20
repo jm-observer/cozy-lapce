@@ -810,6 +810,7 @@ impl VirtualVector<(String, ReadSignal<String>)> for BTreeMapVirtualList {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn color_section_list(
     kind: &str,
     header: &str,

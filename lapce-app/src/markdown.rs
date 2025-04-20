@@ -13,7 +13,7 @@ use log::warn;
 use lsp_types::MarkedString;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Options, Parser, Tag};
 use smallvec::SmallVec;
-
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum MarkdownContent {
     Text(TextLayout),
@@ -333,7 +333,7 @@ pub fn highlight_as_code(
 pub fn from_marked_string(
     text: MarkedString,
     directory: &Directory,
-    font_family: &Vec<FamilyOwned>,
+    font_family: &[FamilyOwned],
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,

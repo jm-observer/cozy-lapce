@@ -1251,25 +1251,7 @@ impl LapceConfig {
         }
     }
 
-    pub fn paint_editor(
-        &self,
-    ) -> (
-        Color,
-        Color,
-        Color,
-        Color,
-        Color,
-        usize,
-        bool,
-        bool,
-        Color,
-        bool,
-        Color,
-        Color,
-        Color,
-        String,
-        f32,
-    ) {
+    pub fn paint_editor(&self) -> Colors {
         let editor_debug_break_line_color =
             self.color(LapceColor::EDITOR_DEBUG_BREAK_LINE);
         let lapce_scroll_bar_color = self.color(LapceColor::LAPCE_SCROLL_BAR);
@@ -1313,3 +1295,21 @@ impl LapceConfig {
         )
     }
 }
+
+pub type Colors = (
+    Color,
+    Color,
+    Color,
+    Color,
+    Color,
+    usize,
+    bool,
+    bool,
+    Color,
+    bool,
+    Color,
+    Color,
+    Color,
+    String,
+    f32,
+);

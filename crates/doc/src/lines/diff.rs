@@ -1,11 +1,8 @@
-use std::{
-    iter::{Filter, Peekable},
-    ops::Range,
-    slice::Iter,
-};
+use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
 
+use super::PeekDiff;
 use crate::lines::buffer::diff::DiffLines;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -114,50 +111,47 @@ impl DiffInfo {
         let mut changes = self.changes.iter().peekable();
         let mut next_right_change_line: Option<Range<usize>> = None;
         let mut diff_tys = vec![];
-        loop {
-            if let Some(change) = changes.next() {
-                match change {
-                    DiffLines::Left(left_diff) => {
-                        if let Some(DiffLines::Right(diff)) = changes.peek() {
-                            // edit
-                            changes.next();
-                            diff_tys.push(DiffResult::Changed {
-                                lines: diff.clone(),
-                            });
-                            if diff.len() < left_diff.len() {
-                                diff_tys.push(DiffResult::Empty {
-                                    lines: diff.end
-                                        ..diff.end + left_diff.len() - diff.len(),
-                                });
-                            }
-                            next_right_change_line = Some(diff.clone());
-                        } else {
-                            diff_tys.push(match &next_right_change_line {
-                                None => DiffResult::Empty {
-                                    lines: 0..left_diff.len(),
-                                },
-                                Some(lines) => DiffResult::Empty {
-                                    lines: lines.end..lines.end + left_diff.len(),
-                                },
-                            })
-                        }
-                    },
-                    DiffLines::Both(diff) => {
-                        next_right_change_line = Some(diff.right.clone());
-                    },
-                    DiffLines::Right(diff) => {
-                        diff_tys.push(match &next_right_change_line {
-                            None => DiffResult::Changed {
-                                lines: 0..diff.len(),
-                            },
-                            Some(lines) => DiffResult::Changed {
-                                lines: lines.end..lines.end + diff.len(),
-                            },
+
+        while let Some(change) = changes.next() {
+            match change {
+                DiffLines::Left(left_diff) => {
+                    if let Some(DiffLines::Right(diff)) = changes.peek() {
+                        // edit
+                        changes.next();
+                        diff_tys.push(DiffResult::Changed {
+                            lines: diff.clone(),
                         });
-                    },
-                }
-            } else {
-                break;
+                        if diff.len() < left_diff.len() {
+                            diff_tys.push(DiffResult::Empty {
+                                lines: diff.end
+                                    ..diff.end + left_diff.len() - diff.len(),
+                            });
+                        }
+                        next_right_change_line = Some(diff.clone());
+                    } else {
+                        diff_tys.push(match &next_right_change_line {
+                            None => DiffResult::Empty {
+                                lines: 0..left_diff.len(),
+                            },
+                            Some(lines) => DiffResult::Empty {
+                                lines: lines.end..lines.end + left_diff.len(),
+                            },
+                        })
+                    }
+                },
+                DiffLines::Both(diff) => {
+                    next_right_change_line = Some(diff.right.clone());
+                },
+                DiffLines::Right(diff) => {
+                    diff_tys.push(match &next_right_change_line {
+                        None => DiffResult::Changed {
+                            lines: 0..diff.len(),
+                        },
+                        Some(lines) => DiffResult::Changed {
+                            lines: lines.end..lines.end + diff.len(),
+                        },
+                    });
+                },
             }
         }
         // log::info!("{}", serde_json::to_string(&diff_tys).unwrap());
@@ -165,10 +159,7 @@ impl DiffInfo {
     }
 }
 
-pub fn is_diff(
-    changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    line: usize,
-) -> bool {
+pub fn is_diff(changes: &mut PeekDiff, line: usize) -> bool {
     loop {
         if let Some(diff) = changes.peek() {
             if diff.line().end <= line {
@@ -183,10 +174,7 @@ pub fn is_diff(
     }
 }
 
-pub fn advance(
-    changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
-    line_index: usize,
-) {
+pub fn advance(changes: &mut PeekDiff, line_index: usize) {
     if let Some(diff) = changes.peek() {
         if diff.line().end <= line_index {
             changes.next();
@@ -195,7 +183,7 @@ pub fn advance(
 }
 
 pub fn consume_line(
-    changes: &mut Peekable<Filter<Iter<DiffResult>, fn(&&DiffResult) -> bool>>,
+    changes: &mut PeekDiff,
     line_index: usize,
 ) -> Option<Range<usize>> {
     if let Some(diff) = changes.peek() {

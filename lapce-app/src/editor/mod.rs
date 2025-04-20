@@ -4691,7 +4691,7 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 fn parse_hover_resp(
     hover: lsp_types::Hover,
     directory: &Directory,
-    font_family: &Vec<FamilyOwned>,
+    font_family: &[FamilyOwned],
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,

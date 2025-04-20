@@ -51,7 +51,7 @@ pub struct ScreenLines {
     pub line_height:   f64,
     pub buffer_len:    usize,
 }
-
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum VisualLineInfo {
     OriginText {
@@ -506,24 +506,20 @@ impl ScreenLines {
     ) -> Option<(&VisualOriginText, bool)> {
         let mut lines = self.visual_lines.iter().peekable();
         let mut prev_line = None;
-        loop {
-            if let Some(line) = lines.peek() {
-                if let VisualLineInfo::OriginText { text } = line {
-                    if point_y < text.folded_line_y {
-                        return prev_line.map(|x| (x, false));
-                    } else if text.folded_line_y <= point_y
-                        && point_y < text.folded_line_y + self.line_height
-                    {
-                        return Some((text, true));
-                    } else {
-                        prev_line = Some(text);
-                        lines.next();
-                    }
+        while let Some(line) = lines.peek() {
+            if let VisualLineInfo::OriginText { text } = line {
+                if point_y < text.folded_line_y {
+                    return prev_line.map(|x| (x, false));
+                } else if text.folded_line_y <= point_y
+                    && point_y < text.folded_line_y + self.line_height
+                {
+                    return Some((text, true));
                 } else {
+                    prev_line = Some(text);
                     lines.next();
                 }
             } else {
-                break;
+                lines.next();
             }
         }
         prev_line.map(|x| (x, false))

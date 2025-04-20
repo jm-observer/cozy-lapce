@@ -116,6 +116,7 @@ pub enum LocalRequest {
         syntax: Syntax,
     },
 }
+#[allow(clippy::large_enum_variant)]
 pub enum LocalResponse {
     SyntaxParse {
         syntax: Syntax,

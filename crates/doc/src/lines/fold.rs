@@ -169,94 +169,87 @@ impl<'a> FoldingRangesLine<'a> {
         inlay_hint_background: Color,
     ) -> Result<SmallVec<[PhantomText; 6]>> {
         let mut textes = SmallVec::<[PhantomText; 6]>::new();
-        loop {
-            if let Some(folded) = self.folding.peek() {
-                let offset_of_start_line =
-                    buffer.offset_of_line(folded.start_line)?;
-                let start = folded.interval.start - offset_of_start_line;
-                let offset_of_end_line = buffer.offset_of_line(folded.end_line)?;
-                let content_len_of_start_line =
-                    buffer.line_content(folded.start_line)?.len();
-                if folded.end_line < line {
+        while let Some(folded) = self.folding.peek() {
+            let offset_of_start_line = buffer.offset_of_line(folded.start_line)?;
+            let start = folded.interval.start - offset_of_start_line;
+            let offset_of_end_line = buffer.offset_of_line(folded.end_line)?;
+            let content_len_of_start_line =
+                buffer.line_content(folded.start_line)?.len();
+            if folded.end_line < line {
+                self.folding.next();
+                continue;
+            } else if folded.start_line == line {
+                let same_line = folded.start_line == folded.end_line;
+                let Some(start_char) = buffer.char_at_offset(folded.interval.start)
+                else {
                     self.folding.next();
                     continue;
-                } else if folded.start_line == line {
-                    let same_line = folded.start_line == folded.end_line;
-                    let Some(start_char) =
-                        buffer.char_at_offset(folded.interval.start)
-                    else {
-                        self.folding.next();
-                        continue;
-                    };
-                    let Some(end_char) =
-                        buffer.char_at_offset(folded.interval.end - 1)
-                    else {
-                        self.folding.next();
-                        continue;
-                    };
-
-                    let mut text = String::new();
-                    text.push(start_char);
-                    text.push_str("...");
-                    text.push(end_char);
-                    let next_line = if same_line {
-                        None
-                    } else {
-                        Some(folded.end_line)
-                    };
-
-                    let (all_len, len) = if same_line {
-                        (folded.interval.size(), folded.interval.size())
-                    } else {
-                        (folded.interval.size(), content_len_of_start_line - start)
-                    };
-                    textes.push(PhantomText {
-                        kind: PhantomTextKind::LineFoldedRang {
-                            next_line,
-                            len,
-                            all_len,
-                            start_position: folded.interval.start,
-                        },
-                        col: start,
-                        text,
-                        fg: Some(inlay_hint_foreground),
-                        font_size: Some(inlay_hint_font_size),
-                        bg: Some(inlay_hint_background),
-                        under_line: None,
-                        final_col: start,
-                        line,
-                        visual_merge_col: start,
-                        origin_merge_col: start,
-                    });
-                    if !same_line {
-                        break;
-                    } else {
-                        self.folding.next();
-                    }
-                } else if folded.end_line == line {
-                    let text = String::new();
-                    textes.push(PhantomText {
-                        kind: PhantomTextKind::LineFoldedRang {
-                            next_line:      None,
-                            len:            folded.interval.end - offset_of_end_line,
-                            all_len:        folded.interval.end - offset_of_end_line,
-                            start_position: folded.interval.start,
-                        },
-                        col: 0,
-                        text,
-                        fg: None,
-                        font_size: None,
-                        bg: None,
-                        under_line: None,
-                        final_col: 0,
-                        line,
-                        visual_merge_col: 0,
-                        origin_merge_col: 0,
-                    });
+                };
+                let Some(end_char) = buffer.char_at_offset(folded.interval.end - 1)
+                else {
                     self.folding.next();
+                    continue;
+                };
+
+                let mut text = String::new();
+                text.push(start_char);
+                text.push_str("...");
+                text.push(end_char);
+                let next_line = if same_line {
+                    None
                 } else {
+                    Some(folded.end_line)
+                };
+
+                let (all_len, len) = if same_line {
+                    (folded.interval.size(), folded.interval.size())
+                } else {
+                    (folded.interval.size(), content_len_of_start_line - start)
+                };
+                textes.push(PhantomText {
+                    kind: PhantomTextKind::LineFoldedRang {
+                        next_line,
+                        len,
+                        all_len,
+                        start_position: folded.interval.start,
+                    },
+                    col: start,
+                    text,
+                    fg: Some(inlay_hint_foreground),
+                    font_size: Some(inlay_hint_font_size),
+                    bg: Some(inlay_hint_background),
+                    under_line: None,
+                    final_col: start,
+                    line,
+                    visual_merge_col: start,
+                    origin_merge_col: start,
+                });
+                if !same_line {
                     break;
+                } else {
+                    self.folding.next();
                 }
+            } else if folded.end_line == line {
+                let text = String::new();
+                textes.push(PhantomText {
+                    kind: PhantomTextKind::LineFoldedRang {
+                        next_line:      None,
+                        len:            folded.interval.end - offset_of_end_line,
+                        all_len:        folded.interval.end - offset_of_end_line,
+                        start_position: folded.interval.start,
+                    },
+                    col: 0,
+                    text,
+                    fg: None,
+                    font_size: None,
+                    bg: None,
+                    under_line: None,
+                    final_col: 0,
+                    line,
+                    visual_merge_col: 0,
+                    origin_merge_col: 0,
+                });
+                self.folding.next();
             } else {
                 break;
             }

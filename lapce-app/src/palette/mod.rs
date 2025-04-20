@@ -125,6 +125,8 @@ impl RunResult {
     }
 }
 
+pub type DocumentSymbolInfo =
+    RwSignal<Option<(PathBuf, Option<(im::Vector<PaletteItem>, SystemTime)>)>>;
 #[derive(Clone)]
 pub struct PaletteData {
     pub workspace:             Arc<LapceWorkspace>,
@@ -151,8 +153,7 @@ pub struct PaletteData {
     pub common:                Rc<CommonData>,
     left_diff_path:            RwSignal<Option<PathBuf>>,
     pub workspace_document_id: RwSignal<Option<u64>>,
-    pub document_symbol:
-        RwSignal<Option<(PathBuf, Option<(im::Vector<PaletteItem>, SystemTime)>)>>,
+    pub document_symbol:       DocumentSymbolInfo,
     pub run_result:            RwSignal<RunResult>,
 }
 

@@ -103,15 +103,14 @@ impl<Resp, Error, F: Send + FnOnce(Id, Result<Resp, Error>)> RpcCallback<Resp, E
         (*self)(id, result)
     }
 }
-
+#[allow(clippy::large_enum_variant)]
 pub enum PluginHandlerNotification {
     Initialize(u64),
     InitializeResult(InitializeResult),
     Shutdown,
-
     SpawnedPluginLoaded { plugin_id: PluginId },
 }
-
+#[allow(clippy::large_enum_variant)]
 pub enum PluginServerRpc {
     Shutdown,
     Handler(PluginHandlerNotification),

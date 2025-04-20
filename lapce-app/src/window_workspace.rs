@@ -2372,9 +2372,8 @@ cmd.wait()?;
                         .iter()
                         .cloned()
                         .map(|diff| {
-                            let checked = file_diffs
-                                .get(diff.path())
-                                .map_or(true, |(_, c)| *c);
+                            let checked =
+                                file_diffs.get(diff.path()).is_none_or(|(_, c)| *c);
                             (diff.path().clone(), (diff, checked))
                         })
                         .collect();

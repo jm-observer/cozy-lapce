@@ -136,7 +136,7 @@ impl LocalTaskHandler {
                     editor_link,
                 ) = (
                     FamilyOwned::parse_list(&self.config.editor.font_family)
-                        .collect(),
+                        .collect::<Vec<FamilyOwned>>(),
                     self.config.color(LapceColor::EDITOR_FOREGROUND),
                     self.config.style_colors(),
                     self.config.ui.font_size() as f32,
@@ -277,7 +277,7 @@ async fn handle_find_grammar(
 async fn handle_download_readme(
     volt: &VoltInfo,
     directory: &Directory,
-    font_family: &Vec<FamilyOwned>,
+    font_family: &[FamilyOwned],
     editor_fg: Color,
     style_colors: &HashMap<String, Color>,
     font_size: f32,
