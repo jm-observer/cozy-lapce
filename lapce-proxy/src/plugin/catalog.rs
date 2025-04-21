@@ -805,15 +805,15 @@ impl PluginCatalog {
                 ) {
                     Ok(dap_rpc) => {
                         if let Err(err) = plugin_rpc.dap_loaded(dap_rpc.clone()) {
-                            log::error!("{:?}", err);
+                            log::error!("plugin_rpc.dap_loaded {:?}", err);
                         }
 
                         if let Err(err) = dap_rpc.launch(&config) {
-                            log::error!("{:?}", err);
+                            log::error!("dap_rpc.launch {:?}", err);
                         }
                     },
                     Err(err) => {
-                        log::error!("{:?}", err);
+                        log::error!("DapClient::start {:?}", err);
                     },
                 }
             });

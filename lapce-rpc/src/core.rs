@@ -41,6 +41,7 @@ pub enum FileChanged {
     Delete,
 }
 
+/// Proxy inform core(lapce)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "method", content = "params")]
