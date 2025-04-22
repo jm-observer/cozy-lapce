@@ -3157,7 +3157,7 @@ cmd.wait()?;
                 terminal.new_process(Some(run_debug));
             },
             RunDebugMode::Debug => {
-                let config = run_debug.origin_config.clone();
+                let mut config = run_debug.origin_config.clone();
                 let dap_id = config.dap_id;
                 let dap_data = DapData::new(
                     self.scope,
@@ -3169,6 +3169,11 @@ cmd.wait()?;
                     x.insert(dap_id, dap_data);
                 });
                 if config.prelaunch.is_some() {
+                    if !run_debug.is_prelaunch {
+                        config
+                            .config_source
+                            .update_program(&run_debug.config.program);
+                    }
                     run_debug.config = config.clone();
                     run_debug.stopped = false;
                     run_debug.created = Instant::now();

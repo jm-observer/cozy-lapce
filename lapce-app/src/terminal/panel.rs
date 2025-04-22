@@ -905,18 +905,24 @@ fn update_executable(
     run_debug: &mut RunDebugProcess,
     raw: Arc<RwLock<RawTerminal>>,
 ) {
-    if run_debug.config.config_source.from_rust_code_lens() {
-        let lines = raw.write_arc().output(5);
-        if let Some(executable) = lines.into_iter().rev().find_map(|x| {
-            if let Ok(map) = serde_json::from_str::<RustArtifact>(&x) {
-                return map.artifact();
-            } else {
-                log::debug!("{}", x);
+    match &run_debug.config.config_source {
+        dap_types::ConfigSource::RustCodeLens => {
+            let lines = raw.write_arc().output(5);
+            if let Some(executable) = lines.into_iter().rev().find_map(|x| {
+                if let Ok(map) = serde_json::from_str::<RustArtifact>(&x) {
+                    return map.artifact();
+                } else {
+                    log::debug!("{}", x);
+                }
+                None
+            }) {
+                run_debug.config.program = executable;
             }
-            None
-        }) {
-            run_debug.config.program = executable;
-        }
+        },
+        dap_types::ConfigSource::RustCodeLensRestart { program } => {
+            run_debug.config.program = program.clone();
+        },
+        _ => {},
     }
 }
 

@@ -107,8 +107,19 @@ pub enum ConfigSource {
     Palette,
     RunInTerminal,
     RustCodeLens,
+    RustCodeLensRestart {
+        program: String,
+    },
 }
 impl ConfigSource {
+    pub fn update_program(&mut self, program: &String) {
+        if matches!(self, Self::RustCodeLens) {
+            *self = Self::RustCodeLensRestart {
+                program: program.clone(),
+            }
+        }
+    }
+
     pub fn from_palette(&self) -> bool {
         *self == Self::Palette
     }
