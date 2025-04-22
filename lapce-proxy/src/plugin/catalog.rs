@@ -670,6 +670,9 @@ impl PluginCatalog {
                     plugin.shutdown();
                 }
             },
+            DapLoaded(dap_rpc) => {
+                self.daps.insert(dap_rpc.dap_id, dap_rpc);
+            },
         }
     }
 
@@ -678,10 +681,8 @@ impl PluginCatalog {
         notification: DapNotificationOfUser,
     ) {
         use DapNotificationOfUser::*;
+        log::debug!("handle_dap_notification_of_user {notification:?}");
         match notification {
-            DapLoaded(dap_rpc) => {
-                self.daps.insert(dap_rpc.dap_id, dap_rpc);
-            },
             DapDisconnected(dap_id) => {
                 self.daps.remove(&dap_id);
             },
@@ -738,7 +739,7 @@ impl PluginCatalog {
                     dap.step_out(thread_id);
                 }
             },
-            DapStop { dap_id } => {
+            DapStopByUser { dap_id } => {
                 if let Some(dap) = self.daps.remove(&dap_id) {
                     debug!("DapStop {dap_id:?}");
                     dap.stop();

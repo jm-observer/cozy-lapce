@@ -38,6 +38,13 @@ use super::{
     psp::{ResponseHandler, RpcCallback},
 };
 
+pub enum DapStatus {
+    Normal,
+    TerminateByUser,
+    TerminateByError,
+    TerminateByDap,
+}
+
 pub struct DapClient {
     plugin_rpc:         PluginCatalogRpcHandler,
     pub(crate) dap_rpc: DapRpcHandler,
@@ -49,6 +56,7 @@ pub struct DapClient {
     terminated:         bool,
     disconnected:       bool,
     restarted:          bool,
+    status:             DapStatus,
 }
 
 impl DapClient {
@@ -71,6 +79,7 @@ impl DapClient {
             terminated: false,
             disconnected: false,
             restarted: false,
+            status: DapStatus::Normal,
         })
     }
 
@@ -143,17 +152,11 @@ impl DapClient {
                         },
                         Err(_err) => {
                             log::error!("read from dap fail?: {_err:?}");
-                            // if let Err(err) = io_tx
-                            //     .send(DapPayload::Event(DapEvent::Initialized(None)))
-                            // {
-                            //     error!("{:?}", err);
-                            // }
                             plugin_rpc.core_rpc.log(
                                 lapce_rpc::core::LogLevel::Error,
                                 format!("dap server {program} stopped!"),
                                 None,
                             );
-
                             dap_rpc.disconnected();
                             log::debug!("thread(read from dap) exited");
                             return;
@@ -315,24 +318,25 @@ impl DapClient {
                 self.plugin_rpc.core_rpc.dap_continued(self.dap_rpc.dap_id);
             },
             DapEvent::Exited(exited) => {
-                if let Some(term_id) = self.term_id {
-                    self.plugin_rpc.core_rpc.terminal_process_stopped(
-                        term_id,
-                        Some(exited.exit_code as i32),
-                    );
+                if self.terminate_by_dap() {
+                    if let Some(term_id) = self.term_id {
+                        self.plugin_rpc.core_rpc.terminal_process_stopped_by_dap(
+                            term_id,
+                            Some(exited.exit_code as i32),
+                        );
+                    }
                 }
             },
             DapEvent::Terminated(_) => {
-                self.terminated = true;
-                // self.plugin_rpc.core_rpc.dap_terminated(self.dap_rpc.dap_id);
-                // close by main thread??
-                if let Some(term_id) = self.term_id {
-                    self.plugin_rpc
-                        .core_rpc
-                        .terminal_process_stopped(term_id, None);
-                }
-                if let Err(err) = self.check_restart() {
-                    error!("{:?}", err);
+                if self.terminate_by_dap() {
+                    if let Some(term_id) = self.term_id {
+                        self.plugin_rpc
+                            .core_rpc
+                            .terminal_process_stopped_by_dap(term_id, None);
+                    }
+                    if let Err(err) = self.check_restart() {
+                        error!("{:?}", err);
+                    }
                 }
             },
             DapEvent::Thread { .. } => {},
@@ -373,7 +377,7 @@ impl DapClient {
         Ok(())
     }
 
-    fn stop(&self) {
+    fn _stop_by_other(&mut self) {
         let dap_rpc = self.dap_rpc.clone();
         if self
             .capabilities
@@ -436,9 +440,33 @@ impl DapClient {
         self.restarted = true;
         self.breakpoints = breakpoints;
         if !self.terminated {
-            self.stop();
+            self._stop_by_other();
         } else if let Err(err) = self.check_restart() {
             error!("{:?}", err);
+        }
+    }
+
+    fn terminate_by_user(&mut self) {
+        if matches!(self.status, DapStatus::Normal) {
+            self.status = DapStatus::TerminateByUser;
+            self._stop_by_other();
+        }
+    }
+
+    fn terminate_by_dap(&mut self) -> bool {
+        self.terminated = true;
+        if matches!(self.status, DapStatus::Normal) {
+            self.status = DapStatus::TerminateByDap;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn terminate_by_error(&mut self) {
+        if matches!(self.status, DapStatus::Normal) {
+            self.status = DapStatus::TerminateByError;
+            self._stop_by_other();
         }
     }
 }
@@ -446,10 +474,12 @@ impl DapClient {
 pub enum DapRpc {
     HostRequest(DapRequest),
     HostEvent(DapEvent),
-    Stop,
+    RequestFromDap(DapRequest),
+    EventFromDap(DapEvent),
+    TerminateByUser,
     Restart(HashMap<PathBuf, Vec<SourceBreakpoint>>),
     // Shutdown,
-    Disconnected,
+    DisconnectedByError,
 }
 
 #[derive(Clone)]
@@ -494,7 +524,7 @@ impl DapRpcHandler {
     pub fn mainloop(&self, dap_client: &mut DapClient) {
         for msg in &self.rpc_rx {
             match msg {
-                DapRpc::HostRequest(req) => {
+                DapRpc::HostRequest(req) | DapRpc::RequestFromDap(req) => {
                     let result = dap_client.handle_host_request(&req);
                     let seq = self.seq_counter.fetch_add(1, Ordering::Relaxed);
                     let resp = DapResponse {
@@ -509,33 +539,23 @@ impl DapRpcHandler {
                         error!("{:?}", err);
                     }
                 },
-                DapRpc::HostEvent(event) => {
+                DapRpc::HostEvent(event) | DapRpc::EventFromDap(event) => {
                     if let Err(err) = dap_client.handle_host_event(&event) {
                         error!("{:?}", err);
                     }
                 },
-                DapRpc::Stop => {
-                    dap_client.stop();
+                DapRpc::TerminateByUser => {
+                    dap_client.terminate_by_user();
+                    // need to continue recv msg from dap
+                    // break;
+                },
+                DapRpc::DisconnectedByError => {
+                    dap_client.terminate_by_error();
+                    // need to continue recv msg from dap
+                    // break;
                 },
                 DapRpc::Restart(breakpoints) => {
                     dap_client.restart(breakpoints);
-                },
-                // DapRpc::Shutdown => {
-                //     if let Some(term_id) = dap_client.term_id {
-                //         dap_client.plugin_rpc.proxy_rpc.terminal_close(term_id);
-                //     }
-                //     return;
-                // }
-                DapRpc::Disconnected => {
-                    dap_client.disconnected = true;
-                    // close by main thread
-                    // if let Some(term_id) = dap_client.term_id {
-                    //     dap_client.plugin_rpc.proxy_rpc.
-                    // terminal_close(term_id); }
-                    // ??
-                    // if let Err(err) = dap_client.check_restart() {
-                    //     error!("{:?}", err);
-                    // }
                 },
             }
             if dap_client.terminated {
@@ -640,7 +660,7 @@ impl DapRpcHandler {
             Ok(payload) => match payload {
                 DapPayload::Request(req) => {
                     // log::info!("read Request from dap server: {req:?}");
-                    if let Err(err) = self.rpc_tx.send(DapRpc::HostRequest(req)) {
+                    if let Err(err) = self.rpc_tx.send(DapRpc::RequestFromDap(req)) {
                         error!("{:?}", err);
                     }
                 },
@@ -649,7 +669,7 @@ impl DapRpcHandler {
                     if let DapEvent::Terminated(..) = &event {
                         terminated = true;
                     }
-                    if let Err(err) = self.rpc_tx.send(DapRpc::HostEvent(event)) {
+                    if let Err(err) = self.rpc_tx.send(DapRpc::EventFromDap(event)) {
                         error!("{:?}", err);
                     }
                 },
@@ -681,7 +701,7 @@ impl DapRpcHandler {
     }
 
     pub fn stop(&self) {
-        if let Err(err) = self.rpc_tx.send(DapRpc::Stop) {
+        if let Err(err) = self.rpc_tx.send(DapRpc::TerminateByUser) {
             error!("{:?}", err);
         }
     }
@@ -693,7 +713,7 @@ impl DapRpcHandler {
     }
 
     fn disconnected(&self) {
-        if let Err(err) = self.rpc_tx.send(DapRpc::Disconnected) {
+        if let Err(err) = self.rpc_tx.send(DapRpc::DisconnectedByError) {
             error!("{:?}", err);
         }
     }

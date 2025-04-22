@@ -390,12 +390,24 @@ impl TerminalPanelData {
         }
     }
 
-    pub fn terminal_stopped(&self, term_id: &TermId, exit_code: Option<i32>) {
-        log::error!("terminal_stopped exit_code={exit_code:?}");
+    pub fn terminal_stopped(
+        &self,
+        term_id: &TermId,
+        exit_code: Option<i32>,
+        stopped_by_dap: bool,
+    ) {
+        log::info!("terminal_stopped exit_code={exit_code:?}");
         if let Some(terminal) = self.get_terminal(*term_id) {
-            let (is_some, raw) = terminal
-                .data
-                .with_untracked(|x| (x.run_debug.is_some(), x.raw.clone()));
+            let (is_some, raw, raw_id) = terminal.data.with_untracked(|x| {
+                (x.run_debug.is_some(), x.raw.clone(), x.raw_id)
+            });
+
+            if stopped_by_dap {
+                self.common
+                    .proxy
+                    .proxy_rpc
+                    .terminal_close(terminal.term_id, raw_id);
+            }
 
             if is_some {
                 let (was_prelaunch, mut run_debug, dap_id) = terminal

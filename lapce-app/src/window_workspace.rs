@@ -2507,14 +2507,21 @@ cmd.wait()?;
             },
             CoreNotification::TerminalProcessStopped { term_id, exit_code } => {
                 info!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
-                // if let Err(err) = self
-                //     .common
-                //     .term_tx
-                //     .send((*term_id, TermEvent::CloseTerminal))
-                // {
-                //     error!("{:?}", err);
-                // }
-                self.terminal.terminal_stopped(term_id, *exit_code);
+                self.terminal.terminal_stopped(term_id, *exit_code, false);
+                if self
+                    .terminal
+                    .tab_infos
+                    .with_untracked(|info| info.tabs.is_empty())
+                {
+                    if self.panel.is_panel_visible(&PanelKind::Terminal) {
+                        self.panel.hide_panel(&PanelKind::Terminal);
+                    }
+                    self.common.focus.set(Focus::Workbench);
+                }
+            },
+            CoreNotification::TerminalProcessStoppedByDap { term_id, exit_code } => {
+                info!("TerminalProcessStoppedByDap {:?}, {:?}", term_id, exit_code);
+                self.terminal.terminal_stopped(term_id, *exit_code, true);
                 if self
                     .terminal
                     .tab_infos

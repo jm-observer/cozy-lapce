@@ -127,6 +127,10 @@ pub enum CoreNotification {
         term_id:    TermId,
         process_id: Option<u32>,
     },
+    TerminalProcessStoppedByDap {
+        term_id:   TermId,
+        exit_code: Option<i32>,
+    },
     TerminalProcessStopped {
         term_id:   TermId,
         exit_code: Option<i32>,
@@ -360,6 +364,17 @@ impl CoreRpcHandler {
 
     pub fn terminal_process_stopped(&self, term_id: TermId, exit_code: Option<i32>) {
         self.notification(CoreNotification::TerminalProcessStopped {
+            term_id,
+            exit_code,
+        });
+    }
+
+    pub fn terminal_process_stopped_by_dap(
+        &self,
+        term_id: TermId,
+        exit_code: Option<i32>,
+    ) {
+        self.notification(CoreNotification::TerminalProcessStoppedByDap {
             term_id,
             exit_code,
         });

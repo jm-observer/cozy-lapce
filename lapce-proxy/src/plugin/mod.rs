@@ -160,8 +160,8 @@ pub enum PluginCatalogRpc {
     Shutdown,
 }
 
+#[derive(Debug)]
 pub enum DapNotificationOfUser {
-    DapLoaded(DapRpcHandler),
     DapDisconnected(DapId),
     DapStart {
         config:      RunDebugConfig,
@@ -192,7 +192,7 @@ pub enum DapNotificationOfUser {
         dap_id:    DapId,
         thread_id: ThreadId,
     },
-    DapStop {
+    DapStopByUser {
         dap_id: DapId,
     },
     DapDisconnect {
@@ -231,6 +231,7 @@ pub enum PluginCatalogNotification {
         args:          Option<Vec<String>>,
     },
     Shutdown,
+    DapLoaded(DapRpcHandler),
 }
 
 #[derive(Clone)]
@@ -1524,7 +1525,7 @@ impl PluginCatalogRpcHandler {
     }
 
     pub fn dap_loaded(&self, dap_rpc: DapRpcHandler) -> Result<()> {
-        self.catalog_notification(DapNotificationOfUser::DapLoaded(dap_rpc).into())
+        self.catalog_notification(PluginCatalogNotification::DapLoaded(dap_rpc))
     }
 
     pub fn dap_start(
@@ -1588,7 +1589,9 @@ impl PluginCatalogRpcHandler {
     }
 
     pub fn dap_stop(&self, dap_id: DapId) -> Result<()> {
-        self.catalog_notification(DapNotificationOfUser::DapStop { dap_id }.into())
+        self.catalog_notification(
+            DapNotificationOfUser::DapStopByUser { dap_id }.into(),
+        )
     }
 
     pub fn dap_disconnect(&self, dap_id: DapId) -> Result<()> {
