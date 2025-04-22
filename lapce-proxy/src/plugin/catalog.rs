@@ -708,20 +708,12 @@ impl PluginCatalog {
             DapContinue { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
                     let plugin_rpc = self.plugin_rpc.clone();
-                    thread::spawn(move || {
-                        if dap.continue_thread(thread_id).is_ok() {
-                            plugin_rpc.core_rpc.dap_continued(dap_id);
-                        }
-                    });
+                    dap.continue_thread(thread_id, plugin_rpc);
                 }
             },
             DapPause { dap_id, thread_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
-                    thread::spawn(move || {
-                        if let Err(err) = dap.pause_thread(thread_id) {
-                            log::error!("{:?}", err);
-                        }
-                    });
+                    dap.pause_thread(thread_id)
                 }
             },
             DapStepOver { dap_id, thread_id } => {
@@ -747,11 +739,7 @@ impl PluginCatalog {
             },
             DapDisconnect { dap_id } => {
                 if let Some(dap) = self.daps.get(&dap_id).cloned() {
-                    thread::spawn(move || {
-                        if let Err(err) = dap.disconnect() {
-                            log::error!("{:?}", err);
-                        }
-                    });
+                    dap.disconnect();
                 }
             },
             DapRestart {

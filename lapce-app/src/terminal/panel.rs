@@ -22,7 +22,7 @@ use lapce_rpc::{
     proxy::ProxyResponse,
     terminal::{TermId, TerminalProfile},
 };
-use log::{debug, error};
+use log::error;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 

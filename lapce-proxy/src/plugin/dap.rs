@@ -16,16 +16,16 @@ use jsonrpc_lite::Id;
 use lapce_rpc::{
     RpcError,
     dap_types::{
-        self, ConfigurationDone, Continue, ContinueArguments, ContinueResponse,
-        DapEvent, DapId, DapPayload, DapRequest, DapResponse, DapServer,
-        DebuggerCapabilities, Disconnect, Initialize, Launch, Next, NextArguments,
-        Pause, PauseArguments, Request, RunDebugConfig, RunInTerminal,
-        RunInTerminalArguments, RunInTerminalResponse, Scope, Scopes,
-        ScopesArguments, ScopesResponse, SetBreakpoints, SetBreakpointsArguments,
-        SetBreakpointsResponse, Source, SourceBreakpoint, StackTrace,
-        StackTraceArguments, StackTraceResponse, StepIn, StepInArguments, StepOut,
-        StepOutArguments, Terminate, ThreadId, Threads, ThreadsResponse, Variable,
-        Variables, VariablesArguments, VariablesResponse,
+        self, ConfigurationDone, Continue, ContinueArguments, DapEvent, DapId,
+        DapPayload, DapRequest, DapResponse, DapServer, DebuggerCapabilities,
+        Disconnect, Initialize, Launch, Next, NextArguments, Pause, PauseArguments,
+        Request, RunDebugConfig, RunInTerminal, RunInTerminalArguments,
+        RunInTerminalResponse, Scope, Scopes, ScopesArguments, ScopesResponse,
+        SetBreakpoints, SetBreakpointsArguments, SetBreakpointsResponse, Source,
+        SourceBreakpoint, StackTrace, StackTraceArguments, StackTraceResponse,
+        StepIn, StepInArguments, StepOut, StepOutArguments, Terminate, ThreadId,
+        Threads, ThreadsResponse, Variable, Variables, VariablesArguments,
+        VariablesResponse,
     },
     terminal::TermId,
 };
@@ -229,18 +229,27 @@ impl DapClient {
         match event {
             DapEvent::Initialized(_) => {
                 for (path, breakpoints) in self.breakpoints.clone().into_iter() {
-                    match self.dap_rpc.set_breakpoints(path.clone(), breakpoints) {
-                        Ok(breakpoints) => {
-                            self.plugin_rpc.core_rpc.dap_breakpoints_resp(
-                                self.config.dap_id,
-                                path,
-                                breakpoints.breakpoints.unwrap_or_default(),
-                            );
-                        },
-                        Err(err) => {
-                            error!("{:?}", err);
-                        },
+                    if breakpoints.is_empty() {
+                        continue;
                     }
+                    let core_rpc = self.plugin_rpc.core_rpc.clone();
+                    let dap_id = self.dap_rpc.dap_id;
+                    self
+                        .dap_rpc
+                        .set_breakpoints_async(path.clone(), breakpoints, move |_id, result: Result<SetBreakpointsResponse, RpcError>| {
+                            match result {
+                                Ok(resp) => {
+                                    core_rpc.dap_breakpoints_resp(
+                                        dap_id,
+                                        path,
+                                        resp.breakpoints.unwrap_or_default(),
+                                    );
+                                }
+                                Err(err) => {
+                                    log::error!("{:?}", err);
+                                }
+                            }
+                        },)
                 }
                 // send dap configurations here
                 self.dap_rpc
@@ -385,17 +394,9 @@ impl DapClient {
             .and_then(|c| c.supports_terminate_request)
             .unwrap_or(false)
         {
-            thread::spawn(move || {
-                if let Err(err) = dap_rpc.terminate() {
-                    error!("{:?}", err);
-                }
-            });
+            dap_rpc.terminate()
         } else {
-            thread::spawn(move || {
-                if let Err(err) = dap_rpc.disconnect() {
-                    error!("{:?}", err);
-                }
-            });
+            dap_rpc.disconnect();
         }
     }
 
@@ -718,16 +719,20 @@ impl DapRpcHandler {
         }
     }
 
-    pub fn disconnect(&self) -> Result<()> {
-        self.request::<Disconnect>(())
-            .map_err(|e| anyhow!(e.message))?;
-        Ok(())
+    pub fn disconnect(&self) {
+        self.request_async::<Disconnect>((), |id, resp| {
+            if let Err(err) = resp {
+                error!("id={id:?} {err:?}");
+            }
+        });
     }
 
-    fn terminate(&self) -> Result<()> {
-        self.request::<Terminate>(())
-            .map_err(|e| anyhow!(e.message))?;
-        Ok(())
+    fn terminate(&self) {
+        self.request_async::<Terminate>((), |id, resp| {
+            if let Err(err) = resp {
+                error!("id={id:?} {err:?}");
+            }
+        });
     }
 
     pub fn set_breakpoints_async(
@@ -753,44 +758,28 @@ impl DapRpcHandler {
         self.request_async::<SetBreakpoints>(params, f);
     }
 
-    pub fn set_breakpoints(
+    pub fn continue_thread(
         &self,
-        file: PathBuf,
-        breakpoints: Vec<SourceBreakpoint>,
-    ) -> Result<SetBreakpointsResponse> {
-        let params = SetBreakpointsArguments {
-            source:          Source {
-                path:              Some(file),
-                name:              None,
-                source_reference:  None,
-                presentation_hint: None,
-                origin:            None,
-                sources:           None,
-                adapter_data:      None,
-                checksums:         None,
-            },
-            breakpoints:     Some(breakpoints),
-            source_modified: Some(false),
-        };
-        let resp = self
-            .request::<SetBreakpoints>(params)
-            .map_err(|e| anyhow!(e.message))?;
-        Ok(resp)
-    }
-
-    pub fn continue_thread(&self, thread_id: ThreadId) -> Result<ContinueResponse> {
+        thread_id: ThreadId,
+        plugin_rpc: PluginCatalogRpcHandler,
+    ) {
         let params = ContinueArguments { thread_id };
-        let resp = self
-            .request::<Continue>(params)
-            .map_err(|e| anyhow!(e.message))?;
-        Ok(resp)
+        let dap_id = self.dap_id;
+        self.request_async::<Continue>(params, move |_id, resp| match resp {
+            Ok(_) => plugin_rpc.core_rpc.dap_continued(dap_id),
+            Err(err) => {
+                error!("id={_id:?} continue_thread {err:?}");
+            },
+        });
     }
 
-    pub fn pause_thread(&self, thread_id: ThreadId) -> Result<()> {
+    pub fn pause_thread(&self, thread_id: ThreadId) {
         let params = PauseArguments { thread_id };
-        self.request::<Pause>(params)
-            .map_err(|e| anyhow!(e.message))?;
-        Ok(())
+        self.request_async::<Pause>(params, |id, resp| {
+            if let Err(err) = resp {
+                error!("id={id:?} {err:?}");
+            }
+        });
     }
 
     pub fn threads(&self) -> Result<ThreadsResponse> {
