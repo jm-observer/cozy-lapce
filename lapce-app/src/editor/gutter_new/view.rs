@@ -95,6 +95,16 @@ fn gutter_marker_code_len_svg_view(
         })
 }
 
+fn gutter_marker_debug_line_svg_view(window_tab_data: WindowWorkspaceData) -> Svg {
+    let config = window_tab_data.common.config;
+    svg(move || config.with_ui_svg(LapceIcons::START)).style(move |s| {
+        let size = config.with_icon_size() as f64;
+        s.size(size, size)
+            .color(palette::css::GREEN)
+            .hover(|s| s.cursor(CursorStyle::Pointer))
+    })
+}
+
 pub fn editor_gutter_new(
     window_tab_data: WindowWorkspaceData,
     e_data: EditorData,
@@ -188,6 +198,9 @@ fn marker_view(
         },
         GutterMarker::BreakpointInactive => {
             gutter_marker_breakpoint_inactive_svg_view(config)
+        },
+        GutterMarker::CurrentDebugLine => {
+            gutter_marker_debug_line_svg_view(window_tab_data)
         },
     };
     let origin_line_start = data.origin_line_start;

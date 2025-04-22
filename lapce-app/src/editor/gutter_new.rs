@@ -20,10 +20,15 @@ pub fn gutter_data(
     let breakpoints = window_tab_data.terminal.common.breakpoints;
     let doc = e_data.doc_signal().get();
     let content = doc.content.get();
-    let breakpoints = if let Some(path) = content.path() {
-        breakpoints.get_by_path_tracked(path)
+    let break_line = window_tab_data.terminal.breakline.get();
+    // log::error!("break_line {break_line:?}");
+    let (breakpoints, current_debug_line) = if let Some(path) = content.path() {
+        let current_debug_line = break_line
+            .map(|x| if *path == x.1 { x.0 } else { usize::MAX })
+            .unwrap_or(usize::MAX);
+        (breakpoints.get_by_path_tracked(path), current_debug_line)
     } else {
-        Default::default()
+        (Default::default(), usize::MAX)
     };
     let code_lens = doc.code_lens.get();
     let offset = e_data.cursor.get().offset();
@@ -48,6 +53,7 @@ pub fn gutter_data(
         style_font_size.get(),
         font_family.get(),
     );
+
     screen_lines.with(|screen_lines| {
         screen_lines
             .visual_lines
@@ -61,7 +67,19 @@ pub fn gutter_data(
                             } else {
                                 dim
                             };
-                        if code_lens
+                        if current_debug_line == text.folded_line.origin_line_start {
+                            GutterData {
+                                origin_line_start: Some(
+                                    text.folded_line.origin_line_start,
+                                ),
+                                paint_point_y: text.folded_line_y,
+                                marker: GutterMarker::CurrentDebugLine,
+                                style_color,
+                                style_width: width,
+                                style_font_size,
+                                style_font_family: font_family.1.clone(),
+                            }
+                        } else if code_lens
                             .contains_key(&text.folded_line.origin_line_start)
                         {
                             GutterData {
@@ -187,6 +205,7 @@ impl Hash for GutterData {
 pub enum GutterMarker {
     None,
     CodeLen,
+    CurrentDebugLine,
     Breakpoint,
     BreakpointInactive,
     BreakpointVerified, // CodeLenAndBreakPoint,
