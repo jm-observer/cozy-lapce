@@ -643,7 +643,7 @@ impl TerminalPanelData {
         };
         let raw_id = x.1;
 
-        debug!(
+        error!(
             "manual_stop_run_debug {:?} {:?}",
             run_debug.mode, terminal.term_id
         );
@@ -664,12 +664,11 @@ impl TerminalPanelData {
                     .try_update(|x| x.remove(&dap_id))
                     .flatten()
                     .ok_or(anyhow!("not found dap data {dap_id:?}"))?;
-
+                self.common
+                    .proxy
+                    .proxy_rpc
+                    .terminal_close(terminal.term_id, raw_id);
                 self.common.proxy.proxy_rpc.dap_stop(dap_id);
-                // terminal close by dap
-                // self.common
-                //     .term_tx
-                //     .send((terminal.term_id, TermEvent::CloseTerminal))?;
             },
         }
         self.focus_terminal(terminal_id);
