@@ -2889,7 +2889,7 @@ impl DocLines {
     fn apply_semantic_styles_2(
         &self,
         phantom_text: &PhantomTextMultiLine,
-        semantic_styles: &[NewLineStyle],
+        semantic_styles: &Vec<NewLineStyle>,
         attrs_list: &mut AttrsList,
         attrs: Attrs,
     ) {

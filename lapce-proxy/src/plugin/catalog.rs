@@ -33,7 +33,7 @@ use psp_types::Notification;
 use serde_json::Value;
 
 use super::{
-    PluginCatalogNotification, PluginCatalogRpcHandler,
+    DapNotificationOfUser, PluginCatalogNotification, PluginCatalogRpcHandler,
     dap::{DapClient, DapRpcHandler, DebuggerData},
     install_volt,
     psp::{ClonableCallback, PluginServerRpc, PluginServerRpcHandler, RpcCallback},
@@ -648,6 +648,37 @@ impl PluginCatalog {
                     }
                 });
             },
+            DapNotificationOfUser(notification) => {
+                self.handle_dap_notification_of_user(notification).await;
+            },
+            RegisterDebuggerType {
+                debugger_type,
+                program,
+                args,
+            } => {
+                self.debuggers.insert(
+                    debugger_type.clone(),
+                    DebuggerData {
+                        debugger_type,
+                        program,
+                        args,
+                    },
+                );
+            },
+            Shutdown => {
+                for (_, plugin) in self.plugins.iter() {
+                    plugin.shutdown();
+                }
+            },
+        }
+    }
+
+    async fn handle_dap_notification_of_user(
+        &mut self,
+        notification: DapNotificationOfUser,
+    ) {
+        use DapNotificationOfUser::*;
+        match notification {
             DapLoaded(dap_rpc) => {
                 self.daps.insert(dap_rpc.dap_id, dap_rpc);
             },
@@ -756,25 +787,6 @@ impl PluginCatalog {
                             }
                         },
                     );
-                }
-            },
-            RegisterDebuggerType {
-                debugger_type,
-                program,
-                args,
-            } => {
-                self.debuggers.insert(
-                    debugger_type.clone(),
-                    DebuggerData {
-                        debugger_type,
-                        program,
-                        args,
-                    },
-                );
-            },
-            Shutdown => {
-                for (_, plugin) in self.plugins.iter() {
-                    plugin.shutdown();
                 }
             },
         }

@@ -160,15 +160,7 @@ pub enum PluginCatalogRpc {
     Shutdown,
 }
 
-#[allow(clippy::large_enum_variant)]
-pub enum PluginCatalogNotification {
-    UpdatePluginConfigs(HashMap<String, HashMap<String, serde_json::Value>>),
-    UnactivatedVolts(Vec<VoltMetadata>, u64),
-    PluginServerLoaded(PluginServerRpcHandler),
-    InstallVolt(VoltInfo, u64),
-    StopVolt(VoltInfo),
-    EnableVolt(VoltInfo, u64),
-    ReloadVolt(VoltMetadata, u64),
+pub enum DapNotificationOfUser {
     DapLoaded(DapRpcHandler),
     DapDisconnected(DapId),
     DapStart {
@@ -215,6 +207,24 @@ pub enum PluginCatalogNotification {
         path:        PathBuf,
         breakpoints: Vec<SourceBreakpoint>,
     },
+}
+
+impl From<DapNotificationOfUser> for PluginCatalogNotification {
+    fn from(value: DapNotificationOfUser) -> Self {
+        Self::DapNotificationOfUser(value)
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+pub enum PluginCatalogNotification {
+    UpdatePluginConfigs(HashMap<String, HashMap<String, serde_json::Value>>),
+    UnactivatedVolts(Vec<VoltMetadata>, u64),
+    PluginServerLoaded(PluginServerRpcHandler),
+    InstallVolt(VoltInfo, u64),
+    StopVolt(VoltInfo),
+    EnableVolt(VoltInfo, u64),
+    ReloadVolt(VoltMetadata, u64),
+    DapNotificationOfUser(DapNotificationOfUser),
     RegisterDebuggerType {
         debugger_type: String,
         program:       String,
@@ -1508,11 +1518,13 @@ impl PluginCatalogRpcHandler {
     }
 
     pub fn dap_disconnected(&self, dap_id: DapId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapDisconnected(dap_id))
+        self.catalog_notification(
+            DapNotificationOfUser::DapDisconnected(dap_id).into(),
+        )
     }
 
     pub fn dap_loaded(&self, dap_rpc: DapRpcHandler) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapLoaded(dap_rpc))
+        self.catalog_notification(DapNotificationOfUser::DapLoaded(dap_rpc).into())
     }
 
     pub fn dap_start(
@@ -1520,10 +1532,13 @@ impl PluginCatalogRpcHandler {
         config: RunDebugConfig,
         breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
     ) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapStart {
-            config,
-            breakpoints,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapStart {
+                config,
+                breakpoints,
+            }
+            .into(),
+        )
     }
 
     pub fn dap_process_id(
@@ -1532,56 +1547,54 @@ impl PluginCatalogRpcHandler {
         process_id: Option<u32>,
         term_id: TermId,
     ) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapProcessId {
-            dap_id,
-            process_id,
-            term_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapProcessId {
+                dap_id,
+                process_id,
+                term_id,
+            }
+            .into(),
+        )
     }
 
     pub fn dap_continue(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapContinue {
-            dap_id,
-            thread_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapContinue { dap_id, thread_id }.into(),
+        )
     }
 
     pub fn dap_pause(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapPause {
-            dap_id,
-            thread_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapPause { dap_id, thread_id }.into(),
+        )
     }
 
     pub fn dap_step_over(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapStepOver {
-            dap_id,
-            thread_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapStepOver { dap_id, thread_id }.into(),
+        )
     }
 
     pub fn dap_step_into(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapStepInto {
-            dap_id,
-            thread_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapStepInto { dap_id, thread_id }.into(),
+        )
     }
 
     pub fn dap_step_out(&self, dap_id: DapId, thread_id: ThreadId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapStepOut {
-            dap_id,
-            thread_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapStepOut { dap_id, thread_id }.into(),
+        )
     }
 
     pub fn dap_stop(&self, dap_id: DapId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapStop { dap_id })
+        self.catalog_notification(DapNotificationOfUser::DapStop { dap_id }.into())
     }
 
     pub fn dap_disconnect(&self, dap_id: DapId) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapDisconnect {
-            dap_id,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapDisconnect { dap_id }.into(),
+        )
     }
 
     pub fn dap_restart(
@@ -1589,10 +1602,13 @@ impl PluginCatalogRpcHandler {
         config: RunDebugConfig,
         breakpoints: HashMap<PathBuf, Vec<SourceBreakpoint>>,
     ) -> Result<()> {
-        self.catalog_notification(PluginCatalogNotification::DapRestart {
-            config,
-            breakpoints,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapRestart {
+                config,
+                breakpoints,
+            }
+            .into(),
+        )
     }
 
     pub fn dap_set_breakpoints(
@@ -1605,11 +1621,14 @@ impl PluginCatalogRpcHandler {
             "dap_set_breakpoints dap_id={dap_id:?} path={path:?} \
              breakpoints={breakpoints:?}"
         );
-        self.catalog_notification(PluginCatalogNotification::DapSetBreakpoints {
-            dap_id,
-            path,
-            breakpoints,
-        })
+        self.catalog_notification(
+            DapNotificationOfUser::DapSetBreakpoints {
+                dap_id,
+                path,
+                breakpoints,
+            }
+            .into(),
+        )
     }
 
     pub fn dap_variable(

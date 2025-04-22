@@ -2729,9 +2729,9 @@ impl EditorData {
                 return;
             },
         };
-        log::debug!(
-            "get_code_actions {path:?} {offset} diagnostics.is_empty={}",
-            diagnostics.is_empty()
+        log::error!(
+            "get_code_actions {path:?} {offset} diagnostics.len={}",
+            diagnostics.len()
         );
         if diagnostics.is_empty() {
             return;
@@ -2744,6 +2744,7 @@ impl EditorData {
                 if doc.rev() == rev {
                     let code_actions: im::Vector<CodeActionOrCommand> =
                         resp.1.into();
+                    log::error!("{:?}", code_actions);
                     common
                         .internal_command
                         .send(InternalCommand::ShowCodeActions {
@@ -2755,9 +2756,9 @@ impl EditorData {
                 }
             },
         );
-        log::debug!(
-            "get_code_actions position={position:?} rev={rev} diagnostics.len={}",
-            diagnostics.len()
+        log::error!(
+            "get_code_actions position={position:?} rev={rev} diagnostics={:?}",
+            diagnostics
         );
 
         self.common.proxy.proxy_rpc.get_code_actions(
@@ -2766,7 +2767,7 @@ impl EditorData {
             diagnostics,
             move |(_, result)| match result {
                 Ok(ProxyResponse::GetCodeActionsResponse { plugin_id, resp }) => {
-                    log::debug!(
+                    log::error!(
                         "GetCodeActionsResponse {plugin_id:?} {rev} resp.len={}",
                         resp.len()
                     );
