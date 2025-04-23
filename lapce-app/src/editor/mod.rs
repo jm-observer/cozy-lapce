@@ -2746,6 +2746,9 @@ impl EditorData {
                         resp.1.into();
                     log::error!("{:?}", code_actions);
                     if code_actions.is_empty() {
+                        common.proxy.core_rpc.show_status_message(
+                            "no code action from lsp".to_string(),
+                        );
                     } else {
                         common.internal_command.send(
                             InternalCommand::ShowCodeActions {

@@ -36,7 +36,7 @@ use lapce_core::{
     debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess},
     directory::Directory,
     doc::DocContent,
-    id::{TerminalTabId, WindowTabId},
+    id::{Id, TerminalTabId, WindowTabId},
     main_split::{
         SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection,
     },
@@ -56,7 +56,8 @@ use lapce_rpc::{
 use log::{debug, error, info, trace, warn};
 use lsp_types::{
     CodeActionOrCommand, CodeLens, Diagnostic, DiagnosticSeverity, MessageType,
-    ProgressParams, ProgressToken, ShowMessageParams,
+    NumberOrString, ProgressParams, ProgressToken, ShowMessageParams,
+    WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressEnd,
 };
 use serde_json::Value;
 
@@ -2642,6 +2643,38 @@ cmd.wait()?;
             },
             CoreNotification::WorkDoneProgress { progress } => {
                 self.update_progress(progress);
+            },
+            CoreNotification::ShowStatusMessage { message } => {
+                let msg = WorkDoneProgressBegin {
+                    title:       message.clone(),
+                    cancellable: None,
+                    message:     None,
+                    percentage:  None,
+                };
+                let token = NumberOrString::String(format!(
+                    "StatusMessage {}",
+                    Id::next().to_raw()
+                ));
+                let end_token = token.clone();
+                let progress = ProgressParams {
+                    token,
+                    value: lsp_types::ProgressParamsValue::WorkDone(
+                        WorkDoneProgress::Begin(msg),
+                    ),
+                };
+                self.update_progress(&progress);
+                let workspace = self.clone();
+                exec_after(Duration::from_secs(10), move |_| {
+                    let progress = ProgressParams {
+                        token: end_token,
+                        value: lsp_types::ProgressParamsValue::WorkDone(
+                            WorkDoneProgress::End(WorkDoneProgressEnd {
+                                message: None,
+                            }),
+                        ),
+                    };
+                    workspace.update_progress(&progress);
+                });
             },
             CoreNotification::ShowMessage { title, message } => {
                 self.show_message(title, message);

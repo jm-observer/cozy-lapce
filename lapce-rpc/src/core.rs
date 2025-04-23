@@ -77,6 +77,9 @@ pub enum CoreNotification {
     WorkDoneProgress {
         progress: ProgressParams,
     },
+    ShowStatusMessage {
+        message: String,
+    },
     ShowMessage {
         title:   String,
         message: ShowMessageParams,
@@ -345,6 +348,10 @@ impl CoreRpcHandler {
 
     pub fn show_message(&self, title: String, message: ShowMessageParams) {
         self.notification(CoreNotification::ShowMessage { title, message });
+    }
+
+    pub fn show_status_message(&self, message: String) {
+        self.notification(CoreNotification::ShowStatusMessage { message });
     }
 
     pub fn log_message(&self, message: LogMessageParams, target: String) {
