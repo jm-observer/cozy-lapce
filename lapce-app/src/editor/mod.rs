@@ -2745,14 +2745,17 @@ impl EditorData {
                     let code_actions: im::Vector<CodeActionOrCommand> =
                         resp.1.into();
                     log::error!("{:?}", code_actions);
-                    common
-                        .internal_command
-                        .send(InternalCommand::ShowCodeActions {
-                            offset,
-                            mouse_click: false,
-                            plugin_id: resp.0,
-                            code_actions: code_actions.clone(),
-                        });
+                    if code_actions.is_empty() {
+                    } else {
+                        common.internal_command.send(
+                            InternalCommand::ShowCodeActions {
+                                offset,
+                                mouse_click: false,
+                                plugin_id: resp.0,
+                                code_actions: code_actions.clone(),
+                            },
+                        );
+                    }
                 }
             },
         );

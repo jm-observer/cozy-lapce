@@ -1,12 +1,10 @@
-use std::sync::atomic::AtomicU64;
-
 use doc::lines::mode::{Mode, VisualMode};
 use floem::{
     View,
     event::EventPropagation,
     reactive::{Memo, RwSignal, SignalGet, SignalUpdate, SignalWith, create_memo},
     style::{AlignItems, CursorStyle, Display, FlexWrap},
-    views::{Decorators, dyn_stack, label, stack, svg},
+    views::{Decorators, label, stack, svg},
 };
 use indexmap::IndexMap;
 use lapce_core::{
@@ -244,6 +242,7 @@ pub fn status(
                 .flex_basis(0.0)
                 .flex_grow(1.0)
                 .items_center()
+                .flex_row()
         }),
         stack((
             {
@@ -436,29 +435,33 @@ fn progress_view(
     config: WithLapceConfig,
     progresses: RwSignal<IndexMap<ProgressToken, WorkProgress>>,
 ) -> impl View {
-    let id = AtomicU64::new(0);
-    dyn_stack(
-        move || progresses.get(),
-        move |_| id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-        move |(_, p)| {
-            let progress = match p.message {
-                Some(message) if !message.is_empty() => {
-                    format!("{}: {}", p.title, message)
-                },
-                _ => p.title,
-            };
-            label(move || progress.clone()).style(move |s| {
-                s.height_pct(100.0)
-                    .min_width(0.0)
-                    .margin_left(10.0)
-                    .text_ellipsis()
-                    .selectable(false)
-                    .items_center()
-                    .color(config.with_color(LapceColor::STATUS_FOREGROUND))
-            })
-        },
-    )
-    .style(move |s| s.flex_wrap(FlexWrap::Wrap).height_pct(100.0).min_width(0.0))
+    label(move || {
+        progresses.with(|x| {
+            if let Some((_, p)) = x.last() {
+                match &p.message {
+                    Some(message) if !message.is_empty() => {
+                        format!("{}: {}", p.title, message)
+                    },
+                    _ => p.title.clone(),
+                }
+            } else {
+                String::new()
+            }
+        })
+    })
+    .style(move |s| {
+        s.height_pct(100.0)
+            .min_width(0.0)
+            .margin_left(10.0)
+            .text_ellipsis()
+            .selectable(false)
+            .items_center()
+            .color(config.with_color(LapceColor::STATUS_FOREGROUND))
+            .flex_wrap(FlexWrap::Wrap)
+            .height_pct(100.0)
+            .flex_grow(1.0)
+    })
+    .debug_name("progress_view")
 }
 
 fn status_text<S: std::fmt::Display + 'static>(
