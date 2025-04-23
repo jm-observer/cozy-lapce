@@ -2028,6 +2028,7 @@ impl EditorData {
         self.cancel_completion();
         let doc = self.doc();
         if let Some(item) = item {
+            log::warn!("select_completion {item:?}");
             if item.item.data.is_some() {
                 let editor = self.clone();
                 let rev = doc.lines.with_untracked(|b| b.buffer().rev());
@@ -2239,7 +2240,7 @@ impl EditorData {
     }
 
     fn apply_completion_item(&self, item: &CompletionItem) -> anyhow::Result<()> {
-        log::info!("apply_completion_item {:?}", item);
+        log::warn!("apply_completion_item {:?}", item);
         let doc = self.doc();
         let buffer = doc.lines.with_untracked(|x| x.buffer().clone());
         let cursor = self.cursor().get_untracked();

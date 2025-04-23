@@ -25,7 +25,7 @@ pub enum CompletionStatus {
     Done,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ScoredCompletionItem {
     pub item:        CompletionItem,
     pub plugin_id:   PluginId,

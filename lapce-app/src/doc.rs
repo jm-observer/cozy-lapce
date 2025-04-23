@@ -885,10 +885,9 @@ impl Doc {
                                 },
                                 DocumentSymbolResponse::Nested(symbols) => symbols
                                     .into_iter()
-                                    .map(|x| {
-                                        cx.create_rw_signal(
-                                            SymbolInformationItemData::from((x, cx)),
-                                        )
+                                    .filter_map(|x| {
+                                        SymbolInformationItemData::new(x, cx)
+                                            .map(|x| cx.create_rw_signal(x))
                                     })
                                     .collect(),
                             };

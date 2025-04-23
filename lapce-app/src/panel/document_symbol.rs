@@ -97,23 +97,27 @@ pub struct SymbolInformationItemData {
     pub children: Vec<RwSignal<SymbolInformationItemData>>,
 }
 
-impl From<(DocumentSymbol, Scope)> for SymbolInformationItemData {
-    fn from((mut item, cx): (DocumentSymbol, Scope)) -> Self {
-        let children = if let Some(children) = item.children.take() {
-            children
-                .into_iter()
-                .map(|x| cx.create_rw_signal(Self::from((x, cx))))
-                .collect()
+impl SymbolInformationItemData {
+    pub fn new(mut item: DocumentSymbol, cx: Scope) -> Option<Self> {
+        if matches!(item.kind, SymbolKind::VARIABLE) {
+            None
         } else {
-            Vec::with_capacity(0)
-        };
-        Self {
-            id: Id::next(),
-            name: item.name.clone(),
-            detail: item.detail.clone(),
-            item,
-            open: cx.create_rw_signal(false),
-            children,
+            let children = if let Some(children) = item.children.take() {
+                children
+                    .into_iter()
+                    .filter_map(|x| Self::new(x, cx).map(|x| cx.create_rw_signal(x)))
+                    .collect()
+            } else {
+                Vec::with_capacity(0)
+            };
+            Some(Self {
+                id: Id::next(),
+                name: item.name.clone(),
+                detail: item.detail.clone(),
+                item,
+                open: cx.create_rw_signal(false),
+                children,
+            })
         }
     }
 }
