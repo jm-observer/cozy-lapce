@@ -1,5 +1,7 @@
 use floem::{
+    action::show_context_menu,
     kurbo::{Rect, Size},
+    menu::{Menu, MenuItem},
     reactive::*,
     style::CursorStyle,
     taffy::{
@@ -37,12 +39,11 @@ pub fn common_tab_header<T: Clone + TabHead + 'static>(
         tabs.view_next_previoius().style(|s| s.flex_shrink(0.)),
         container(
             scroll({
-                let tabs = tabs.clone();
                 dyn_stack(
                     move || tabs.tabs(),
                     |(tab, _close_manager): &(Tab<T>, CloseManager<T>)| tab.key(),
-                    |(tab, close_manager): (Tab<T>, CloseManager<T>)| {
-                        tab.view_content(close_manager)
+                    move |(tab, close_manager): (Tab<T>, CloseManager<T>)| {
+                        tab.view_content(tabs, close_manager)
                     },
                 )
                 .debug_name("Horizontal Tab Stack")
@@ -128,7 +129,6 @@ fn tooltip_tip<V: View + 'static>(
     })
 }
 
-#[derive(Clone)]
 pub struct Tabs<T: Clone + TabHead + 'static> {
     pub config:        WithLapceConfig,
     pub close_manager: CloseManager<T>,
@@ -137,9 +137,22 @@ pub struct Tabs<T: Clone + TabHead + 'static> {
     pub cx:            Scope,
 }
 
-#[derive(Clone, Copy)]
+impl<T: Clone + TabHead + 'static> Copy for Tabs<T> {}
+impl<T: Clone + TabHead + 'static> Clone for Tabs<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
 pub struct CloseManager<T: Clone + TabHead + 'static> {
     pub tabs: RwSignal<Vec<Tab<T>>>,
+}
+
+impl<T: Clone + TabHead + 'static> Copy for CloseManager<T> {}
+impl<T: Clone + TabHead + 'static> Clone for CloseManager<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<T: Clone + TabHead + 'static> CloseManager<T> {
@@ -222,6 +235,7 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
                 s.padding_right(4.)
             })
         })
+        .debug_name("tab content")
     }
 
     fn tab_icon(&self) -> impl View + 'static {
@@ -245,9 +259,14 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
                     })
                 })
         })
+        .debug_name("tab icon")
     }
 
-    fn view_content(&self, close_manager: CloseManager<T>) -> impl View + 'static {
+    fn view_content(
+        &self,
+        tabs: Tabs<T>,
+        close_manager: CloseManager<T>,
+    ) -> impl View + 'static {
         let config = self.config;
         let active = self.active;
         let rect = self.rect;
@@ -298,6 +317,8 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
         ))
         .on_click_stop(move |_| {
             active.set(Some(id));
+        }).on_secondary_click_stop(move |_| {
+            tab_secondary_click(tabs, id);
         })
         .on_resize(move |x| rect.set(x))
         .style(move |s| {
@@ -419,6 +440,120 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
         });
     }
 
+    pub fn close_tab(&self, view_id: ViewId) {
+        batch(|| {
+            let active_id = self.active.get_untracked();
+            if let Some(active_id) = self
+                .tabs
+                .try_update(|x| {
+                    if let Some(index) = x.iter().enumerate().find_map(|x| {
+                        if x.1.id == view_id { Some(x.0) } else { None }
+                    }) {
+                        x.remove(index);
+                        if active_id.map(|x| x == view_id).unwrap_or_default() {
+                            if index < x.len() {
+                                // 下一个还在范围内
+                                Some(Some(x[index].id))
+                            } else if !x.is_empty() {
+                                Some(Some(x[x.len() - 1].id)) // 返回最后一个（原 index 是末尾）
+                            } else {
+                                // 删的是最后一个，整个 vec 空了
+                                Some(None)
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .flatten()
+            {
+                self.active.set(active_id);
+            }
+        });
+    }
+
+    pub fn close_other_tab(&self, view_id: ViewId) {
+        batch(|| {
+            let active_id =
+                self.tabs.try_update(|x| {
+                    if let Some(index) = x.iter().enumerate().find_map(|x| {
+                        if x.1.id == view_id { Some(x.0) } else { None }
+                    }) {
+                        let item = x.remove(index);
+                        let id = item.id;
+                        x.clear();
+                        x.push(item);
+                        Some(id)
+                    } else {
+                        None
+                    }
+                });
+            if let Some(active_id) = active_id {
+                self.active.set(active_id);
+            }
+        });
+    }
+
+    pub fn close_left_tab(&self, view_id: ViewId) {
+        batch(|| {
+            let active_id = self.active.get_untracked();
+            let active_id = self
+                .tabs
+                .try_update(|x| {
+                    if let Some(index) = x.iter().enumerate().find_map(|x| {
+                        if x.1.id == view_id { Some(x.0) } else { None }
+                    }) {
+                        x.drain(0..index);
+                    }
+                    if let Some(active_id) = active_id {
+                        if !x.iter().any(|x| x.id == active_id) {
+                            Some(x.first().map(|x| x.id))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .flatten();
+            if let Some(active_id) = active_id {
+                self.active.set(active_id);
+            }
+        });
+    }
+
+    pub fn close_right_tab(&self, view_id: ViewId) {
+        batch(|| {
+            let active_id = self.active.get_untracked();
+            let active_id = self
+                .tabs
+                .try_update(|x| {
+                    if let Some(index) = x.iter().enumerate().find_map(|x| {
+                        if x.1.id == view_id { Some(x.0) } else { None }
+                    }) {
+                        if index + 1 < x.len() {
+                            x.truncate(index + 1);
+                        }
+                    }
+                    if let Some(active_id) = active_id {
+                        if !x.iter().any(|x| x.id == active_id) {
+                            Some(x.last().map(|x| x.id))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .flatten();
+            if let Some(active_id) = active_id {
+                self.active.set(active_id);
+            }
+        });
+    }
+
     pub fn get_active_tab(&self) -> Option<(usize, Tab<T>)> {
         self.tabs.with(|x| {
             if let Some(active) = self.active.get() {
@@ -516,4 +651,26 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
         .debug_name("Next/Previoius Tab Buttons")
         .style(move |s| s.items_center())
     }
+}
+
+fn tab_secondary_click<T: Clone + TabHead + 'static>(
+    tabs: Tabs<T>,
+    view_id: ViewId,
+) {
+    let mut menu = Menu::new("");
+    menu = menu
+        .entry(MenuItem::new("Close").action(move || tabs.close_tab(view_id)))
+        .entry(MenuItem::new("Close Other Tabs").action(move || {
+            tabs.close_other_tab(view_id);
+        }))
+        .entry(MenuItem::new("Close All Tabs").action(move || {
+            tabs.action_close_all();
+        }))
+        .entry(MenuItem::new("Close Tabs to the Right").action(move || {
+            tabs.close_right_tab(view_id);
+        }))
+        .entry(MenuItem::new("Close Tabs to the Left").action(move || {
+            tabs.close_left_tab(view_id);
+        }));
+    show_context_menu(menu, None);
 }
