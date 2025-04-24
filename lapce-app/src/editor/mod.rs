@@ -68,6 +68,7 @@ use lsp_types::{
     Range, TextEdit,
 };
 use nucleo::Utf32Str;
+use serde_json::Value;
 use view::StickyHeaderInfo;
 
 use self::location::{EditorLocation, EditorPosition};
@@ -1126,7 +1127,7 @@ impl EditorData {
                 }
             },
             FocusCommand::ShowCodeActions => {
-                self.show_code_actions();
+                self.show_code_actions(None);
             },
             FocusCommand::SearchWholeWordForward => {
                 self.search_whole_word_forward(mods);
@@ -1936,7 +1937,7 @@ impl EditorData {
         });
         let position = position?;
 
-        log::warn!(
+        log::debug!(
             "update_inline_completion {line} {position:?} word={select_word}"
         );
         // let position = doc
@@ -2240,7 +2241,15 @@ impl EditorData {
     }
 
     fn apply_completion_item(&self, item: &CompletionItem) -> anyhow::Result<()> {
-        log::warn!("apply_completion_item {:?}", item);
+        self._apply_completion_item(item)?;
+        if let Some(imports) = should_trigger_code_action_after_completion(item) {
+            self.show_code_actions(Some(imports));
+        }
+        Ok(())
+    }
+
+    fn _apply_completion_item(&self, item: &CompletionItem) -> anyhow::Result<()> {
+        log::debug!("apply_completion_item {:?}", item);
         let doc = self.doc();
         let buffer = doc.lines.with_untracked(|x| x.buffer().clone());
         let cursor = self.cursor().get_untracked();
@@ -2691,7 +2700,7 @@ impl EditorData {
         });
     }
 
-    pub fn show_code_actions(&self) {
+    pub fn show_code_actions(&self, imports: Option<Vec<String>>) {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -2745,8 +2754,26 @@ impl EditorData {
                 if doc.rev() == rev {
                     let code_actions: im::Vector<CodeActionOrCommand> =
                         resp.1.into();
-                    log::error!("{:?}", code_actions);
-                    if code_actions.is_empty() {
+                    log::debug!("{:?}", code_actions);
+                    if let Some(_imports) = imports {
+                        for import in _imports {
+                            if let Some(command) = code_actions.iter().find(|x| {
+                                if let CodeActionOrCommand::CodeAction(action) = x {
+                                    action.title.contains(&import)
+                                        && action.title.contains("Import")
+                                } else {
+                                    false
+                                }
+                            }) {
+                                common.internal_command.send(
+                                    InternalCommand::RunCodeAction {
+                                        plugin_id: resp.0,
+                                        action:    command.clone(),
+                                    },
+                                );
+                            }
+                        }
+                    } else if code_actions.is_empty() {
                         common.proxy.core_rpc.show_status_message(
                             "no code action from lsp".to_string(),
                         );
@@ -4694,6 +4721,40 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 //   Rc::new(rvlines), //     info: Rc::new(info), // diff_sections:
 //   Some(Rc::new(diff_sections)), //     base, // } } }
 // }
+
+fn should_trigger_code_action_after_completion(
+    item: &CompletionItem,
+) -> Option<Vec<String>> {
+    // 明确声明了导入建议
+    if let Some(data) = &item.data {
+        if let Some(Value::Array(imports)) = data.get("imports") {
+            let imports: Vec<String> = imports
+                .iter()
+                .filter_map(|x| {
+                    log::debug!("import {x:?}");
+                    if let Value::Object(import) = x {
+                        import.get("full_import_path")
+                    } else {
+                        None
+                    }
+                })
+                .filter_map(|x| {
+                    if let Value::String(import) = x {
+                        Some(import.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if imports.is_empty() {
+                return None;
+            } else {
+                return Some(imports);
+            }
+        }
+    }
+    None
+}
 
 #[allow(clippy::too_many_arguments)]
 fn parse_hover_resp(
