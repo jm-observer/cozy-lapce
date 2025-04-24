@@ -384,7 +384,7 @@ impl Doc {
         if need_check_and_update {
             assert_eq!(old_rev + rs.len() as u64, new_rev);
             let content = self.content.get_untracked();
-            log::warn!(
+            log::debug!(
                 "buffer_edit_with_config update {content:?} old_rev={old_rev} \
                  new_rev={new_rev}",
             );

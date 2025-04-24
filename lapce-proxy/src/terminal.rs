@@ -20,7 +20,7 @@ use lapce_rpc::{
     core::CoreRpcHandler,
     terminal::{TermId, TerminalProfile},
 };
-use log::info;
+use log::{debug, info};
 use polling::PollMode;
 
 const READ_BUFFER_SIZE: usize = 0x10_0000;
@@ -42,7 +42,7 @@ pub struct Terminals {
 
 impl Terminals {
     pub fn insert(&mut self, id: TermId, raw_id: u64, sender: TerminalSender) {
-        info!("Terminals insert id={id:?}");
+        debug!("Terminals insert id={id:?}");
         self.terminals.insert(id, (raw_id, sender));
     }
 

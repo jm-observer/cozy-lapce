@@ -243,7 +243,7 @@ impl PaletteData {
                 // accidentally pasted a huge amount of text into the palette.
                 let new_input = input_str.get();
                 let status = status.get_untracked();
-                info!("input {new_input} status: {:?}", status);
+                // info!("input {new_input} status: {:?}", status);
                 if status == PaletteStatus::Inactive {
                     return None;
                 }

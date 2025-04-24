@@ -28,7 +28,7 @@ use lapce_xi_rope::{
 };
 use layout::{TextLayout, TextLayoutLine};
 use line::OriginFoldedLine;
-use log::{debug, error, info, warn};
+use log::{debug, error};
 use lsp_types::{
     DiagnosticSeverity, DocumentHighlight, InlayHint, InlayHintLabel, Location,
     Position,
@@ -244,7 +244,7 @@ impl DocLines {
         let last_line = buffer.last_line() + 1;
         let signals = Signals::new(cx, &editor_style, buffer, (last_line, 0.0));
 
-        // log::info!("{}", serde_json::to_string(&config).unwrap());
+        // log::debug!("{}", serde_json::to_string(&config).unwrap());
 
         Self {
             cx,
@@ -1037,9 +1037,11 @@ impl DocLines {
                     Text::EmptyLine { .. } => unreachable!(),
                 }
             }
-            error!(
+            log::error!(
                 "path {:?}, point={:?}, index={}",
-                self.path, point, hit_point.index
+                self.path,
+                point,
+                hit_point.index
             );
             unreachable!();
         } else {
@@ -1460,7 +1462,7 @@ impl DocLines {
         base: Rect,
         view_kind: EditorViewKind,
     ) -> Result<(Arc<ScreenLines>, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
-        info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
+        debug!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         let line_height = self.config.line_height;
         let (y0, y1) = (base.y0, base.y1);
         let min_val = (y0 / line_height as f64).floor() as usize;
@@ -1949,7 +1951,7 @@ impl DocLines {
     //     //     origin_text_len -= line_ending;
     //     // }
     //     // if line == 10 {
-    //     //     info!("start_offset={start_offset}
+    //     //     debug!("start_offset={start_offset}
     //     // end_offset={end_offset}
     //     // origin_text_len={origin_text_len}"); }
     //
@@ -2209,7 +2211,7 @@ impl DocLines {
                             let (_, col) = match buffer.offset_to_line_col(start) {
                                 Ok(rs) => rs,
                                 Err(err) => {
-                                    error!("{err:?}");
+                                    log::error!("{err:?}");
                                     return SmallVec::new();
                                 },
                             };
@@ -2810,7 +2812,7 @@ impl DocLines {
     //     base: Rect,
     //     view_kind: EditorViewKind
     // ) -> (ScreenLines, Vec<FoldingDisplayItem>) {
-    //     info!("_compute_screen_lines base={base:?} kind={view_kind:?}");
+    //     debug!("_compute_screen_lines base={base:?} kind={view_kind:?}");
     //     // TODO: this should probably be a get since we need to depend
     //     // on line-height let doc_lines =
     //     // doc.doc_lines.get_untracked();
@@ -2835,7 +2837,7 @@ impl DocLines {
     // }
 
     pub fn log(&self) {
-        info!(
+        debug!(
             "DocLines viewport={:?} buffer.rev={} buffer.len()=[{}] \
              style_from_lsp={} is_pristine={} line_height={}",
             self.viewport_size,
@@ -2845,44 +2847,44 @@ impl DocLines {
             self.buffer().is_pristine(),
             self.config.line_height
         );
-        // info!("{:?}", self.config);
+        // debug!("{:?}", self.config);
         // for origin_lines in &self.origin_lines {
-        //     info!("{:?}", origin_lines);
+        //     debug!("{:?}", origin_lines);
         // }
         // self._log_folded_lines();
         // self._log_visual_lines();
         // self._log_screen_lines();
-        // info!("folding_items");
+        // debug!("folding_items");
         // for item in self.signals.folding_items.val() {
-        //     info!("{:?}", item);
+        //     debug!("{:?}", item);
         // }
         // self._log_folding_ranges();
     }
 
     pub fn _log_folding_ranges(&self) {
-        info!("folding_ranges");
+        debug!("folding_ranges");
         for (_, range) in self.folding_ranges.0.iter() {
-            info!("{:?}", range);
+            debug!("{:?}", range);
         }
     }
 
     // pub fn _log_folded_lines(&self) {
     //     for origin_folded_line in &self.origin_folded_lines {
-    //         info!("{:?}", origin_folded_line);
+    //         debug!("{:?}", origin_folded_line);
     //     }
     // }
 
     // pub fn _log_screen_lines(&self) {
-    //     info!("screen_lines");
-    //     info!("base={:?}", self.screen_lines().base);
+    //     debug!("screen_lines");
+    //     debug!("base={:?}", self.screen_lines().base);
     //     for visual_line in &self.screen_lines().visual_lines {
-    //         info!("{:?}", visual_line);
+    //         debug!("{:?}", visual_line);
     //     }
     // }
 
     // pub fn _log_visual_lines(&self) {
     //     for visual_line in &self.visual_lines {
-    //         info!("{:?}", visual_line);
+    //         debug!("{:?}", visual_line);
     //     }
     // }
 
@@ -3445,7 +3447,7 @@ impl DocLines {
         // } else {
         //     CursorAffinity::Backward
         // };
-        warn!("offset_of_buffer={offset_of_buffer} horiz={horiz:?}");
+        debug!("offset_of_buffer={offset_of_buffer} horiz={horiz:?}");
 
         Ok(Some((offset_of_buffer, horiz, affinity)))
     }
@@ -3900,7 +3902,7 @@ impl PubUpdateLines {
         edit: EditBuffer,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         let mut rs = Vec::new();
-        warn!(
+        debug!(
             "buffer_edit rev={}, {:?} {edit:?}",
             self.buffer().rev(),
             self.path,
@@ -4187,7 +4189,7 @@ impl PubUpdateLines {
         &mut self,
         action: UpdateFolding,
     ) -> Result<Option<usize>> {
-        log::info!("{}", serde_json::to_string(&action).unwrap());
+        log::debug!("{}", serde_json::to_string(&action).unwrap());
         let mut fold_item_start = None;
         match action {
             UpdateFolding::UpdateByItem(item) => {

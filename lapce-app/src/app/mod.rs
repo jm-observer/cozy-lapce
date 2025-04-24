@@ -607,7 +607,7 @@ impl AppData {
 
         view.window_scale(move || {
             let window_scale = window_scale.get();
-            log::error!("window_scale {}", window_scale);
+            log::debug!("window_scale {}", window_scale);
             window_scale
         })
         .keyboard_navigable()

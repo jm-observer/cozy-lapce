@@ -53,7 +53,7 @@ use lapce_rpc::{
     source_control::FileDiff,
     terminal::TermId,
 };
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, trace, warn};
 use lsp_types::{
     CodeActionOrCommand, CodeLens, Diagnostic, DiagnosticSeverity, MessageType,
     NumberOrString, ProgressParams, ProgressToken, ShowMessageParams,
@@ -141,7 +141,7 @@ impl<T: Debug + Clone + 'static> SignalManager<T> {
 
     pub fn update(&self, f: impl FnOnce(&mut T)) {
         if self.1 {
-            log::info!("update");
+            log::debug!("update");
             // panic!("ad");
         }
         self.0.update(f)
@@ -149,7 +149,7 @@ impl<T: Debug + Clone + 'static> SignalManager<T> {
 
     pub fn try_update<O>(&self, f: impl FnOnce(&mut T) -> O) -> Option<O> {
         if self.1 {
-            log::info!("set");
+            log::debug!("set");
             // panic!("ad");
         }
         self.0.try_update(f)
@@ -650,7 +650,7 @@ impl WindowWorkspaceData {
             let blink_interval = config
                 .signal(|config| config.editor.blink_interval.signal())
                 .get();
-            // log::info!("update blink_interval {}", blink_interval);
+            // log::debug!("update blink_interval {}", blink_interval);
             cursor_blink_clone.blink_interval.set(blink_interval);
             cursor_blink_clone.blink(None);
         });
@@ -747,7 +747,7 @@ impl WindowWorkspaceData {
     }
 
     pub fn reload_config(&self) {
-        log::info!("reload_config");
+        log::debug!("reload_config");
         let db: Arc<LapceDb> = use_context().unwrap();
 
         let disabled_volts = db.get_disabled_volts().unwrap_or_default();
@@ -1776,7 +1776,7 @@ impl WindowWorkspaceData {
                     }) else {
                         return Ok(())
                     };
-                    // log::info!("{word} {semantic}");
+                    // log::debug!("{word} {semantic}");
                     self.show_message(&word, &ShowMessageParams {
                         typ: MessageType::INFO,
                         message: semantic,
@@ -1784,7 +1784,7 @@ impl WindowWorkspaceData {
                 }
             }
             InspectClickInfo => {
-                    // log::info!("{word} {semantic}");
+                    // log::debug!("{word} {semantic}");
                     self.show_message("InspectClickInfo", &ShowMessageParams {
                         typ: MessageType::INFO,
                         message: self.common.inspect_info.get_untracked(),
@@ -2252,7 +2252,7 @@ impl WindowWorkspaceData {
                             Focus::Panel(PanelKind::Terminal) => {
                                 if let Some(tab) = self.terminal.active_tab_untracked() {
                                     if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
-                                        // log::info!("BlinkCursor Terminal {:?}", id.data().as_ffi());
+                                        // log::debug!("BlinkCursor Terminal {:?}", id.data().as_ffi());
                                         id.request_paint();
                                     }
                                 }
@@ -2429,7 +2429,7 @@ cmd.wait()?;
                 //     }
                 //     error!("{:?}", diag.data);
                 // }
-                log::warn!("PublishDiagnostics {path:?} {}", diagnostics.len());
+                log::debug!("PublishDiagnostics {path:?} {}", diagnostics.len());
                 let diag = self.main_split.get_diagnostic_data(&path);
                 let old_len = diag.diagnostics.with_untracked(|x| x.len());
                 let task_id = diag.id.with_untracked(|x| {
@@ -2507,7 +2507,7 @@ cmd.wait()?;
                 }
             },
             CoreNotification::TerminalProcessStopped { term_id, exit_code } => {
-                info!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
+                debug!("TerminalProcessStopped {:?}, {:?}", term_id, exit_code);
                 self.terminal.terminal_stopped(term_id, *exit_code, false);
                 if self
                     .terminal
@@ -2521,7 +2521,7 @@ cmd.wait()?;
                 }
             },
             CoreNotification::TerminalProcessStoppedByDap { term_id, exit_code } => {
-                info!("TerminalProcessStoppedByDap {:?}, {:?}", term_id, exit_code);
+                debug!("TerminalProcessStoppedByDap {:?}, {:?}", term_id, exit_code);
                 self.terminal.terminal_stopped(term_id, *exit_code, true);
                 if self
                     .terminal
@@ -2535,7 +2535,7 @@ cmd.wait()?;
                 }
             },
             CoreNotification::TerminalUpdateContent { term_id, content } => {
-                info!("UpdateTerminal {term_id:?}");
+                debug!("UpdateTerminal {term_id:?}");
                 self.terminal.terminal_update_content(term_id, content);
                 if self
                     .terminal
@@ -2549,11 +2549,11 @@ cmd.wait()?;
                 }
             },
             CoreNotification::TerminalSetTitle { term_id, title } => {
-                info!("TerminalSetTitle {term_id:?}");
+                debug!("TerminalSetTitle {term_id:?}");
                 self.terminal.set_title(term_id, title);
             },
             CoreNotification::TerminalRequestPaint => {
-                info!("TerminalRequestPaint");
+                debug!("TerminalRequestPaint");
                 self.terminal.request_paint()
             },
             CoreNotification::TerminalLaunchFailed { term_id, error } => {
@@ -2717,7 +2717,7 @@ cmd.wait()?;
                         warn!("{} {}", target, message.message)
                     },
                     MessageType::INFO => {
-                        info!("{} {}", target, message.message)
+                        debug!("{} {}", target, message.message)
                     },
                     MessageType::DEBUG => {
                         debug!("{} {}", target, message.message)
@@ -2818,7 +2818,7 @@ cmd.wait()?;
         let layout_rect = self.layout_rect.get().size();
         let offset = 4.0;
 
-        log::info!(
+        log::debug!(
             "hover_origin hover_offset={hover_offset} point_above={point_above:?} \
              point_below={point_below:?} viewport={viewport:?} \
              window_origin={window_origin:?}"
@@ -3184,7 +3184,7 @@ cmd.wait()?;
             .with_untracked(|x| x.run_debug.clone())
             .ok_or(anyhow!("run_debug is none(terminal_id={terminal_id:?})"))?;
 
-        log::info!("restart_run_program_in_terminal {run_debug:?}");
+        log::debug!("restart_run_program_in_terminal {run_debug:?}");
         if !run_debug.stopped {
             self.terminal.manual_stop_run_debug(terminal_id);
         }

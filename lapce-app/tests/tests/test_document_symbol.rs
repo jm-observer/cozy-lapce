@@ -28,7 +28,9 @@ pub fn _test_symbol() -> Result<()> {
     }
     let items = symbols
         .into_iter()
-        .map(|x| cx.create_rw_signal(SymbolInformationItemData::from((x, cx))))
+        .filter_map(|x| {
+            SymbolInformationItemData::new(x, cx).map(|x| cx.create_rw_signal(x))
+        })
         .collect();
     let symbol_new = SymbolData::new(items, "path".into(), cx);
     // let a = symbol_new

@@ -1948,7 +1948,7 @@ fn editor_content(
                         (line_height_2, line_height_2),
                     )
                 };
-                log::warn!(
+                log::debug!(
                     "offset_line_from_top viewport={scroll:?} target={rect:?} \
                      backup_point={backup_point:?} offset={offset} \
                      offset_line_from_top={offset_line_from_top:?} height={height} ",
@@ -1965,7 +1965,7 @@ fn editor_content(
                 // )
                 Rect::from_center_size(origin_point, (2.0, line_height * 6.0))
             };
-            log::warn!(
+            log::debug!(
                 "ensure_visible offset={offset} \
                  offset_line_from_top={offset_line_from_top:?} origin_point.y={} \
                  ensure_visiable={}-{}",
@@ -2036,7 +2036,7 @@ fn editor_content(
         // log::info!("on_resize rect={size:?}");
     })
     .on_scroll(move |rect| {
-        log::warn!("on_scroll rect{rect:?}");
+        log::debug!("on_scroll rect{rect:?}");
         if rect.y0 != current_scroll.get_untracked().y0 {
             editor_scroll.cancel_completion();
             editor_scroll.cancel_inline_completion();
@@ -2055,7 +2055,7 @@ fn editor_content(
     .ensure_visible(move || {
         let ensure_visible = editor_ensure.ensure_visible.get();
         let current_scroll = current_scroll.get_untracked();
-        log::warn!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
+        log::debug!("ensure_visible rect{ensure_visible:?} {current_scroll:?}");
         ensure_visible
     })
     .style(move |s| {
