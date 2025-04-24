@@ -2734,9 +2734,9 @@ impl EditorData {
             "get_code_actions {path:?} {offset} diagnostics.len={}",
             diagnostics.len()
         );
-        if diagnostics.is_empty() {
-            return;
-        }
+        // if diagnostics.is_empty() {
+        //     return;
+        // }
 
         let common = self.common.clone();
         let send = create_ext_action(
