@@ -1605,7 +1605,7 @@ impl EditorData {
                     Ok(ProxyResponse::DocumentHighlightResponse {
                         items, ..
                     }) => {
-                        log::info!("{:?}", items);
+                        log::debug!("{:?}", items);
                         let hints = if let Some(mut hints) = items {
                             hints.sort_by(|left, right| {
                                 left.range.start.line.cmp(&right.range.start.line)
@@ -3356,7 +3356,7 @@ impl EditorData {
                     return;
                 },
             };
-        log::info!(
+        log::debug!(
             "offset_of_point single_click {:?} {new_offset} {_is_inside} \
              {cursor_affinity:?}",
             pointer_event.pos

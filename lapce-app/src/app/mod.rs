@@ -865,19 +865,6 @@ fn editor_tab_header(
 
         let confirmed = child_simple.confirmed_mut();
 
-        // let confirmed = match local_child {
-        //     EditorTabChildId::Editor(editor_id) => {
-        //         editors.editor_untracked(editor_id).map(|e| e.confirmed)
-        //     },
-        //     EditorTabChildId::DiffEditor(diff_editor_id) => diff_editors
-        //         .with_untracked(|diff_editors| {
-        //             diff_editors
-        //                 .get(&diff_editor_id)
-        //                 .map(|diff_editor_data| diff_editor_data.confirmed)
-        //         }),
-        //     _ => None
-        // };
-
         let header_content_size = create_rw_signal(Size::ZERO);
         let drag_over_left: RwSignal<Option<bool>> = create_rw_signal(None);
         stack((

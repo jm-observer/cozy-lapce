@@ -360,6 +360,8 @@ impl EditorTabChildSimple {
         id: EditorTabChildId,
         confirmed: RwSignal<bool>,
     ) -> Self {
+        // stash set confirmed=true always
+        confirmed.set(true);
         match &id {
             EditorTabChildId::Editor(_) => {},
             EditorTabChildId::DiffEditor(_) => {},
