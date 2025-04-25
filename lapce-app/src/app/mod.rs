@@ -2728,7 +2728,6 @@ fn palette_input(window_tab_data: WindowWorkspaceData) -> impl View {
         .on_event(EventListener::KeyDown, move |event| {
             if let Event::KeyDown(_key_event) = event {
                 window_tab_data.key_down(_key_event);
-                log::info!("KeyDown Stop");
                 EventPropagation::Stop
             } else {
                 EventPropagation::Continue

@@ -23,6 +23,14 @@
 
 ---
 
+## 📘 Usage Guide
+
+For more details on how to run, debug, and get the most out of Cozy Lapce,  
+please see the [**Usage Guide**](./docs/USAGE.md).
+
+> Covers setup tips, shortcuts, debugging configuration, theme customization, and more!
+
+
 ## Roadmap
 
 - 🐞 **Debugger Support**: Plan to integrate debugging features via DAP protocol and LLDB

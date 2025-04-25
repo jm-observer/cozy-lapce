@@ -122,16 +122,12 @@ impl DapClient {
         thread::spawn(move || -> Result<()> {
             for msg in io_rx {
                 if let Ok(msg) = serde_json::to_string(&msg) {
-                    log::debug!("write to dap server: {}", msg);
+                    log::info!("write to dap server: {}", msg);
                     let msg =
                         format!("Content-Length: {}\r\n\r\n{}", msg.len(), msg);
                     writer.write_all(msg.as_bytes())?;
                     writer.flush()?;
                 }
-                // if msg.is_disconnect() {
-                //     log::debug!("thread(write to dap) exited");
-                //     break;
-                // }
             }
             Ok(())
         });
@@ -151,14 +147,16 @@ impl DapClient {
                             }
                         },
                         Err(_err) => {
-                            log::error!("read from dap fail?: {_err:?}");
+                            log::error!(
+                                "read from dap fail?: {_err:?}, thread(read from \
+                                 dap) exited"
+                            );
                             plugin_rpc.core_rpc.log(
                                 lapce_rpc::core::LogLevel::Error,
                                 format!("dap server {program} stopped!"),
                                 None,
                             );
                             dap_rpc.disconnected();
-                            log::debug!("thread(read from dap) exited");
                             return;
                         },
                     };
@@ -225,7 +223,7 @@ impl DapClient {
     }
 
     fn handle_host_event(&mut self, event: &DapEvent) -> Result<()> {
-        log::warn!("handle_host_event event: {event:?}");
+        log::debug!("handle_host_event event: {event:?}");
         match event {
             DapEvent::Initialized(_) => {
                 for (path, breakpoints) in self.breakpoints.clone().into_iter() {

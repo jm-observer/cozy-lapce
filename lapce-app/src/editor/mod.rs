@@ -2456,7 +2456,7 @@ impl EditorData {
                 let is_current_rec = editor.doc().rev() == rev;
                 let has_completions = editor.has_completions();
                 let has_has_inline_completions = editor.has_inline_completions();
-                log::warn!(
+                log::debug!(
                     "check_auto_save {is_current_rec} is_pristine={is_pristine} \
                      has_inline_completions={has_has_inline_completions} \
                      has_completions={has_completions} {:?}",

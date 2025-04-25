@@ -1305,7 +1305,6 @@ impl PaletteData {
     }
 
     fn select(&self) {
-        info!("select");
         let index = self.index.get_untracked();
         let items = self.run_result.get_untracked().rs;
         self.close();
@@ -1549,7 +1548,7 @@ impl PaletteData {
 
         let index = self.index.get_untracked();
         let item = self.run_result.with_untracked(|x| x.rs.get(index).cloned());
-        info!("preview index={index} {item:?}");
+        // info!("preview index={index} {item:?}");
         let mut has_preview = false;
         if let Some(item) = item {
             match &item.content {
@@ -1684,7 +1683,6 @@ impl PaletteData {
 
     /// Cancel the palette, doing cleanup specific to the palette kind.
     fn cancel(&self) {
-        info!("cancel");
         if let Some(PaletteKind::ColorTheme | PaletteKind::IconTheme) =
             self.kind.get_untracked()
         {
@@ -1766,10 +1764,10 @@ impl PaletteData {
 
     fn filter_items(&self, id: u64, input: &str, items: im::Vector<PaletteItem>) {
         let equal_id = self.run_result.get_untracked().id == id;
-        info!(
-            "filter_items {id} input={input} items={} equal_id={equal_id}",
-            items.len()
-        );
+        // info!(
+        //     "filter_items {id} input={input} items={} equal_id={equal_id}",
+        //     items.len()
+        // );
         if !equal_id {
             return;
         }
