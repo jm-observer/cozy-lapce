@@ -1,19 +1,26 @@
 name: Release
 
 on:
-  schedule:
-    - cron: 0 0 * * *
   workflow_dispatch:
     inputs:
       tag_name:
         description: "Tag name for release"
         required: false
         default: nightly
+      build_windows:
+        description: "Build Windows?"
+        required: false
+        default: 'true'
+      build_linux:
+        description: "Build Linux?"
+        required: false
+        default: 'true'
+  schedule:
+    - cron: 0 0 * * *
   push:
     tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
   pull_request:
     paths:
-      # trigger release workflow only if this file changed
       - .github/workflows/release.yml
 
 concurrency:
@@ -49,15 +56,14 @@ jobs:
         run: echo "tag=$TAG_NAME" | tee -a $GITHUB_OUTPUT
 
   windows:
+    if: github.event.inputs.build_windows != 'false'
     runs-on: windows-latest
     needs: tagname
     env:
       RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
-
     defaults:
       run:
         shell: bash
-
     steps:
       - uses: actions/checkout@v4
 
@@ -74,7 +80,6 @@ jobs:
         run: |
           candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
             -out "./cozy-lapce.wixobj" "extra/windows/wix/cozy-lapce.wxs"
-
           light.exe -ext WixUIExtension -ext WixUtilExtension \
             -out "./CozyLapce-windows.msi" -sice:ICE61 -sice:ICE91 \
             "./cozy-lapce.wixobj"
@@ -84,24 +89,6 @@ jobs:
         run: |
           cargo build --profile release-lto --features lapce-app/portable
           Compress-Archive ./target/release-lto/cozy-lapce.exe ./CozyLapce-windows-portable.zip
-
-#      - name: Create lapce-proxy archive
-#        shell: pwsh
-#        run: |
-#          $file = [System.IO.File]::Open((Join-Path $PWD '.\target\release-lto\lapce-proxy.exe'), [System.IO.FileMode]::Open)
-#          $archive = [System.IO.File]::Create((Join-Path $PWD '.\lapce-proxy-windows-x86_64.gz'))
-#          $compressor = [System.IO.Compression.GZipStream]::new($archive, [System.IO.Compression.CompressionMode]::Compress)
-#          $file.CopyTo($compressor)
-#          Start-Sleep -Seconds 10
-#          $compressor.close()
-
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: lapce-windows
-#          path: |
-#            ./CozyLapce-windows-portable.zip
-#            ./CozyLapce-windows.msi
-#          retention-days: 1
 
       - name: Upload artifact for nightly
         if: env.RELEASE_TAG_NAME == 'nightly'
@@ -123,58 +110,89 @@ jobs:
             ./CozyLapce-windows.msi
           retention-days: 30
 
+  linux:
+    if: github.event.inputs.build_linux != 'false'
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build deb packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ubuntu-focal-binary
+
+      - name: Gzip
+        run: |
+          mkdir Cozy-Lapce
+          cp ./target/linux_amd64/cozy-lapce Cozy-Lapce/
+          tar -zcvf ./cozy-lapce-linux-amd64.tar.gz Cozy-Lapce
+          rm -rf Cozy-Lapce
+
+          mkdir Cozy-Lapce
+          cp ./target/linux_arm64/cozy-lapce Cozy-Lapce/
+          tar -zcvf ./cozy-lapce-linux-arm64.tar.gz Cozy-Lapce
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Vendor dependencies
+        run: |
+          cargo vendor --frozen > ./vendor-config.toml
+          mv ./vendor-config.toml ./vendor/
+          tar -zcf vendor.tar.gz ./vendor/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lapce-linux
+          path: |
+            ./cozy-lapce-linux-*.tar.gz
+            ./vendor.tar.gz
+          retention-days: 1
 
   publish:
     needs:
+      - tagname
       - windows
+      - linux
     runs-on: ubuntu-latest
+    if: success()
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: write
     steps:
-      # Must perform checkout first, since it deletes the target directory
-      # before running, and would therefore delete the downloaded artifacts
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
 
-      - if: github.event_name == 'workflow_dispatch'
-        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
-
-      - if: github.event_name == 'schedule'
-        run: echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
-
-      - if: github.event_name == 'push'
+      - name: Set TAG_NAME
         run: |
-          TAG_NAME=${{ github.ref }}
-          echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG_NAME=${{ github.ref }}
+            echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+          fi
 
-      - if: env.TAG_NAME == 'nightly'
+      - name: Configure release
         run: |
-          {
-            echo 'SUBJECT=Lapce development build'
-            echo 'PRERELEASE=--prerelease'
-          } | tee -a $GITHUB_ENV
-
-      - if: env.TAG_NAME == 'nightly' && github.event_name != 'pull_request'
-        name: Re-Tag nightly
-        run: |
-          gh release delete nightly --yes || true
-          git push origin :nightly || true
-
-      - if: env.TAG_NAME != 'nightly'
-        run: |
-          {
-            echo 'SUBJECT=Lapce release build'
-            echo 'PRERELEASE='
-          } | tee -a $GITHUB_ENV
+          if [[ "$TAG_NAME" == "nightly" ]]; then
+            echo 'SUBJECT=Lapce development build' | tee -a $GITHUB_ENV
+            echo 'PRERELEASE=--prerelease' | tee -a $GITHUB_ENV
+          else
+            echo 'SUBJECT=Lapce release build' | tee -a $GITHUB_ENV
+            echo 'PRERELEASE=' | tee -a $GITHUB_ENV
+          fi
 
       - name: Publish release
-        if: github.event_name != 'pull_request'
         env:
           DEBUG: api
         run: |
           gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
-            lapce-windows/*
+            lapce-windows/* || echo "Release already exists, skipping."

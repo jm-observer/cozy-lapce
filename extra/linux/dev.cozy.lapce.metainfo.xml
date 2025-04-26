@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>dev.cozy.lapce</id>
+    <name>Cozy Lapce</name>
+    <developer_name>Cozy Lapce Contributors</developer_name>
+    <summary>Simple, lightweight, and fast code editor</summary>
+    <metadata_license>MIT</metadata_license>
+    <project_license>Apache-2.0</project_license>
+    <url type="homepage">https://github.com/jm-observer/cozy-lapce</url>
+    <url type="bugtracker">https://github.com/jm-observer/cozy-lapce/issues</url>
+    <url type="help">https://github.com/jm-observer/cozy-lapce#readme</url>
+    <description>
+        <p>
+            Cozy Lapce is a simplified and customized fork of Lapce, optimized for everyday use with a lightweight interface and faster performance.
+        </p>
+        <p>Key Features:</p>
+        <ul>
+            <li>Simplified interface with mouse-friendly operations</li>
+            <li>Built-in LSP support for diagnostics, completion, and code navigation</li>
+            <li>Lightweight and fast startup, suitable for daily use</li>
+            <li>Integrated terminal and support for Rust development</li>
+            <li>Open source, focused on Windows platform</li>
+        </ul>
+    </description>
+    <content_rating type="oars-1.1" />
+    <launchable type="desktop-id">cozy-lapce.desktop</launchable>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/jm-observer/cozy-lapce/main/extra/images/screenshot.png</image>
+        </screenshot>
+    </screenshots>
+    <releases>
+        <release version="0.1.0" date="2025-04-25"/>
+    </releases>
+</component>
