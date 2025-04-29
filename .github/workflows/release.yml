@@ -14,7 +14,7 @@ on:
       build_linux:
         description: "Build Linux?"
         required: false
-        default: 'true'
+        default: 'false'
   schedule:
     - cron: 0 0 * * *
   push:
