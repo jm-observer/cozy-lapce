@@ -400,7 +400,7 @@ impl ScreenLines {
             start_offset = first_line.folded_line.origin_interval.start;
             start_affinity = Some(CursorAffinity::Backward)
         }
-        if end_offset >= end_line.folded_line.origin_interval.end {
+        if end_offset > end_line.folded_line.origin_interval.end {
             let Some(last_origin_merge_col) =
                 end_line.folded_line.last_origin_merge_col()
             else {

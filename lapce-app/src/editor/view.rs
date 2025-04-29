@@ -1963,7 +1963,7 @@ fn editor_content(
                 //     origin_point,
                 //     (viewport.width, viewport.height),
                 // )
-                Rect::from_center_size(origin_point, (2.0, line_height * 6.0))
+                Rect::from_center_size(origin_point, (2.0, line_height * 2.0))
             };
             log::debug!(
                 "ensure_visible offset={offset} \
