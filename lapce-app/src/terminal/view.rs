@@ -11,17 +11,23 @@ use floem::{
     Renderer, View, ViewId,
     context::{EventCx, PaintCx},
     event::{Event, EventPropagation},
+    ext_event::create_ext_action,
     peniko::{
         Color,
         kurbo::{Point, Rect, Size},
     },
     pointer::PointerInputEvent,
     prelude::SignalUpdate,
-    reactive::{SignalGet, SignalTrack, SignalWith, create_effect},
+    reactive::{Scope, SignalGet, SignalTrack, SignalWith, create_effect},
     text::{Attrs, AttrsList, FamilyOwned, TextLayout, Weight},
 };
 use lapce_core::{panel::PanelKind, workspace::LapceWorkspace};
-use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
+use lapce_rpc::{
+    RpcError,
+    proxy::{FileAndLine, ProxyResponse, ProxyRpcHandler},
+    terminal::TermId,
+};
+use log::error;
 use lsp_types::Position;
 use regex::Regex;
 
@@ -53,6 +59,7 @@ struct TerminalLineContent<'a> {
 
 pub struct TerminalView {
     id:                    ViewId,
+    scope:                 Scope,
     term_id:               TermId,
     // mode: ReadSignal<Mode>,
     size:                  Size,
@@ -127,6 +134,7 @@ pub fn terminal_view(
     // let raw = raw_data.with_untracked(|x| x.raw.clone());
 
     TerminalView {
+        scope: terminal.scope,
         terminal_data: terminal,
         id,
         term_id,
@@ -213,6 +221,55 @@ impl TerminalView {
                     });
                 }
                 return Some(());
+            } else {
+                let internal_command = self.internal_command;
+                let send = create_ext_action(
+                    self.scope,
+                    move |(_id, response): (
+                        u64,
+                        Result<ProxyResponse, RpcError>,
+                    )| {
+                        match response {
+                            Ok(response) => {
+                                if let ProxyResponse::FindFileFromLogResponse {
+                                    rs,
+                                } = response
+                                {
+                                    match rs {
+                                        lapce_rpc::RpcResult::Err(_) => todo!(),
+                                        lapce_rpc::RpcResult::Ok(FileAndLine {
+                                            file,
+                                            line,
+                                        }) => internal_command.send(
+                                            InternalCommand::JumpToLocation {
+                                                location: EditorLocation {
+                                                    path:               file,
+                                                    position:           Some(
+                                                        EditorPosition::Position(
+                                                            Position::new(
+                                                                line.saturating_sub(
+                                                                    1,
+                                                                ),
+                                                                0,
+                                                            ),
+                                                        ),
+                                                    ),
+                                                    scroll_offset:      None,
+                                                    ignore_unconfirmed: false,
+                                                    same_editor_tab:    false,
+                                                },
+                                            },
+                                        ),
+                                    }
+                                }
+                            },
+                            Err(err) => {
+                                error!("{err:?}");
+                            },
+                        }
+                    },
+                );
+                self.proxy.find_file_from_log(content, send);
             }
         }
         None

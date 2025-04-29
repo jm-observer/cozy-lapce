@@ -43,3 +43,17 @@ impl Display for RpcError {
         )
     }
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum RpcResult<T: std::fmt::Debug + Clone + Send + Sync + 'static> {
+    Err(String),
+    Ok(T),
+}
+
+impl<T: std::fmt::Debug + Clone + Send + Sync + 'static> From<String>
+    for RpcResult<T>
+{
+    fn from(value: String) -> Self {
+        RpcResult::Err(value)
+    }
+}

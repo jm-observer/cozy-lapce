@@ -1799,556 +1799,557 @@ impl WindowWorkspaceData {
         let cx = self.scope;
         match cmd {
             InternalCommand::ReloadConfig => {
-                        self.reload_config();
-                    }
+                                self.reload_config();
+                            }
             InternalCommand::UpdateLogLevel { level } => {
-                        // TODO: implement logging panel, runtime log level change
-                        debug!("{level}");
-                    }
+                                // TODO: implement logging panel, runtime log level change
+                                debug!("{level}");
+                            }
             InternalCommand::MakeConfirmed => {
-                        if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                            if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
-                                x.get(&tab_id).map(|data| {
-                                    data.with_untracked(|manage| {
-                                        manage.active_child().confirmed_mut()
-                                    })
-                                })
-                            }) {
-                                confirmed.set(true);
-                            }
-                        }
-                        // if let Some(editor) = self.main_split.active_editor.get_untracked() {
-                        //     editor.confirmed.set(true);
-                        // }
-                    }
-            InternalCommand::OpenFile { path } => {
-                        self.main_split.jump_to_location(
-                            EditorLocation {
-                                path,
-                                position: None,
-                                scroll_offset: None,
-                                ignore_unconfirmed: false,
-                                same_editor_tab: false,
-                            },
-                            None,
-                        );
-                    }
-            InternalCommand::OpenAndConfirmedFile { path } => {
-                        self.main_split.jump_to_location(
-                            EditorLocation {
-                                path,
-                                position: None,
-                                scroll_offset: None,
-                                ignore_unconfirmed: false,
-                                same_editor_tab: false,
-                            },
-                            None,
-                        );
-                        if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                            if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
-                                x.get(&tab_id).map(|data| {
-                                    data.with_untracked(|manage| {
-                                        manage.active_child().confirmed_mut()
-                                    })
-                                })
-                            }) {
-                                confirmed.set(true);
-                            }
-                        }
-                        // if let Some(editor) = self.main_split.active_editor.get_untracked() {
-                        //     editor.confirmed.set(true);
-                        // }
-                    }
-            InternalCommand::OpenFileInNewTab { path } => {
-                        self.main_split.jump_to_location(
-                            EditorLocation {
-                                path,
-                                position: None,
-                                scroll_offset: None,
-                                ignore_unconfirmed: true,
-                                same_editor_tab: false,
-                            },
-                            None,
-                        );
-                    }
-            InternalCommand::OpenFileChanges { path } => {
-                        self.main_split.open_file_changes(path);
-                    }
-            InternalCommand::ReloadFileExplorer => {
-                        self.file_explorer.reload();
-                    }
-            InternalCommand::TestPathCreation { new_path } => {
-                        let naming = self.file_explorer.naming;
-
-                        let send = create_ext_action(
-                            self.scope,
-                            move |(_, response): (u64, Result<ProxyResponse, RpcError>)| {
-                                match response {
-                                    Ok(_) => {
-                                        naming.update(Naming::set_ok);
-                                    }
-                                    Err(err) => {
-                                        naming.update(|naming| naming.set_err(err.message));
+                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
+                                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                                        x.get(&tab_id).map(|data| {
+                                            data.with_untracked(|manage| {
+                                                manage.active_child().confirmed_mut()
+                                            })
+                                        })
+                                    }) {
+                                        confirmed.set(true);
                                     }
                                 }
-                            },
-                        );
+                                // if let Some(editor) = self.main_split.active_editor.get_untracked() {
+                                //     editor.confirmed.set(true);
+                                // }
+                            }
+            InternalCommand::OpenFile { path } => {
+                                self.main_split.jump_to_location(
+                                    EditorLocation {
+                                        path,
+                                        position: None,
+                                        scroll_offset: None,
+                                        ignore_unconfirmed: false,
+                                        same_editor_tab: false,
+                                    },
+                                    None,
+                                );
+                            }
+            InternalCommand::OpenAndConfirmedFile { path } => {
+                                self.main_split.jump_to_location(
+                                    EditorLocation {
+                                        path,
+                                        position: None,
+                                        scroll_offset: None,
+                                        ignore_unconfirmed: false,
+                                        same_editor_tab: false,
+                                    },
+                                    None,
+                                );
+                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
+                                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                                        x.get(&tab_id).map(|data| {
+                                            data.with_untracked(|manage| {
+                                                manage.active_child().confirmed_mut()
+                                            })
+                                        })
+                                    }) {
+                                        confirmed.set(true);
+                                    }
+                                }
+                                // if let Some(editor) = self.main_split.active_editor.get_untracked() {
+                                //     editor.confirmed.set(true);
+                                // }
+                            }
+            InternalCommand::OpenFileInNewTab { path } => {
+                                self.main_split.jump_to_location(
+                                    EditorLocation {
+                                        path,
+                                        position: None,
+                                        scroll_offset: None,
+                                        ignore_unconfirmed: true,
+                                        same_editor_tab: false,
+                                    },
+                                    None,
+                                );
+                            }
+            InternalCommand::OpenFileChanges { path } => {
+                                self.main_split.open_file_changes(path);
+                            }
+            InternalCommand::ReloadFileExplorer => {
+                                self.file_explorer.reload();
+                            }
+            InternalCommand::TestPathCreation { new_path } => {
+                                let naming = self.file_explorer.naming;
 
-                        self.common.proxy.proxy_rpc.test_create_at_path(new_path, send);
-                    }
+                                let send = create_ext_action(
+                                    self.scope,
+                                    move |(_, response): (u64, Result<ProxyResponse, RpcError>)| {
+                                        match response {
+                                            Ok(_) => {
+                                                naming.update(Naming::set_ok);
+                                            }
+                                            Err(err) => {
+                                                naming.update(|naming| naming.set_err(err.message));
+                                            }
+                                        }
+                                    },
+                                );
+
+                                self.common.proxy.proxy_rpc.test_create_at_path(new_path, send);
+                            }
             InternalCommand::FinishRenamePath {
-                        current_path,
-                        new_path
-                    } => {
-                        let send_current_path = current_path.clone();
-                        let send_new_path = new_path.clone();
-                        let file_explorer = self.file_explorer.clone();
-                        let editors = self.main_split.editors;
+                                current_path,
+                                new_path
+                            } => {
+                                let send_current_path = current_path.clone();
+                                let send_new_path = new_path.clone();
+                                let file_explorer = self.file_explorer.clone();
+                                let editors = self.main_split.editors;
 
-                        let send = create_ext_action(
-                            self.scope,
-                            move |(_, response): (u64, Result<ProxyResponse, RpcError>)| {
-                                match response {
-                                    Ok(response) => {
-                                        // Get the canonicalized new path from the proxy.
-                                        let new_path =
-                                            if let ProxyResponse::CreatePathResponse {
-                                                path
-                                            } = response
-                                            {
-                                                path
-                                            } else {
-                                                send_new_path
-                                            };
-
-                                        // If the renamed item is a file, update any editors
-                                        // the file is open
-                                        // in to use the new path.
-                                        // If the renamed item is a directory, update any
-                                        // editors in which a
-                                        // file the renamed directory is an ancestor of is
-                                        // open to use the
-                                        // file's new path.
-                                        let renamed_editors_content: Vec<_> = editors
-                                            .with_editors_untracked(|editors| {
-                                                editors
-                                                    .values()
-                                                    .map(|editor| editor.doc().content)
-                                                    .filter(|content| {
-                                                        content.with_untracked(|content| {
-                                                            match content {
-                                                                DocContent::File {
-                                                                    path,
-                                                                    ..
-                                                                } => path.starts_with(
-                                                                    &send_current_path
-                                                                ),
-                                                                _ => false
-                                                            }
-                                                        })
-                                                    })
-                                                    .collect()
-                                            });
-
-                                        for content in renamed_editors_content {
-                                            content.update(|content| {
-                                                if let DocContent::File { path, .. } =
-                                                    content
-                                                {
-                                                    if let Ok(suffix) =
-                                                        path.strip_prefix(&send_current_path)
+                                let send = create_ext_action(
+                                    self.scope,
+                                    move |(_, response): (u64, Result<ProxyResponse, RpcError>)| {
+                                        match response {
+                                            Ok(response) => {
+                                                // Get the canonicalized new path from the proxy.
+                                                let new_path =
+                                                    if let ProxyResponse::CreatePathResponse {
+                                                        path
+                                                    } = response
                                                     {
-                                                        *path = new_path.join(suffix);
+                                                        path
+                                                    } else {
+                                                        send_new_path
+                                                    };
+
+                                                // If the renamed item is a file, update any editors
+                                                // the file is open
+                                                // in to use the new path.
+                                                // If the renamed item is a directory, update any
+                                                // editors in which a
+                                                // file the renamed directory is an ancestor of is
+                                                // open to use the
+                                                // file's new path.
+                                                let renamed_editors_content: Vec<_> = editors
+                                                    .with_editors_untracked(|editors| {
+                                                        editors
+                                                            .values()
+                                                            .map(|editor| editor.doc().content)
+                                                            .filter(|content| {
+                                                                content.with_untracked(|content| {
+                                                                    match content {
+                                                                        DocContent::File {
+                                                                            path,
+                                                                            ..
+                                                                        } => path.starts_with(
+                                                                            &send_current_path
+                                                                        ),
+                                                                        _ => false
+                                                                    }
+                                                                })
+                                                            })
+                                                            .collect()
+                                                    });
+
+                                                for content in renamed_editors_content {
+                                                    content.update(|content| {
+                                                        if let DocContent::File { path, .. } =
+                                                            content
+                                                        {
+                                                            if let Ok(suffix) =
+                                                                path.strip_prefix(&send_current_path)
+                                                            {
+                                                                *path = new_path.join(suffix);
+                                                            }
+                                                        }
+                                                    });
+                                                }
+
+                                                file_explorer.reload();
+                                                file_explorer.naming.set(Naming::None);
+                                            }
+                                            Err(err) => {
+                                                file_explorer
+                                                    .naming
+                                                    .update(|naming| naming.set_err(err.message));
+                                            }
+                                        }
+                                    },
+                                );
+
+                                self.file_explorer.naming.update(Naming::set_pending);
+                                self.common
+                                    .proxy
+                                    .proxy_rpc.rename_path(current_path.clone(), new_path, send);
+                            }
+            InternalCommand::FinishNewNode { is_dir, path } => {
+                                let file_explorer = self.file_explorer.clone();
+                                let internal_command = self.common.internal_command;
+
+                                let send = create_ext_action(
+                                    self.scope,
+                                    move |(_id, response): (
+                                        u64,
+                                        Result<ProxyResponse, RpcError>
+                                    )| {
+                                        match response {
+                                            Ok(response) => {
+                                                file_explorer.reload();
+                                                file_explorer.naming.set(Naming::None);
+
+                                                // Open a new file in the editor
+                                                if let ProxyResponse::CreatePathResponse { path } =
+                                                    response
+                                                {
+                                                    if !is_dir {
+                                                        internal_command.send(
+                                                            InternalCommand::OpenFile { path }
+                                                        );
                                                     }
                                                 }
-                                            });
+                                            }
+                                            Err(err) => {
+                                                file_explorer
+                                                    .naming
+                                                    .update(|naming| naming.set_err(err.message));
+                                            }
                                         }
+                                    },
+                                );
 
-                                        file_explorer.reload();
-                                        file_explorer.naming.set(Naming::None);
-                                    }
-                                    Err(err) => {
-                                        file_explorer
-                                            .naming
-                                            .update(|naming| naming.set_err(err.message));
+                                self.file_explorer.naming.update(Naming::set_pending);
+                                if is_dir {
+                                    self.common.proxy.proxy_rpc.create_directory(path, send);
+                                } else {
+                                    self.common.proxy.proxy_rpc.create_file(path, send);
+                                }
+                            }
+            InternalCommand::FinishDuplicate { source, path } => {
+                                let file_explorer = self.file_explorer.clone();
+
+                                let send = create_ext_action(
+                                    self.scope,
+                                    move |(_id, response): (
+                                        u64,
+                                        Result<ProxyResponse, RpcError>
+                                    )| {
+                                        if let Err(err) = response {
+                                            file_explorer
+                                                .naming
+                                                .update(|naming| naming.set_err(err.message));
+                                        } else {
+                                            file_explorer.reload();
+                                            file_explorer.naming.set(Naming::None);
+                                        }
+                                    },
+                                );
+
+                                self.file_explorer.naming.update(Naming::set_pending);
+                                self.common.proxy.proxy_rpc.duplicate_path(source, path, send);
+                            }
+            InternalCommand::GoToLocation { location } => {
+                                if let Err(err) = self.main_split.go_to_location(location, None) {
+                                    error!("{err:?}");
+                                }
+                            }
+            InternalCommand::JumpToLocation { location } => {
+                                self.main_split.jump_to_location(location, None);
+                            }
+            InternalCommand::PaletteReferences { references } => {
+                                self.palette.references.set(references);
+                                self.palette.run(PaletteKind::Reference);
+                            }
+            InternalCommand::Split {
+                                direction,
+                                editor_tab_id
+                            } => {
+                                self.main_split.split(direction, editor_tab_id);
+                            }
+            InternalCommand::SplitMove {
+                                direction,
+                                editor_tab_id
+                            } => {
+                                self.main_split.split_move(direction, editor_tab_id);
+                            }
+            InternalCommand::SplitExchange { editor_tab_id } => {
+                                self.main_split.split_exchange(editor_tab_id);
+                            }
+            InternalCommand::EditorTabClose { editor_tab_id } => {
+                                self.main_split.editor_tab_close(editor_tab_id);
+                            }
+            InternalCommand::EditorTabChildClose {
+                                editor_tab_id,
+                                child
+                            } => {
+                                self.main_split
+                                    .editor_tab_child_close(editor_tab_id, child, false);
+                            }
+            InternalCommand::EditorTabCloseByKind {
+                                editor_tab_id,
+                                child,
+                                kind
+                            } => {
+                                self.main_split.editor_tab_child_close_by_kind(
+                                    editor_tab_id,
+                                    child,
+                                    kind,
+                                );
+                            }
+            InternalCommand::ShowCodeActions {
+                                offset,
+                                mouse_click,
+                                plugin_id,
+                                code_actions
+                            } => {
+                                let mut code_action = self.code_action.get_untracked();
+                                code_action.show(plugin_id, code_actions, offset, mouse_click);
+                                self.code_action.set(code_action);
+                            }
+            InternalCommand::RunCodeAction { plugin_id, action } => {
+                                self.main_split.run_code_action(plugin_id, action);
+                            }
+            InternalCommand::ApplyWorkspaceEdit { edit } => {
+                                self.main_split.apply_workspace_edit(&edit);
+                            }
+            InternalCommand::SaveJumpLocation {
+                                path,
+                                offset,
+                                scroll_offset
+                            } => {
+                                self.main_split
+                                    .save_jump_location(path, offset, scroll_offset);
+                            }
+            InternalCommand::StartRename {
+                                path,
+                                placeholder,
+                                position,
+                                start
+                            } => {
+                                self.rename.start(path, placeholder, start, position);
+                            }
+            InternalCommand::Search { pattern } => {
+                                self.main_split.set_find_pattern(pattern);
+                            }
+            InternalCommand::FindEditorReceiveChar { s } => {
+                                error!("FindEditorReceiveChar {s}");
+                                // self.main_split.find_editor.receive_char(&s);
+                                // self.main_split.find_str.update(|x| {
+                                //     x.push_str(&s);
+                                // });
+                            }
+            InternalCommand::ReplaceEditorReceiveChar { s } => {
+                                error!("ReplaceEditorReceiveChar {s}");
+                                //
+                                // self.main_split.replace_editor.receive_char(&s);
+                            }
+            InternalCommand::FindEditorCommand {
+                                command, ..
+                                // count,
+                                // mods
+                            } => {
+                                log::error!("todo FindEditorCommand {command:?}");
+                                // self.main_split
+                                //     .find_editor
+                                //     .run_command(&command, count, mods);
+                            }
+            InternalCommand::ReplaceEditorCommand {
+                                command, ..
+                            } => {
+                                log::error!("todo ReplaceEditorCommand {command:?}");
+                                //
+                                // self.main_split
+                                //     .replace_editor
+                                //     .run_command(&command, count, mods);
+                            }
+            InternalCommand::FocusEditorTab { editor_tab_id } => {
+                                self.main_split.active_editor_tab.set(Some(editor_tab_id));
+                            }
+            InternalCommand::SetColorTheme { name, save } => {
+                                if save {
+                                    // The config file is watched
+                                    LapceConfig::update_file(
+                                        "core",
+                                        "color-theme",
+                                        toml_edit::Value::from(name), self.common.clone(),
+                                    );
+                                } else {
+                                    let mut new_config = self.common.config.get_untracked();
+                                    new_config.set_color_theme(&self.workspace, &name, &self.common.directory.config_directory);
+                                    self.set_config.set(new_config);
+                                }
+                            }
+            InternalCommand::SetIconTheme { name, save } => {
+                                if save {
+                                    // The config file is watched
+                                    LapceConfig::update_file(
+                                        "core",
+                                        "icon-theme",
+                                        toml_edit::Value::from(name), self.common.clone(),
+                                    );
+                                } else {
+                                    let mut new_config = self.common.config.get_untracked();
+                                    new_config
+                                        .set_icon_theme(&self.workspace, &name, &self.common.directory.config_directory);
+                                    self.set_config.set(new_config);
+                                }
+                            }
+            InternalCommand::SetModal { modal } => {
+                                LapceConfig::update_file(
+                                    "core",
+                                    "modal",
+                                    toml_edit::Value::from(modal), self.common.clone(),
+                                );
+                            }
+            InternalCommand::OpenWebUri { uri } => {
+                                if !uri.is_empty() {
+                                    match open::that(&uri) {
+                                        Ok(_) => {
+                                            trace!("opened web uri: {uri:?}");
+                                        }
+                                        Err(e) => {
+                                            trace!("failed to open web uri: {uri:?}, error: {e}");
+                                        }
                                     }
                                 }
-                            },
-                        );
-
-                        self.file_explorer.naming.update(Naming::set_pending);
-                        self.common
-                            .proxy
-                            .proxy_rpc.rename_path(current_path.clone(), new_path, send);
-                    }
-            InternalCommand::FinishNewNode { is_dir, path } => {
-                        let file_explorer = self.file_explorer.clone();
-                        let internal_command = self.common.internal_command;
-
-                        let send = create_ext_action(
-                            self.scope,
-                            move |(_id, response): (
-                                u64,
-                                Result<ProxyResponse, RpcError>
-                            )| {
-                                match response {
-                                    Ok(response) => {
-                                        file_explorer.reload();
-                                        file_explorer.naming.set(Naming::None);
-
-                                        // Open a new file in the editor
-                                        if let ProxyResponse::CreatePathResponse { path } =
-                                            response
-                                        {
-                                            if !is_dir {
-                                                internal_command.send(
-                                                    InternalCommand::OpenFile { path }
-                                                );
+                            }
+            InternalCommand::ShowAlert {
+                                title,
+                                msg,
+                                buttons
+                            } => {
+                                self.show_alert(title, msg, buttons);
+                            }
+            InternalCommand::HideAlert => {
+                                self.alert_data.active.set(false);
+                            }
+            InternalCommand::SaveScratchDoc { doc } => {
+                                self.main_split.save_scratch_doc(doc);
+                            }
+            InternalCommand::SaveScratchDoc2 { doc } => {
+                                self.main_split.save_scratch_doc2(doc);
+                            }
+            InternalCommand::UpdateProxyStatus { status } => {
+                                self.common.proxy_status.set(Some(status));
+                            }
+            InternalCommand::DapFrameScopes { dap_id, frame_id } => {
+                                self.terminal.dap_frame_scopes(dap_id, frame_id);
+                            }
+            InternalCommand::OpenVoltView { volt_id } => {
+                                self.main_split.save_current_jump_location();
+                                self.main_split.open_volt_view(volt_id);
+                            }
+            InternalCommand::ResetBlinkCursor => {
+                                // All the editors share the blinking information and logic, so we
+                                // can just reset one of them.
+                                self.cursor_blink.blink_right_now();
+                                // if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                                //     // e_data.editor.cursor_info.reset();
+                                // }
+                            }
+            InternalCommand::BlinkCursor => {
+                                // All the editors share the blinking information and logic, so we
+                                // can just reset one of them.
+                                match self.common.focus.get_untracked() {
+                                    Focus::Panel(PanelKind::Terminal) => {
+                                        if let Some(tab) = self.terminal.active_tab_untracked() {
+                                            if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
+                                                // log::debug!("BlinkCursor Terminal {:?}", id.data().as_ffi());
+                                                id.request_paint();
                                             }
                                         }
                                     }
-                                    Err(err) => {
-                                        file_explorer
-                                            .naming
-                                            .update(|naming| naming.set_err(err.message));
+                                    Focus::Workbench => {
+                                        if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                                            if let Some(id) = e_data.editor_view_id.get_untracked() {
+                                                id.request_paint();
+                                            }
+                                        }
                                     }
-                                }
-                            },
-                        );
-
-                        self.file_explorer.naming.update(Naming::set_pending);
-                        if is_dir {
-                            self.common.proxy.proxy_rpc.create_directory(path, send);
-                        } else {
-                            self.common.proxy.proxy_rpc.create_file(path, send);
-                        }
-                    }
-            InternalCommand::FinishDuplicate { source, path } => {
-                        let file_explorer = self.file_explorer.clone();
-
-                        let send = create_ext_action(
-                            self.scope,
-                            move |(_id, response): (
-                                u64,
-                                Result<ProxyResponse, RpcError>
-                            )| {
-                                if let Err(err) = response {
-                                    file_explorer
-                                        .naming
-                                        .update(|naming| naming.set_err(err.message));
-                                } else {
-                                    file_explorer.reload();
-                                    file_explorer.naming.set(Naming::None);
-                                }
-                            },
-                        );
-
-                        self.file_explorer.naming.update(Naming::set_pending);
-                        self.common.proxy.proxy_rpc.duplicate_path(source, path, send);
-                    }
-            InternalCommand::GoToLocation { location } => {
-                        if let Err(err) = self.main_split.go_to_location(location, None) {
-                            error!("{err:?}");
-                        }
-                    }
-            InternalCommand::JumpToLocation { location } => {
-                        self.main_split.jump_to_location(location, None);
-                    }
-            InternalCommand::PaletteReferences { references } => {
-                        self.palette.references.set(references);
-                        self.palette.run(PaletteKind::Reference);
-                    }
-            InternalCommand::Split {
-                        direction,
-                        editor_tab_id
-                    } => {
-                        self.main_split.split(direction, editor_tab_id);
-                    }
-            InternalCommand::SplitMove {
-                        direction,
-                        editor_tab_id
-                    } => {
-                        self.main_split.split_move(direction, editor_tab_id);
-                    }
-            InternalCommand::SplitExchange { editor_tab_id } => {
-                        self.main_split.split_exchange(editor_tab_id);
-                    }
-            InternalCommand::EditorTabClose { editor_tab_id } => {
-                        self.main_split.editor_tab_close(editor_tab_id);
-                    }
-            InternalCommand::EditorTabChildClose {
-                        editor_tab_id,
-                        child
-                    } => {
-                        self.main_split
-                            .editor_tab_child_close(editor_tab_id, child, false);
-                    }
-            InternalCommand::EditorTabCloseByKind {
-                        editor_tab_id,
-                        child,
-                        kind
-                    } => {
-                        self.main_split.editor_tab_child_close_by_kind(
-                            editor_tab_id,
-                            child,
-                            kind,
-                        );
-                    }
-            InternalCommand::ShowCodeActions {
-                        offset,
-                        mouse_click,
-                        plugin_id,
-                        code_actions
-                    } => {
-                        let mut code_action = self.code_action.get_untracked();
-                        code_action.show(plugin_id, code_actions, offset, mouse_click);
-                        self.code_action.set(code_action);
-                    }
-            InternalCommand::RunCodeAction { plugin_id, action } => {
-                        self.main_split.run_code_action(plugin_id, action);
-                    }
-            InternalCommand::ApplyWorkspaceEdit { edit } => {
-                        self.main_split.apply_workspace_edit(&edit);
-                    }
-            InternalCommand::SaveJumpLocation {
-                        path,
-                        offset,
-                        scroll_offset
-                    } => {
-                        self.main_split
-                            .save_jump_location(path, offset, scroll_offset);
-                    }
-            InternalCommand::StartRename {
-                        path,
-                        placeholder,
-                        position,
-                        start
-                    } => {
-                        self.rename.start(path, placeholder, start, position);
-                    }
-            InternalCommand::Search { pattern } => {
-                        self.main_split.set_find_pattern(pattern);
-                    }
-            InternalCommand::FindEditorReceiveChar { s } => {
-                        error!("FindEditorReceiveChar {s}");
-                        // self.main_split.find_editor.receive_char(&s);
-                        // self.main_split.find_str.update(|x| {
-                        //     x.push_str(&s);
-                        // });
-                    }
-            InternalCommand::ReplaceEditorReceiveChar { s } => {
-                        error!("ReplaceEditorReceiveChar {s}");
-                        //
-                        // self.main_split.replace_editor.receive_char(&s);
-                    }
-            InternalCommand::FindEditorCommand {
-                        command, ..
-                        // count,
-                        // mods
-                    } => {
-                        log::error!("todo FindEditorCommand {command:?}");
-                        // self.main_split
-                        //     .find_editor
-                        //     .run_command(&command, count, mods);
-                    }
-            InternalCommand::ReplaceEditorCommand {
-                        command, ..
-                    } => {
-                        log::error!("todo ReplaceEditorCommand {command:?}");
-                        //
-                        // self.main_split
-                        //     .replace_editor
-                        //     .run_command(&command, count, mods);
-                    }
-            InternalCommand::FocusEditorTab { editor_tab_id } => {
-                        self.main_split.active_editor_tab.set(Some(editor_tab_id));
-                    }
-            InternalCommand::SetColorTheme { name, save } => {
-                        if save {
-                            // The config file is watched
-                            LapceConfig::update_file(
-                                "core",
-                                "color-theme",
-                                toml_edit::Value::from(name), self.common.clone(),
-                            );
-                        } else {
-                            let mut new_config = self.common.config.get_untracked();
-                            new_config.set_color_theme(&self.workspace, &name, &self.common.directory.config_directory);
-                            self.set_config.set(new_config);
-                        }
-                    }
-            InternalCommand::SetIconTheme { name, save } => {
-                        if save {
-                            // The config file is watched
-                            LapceConfig::update_file(
-                                "core",
-                                "icon-theme",
-                                toml_edit::Value::from(name), self.common.clone(),
-                            );
-                        } else {
-                            let mut new_config = self.common.config.get_untracked();
-                            new_config
-                                .set_icon_theme(&self.workspace, &name, &self.common.directory.config_directory);
-                            self.set_config.set(new_config);
-                        }
-                    }
-            InternalCommand::SetModal { modal } => {
-                        LapceConfig::update_file(
-                            "core",
-                            "modal",
-                            toml_edit::Value::from(modal), self.common.clone(),
-                        );
-                    }
-            InternalCommand::OpenWebUri { uri } => {
-                        if !uri.is_empty() {
-                            match open::that(&uri) {
-                                Ok(_) => {
-                                    trace!("opened web uri: {uri:?}");
-                                }
-                                Err(e) => {
-                                    trace!("failed to open web uri: {uri:?}, error: {e}");
+                                    _ => {}
                                 }
                             }
-                        }
-                    }
-            InternalCommand::ShowAlert {
-                        title,
-                        msg,
-                        buttons
-                    } => {
-                        self.show_alert(title, msg, buttons);
-                    }
-            InternalCommand::HideAlert => {
-                        self.alert_data.active.set(false);
-                    }
-            InternalCommand::SaveScratchDoc { doc } => {
-                        self.main_split.save_scratch_doc(doc);
-                    }
-            InternalCommand::SaveScratchDoc2 { doc } => {
-                        self.main_split.save_scratch_doc2(doc);
-                    }
-            InternalCommand::UpdateProxyStatus { status } => {
-                        self.common.proxy_status.set(Some(status));
-                    }
-            InternalCommand::DapFrameScopes { dap_id, frame_id } => {
-                        self.terminal.dap_frame_scopes(dap_id, frame_id);
-                    }
-            InternalCommand::OpenVoltView { volt_id } => {
-                        self.main_split.save_current_jump_location();
-                        self.main_split.open_volt_view(volt_id);
-                    }
-            InternalCommand::ResetBlinkCursor => {
-                        // All the editors share the blinking information and logic, so we
-                        // can just reset one of them.
-                        self.cursor_blink.blink_right_now();
-                        // if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                        //     // e_data.editor.cursor_info.reset();
-                        // }
-                    }
-            InternalCommand::BlinkCursor => {
-                        // All the editors share the blinking information and logic, so we
-                        // can just reset one of them.
-                        match self.common.focus.get_untracked() {
-                            Focus::Panel(PanelKind::Terminal) => {
-                                if let Some(tab) = self.terminal.active_tab_untracked() {
-                                    if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
-                                        // log::debug!("BlinkCursor Terminal {:?}", id.data().as_ffi());
-                                        id.request_paint();
-                                    }
-                                }
-                            }
-                            Focus::Workbench => {
-                                if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                                    if let Some(id) = e_data.editor_view_id.get_untracked() {
-                                        id.request_paint();
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
             InternalCommand::OpenDiffFiles {
-                        left_path,
-                        right_path
-                    } => self.main_split.open_diff_files(left_path, right_path),
+                                left_path,
+                                right_path
+                            } => self.main_split.open_diff_files(left_path, right_path),
             InternalCommand::ExecuteProcess { program, arguments } => {
-                        let mut cmd = std::process::Command::new(program)
-                            .args(arguments)
-                            .spawn()?;
-                        // {
-                        //     Ok(v) => v,
-                        //     Err(e) => return error!("Failed to spawn process: {e}")
-                        // };
-cmd.wait()?;
-                        // match  {
-                        //     Ok(v) => trace!("Process exited with status {v}"),
-                        //     Err(e) => {
-                        //         error!("Proces exited with an error: {e}")
-                        //     }
-                        // };
-                    }
-            InternalCommand::ClearTerminalBuffer {
-                        view_id,
-                        terminal_id
-                    } => {
-                        let Some(tab) = self.terminal.tab_infos.with_untracked(|x| {
-                            x.tabs.iter().find_map(|data| {
-                                if data.term_id == terminal_id {
-                                    Some(data.clone())
-                                } else {
-                                    None
-                                }
-                            })
-                        }) else {
-                            bail!(
-                                "cound not find terminal tab data: \
-                         terminal_id={terminal_id:?}"
-                            );
-                        };
-                        let raw = tab.data.with_untracked(|x| x.raw.clone());
-                        raw.write().term.reset_state();
-                        view_id.request_paint();
-                    }
-            InternalCommand::StopTerminal { terminal_id } => {
-                        self.terminal.manual_stop_run_debug(terminal_id);
-                    }
-            InternalCommand::RestartTerminal { terminal_id } => {
-                        if let Err(err) = self.restart_run_program_in_terminal(terminal_id) {
-                            error!("RestartTerminal {err}");
-                        }
-                    }
-            InternalCommand::NewTerminal { profile } => {
-                        self.terminal.new_tab(profile);
-                    }
-            InternalCommand::RunAndDebug { mode, mut config } => {
-                        if let Some(workspace) = &self.workspace.path {
-                            config.update_by_workspace(workspace.to_string_lossy().as_ref());
-                        }
-                        self.run_and_debug(cx, mode, config);
-                    }
-            InternalCommand::CallHierarchyIncoming { item_id, root_id } => {
-                        self.call_hierarchy_incoming(root_id, item_id);
-                    }
-            InternalCommand::DocumentHighlight => {
-                        if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                            if let Err(err) = e_data.document_highlight(self.clone()) {
-                                error!("DocumentHighlight {err}");
+                                let mut cmd = std::process::Command::new(program)
+                                    .args(arguments)
+                                    .spawn()?;
+                                // {
+                                //     Ok(v) => v,
+                                //     Err(e) => return error!("Failed to spawn process: {e}")
+                                // };
+        cmd.wait()?;
+                                // match  {
+                                //     Ok(v) => trace!("Process exited with status {v}"),
+                                //     Err(e) => {
+                                //         error!("Proces exited with an error: {e}")
+                                //     }
+                                // };
                             }
-                        }
-                    }
+            InternalCommand::ClearTerminalBuffer {
+                                view_id,
+                                terminal_id
+                            } => {
+                                let Some(tab) = self.terminal.tab_infos.with_untracked(|x| {
+                                    x.tabs.iter().find_map(|data| {
+                                        if data.term_id == terminal_id {
+                                            Some(data.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                }) else {
+                                    bail!(
+                                        "cound not find terminal tab data: \
+                         terminal_id={terminal_id:?}"
+                                    );
+                                };
+                                let raw = tab.data.with_untracked(|x| x.raw.clone());
+                                raw.write().term.reset_state();
+                                view_id.request_paint();
+                            }
+            InternalCommand::StopTerminal { terminal_id } => {
+                                self.terminal.manual_stop_run_debug(terminal_id);
+                            }
+            InternalCommand::RestartTerminal { terminal_id } => {
+                                if let Err(err) = self.restart_run_program_in_terminal(terminal_id) {
+                                    error!("RestartTerminal {err}");
+                                }
+                            }
+            InternalCommand::NewTerminal { profile } => {
+                                self.terminal.new_tab(profile);
+                            }
+            InternalCommand::RunAndDebug { mode, mut config } => {
+                                if let Some(workspace) = &self.workspace.path {
+                                    config.update_by_workspace(workspace.to_string_lossy().as_ref());
+                                }
+                                self.run_and_debug(cx, mode, config);
+                            }
+            InternalCommand::CallHierarchyIncoming { item_id, root_id } => {
+                                self.call_hierarchy_incoming(root_id, item_id);
+                            }
+            InternalCommand::DocumentHighlight => {
+                                if let Some(e_data) = self.main_split.active_editor.get_untracked() {
+                                    if let Err(err) = e_data.document_highlight(self.clone()) {
+                                        error!("DocumentHighlight {err}");
+                                    }
+                                }
+                            }
             InternalCommand::AddOrRemoveBreakPoint { doc, line_num } =>  {
-                let (offset, content) =  doc.with_untracked(|x| {
-                    (x.lines.with_untracked(|x| x.buffer().offset_of_line(line_num)),
-                    x.content.get_untracked())
-                });
-                    let offset = offset?;
-                if let Some(path) = content.path() {
-                    let breakpoints = self.common.breakpoints;
-                let proxy = self.common.proxy.proxy_rpc.clone();
-                let daps = self.terminal.debug.daps;
-                update_breakpoints(daps, proxy, breakpoints, lapce_core::debug::BreakpointAction::AddOrRemove { path, line: line_num, offset  });
-                }
-            },
+                        let (offset, content) =  doc.with_untracked(|x| {
+                            (x.lines.with_untracked(|x| x.buffer().offset_of_line(line_num)),
+                            x.content.get_untracked())
+                        });
+                            let offset = offset?;
+                        if let Some(path) = content.path() {
+                            let breakpoints = self.common.breakpoints;
+                        let proxy = self.common.proxy.proxy_rpc.clone();
+                        let daps = self.terminal.debug.daps;
+                        update_breakpoints(daps, proxy, breakpoints, lapce_core::debug::BreakpointAction::AddOrRemove { path, line: line_num, offset  });
+                        }
+                    },
+            InternalCommand::ShowStatusMessage { message } => self.show_status_message(message),
         }
         Ok(())
     }
@@ -2645,36 +2646,7 @@ cmd.wait()?;
                 self.update_progress(progress);
             },
             CoreNotification::ShowStatusMessage { message } => {
-                let msg = WorkDoneProgressBegin {
-                    title:       message.clone(),
-                    cancellable: None,
-                    message:     None,
-                    percentage:  None,
-                };
-                let token = NumberOrString::String(format!(
-                    "StatusMessage {}",
-                    Id::next().to_raw()
-                ));
-                let end_token = token.clone();
-                let progress = ProgressParams {
-                    token,
-                    value: lsp_types::ProgressParamsValue::WorkDone(
-                        WorkDoneProgress::Begin(msg),
-                    ),
-                };
-                self.update_progress(&progress);
-                let workspace = self.clone();
-                exec_after(Duration::from_secs(10), move |_| {
-                    let progress = ProgressParams {
-                        token: end_token,
-                        value: lsp_types::ProgressParamsValue::WorkDone(
-                            WorkDoneProgress::End(WorkDoneProgressEnd {
-                                message: None,
-                            }),
-                        ),
-                    };
-                    workspace.update_progress(&progress);
-                });
+                self.show_status_message(message.clone());
             },
             CoreNotification::ShowMessage { title, message } => {
                 self.show_message(title, message);
@@ -2733,6 +2705,35 @@ cmd.wait()?;
             },
             _ => {},
         }
+    }
+
+    pub fn show_status_message(&self, message: String) {
+        let msg = WorkDoneProgressBegin {
+            title:       message,
+            cancellable: None,
+            message:     None,
+            percentage:  None,
+        };
+        let token =
+            NumberOrString::String(format!("StatusMessage {}", Id::next().to_raw()));
+        let end_token = token.clone();
+        let progress = ProgressParams {
+            token,
+            value: lsp_types::ProgressParamsValue::WorkDone(
+                WorkDoneProgress::Begin(msg),
+            ),
+        };
+        self.update_progress(&progress);
+        let workspace = self.clone();
+        exec_after(Duration::from_secs(10), move |_| {
+            let progress = ProgressParams {
+                token: end_token,
+                value: lsp_types::ProgressParamsValue::WorkDone(
+                    WorkDoneProgress::End(WorkDoneProgressEnd { message: None }),
+                ),
+            };
+            workspace.update_progress(&progress);
+        });
     }
 
     pub fn key_down<'a>(&self, event: impl Into<EventRef<'a>> + Copy) -> bool {

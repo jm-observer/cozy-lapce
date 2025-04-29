@@ -53,7 +53,7 @@ regex             = { version = "1.10.5" }
 remain            = { version = "0.2" }
 semver            = { version = "1.0" }
 reqwest           = { version = "0.11", features = ["blocking", "json", "socks"] }
-serde             = { version = "1.0" }
+serde             = { version = "1.0" , features = ["derive"]}
 serde_json        = { version = "1.0" }
 smallvec          = { version = "1.15" }
 strum             = { version = "0.26.2" }
@@ -103,18 +103,20 @@ cosmic-text = { version = "0.12.1", features = ["shape-run-cache"] }
 memchr = "2.7.1"
 slotmap     = "1.0"
 tree-sitter = "0.22.6"
-unicode-segmentation = "1.12.0"
-
+unicode-segmentation = "1.12.0" 
+cargo = "0.87.1"
 [patch.crates-io]
 # Temporarily patch lsp-types with a version that adds message-type debug
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
+custom-utils = {path = "../custom-utils"}
+
 [patch."https://github.com/lapce/floem"]
-floem = { git="https://github.com/jm-observer/floem", branch = "main-fork-5" }
-#floem = { path = "../floem"}
+# floem = { git="https://github.com/jm-observer/floem", branch = "main-fork-5" }
+floem = { path = "../floem"}
 #
 #[patch."https://github.com/jm-observer/xi-editor.git"]
-#lapce-xi-rope = {path = "../xi-editor"}
+# lapce-xi-rope = {path = "../xi-editor"}
 
 #[workspace.dependencies.alacritty_terminal]
 #git = "https://github.com/alacritty/alacritty"

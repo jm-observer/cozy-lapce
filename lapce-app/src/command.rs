@@ -826,6 +826,9 @@ pub enum InternalCommand {
         doc:      DocSignal,
         line_num: usize,
     },
+    ShowStatusMessage {
+        message: String,
+    },
 }
 
 #[derive(Clone)]

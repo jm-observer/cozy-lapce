@@ -22,7 +22,7 @@ use grep_searcher::{SearcherBuilder, sinks::UTF8};
 use indexmap::IndexMap;
 use lapce_core::directory::Directory;
 use lapce_rpc::{
-    RequestId, RpcError,
+    RequestId, RpcError, RpcResult,
     buffer::BufferId,
     core::{CoreNotification, CoreRpcHandler, FileChanged},
     file::FileNodeItem,
@@ -46,6 +46,7 @@ use parking_lot::Mutex;
 use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
+    rust_module_resolve::{CargoContext, create_cargo_context},
     terminal::{Terminal, TerminalSender, Terminals},
     watcher::{FileWatcher, Notify, WatchToken},
 };
@@ -64,6 +65,7 @@ pub struct Dispatcher {
     window_id:     usize,
     tab_id:        usize,
     directory:     Directory,
+    cargo_context: Option<CargoContext>,
 }
 
 impl ProxyHandler for Dispatcher {
@@ -356,13 +358,6 @@ impl ProxyHandler for Dispatcher {
                     Ok(ProxyResponse::NewBufferResponse { content, read_only }),
                 );
             },
-            // ReloadBuffer { buffer_id, path } => {
-            //     let (content, read_only) = self.new_buffer(id, buffer_id, path);
-            //     self.respond_rpc(
-            //         id,
-            //         Ok(ProxyResponse::NewBufferResponse { content, read_only }),
-            //     );
-            // },
             BufferHead { path } => {
                 let result = if let Some(workspace) = self.workspace.as_ref() {
                     let result = file_get_head(workspace, &path);
@@ -1327,6 +1322,7 @@ impl ProxyHandler for Dispatcher {
                 window_id,
                 tab_id,
             } => {
+                log::warn!("Initial {workspace:?}");
                 self.window_id = window_id;
                 self.tab_id = tab_id;
                 self.workspace = workspace;
@@ -1338,6 +1334,15 @@ impl ProxyHandler for Dispatcher {
                 if let Some(workspace) = self.workspace.as_ref() {
                     self.file_watcher
                         .watch(workspace, true, WORKSPACE_EVENT_TOKEN);
+                    let manifest_path = workspace.join("Cargo.toml");
+                    if manifest_path.exists() {
+                        match create_cargo_context(&manifest_path) {
+                            Ok(context) => self.cargo_context = Some(context),
+                            Err(err) => {
+                                error!("{err:?}");
+                            },
+                        }
+                    }
                 }
 
                 let plugin_rpc = self.catalog_rpc.clone();
@@ -1366,6 +1371,17 @@ impl ProxyHandler for Dispatcher {
                     self.core_rpc.home_dir(dirs.home_dir().into());
                 }
             },
+            FindFileFromLog { log } => {
+                let rs = if let Some(context) = &self.cargo_context {
+                    context.find_file_by_log(&log)
+                } else {
+                    RpcResult::Err("cargo context is none".to_string())
+                };
+                self.respond_rpc(
+                    id,
+                    Ok(ProxyResponse::FindFileFromLogResponse { rs }),
+                );
+            },
         }
     }
 }
@@ -1392,6 +1408,7 @@ impl Dispatcher {
             window_id: 1,
             tab_id: 1,
             directory,
+            cargo_context: None,
         }
     }
 

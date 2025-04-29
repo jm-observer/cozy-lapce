@@ -7,6 +7,7 @@ use std::{
     },
 };
 
+use anyhow::Result;
 use crossbeam_channel::{Receiver, Sender};
 use indexmap::IndexMap;
 use lapce_xi_rope::RopeDelta;
@@ -24,7 +25,7 @@ use serde::{Deserialize, Serialize};
 
 use super::plugin::VoltID;
 use crate::{
-    RequestId, RpcError, RpcMessage,
+    RequestId, RpcError, RpcMessage, RpcResult,
     buffer::BufferId,
     dap_types::{self, DapId, RunDebugConfig, SourceBreakpoint, ThreadId},
     file::{FileNodeItem, PathObject},
@@ -268,6 +269,9 @@ pub enum ProxyRequest {
         path:       PathBuf,
         position:   Position,
     },
+    FindFileFromLog {
+        log: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -493,6 +497,15 @@ pub enum ProxyResponse {
     ReferencesResolveResponse {
         items: Vec<FileLine>,
     },
+    FindFileFromLogResponse {
+        rs: RpcResult<FileAndLine>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileAndLine {
+    pub file: PathBuf,
+    pub line: u32,
 }
 
 pub type ProxyMessage = RpcMessage<ProxyRequest, ProxyNotification, ProxyResponse>;
@@ -530,12 +543,12 @@ pub trait ProxyHandler {
     fn handle_notification(
         &mut self,
         rpc: ProxyNotification,
-    ) -> impl std::future::Future<Output = ()> + Send;
+    ) -> impl std::future::Future<Output = ()>;
     fn handle_request(
         &mut self,
         id: RequestId,
         rpc: ProxyRequest,
-    ) -> impl std::future::Future<Output = ()> + Send;
+    ) -> impl std::future::Future<Output = ()>;
 }
 
 #[derive(Clone)]
@@ -777,6 +790,10 @@ impl ProxyRpcHandler {
 
     pub fn create_file(&self, path: PathBuf, f: impl ProxyCallback + 'static) {
         self.request_async(ProxyRequest::CreateFile { path }, f);
+    }
+
+    pub fn find_file_from_log(&self, log: String, f: impl ProxyCallback + 'static) {
+        self.request_async(ProxyRequest::FindFileFromLog { log }, f);
     }
 
     pub fn create_directory(&self, path: PathBuf, f: impl ProxyCallback + 'static) {

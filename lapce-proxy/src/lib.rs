@@ -5,6 +5,7 @@ pub mod cli;
 pub mod dispatch;
 pub mod plugin;
 pub mod rust_build;
+pub mod rust_module_resolve;
 pub mod terminal;
 pub mod watcher;
 
