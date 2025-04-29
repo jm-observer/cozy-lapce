@@ -90,7 +90,7 @@ rust-resolve= {path = "crates/rust-resolve"}
 # floem = { path = "../floem", features = ["editor", "serde", "default-image-formats", "rfd-async-std"] }
 # floem-editor-core = { path = "../floem/editor-core/", features = ["serde"] }
 log = "0.4.22"
-custom-utils = { version = "0.10.17", default-features = false, features = ["logger"]}
+custom-utils = { version = "0.10.18", default-features = false, features = ["logger"]}
 peniko = "=0.3.1"
 ahash       = "0.8.11"
 arc-swap    = "1.6.0"
@@ -109,7 +109,7 @@ cargo = "0.87.1"
 # Temporarily patch lsp-types with a version that adds message-type debug
 lsp-types = { git = "https://github.com/lapce/lsp-types", rev = "feaa1e2ec80975c9dadd400a238ceacf071058e6" }
 regalloc2 = { rev = "5d79e12d0a93b10fc181f4da409b4671dd365228", git = "https://github.com/bytecodealliance/regalloc2" }
-custom-utils = {path = "../custom-utils"}
+# custom-utils = {path = "../custom-utils"}
 
 [patch."https://github.com/lapce/floem"]
 # floem = { git="https://github.com/jm-observer/floem", branch = "main-fork-5" }

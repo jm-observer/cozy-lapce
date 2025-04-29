@@ -3930,7 +3930,7 @@ pub async fn launch() -> Result<()> {
     // }
 
     let _logger = custom_utils::logger::logger_feature(
-        "lapce",
+        "cozy-lapce",
         "info,wgpu_core=error,wgpu_hal=error,naga=error,cranelift_codegen=info,\
          wasi_experimental_http_wasmtime=warn,hyper=info,reqwest=info,\
          wasmtime=info,floem=info,alacritty_terminal=info,\
