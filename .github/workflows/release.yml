@@ -11,10 +11,10 @@ on:
         description: "Build Windows?"
         required: false
         default: 'true'
-      build_linux:
-        description: "Build Linux?"
-        required: false
-        default: 'false'
+#      build_linux:
+#        description: "Build Linux?"
+#        required: false
+#        default: 'false'
   schedule:
     - cron: 0 0 * * *
   push:
@@ -110,53 +110,53 @@ jobs:
             ./CozyLapce-windows.msi
           retention-days: 30
 
-  linux:
-    if: github.event.inputs.build_linux != 'false'
-    runs-on: ubuntu-latest
-    needs: tagname
-    env:
-      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build deb packages
-        run: |
-          docker buildx create --driver=docker-container --use
-          docker buildx bake --pull ubuntu-focal-binary
-
-      - name: Gzip
-        run: |
-          mkdir Cozy-Lapce
-          cp ./target/linux_amd64/cozy-lapce Cozy-Lapce/
-          tar -zcvf ./cozy-lapce-linux-amd64.tar.gz Cozy-Lapce
-          rm -rf Cozy-Lapce
-
-          mkdir Cozy-Lapce
-          cp ./target/linux_arm64/cozy-lapce Cozy-Lapce/
-          tar -zcvf ./cozy-lapce-linux-arm64.tar.gz Cozy-Lapce
-
-      - name: Fetch dependencies
-        run: cargo fetch --locked
-
-      - name: Vendor dependencies
-        run: |
-          cargo vendor --frozen > ./vendor-config.toml
-          mv ./vendor-config.toml ./vendor/
-          tar -zcf vendor.tar.gz ./vendor/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lapce-linux
-          path: |
-            ./cozy-lapce-linux-*.tar.gz
-            ./vendor.tar.gz
-          retention-days: 1
+#  linux:
+#    if: github.event.inputs.build_linux != 'false'
+#    runs-on: ubuntu-latest
+#    needs: tagname
+#    env:
+#      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Build deb packages
+#        run: |
+#          docker buildx create --driver=docker-container --use
+#          docker buildx bake --pull ubuntu-focal-binary
+#
+#      - name: Gzip
+#        run: |
+#          mkdir Cozy-Lapce
+#          cp ./target/linux_amd64/cozy-lapce Cozy-Lapce/
+#          tar -zcvf ./cozy-lapce-linux-amd64.tar.gz Cozy-Lapce
+#          rm -rf Cozy-Lapce
+#
+#          mkdir Cozy-Lapce
+#          cp ./target/linux_arm64/cozy-lapce Cozy-Lapce/
+#          tar -zcvf ./cozy-lapce-linux-arm64.tar.gz Cozy-Lapce
+#
+#      - name: Fetch dependencies
+#        run: cargo fetch --locked
+#
+#      - name: Vendor dependencies
+#        run: |
+#          cargo vendor --frozen > ./vendor-config.toml
+#          mv ./vendor-config.toml ./vendor/
+#          tar -zcf vendor.tar.gz ./vendor/
+#
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: lapce-linux
+#          path: |
+#            ./cozy-lapce-linux-*.tar.gz
+#            ./vendor.tar.gz
+#          retention-days: 1
 
   publish:
     needs:
       - tagname
       - windows
-      - linux
+#      - linux
     runs-on: ubuntu-latest
     if: success()
     env:

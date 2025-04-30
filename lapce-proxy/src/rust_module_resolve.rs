@@ -67,17 +67,25 @@ impl CargoContext {
             //     log::error!("{location_info:?} path not exists {path:?}");
             //     return None;
             // }
+            log::debug!("find_path_of_package rs={file:?}");
             return RpcResult::Ok(FileAndLine {
                 file,
                 line: location_info.line,
             });
         }
-        match self.find_path_of_bin_or_example(&location_info.krate) {
-            Ok(file) => RpcResult::Ok(FileAndLine {
-                file,
-                line: location_info.line,
-            }),
-            Err(error) => RpcResult::Err(error.to_string()),
+        if location_info.modules.is_empty() {
+            match self.find_path_of_bin_or_example(&location_info.krate) {
+                Ok(file) => {
+                    log::debug!("find_path_of_bin_or_example rs={file:?}");
+                    RpcResult::Ok(FileAndLine {
+                        file,
+                        line: location_info.line,
+                    })
+                },
+                Err(error) => RpcResult::Err(error.to_string()),
+            }
+        } else {
+            RpcResult::Err(format!("find file fail: {location_info:?}"))
         }
     }
 
@@ -85,6 +93,7 @@ impl CargoContext {
         let Some(location) = parse_location(log) else {
             return RpcResult::Err(format!("{log} parse to location fail"));
         };
+        log::debug!("{location:?}");
         self.find_file_by_location(&location)
     }
 
