@@ -222,6 +222,9 @@ fn terminal_tab_split(
     let internal_command = terminal_panel_data.common.internal_command;
     let workspace = terminal_panel_data.workspace.clone();
     let terminal_panel_data = terminal_panel_data.clone();
+    let config = terminal.common.config;
+
+    let bg = config.signal(|config| config.color(LapceColor::TERMINAL_BACKGROUND));
     container({
         let terminal_id = terminal.term_id;
         let terminal_view = terminal_view(
@@ -250,7 +253,9 @@ fn terminal_tab_split(
             .style(|s| s.size_pct(100.0, 100.0))
     })
     .style(move |s| {
-        s.size_pct(100.0, 100.0).padding_horiz(10.0)
+        s.size_pct(100.0, 100.0)
+            .padding_horiz(10.0)
+            .background(bg.get())
         // .apply_if(index.get() > 0, |s| {
         //     s.border_left(1.0)
         //         .border_color(config.with_color(LapceColor::LAPCE_BORDER))
