@@ -533,15 +533,14 @@ impl PaletteData {
                     .into_iter()
                     .map(|full_path| {
                         // Strip the workspace prefix off the path, to avoid clutter
-                        let path =
-                            if let Some(workspace_path) = workspace.path.as_ref() {
-                                full_path
-                                    .strip_prefix(workspace_path)
-                                    .unwrap_or(&full_path)
-                                    .to_path_buf()
-                            } else {
-                                full_path.clone()
-                            };
+                        let path = if let Some(workspace_path) = workspace.path() {
+                            full_path
+                                .strip_prefix(workspace_path)
+                                .unwrap_or(&full_path)
+                                .to_path_buf()
+                        } else {
+                            full_path.clone()
+                        };
                         let filter_text = path.to_string_lossy().into_owned();
                         PaletteItem {
                             content: PaletteItemContent::File { path, full_path },
@@ -686,8 +685,8 @@ impl PaletteData {
         let items = workspaces
             .into_iter()
             .filter_map(|w| {
-                let text = w.path.as_ref()?.to_str()?.to_string();
-                let filter_text = match &w.kind {
+                let text = w.path()?.to_str()?.to_string();
+                let filter_text = match &w.kind() {
                     LapceWorkspaceType::Local => text,
                     LapceWorkspaceType::RemoteSSH(remote) => {
                         format!("[{remote}] {text}")
@@ -721,7 +720,7 @@ impl PaletteData {
             .map(|l| {
                 let full_path = l.path.clone();
                 let mut path = l.path.clone();
-                if let Some(workspace_path) = self.workspace.path.as_ref() {
+                if let Some(workspace_path) = self.workspace.path() {
                     path = path
                         .strip_prefix(workspace_path)
                         .unwrap_or(&full_path)
@@ -947,7 +946,7 @@ impl PaletteData {
         let workspaces = db.recent_workspaces().unwrap_or_default();
         let mut hosts = HashSet::new();
         for workspace in workspaces.iter() {
-            if let LapceWorkspaceType::RemoteSSH(host) = &workspace.kind {
+            if let LapceWorkspaceType::RemoteSSH(host) = workspace.kind() {
                 hosts.insert(host.clone());
             }
         }
@@ -1005,7 +1004,7 @@ impl PaletteData {
         }
 
         for workspace in workspaces.iter() {
-            if let LapceWorkspaceType::RemoteWSL(host) = &workspace.kind {
+            if let LapceWorkspaceType::RemoteWSL(host) = workspace.kind() {
                 hosts.insert(host.host.clone());
             }
         }
@@ -1388,13 +1387,11 @@ impl PaletteData {
                 PaletteItemContent::SshHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: Arc::new(LapceWorkspace {
-                                kind:      LapceWorkspaceType::RemoteSSH(
-                                    host.clone(),
-                                ),
-                                path:      None,
-                                last_open: 0,
-                            }),
+                            workspace: Arc::new(LapceWorkspace::new(
+                                LapceWorkspaceType::RemoteSSH(host.clone()),
+                                None,
+                                0,
+                            )),
                         },
                     );
                 },
@@ -1402,13 +1399,11 @@ impl PaletteData {
                 PaletteItemContent::WslHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: Arc::new(LapceWorkspace {
-                                kind:      LapceWorkspaceType::RemoteWSL(
-                                    host.clone(),
-                                ),
-                                path:      None,
-                                last_open: 0,
-                            }),
+                            workspace: Arc::new(LapceWorkspace::new(
+                                LapceWorkspaceType::RemoteWSL(host.clone()),
+                                None,
+                                0,
+                            )),
                         },
                     );
                 },
@@ -1530,11 +1525,11 @@ impl PaletteData {
             let ssh = SshHost::from_string(&input);
             self.common.window_common.window_command.send(
                 WindowCommand::SetWorkspace {
-                    workspace: Arc::new(LapceWorkspace {
-                        kind:      LapceWorkspaceType::RemoteSSH(ssh),
-                        path:      None,
-                        last_open: 0,
-                    }),
+                    workspace: Arc::new(LapceWorkspace::new(
+                        LapceWorkspaceType::RemoteSSH(ssh),
+                        None,
+                        0,
+                    )),
                 },
             );
         }

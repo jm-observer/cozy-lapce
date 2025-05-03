@@ -486,7 +486,7 @@ fn file_explorer_view(
     .style(|s| s.absolute().size_full().line_height(1.8))
     .on_secondary_click_stop(move |_| {
         if let Naming::None = naming.get_untracked() {
-            if let Some(path) = &secondary_click_data.common.workspace.path {
+            if let Some(path) = &secondary_click_data.common.workspace.path() {
                 secondary_click_data.secondary_click(path);
             }
         }

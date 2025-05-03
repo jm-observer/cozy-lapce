@@ -115,7 +115,7 @@ impl KeyPressFocus for FileExplorerData {
 
 impl FileExplorerData {
     pub fn new(cx: Scope, common: Rc<CommonData>) -> Self {
-        let path = common.workspace.path.clone().unwrap_or_default();
+        let path = common.workspace.path().cloned().unwrap_or_default();
         let root = cx.create_rw_signal(FileNodeItem {
             path:                path.clone(),
             is_dir:              true,
@@ -136,7 +136,7 @@ impl FileExplorerData {
             select: cx.create_rw_signal(None),
             naming_str,
         };
-        if data.common.workspace.path.is_some() {
+        if data.common.workspace.path().is_some() {
             // only fill in the child files if there is open folder
             data.toggle_expand(&path);
         }
@@ -504,7 +504,7 @@ impl FileExplorerData {
         // TODO: should we just pass is_dir into secondary click?
         let is_dir = self.is_dir(path);
 
-        let Some(workspace_path) = self.common.workspace.path.as_ref() else {
+        let Some(workspace_path) = self.common.workspace.path() else {
             // There is no context menu if we are not in a workspace
             return;
         };
@@ -572,7 +572,7 @@ impl FileExplorerData {
 
         // TODO: there are situations where we can open the file explorer to remote
         // files
-        if !common.workspace.kind.is_remote() {
+        if !common.workspace.kind().is_remote() {
             let path = path_a.clone();
             #[cfg(not(target_os = "macos"))]
             let title = "Reveal in system file explorer";
@@ -641,7 +641,7 @@ impl FileExplorerData {
         let path = path_a.clone();
         let workspace = common.workspace.clone();
         menu = menu.entry(MenuItem::new("Copy Relative Path").action(move || {
-            let relative_path = if let Some(workspace_path) = &workspace.path {
+            let relative_path = if let Some(workspace_path) = workspace.path() {
                 path.strip_prefix(workspace_path).unwrap_or(&path)
             } else {
                 path.as_ref()

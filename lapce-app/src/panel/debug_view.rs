@@ -664,8 +664,7 @@ fn breakpoints_view(window_tab_data: WindowWorkspaceData) -> impl View {
                     let full_path = path.clone();
                     let full_path_for_jump = path.clone();
                     let full_path_for_close = path.clone();
-                    let path = if let Some(workspace_path) = workspace.path.as_ref()
-                    {
+                    let path = if let Some(workspace_path) = workspace.path() {
                         path.strip_prefix(workspace_path)
                             .unwrap_or(&full_path)
                             .to_path_buf()

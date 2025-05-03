@@ -131,7 +131,7 @@ fn file_view(
     });
 
     let full_path = path.clone();
-    let path = if let Some(workspace_path) = workspace.path.as_ref() {
+    let path = if let Some(workspace_path) = workspace.path() {
         path.strip_prefix(workspace_path)
             .unwrap_or(&full_path)
             .to_path_buf()

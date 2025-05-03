@@ -140,7 +140,7 @@ impl LapceDb {
         workspace: Arc<LapceWorkspace>,
         requester: &LocalTaskRequester,
     ) {
-        if workspace.path.is_none() {
+        if workspace.path().is_none() {
             return;
         }
         requester.notification(LocalNotification::DbSaveEvent(
@@ -156,24 +156,28 @@ impl LapceDb {
 
         let mut exits = false;
         for w in workspaces.iter_mut() {
-            if w.path == workspace.path && w.kind == workspace.kind {
-                w.last_open = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
+            if w.path() == workspace.path() && w.kind() == workspace.kind() {
+                w.update_last_open(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                );
                 exits = true;
                 break;
             }
         }
         if !exits {
             let mut workspace = workspace.as_ref().clone();
-            workspace.last_open = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            workspace.update_last_open(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+            );
             workspaces.push(workspace);
         }
-        workspaces.sort_by_key(|w| -(w.last_open as i64));
+        workspaces.sort_by_key(|w| -(w.last_open() as i64));
         let workspaces = serde_json::to_string_pretty(&workspaces)?;
         std::fs::write(self.folder.join(RECENT_WORKSPACES), workspaces)?;
 

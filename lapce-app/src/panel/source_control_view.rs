@@ -261,7 +261,7 @@ fn file_diffs_view(source_control: SourceControlData, scope: Scope) -> impl View
         let diff_for_menu = diff.clone();
         let path_for_click = full_path.clone();
 
-        let path = if let Some(workspace_path) = workspace.path.as_ref() {
+        let path = if let Some(workspace_path) = workspace.path() {
             path.strip_prefix(workspace_path)
                 .unwrap_or(&full_path)
                 .to_path_buf()

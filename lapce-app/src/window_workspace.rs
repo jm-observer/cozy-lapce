@@ -382,7 +382,7 @@ impl WindowWorkspaceData {
         let mut all_disabled_volts = disabled_volts.clone();
         all_disabled_volts.extend(workspace_disabled_volts.clone());
 
-        let workspace_info = if workspace.path.is_some() {
+        let workspace_info = if workspace.path().is_some() {
             db.get_workspace_info(&workspace).ok()
         } else {
             let mut info = db.get_workspace_info(&workspace).ok();
@@ -859,29 +859,29 @@ impl WindowWorkspaceData {
 
             // ==== Files / Folders ====
             OpenFolder => {
-                if !self.workspace.kind.is_remote() {
+                if !self.workspace.kind().is_remote() {
                     let window_command = self.common.window_common.window_command;
                     let mut options = FileDialogOptions::new().select_directories();
-                    options = if let Some(parent) = self.workspace.path.as_ref().and_then(|x| x.parent()) {
+                    options = if let Some(parent) = self.workspace.path().and_then(|x| x.parent()) {
                         options.force_starting_directory(parent)
                     } else {
                         options
                     };
                     open_file(options, move |file| {
                         if let Some(mut file) = file {
-                            let workspace = LapceWorkspace {
-                                kind: LapceWorkspaceType::Local,
-                                path: Some(if let Some(path) = file.path.pop() {
+                            let workspace = LapceWorkspace::new( 
+                                 LapceWorkspaceType::Local,
+                                 Some(if let Some(path) = file.path.pop() {
                                     path
                                 } else {
                                     log::error!("No path");
                                     return;
                                 }),
-                                last_open: std::time::SystemTime::now()
+                                 std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
                                     .unwrap()
                                     .as_secs(),
-                            }.into();
+                            ).into();
                             window_command
                                 .send(WindowCommand::SetWorkspace { workspace });
                         }
@@ -889,18 +889,14 @@ impl WindowWorkspaceData {
                 }
             }
             CloseFolder => {
-                if !self.workspace.kind.is_remote() {
+                if !self.workspace.kind().is_remote() {
                     let window_command = self.common.window_common.window_command;
-                    let workspace = LapceWorkspace {
-                        kind: LapceWorkspaceType::Local,
-                        path: None,
-                        last_open: 0,
-                    }.into();
+                    let workspace = LapceWorkspace::new(LapceWorkspaceType::Local, None, 0).into();
                     window_command.send(WindowCommand::SetWorkspace { workspace });
                 }
             }
             OpenFile => {
-                if !self.workspace.kind.is_remote() {
+                if !self.workspace.kind().is_remote() {
                     let internal_command = self.common.internal_command;
                     let options = FileDialogOptions::new();
                     open_file(options, move |file| {
@@ -1204,11 +1200,7 @@ impl WindowWorkspaceData {
             DisconnectRemote => {
                 self.common.window_common.window_command.send(
                     WindowCommand::SetWorkspace {
-                        workspace: LapceWorkspace {
-                            kind: LapceWorkspaceType::Local,
-                            path: None,
-                            last_open: 0,
-                        }.into(),
+                        workspace: LapceWorkspace::new(LapceWorkspaceType::Local, None, 0).into(),
                     },
                 );
             }
@@ -2321,7 +2313,7 @@ impl WindowWorkspaceData {
                                 self.terminal.new_tab(profile);
                             }
             InternalCommand::RunAndDebug { mode, mut config } => {
-                                if let Some(workspace) = &self.workspace.path {
+                                if let Some(workspace) = self.workspace.path() {
                                     config.update_by_workspace(workspace.to_string_lossy().as_ref());
                                 }
                                 self.run_and_debug(cx, mode, config);
@@ -3238,11 +3230,11 @@ impl WindowWorkspaceData {
         for folder in folders {
             self.common.window_common.window_command.send(
                 WindowCommand::NewWorkspaceTab {
-                    workspace: Arc::new(LapceWorkspace {
-                        kind:      self.workspace.kind.clone(),
-                        path:      Some(folder.path.clone()),
-                        last_open: 0,
-                    }),
+                    workspace: Arc::new(LapceWorkspace::new(
+                        self.workspace.kind().clone(),
+                        Some(folder.path.clone()),
+                        0,
+                    )),
                     end:       false,
                 },
             );

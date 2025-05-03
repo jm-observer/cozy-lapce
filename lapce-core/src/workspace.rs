@@ -106,12 +106,47 @@ impl std::fmt::Display for LapceWorkspaceType {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapceWorkspace {
-    pub kind:      LapceWorkspaceType,
-    pub path:      Option<PathBuf>,
-    pub last_open: u64,
+    kind:      LapceWorkspaceType,
+    path:      Option<PathBuf>,
+    last_open: u64,
 }
 
 impl LapceWorkspace {
+    pub fn new(
+        kind: LapceWorkspaceType,
+        path: Option<PathBuf>,
+        last_open: u64,
+    ) -> Self {
+        Self {
+            kind,
+            path,
+            last_open,
+        }
+    }
+
+    pub fn new_with_path(path: Option<PathBuf>) -> Self {
+        Self {
+            path,
+            ..Default::default()
+        }
+    }
+
+    pub fn kind(&self) -> &LapceWorkspaceType {
+        &self.kind
+    }
+
+    pub fn last_open(&self) -> u64 {
+        self.last_open
+    }
+
+    pub fn update_last_open(&mut self, last_open: u64) {
+        self.last_open = last_open;
+    }
+
+    pub fn path(&self) -> Option<&PathBuf> {
+        self.path.as_ref()
+    }
+
     pub fn display(&self) -> Option<String> {
         let path = self.path.as_ref()?;
         let path = path

@@ -401,7 +401,7 @@ impl TerminalData {
 
         if profile.workdir.is_none() {
             profile.workdir = url::Url::from_file_path(
-                workspace.path.as_ref().cloned().unwrap_or_default(),
+                workspace.path().cloned().unwrap_or_default(),
             )
             .ok();
         }

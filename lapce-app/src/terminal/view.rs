@@ -198,7 +198,7 @@ impl TerminalView {
 
                     if !file.exists() {
                         log::info!("{file:?} is not exists");
-                        file = self.workspace.path.as_ref()?.join(file);
+                        file = self.workspace.path()?.join(file);
                     }
                     self.internal_command.send(InternalCommand::JumpToLocation {
                         location: EditorLocation {

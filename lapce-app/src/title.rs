@@ -35,7 +35,7 @@ fn left(
     config: WithLapceConfig,
     proxy_status: RwSignal<Option<ProxyStatus>>, // num_window_tabs: Memo<usize>,
 ) -> impl View {
-    let is_local = workspace.kind.is_local();
+    let is_local = workspace.kind().is_local();
     let is_macos = cfg!(target_os = "macos");
     stack((
         container(svg(move || config.with_ui_svg(LapceIcons::LOGO)).style(
@@ -251,7 +251,7 @@ fn middle(
         )
         .on_event_stop(EventListener::PointerDown, |_| {})
         .on_click_stop(move |_| {
-            if workspace.clone().path.is_some() {
+            if workspace.clone().path().is_some() {
                 workbench_command.send(LapceWorkbenchCommand::PaletteHelpAndFile);
             } else {
                 workbench_command.send(LapceWorkbenchCommand::PaletteWorkspace);

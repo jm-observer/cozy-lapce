@@ -358,9 +358,9 @@ impl LapceConfig {
                 .unwrap_or_else(|_| config.clone());
         }
 
-        match workspace.kind {
+        match workspace.kind() {
             LapceWorkspaceType::Local => {
-                if let Some(path) = workspace.path.as_ref() {
+                if let Some(path) = workspace.path() {
                     let path = path.join("./.lapce/settings.toml");
                     config = config::Config::builder()
                         .add_source(config.clone())

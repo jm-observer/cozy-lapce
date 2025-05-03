@@ -63,7 +63,7 @@ pub fn new_proxy(
                     status: ProxyStatus::Connecting,
                 });
                 proxy_rpc.initialize(
-                    workspace.path.clone(),
+                    workspace.path().cloned(),
                     disabled_volts,
                     extra_plugin_paths,
                     plugin_configurations,
@@ -71,7 +71,7 @@ pub fn new_proxy(
                     1,
                 );
 
-                match &workspace.kind {
+                match workspace.kind() {
                     LapceWorkspaceType::Local => {
                         let core_rpc = core_rpc.clone();
                         let proxy_rpc = proxy_rpc.clone();

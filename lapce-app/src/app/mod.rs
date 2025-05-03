@@ -247,10 +247,7 @@ impl AppData {
         } else {
             config
         };
-        let workspace = Arc::new(LapceWorkspace {
-            path: folder,
-            ..Default::default()
-        });
+        let workspace = Arc::new(LapceWorkspace::new_with_path(folder));
         let app_data = self.clone();
         floem::new_window(
             move |window_id| {
@@ -352,11 +349,11 @@ impl AppData {
                     size,
                     pos,
                     maximised: false,
-                    workspace: Arc::new(LapceWorkspace {
-                        kind:      workspace_type,
-                        path:      Some(dir.path.to_owned()),
-                        last_open: 0,
-                    }),
+                    workspace: Arc::new(LapceWorkspace::new(
+                        workspace_type,
+                        Some(dir.path.to_owned()),
+                        0,
+                    )),
                 };
 
                 pos += (50.0, 50.0);
@@ -2480,7 +2477,7 @@ fn palette_item(
 
             let path = location.path.clone();
             let full_path = location.path.clone();
-            let path = if let Some(workspace_path) = workspace.path.as_ref() {
+            let path = if let Some(workspace_path) = workspace.path() {
                 path.strip_prefix(workspace_path)
                     .unwrap_or(&full_path)
                     .to_path_buf()

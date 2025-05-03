@@ -79,7 +79,7 @@ impl SearchMatchData {
     }
 
     pub fn folder(&self, path: PathBuf, workspace: &LapceWorkspace) -> SearchItem {
-        let path = if let Some(workspace_path) = workspace.path.as_ref() {
+        let path = if let Some(workspace_path) = workspace.path() {
             path.strip_prefix(workspace_path)
                 .unwrap_or(&path)
                 .to_path_buf()

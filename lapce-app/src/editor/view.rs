@@ -1675,9 +1675,7 @@ fn editor_breadcrumbs(
                         move || {
                             let full_path = doc_path.get().unwrap_or_default();
                             let mut path = full_path;
-                            if let Some(workspace_path) =
-                                workspace.clone().path.as_ref()
-                            {
+                            if let Some(workspace_path) = workspace.clone().path() {
                                 path = path
                                     .strip_prefix(workspace_path)
                                     .unwrap_or(&path)
