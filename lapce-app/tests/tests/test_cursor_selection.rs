@@ -33,13 +33,16 @@ pub fn _test_cursor_selection() -> Result<()> {
         )?
         .0;
 
-    let x1 = screen_lines.normal_selection(
-        134,
-        143,
-        Some(CursorAffinity::Backward),
-        Some(CursorAffinity::Backward),
-    )?.first().unwrap().x1
-        ;
+    let x1 = screen_lines
+        .normal_selection(
+            134,
+            143,
+            Some(CursorAffinity::Backward),
+            Some(CursorAffinity::Backward),
+        )?
+        .first()
+        .unwrap()
+        .x1;
     assert_eq!(x1.round(), 68.55f64.round());
     Ok(())
 }

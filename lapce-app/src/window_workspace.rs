@@ -32,7 +32,6 @@ use floem::{
 use im::HashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use lapce_xi_rope::Rope;
 use lapce_core::{
     debug::{LapceBreakpoint, RunDebugConfigs, RunDebugMode, RunDebugProcess},
     directory::Directory,
@@ -41,7 +40,7 @@ use lapce_core::{
     main_split::{
         SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection,
     },
-    panel::{default_panel_order, PanelContainerPosition, PanelKind, PanelSection},
+    panel::{PanelContainerPosition, PanelKind, PanelSection, default_panel_order},
     workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo},
 };
 use lapce_rpc::{
@@ -54,6 +53,7 @@ use lapce_rpc::{
     source_control::FileDiff,
     terminal::TermId,
 };
+use lapce_xi_rope::Rope;
 use log::{debug, error, trace, warn};
 use lsp_types::{
     CodeActionOrCommand, CodeLens, Diagnostic, DiagnosticSeverity, MessageType,
@@ -74,6 +74,7 @@ use crate::{
     config::{LapceConfig, WithLapceConfig},
     db::LapceDb,
     debug::{BreakPoints, DapData, update_breakpoints},
+    doc::Doc,
     editor::location::{EditorLocation, EditorPosition},
     editor_tab::EditorTabChildId,
     file_explorer::data::FileExplorerData,
@@ -98,7 +99,6 @@ use crate::{
     terminal::panel::TerminalPanelData,
     window::{CursorBlink, WindowCommonData},
 };
-use crate::doc::Doc;
 
 #[derive(Clone, Debug)]
 pub struct SignalManager<T>(RwSignal<T>, bool);
@@ -226,7 +226,7 @@ pub struct CommonData {
     pub document_highlight_id: RwSignal<u64>,
     pub find_view_id:          RwSignal<Option<ViewId>>,
     pub inspect_info:          RwSignal<String>,
-    pub run_debug_configs: RwSignal<RunDebugConfigs>
+    pub run_debug_configs:     RwSignal<RunDebugConfigs>,
 }
 
 impl std::fmt::Debug for CommonData {
@@ -244,19 +244,20 @@ impl CommonData {
         self.breakpoints.source_breakpoints_untracked()
     }
 
-    pub fn update_run_debug_configs(&self, doc: &Doc, run_toml: &PathBuf, action: &Option<impl Fn(RunDebugConfigs) + 'static>,) {
-        let content =
-            doc.lines.with_untracked(|x| x.buffer().to_string());
+    pub fn update_run_debug_configs(
+        &self,
+        doc: &Doc,
+        run_toml: &PathBuf,
+        action: &Option<impl Fn(RunDebugConfigs) + 'static>,
+    ) {
+        let content = doc.lines.with_untracked(|x| x.buffer().to_string());
         if content.is_empty() {
             doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
-            self.internal_command.send(
-                InternalCommand::OpenFile {
-                    path: run_toml.clone(),
-                },
-            );
+            self.internal_command.send(InternalCommand::OpenFile {
+                path: run_toml.clone(),
+            });
         } else {
-            let configs: Option<RunDebugConfigs> =
-                toml::from_str(&content).ok();
+            let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
             if let Some(mut configs) = configs {
                 configs.loaded = true;
                 if let Some(action) = action.as_ref() {
@@ -264,11 +265,9 @@ impl CommonData {
                 }
                 self.run_debug_configs.set(configs);
             } else {
-                self.internal_command.send(
-                    InternalCommand::OpenFile {
-                        path: run_toml.clone(),
-                    },
-                );
+                self.internal_command.send(InternalCommand::OpenFile {
+                    path: run_toml.clone(),
+                });
             }
         }
     }
@@ -902,7 +901,7 @@ impl WindowWorkspaceData {
                     };
                     open_file(options, move |file| {
                         if let Some(mut file) = file {
-                            let workspace = LapceWorkspace::new( 
+                            let workspace = LapceWorkspace::new(
                                  LapceWorkspaceType::Local,
                                  Some(if let Some(path) = file.path.pop() {
                                     path
@@ -3210,7 +3209,10 @@ impl WindowWorkspaceData {
             .with_untracked(|x| x.run_debug.clone())
             .ok_or(anyhow!("run_debug is none(terminal_id={terminal_id:?})"))?;
         if run_debug.origin_config.config_source.from_palette() {
-            match self.main_split.get_run_config_by_name(&run_debug.config.name) {
+            match self
+                .main_split
+                .get_run_config_by_name(&run_debug.config.name)
+            {
                 Ok(Some(mut new_config)) => {
                     if let Some(workspace) = self.workspace.path() {
                         new_config.update_by_workspace(

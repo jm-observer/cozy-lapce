@@ -36,6 +36,7 @@ use lapce_core::{
 use lapce_rpc::{
     buffer::BufferId,
     core::FileChanged,
+    dap_types::RunDebugConfig,
     plugin::{PluginId, VoltID},
     proxy::ProxyResponse,
 };
@@ -46,7 +47,7 @@ use lsp_types::{
     DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit,
 };
 use serde_json::Value;
-use lapce_rpc::dap_types::RunDebugConfig;
+
 use crate::{
     alert::AlertButton,
     code_lens::CodeLensData,
@@ -3256,7 +3257,8 @@ impl MainSplitData {
                         }
                         let loaded = loaded.get();
                         if loaded {
-                            common.update_run_debug_configs(&doc, &run_toml, &action);
+                            common
+                                .update_run_debug_configs(&doc, &run_toml, &action);
                         }
                         loaded
                     });
@@ -3266,9 +3268,11 @@ impl MainSplitData {
         Ok(configs)
     }
 
-    pub(crate) fn get_run_config_by_name(&self, name: &str) -> Result<Option<RunDebugConfig>> {
-        let configs = self
-            .get_run_configs(None::<Box<dyn Fn(RunDebugConfigs)>>)?;
+    pub(crate) fn get_run_config_by_name(
+        &self,
+        name: &str,
+    ) -> Result<Option<RunDebugConfig>> {
+        let configs = self.get_run_configs(None::<Box<dyn Fn(RunDebugConfigs)>>)?;
         if configs.loaded {
             return Ok(configs.configs.into_iter().find(|x| x.name == name));
         }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
-use anyhow::{anyhow};
+use anyhow::anyhow;
 use doc::lines::mode::Mode;
 use floem::{
     ViewId,

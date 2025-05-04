@@ -43,14 +43,16 @@ use floem::{
     text::FamilyOwned,
 };
 use itertools::Itertools;
-use lapce_core::{doc::DocContent, workspace::LapceWorkspace};
+use lapce_core::{
+    debug::RunDebugConfigs, doc::DocContent, workspace::LapceWorkspace,
+};
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, spans::SpansBuilder};
 use log::{debug, error};
 use lsp_types::{CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use lapce_core::debug::RunDebugConfigs;
+
 use crate::{
     command::InternalCommand,
     editor::{
@@ -1346,11 +1348,14 @@ impl Doc {
     fn update_run_debug_config_after_save(&self) {
         let content = self.content.get_untracked();
         if let DocContent::File { path, .. } = content {
-            if let Ok(Some(config_path)) =
-                self.common.workspace.run_and_debug_path()
+            if let Ok(Some(config_path)) = self.common.workspace.run_and_debug_path()
             {
                 if path == config_path {
-                    self.common.update_run_debug_configs(self, &path, &None::<Box<dyn Fn(RunDebugConfigs)>>);
+                    self.common.update_run_debug_configs(
+                        self,
+                        &path,
+                        &None::<Box<dyn Fn(RunDebugConfigs)>>,
+                    );
                 }
             }
         }

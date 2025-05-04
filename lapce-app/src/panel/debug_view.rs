@@ -91,7 +91,9 @@ fn debug_process_icons(
                 clickable_icon(
                     || LapceIcons::DEBUG_RESTART,
                     move || {
-                        internal_command.send(InternalCommand::RestartTerminal { terminal_id: term_id });
+                        internal_command.send(InternalCommand::RestartTerminal {
+                            terminal_id: term_id,
+                        });
                     },
                     || false,
                     || false,
@@ -207,7 +209,9 @@ fn debug_process_icons(
                 clickable_icon(
                     || LapceIcons::DEBUG_RESTART,
                     move || {
-                        internal_command.send(InternalCommand::RestartTerminal { terminal_id: term_id });
+                        internal_command.send(InternalCommand::RestartTerminal {
+                            terminal_id: term_id,
+                        });
                     },
                     || false,
                     || false,
