@@ -25,11 +25,13 @@
 
 ## 📘 Usage Guide
 
-For more details on how to run, debug, and get the most out of Cozy Lapce,  
+For more details on how to get the most out of Cozy Lapce,  
 please see the [**Usage Guide**](./docs/USAGE.md).
 
 > Covers setup tips, shortcuts, debugging configuration, theme customization, and more!
 
+For more details on developing of Cozy Lapce,
+please see the [**DEVELOPING Guide**](./docs/DEVELOPING.md).
 
 ## Roadmap
 
