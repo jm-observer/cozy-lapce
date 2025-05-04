@@ -46,7 +46,7 @@ use lsp_types::{
     DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit,
 };
 use serde_json::Value;
-
+use lapce_rpc::dap_types::RunDebugConfig;
 use crate::{
     alert::AlertButton,
     code_lens::CodeLensData,
@@ -63,7 +63,6 @@ use crate::{
         EditorTabManageData,
     },
     keypress::{EventRef, KeyPressData, KeyPressHandle},
-    palette::DEFAULT_RUN_TOML,
     panel::{
         call_hierarchy_view::CallHierarchyData, implementation_view::ReferencesRoot,
     },
@@ -3257,40 +3256,23 @@ impl MainSplitData {
                         }
                         let loaded = loaded.get();
                         if loaded {
-                            let content =
-                                doc.lines.with_untracked(|x| x.buffer().to_string());
-                            if content.is_empty() {
-                                doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
-                                common.internal_command.send(
-                                    InternalCommand::OpenFile {
-                                        path: run_toml.clone(),
-                                    },
-                                );
-                            } else {
-                                let configs: Option<RunDebugConfigs> =
-                                    toml::from_str(&content).ok();
-                                if let Some(mut configs) = configs {
-                                    configs.loaded = true;
-                                    if let Some(action) = action.as_ref() {
-                                        (*action)(configs.clone());
-                                    }
-                                    common.run_debug_configs.set(configs);
-                                } else {
-                                    common.internal_command.send(
-                                        InternalCommand::OpenFile {
-                                            path: run_toml.clone(),
-                                        },
-                                    );
-                                }
-                            }
+                            common.update_run_debug_configs(&doc, &run_toml, &action);
                         }
-
                         loaded
                     });
             }
         }
 
         Ok(configs)
+    }
+
+    pub(crate) fn get_run_config_by_name(&self, name: &str) -> Result<Option<RunDebugConfig>> {
+        let configs = self
+            .get_run_configs(None::<Box<dyn Fn(RunDebugConfigs)>>)?;
+        if configs.loaded {
+            return Ok(configs.configs.into_iter().find(|x| x.name == name));
+        }
+        Ok(None)
     }
 }
 

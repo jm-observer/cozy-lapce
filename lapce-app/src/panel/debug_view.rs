@@ -87,11 +87,11 @@ fn debug_process_icons(
     match mode {
         RunDebugMode::Run => container(stack((
             {
-                let terminal = terminal.clone();
+                let internal_command = terminal.common.internal_command;
                 clickable_icon(
                     || LapceIcons::DEBUG_RESTART,
                     move || {
-                        terminal.restart_run_debug(term_id);
+                        internal_command.send(InternalCommand::RestartTerminal { terminal_id: term_id });
                     },
                     || false,
                     || false,
@@ -202,10 +202,12 @@ fn debug_process_icons(
             },
             {
                 let terminal = terminal.clone();
+
+                let internal_command = terminal.common.internal_command;
                 clickable_icon(
                     || LapceIcons::DEBUG_RESTART,
                     move || {
-                        terminal.restart_run_debug(term_id);
+                        internal_command.send(InternalCommand::RestartTerminal { terminal_id: term_id });
                     },
                     || false,
                     || false,

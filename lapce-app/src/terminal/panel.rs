@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
-use alacritty_terminal::{grid::Dimensions, term::test::TermSize};
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow};
 use doc::lines::mode::Mode;
 use floem::{
     ViewId,
@@ -9,7 +8,7 @@ use floem::{
     reactive::{Memo, RwSignal, Scope, SignalGet, SignalUpdate, SignalWith},
 };
 use lapce_core::{
-    debug::{RunDebugConfigs, RunDebugMode, RunDebugProcess, ScopeOrVar},
+    debug::{RunDebugMode, RunDebugProcess, ScopeOrVar},
     id::TerminalTabId,
     panel::PanelKind,
     workspace::LapceWorkspace,
@@ -494,88 +493,6 @@ impl TerminalPanelData {
             }
             None
         })
-    }
-
-    /// Return whether it is in debug mode.
-    pub fn restart_run_debug(&self, term_id: TermId) -> Option<bool> {
-        let terminal = self.get_terminal_in_tab(&term_id)?;
-        let (run_debug, raw_id, width, height) = terminal.data.with_untracked(|x| {
-            let raw = x.raw.read();
-            let width = raw.term.columns();
-            let height = raw.term.screen_lines();
-            (x.run_debug.clone(), x.raw_id, width, height)
-        });
-        let mut run_debug = run_debug?;
-        if run_debug.config.config_source.from_palette() {
-            match self.get_run_config_by_name(&run_debug.config.name) {
-                Ok(Some(new_config)) => {
-                    run_debug.config = new_config;
-                },
-                Ok(None) => {},
-                Err(err) => {
-                    error!("{err}");
-                },
-            }
-        }
-        let mut is_debug = false;
-        let term_size = TermSize::new(width, height);
-        let new_term_id = match run_debug.mode {
-            RunDebugMode::Run => {
-                self.common
-                    .proxy
-                    .proxy_rpc
-                    .terminal_close(terminal.term_id, raw_id);
-                let mut run_debug = run_debug;
-                run_debug.stopped = false;
-                run_debug.is_prelaunch = true;
-                let new_terminal = TerminalData::new_run_debug(
-                    terminal.scope,
-                    self.workspace.clone(),
-                    Some(run_debug),
-                    None,
-                    self.common.clone(),
-                )
-                .data
-                .get_untracked();
-                new_terminal.raw.write().term.resize(term_size);
-                // let new_term_id = new_terminal.term_id;
-                terminal.data.update(|terminals| {
-                    *terminals = new_terminal;
-                });
-                self.common.proxy.proxy_rpc.terminal_resize(
-                    terminal.term_id,
-                    width,
-                    height,
-                );
-
-                self.debug.active_term.set(Some(terminal.term_id));
-                term_id
-            },
-            RunDebugMode::Debug => {
-                is_debug = true;
-                let config = run_debug.config;
-                // let daps = self.debug.daps.get_untracked();
-                self.common
-                    .proxy
-                    .proxy_rpc
-                    .dap_restart(config, self.common.source_breakpoints());
-                term_id
-            },
-        };
-
-        self.focus_terminal(new_term_id);
-
-        Some(is_debug)
-    }
-
-    fn get_run_config_by_name(&self, name: &str) -> Result<Option<RunDebugConfig>> {
-        let configs = self
-            .main_split
-            .get_run_configs(None::<Box<dyn Fn(RunDebugConfigs)>>)?;
-        if configs.loaded {
-            return Ok(configs.configs.into_iter().find(|x| x.name == name));
-        }
-        Ok(None)
     }
 
     pub fn focus_terminal(&self, terminal_id: TerminalTabId) {

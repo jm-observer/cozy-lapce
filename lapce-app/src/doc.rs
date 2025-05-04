@@ -50,7 +50,7 @@ use log::{debug, error};
 use lsp_types::{CodeLens, Diagnostic, DocumentSymbolResponse};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-
+use lapce_core::debug::RunDebugConfigs;
 use crate::{
     command::InternalCommand,
     editor::{
@@ -1329,6 +1329,7 @@ impl Doc {
                     // lines.try_update(|x| x.set_pristine(rev));
                     doc.buffer_edit(EditBuffer::SetPristine(rev));
                     after_action();
+                    doc.update_run_debug_config_after_save();
                 },
                 Err(err) => error!("{err}"),
             });
@@ -1339,6 +1340,19 @@ impl Doc {
                 .save(rev, path, true, move |(_, result)| {
                     send(result);
                 })
+        }
+    }
+
+    fn update_run_debug_config_after_save(&self) {
+        let content = self.content.get_untracked();
+        if let DocContent::File { path, .. } = content {
+            if let Ok(Some(config_path)) =
+                self.common.workspace.run_and_debug_path()
+            {
+                if path == config_path {
+                    self.common.update_run_debug_configs(self, &path, &None::<Box<dyn Fn(RunDebugConfigs)>>);
+                }
+            }
         }
     }
 
