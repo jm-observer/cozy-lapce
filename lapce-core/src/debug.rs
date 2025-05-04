@@ -29,9 +29,11 @@ pub struct RunDebugProcess {
     pub is_prelaunch:  bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 pub struct RunDebugConfigs {
     pub configs: Vec<RunDebugConfig>,
+    #[serde(skip)]
+    pub loaded:  bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

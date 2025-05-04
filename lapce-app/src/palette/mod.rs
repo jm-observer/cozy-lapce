@@ -36,7 +36,6 @@ use lapce_core::{
     workspace::{LapceWorkspace, LapceWorkspaceType, SshHost},
 };
 use lapce_rpc::proxy::ProxyResponse;
-use lapce_xi_rope::Rope;
 use log::{error, info};
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse};
 use nucleo::Utf32Str;
@@ -1024,24 +1023,31 @@ impl PaletteData {
         self.items.set(items);
     }
 
+    fn get_run_configs(&self, run_id: u64, input: String) -> Result<()> {
+        let palette = self.clone();
+        let input_clone = input.clone();
+        let configs = self.main_split.get_run_configs(Some(
+            move |configs: RunDebugConfigs| {
+                if configs.loaded {
+                    palette.set_run_configs(run_id, &input_clone, configs);
+                }
+            },
+        ))?;
+        if configs.loaded {
+            self.set_run_configs(run_id, &input, configs);
+        }
+        Ok(())
+    }
+
     fn set_run_configs(
         &self,
-        content: String,
         run_id: u64,
-        input: &str,
-    ) -> Result<()> {
-        let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
-        if configs.is_none() {
-            if let Some(path) = self.workspace.run_and_debug_path_with_create()? {
-                self.common
-                    .internal_command
-                    .send(InternalCommand::OpenFile { path });
-            }
-        }
-
-        let executed_run_configs = self.executed_run_configs.borrow();
-        let mut items = Vec::new();
-        if let Some(configs) = configs.as_ref() {
+        input: &String,
+        configs: RunDebugConfigs,
+    ) {
+        if configs.loaded {
+            let executed_run_configs = self.executed_run_configs.borrow();
+            let mut items = Vec::new();
             for config in &configs.configs {
                 items.push((
                     executed_run_configs
@@ -1084,55 +1090,17 @@ impl PaletteData {
                     ));
                 }
             }
-        }
 
-        items.sort_by_key(|(executed, _item)| std::cmp::Reverse(executed.copied()));
-
-        self.filter_items(
-            run_id,
-            input,
-            items.into_iter().map(|(_, item)| item).collect(),
-        );
-        Ok(())
-    }
-
-    fn get_run_configs(&self, run_id: u64, input_str: String) -> Result<()> {
-        if let Some(run_toml) =
-            self.common.workspace.run_and_debug_path_with_create()?
-        {
-            let (doc, _new_doc) = self.main_split.get_doc_with_force(
-                run_toml.clone(),
-                None,
-                false,
-                DocContent::File {
-                    path:      run_toml.clone(),
-                    read_only: false,
-                },
-                true,
-            );
-            let loaded = doc.loaded;
-            let palette = self.clone();
-            self.common.scope.create_effect(move |prev_loaded| {
-                if prev_loaded == Some(true) {
-                    return true;
-                }
-                let loaded = loaded.get();
-                if loaded {
-                    let content =
-                        doc.lines.with_untracked(|x| x.buffer().to_string());
-                    if content.is_empty() {
-                        doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
-                    }
-                    if let Err(err) =
-                        palette.set_run_configs(content, run_id, &input_str)
-                    {
-                        error!("{err}");
-                    }
-                }
-                loaded
+            items.sort_by_key(|(executed, _item)| {
+                std::cmp::Reverse(executed.copied())
             });
+
+            self.filter_items(
+                run_id,
+                &input,
+                items.into_iter().map(|(_, item)| item).collect(),
+            );
         }
-        Ok(())
     }
 
     fn get_color_themes(&self, run_id: u64) {
@@ -1387,10 +1355,8 @@ impl PaletteData {
                 PaletteItemContent::SshHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: Arc::new(LapceWorkspace::new(
-                                LapceWorkspaceType::RemoteSSH(host.clone()),
-                                None,
-                                0,
+                            workspace: Arc::new(LapceWorkspace::new_ssh(
+                                host.clone(),
                             )),
                         },
                     );
@@ -1399,10 +1365,8 @@ impl PaletteData {
                 PaletteItemContent::WslHost { host } => {
                     self.common.window_common.window_command.send(
                         WindowCommand::SetWorkspace {
-                            workspace: Arc::new(LapceWorkspace::new(
-                                LapceWorkspaceType::RemoteWSL(host.clone()),
-                                None,
-                                0,
+                            workspace: Arc::new(LapceWorkspace::new_remote_wsl(
+                                host.clone(),
                             )),
                         },
                     );
@@ -1525,11 +1489,7 @@ impl PaletteData {
             let ssh = SshHost::from_string(&input);
             self.common.window_common.window_command.send(
                 WindowCommand::SetWorkspace {
-                    workspace: Arc::new(LapceWorkspace::new(
-                        LapceWorkspaceType::RemoteSSH(ssh),
-                        None,
-                        0,
-                    )),
+                    workspace: Arc::new(LapceWorkspace::new_ssh(ssh)),
                 },
             );
         }

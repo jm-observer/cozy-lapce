@@ -24,6 +24,7 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
+    debug::RunDebugConfigs,
     doc::{DocContent, DocHistory},
     editor_tab::{DiffEditorInfo, EditorInfo, EditorTabChildInfo, EditorTabInfo},
     id::*,
@@ -62,6 +63,7 @@ use crate::{
         EditorTabManageData,
     },
     keypress::{EventRef, KeyPressData, KeyPressHandle},
+    palette::DEFAULT_RUN_TOML,
     panel::{
         call_hierarchy_view::CallHierarchyData, implementation_view::ReferencesRoot,
     },
@@ -3226,6 +3228,69 @@ impl MainSplitData {
         });
 
         diff_editor_data
+    }
+
+    pub fn get_run_configs(
+        &self,
+        action: Option<impl Fn(RunDebugConfigs) + 'static>,
+    ) -> Result<RunDebugConfigs> {
+        let configs = self.common.run_debug_configs.get_untracked();
+        if !configs.loaded {
+            if let Some(run_toml) = self.common.workspace.run_and_debug_path()? {
+                let (doc, _new_doc) = self.get_doc_with_force(
+                    run_toml.clone(),
+                    None,
+                    false,
+                    DocContent::File {
+                        path:      run_toml.clone(),
+                        read_only: false,
+                    },
+                    false,
+                );
+                let loaded = doc.loaded;
+                let common = self.common.clone();
+                self.common
+                    .scope
+                    .create_effect(move |prev_loaded: Option<bool>| {
+                        if prev_loaded.unwrap_or_default() {
+                            return true;
+                        }
+                        let loaded = loaded.get();
+                        if loaded {
+                            let content =
+                                doc.lines.with_untracked(|x| x.buffer().to_string());
+                            if content.is_empty() {
+                                doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
+                                common.internal_command.send(
+                                    InternalCommand::OpenFile {
+                                        path: run_toml.clone(),
+                                    },
+                                );
+                            } else {
+                                let configs: Option<RunDebugConfigs> =
+                                    toml::from_str(&content).ok();
+                                if let Some(mut configs) = configs {
+                                    configs.loaded = true;
+                                    if let Some(action) = action.as_ref() {
+                                        (*action)(configs.clone());
+                                    }
+                                    common.run_debug_configs.set(configs);
+                                } else {
+                                    common.internal_command.send(
+                                        InternalCommand::OpenFile {
+                                            path: run_toml.clone(),
+                                        },
+                                    );
+                                }
+                            }
+                        }
+
+                        loaded
+                    });
+            }
+        }
+
+        Ok(configs)
     }
 }
 

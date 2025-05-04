@@ -124,6 +124,14 @@ impl LapceWorkspace {
         }
     }
 
+    pub fn new_remote_wsl(wsl: WslHost) -> Self {
+        Self::new(LapceWorkspaceType::RemoteWSL(wsl), None, 0)
+    }
+
+    pub fn new_ssh(ssh: SshHost) -> Self {
+        Self::new(LapceWorkspaceType::RemoteSSH(ssh), None, 0)
+    }
+
     pub fn new_with_path(path: Option<PathBuf>) -> Self {
         Self {
             path,
@@ -201,15 +209,9 @@ impl LapceWorkspace {
         None
     }
 
-    pub fn run_and_debug_path_with_create(&self) -> Result<Option<PathBuf>> {
+    pub fn run_and_debug_path(&self) -> Result<Option<PathBuf>> {
         Ok(if let Some(path) = self.path.as_ref() {
             let path = path.join(".lapce").join("run.toml");
-            if !path.exists() {
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)?;
-                }
-                std::fs::File::create(&path)?;
-            }
             Some(path)
         } else {
             None

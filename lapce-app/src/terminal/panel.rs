@@ -10,7 +10,6 @@ use floem::{
 };
 use lapce_core::{
     debug::{RunDebugConfigs, RunDebugMode, RunDebugProcess, ScopeOrVar},
-    doc::DocContent,
     id::TerminalTabId,
     panel::PanelKind,
     workspace::LapceWorkspace,
@@ -570,23 +569,11 @@ impl TerminalPanelData {
     }
 
     fn get_run_config_by_name(&self, name: &str) -> Result<Option<RunDebugConfig>> {
-        if let Some(run_toml) =
-            self.common.workspace.run_and_debug_path_with_create()?
-        {
-            let (doc, new_doc) = self.main_split.get_doc(
-                run_toml.clone(),
-                None,
-                false,
-                DocContent::File {
-                    path:      run_toml.clone(),
-                    read_only: true,
-                },
-            );
-            if !new_doc {
-                let content = doc.lines.with_untracked(|x| x.buffer().to_string());
-                let configs = toml::from_str::<RunDebugConfigs>(&content)?;
-                return Ok(configs.configs.into_iter().find(|x| x.name == name));
-            }
+        let configs = self
+            .main_split
+            .get_run_configs(None::<Box<dyn Fn(RunDebugConfigs)>>)?;
+        if configs.loaded {
+            return Ok(configs.configs.into_iter().find(|x| x.name == name));
         }
         Ok(None)
     }

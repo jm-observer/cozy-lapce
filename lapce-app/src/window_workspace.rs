@@ -33,14 +33,14 @@ use im::HashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use lapce_core::{
-    debug::{LapceBreakpoint, RunDebugMode, RunDebugProcess},
+    debug::{LapceBreakpoint, RunDebugConfigs, RunDebugMode, RunDebugProcess},
     directory::Directory,
     doc::DocContent,
     id::{Id, TerminalTabId, WindowTabId},
     main_split::{
         SplitContent, SplitContentInfo, SplitDirection, SplitMoveDirection,
     },
-    panel::{PanelContainerPosition, PanelKind, PanelSection, default_panel_order},
+    panel::{default_panel_order, PanelContainerPosition, PanelKind, PanelSection},
     workspace::{LapceWorkspace, LapceWorkspaceType, WorkspaceInfo},
 };
 use lapce_rpc::{
@@ -224,6 +224,7 @@ pub struct CommonData {
     pub document_highlight_id: RwSignal<u64>,
     pub find_view_id:          RwSignal<Option<ViewId>>,
     pub inspect_info:          RwSignal<String>,
+    pub run_debug_configs: RwSignal<RunDebugConfigs>
 }
 
 impl std::fmt::Debug for CommonData {
@@ -488,6 +489,7 @@ impl WindowWorkspaceData {
             document_highlight_id: cx.create_rw_signal(0),
             find_view_id: cx.create_rw_signal(None),
             inspect_info: cx.create_rw_signal(String::new()),
+            run_debug_configs: cx.create_rw_signal(RunDebugConfigs::default()),
         });
 
         let main_split = MainSplitData::new(cx, common.clone());
@@ -1740,7 +1742,7 @@ impl WindowWorkspaceData {
                 }
             }
             OpenRunAndDebugFile => {
-                if let Some(path) = self.workspace.run_and_debug_path_with_create()? {
+                if let Some(path) = self.workspace.run_and_debug_path()? {
                     self.common
                         .internal_command
                         .send(InternalCommand::OpenFile { path });
