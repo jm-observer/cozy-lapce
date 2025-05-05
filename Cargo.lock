@@ -4813,6 +4813,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "arc-swap",
+ "chrono",
  "directories",
  "doc",
  "git2",

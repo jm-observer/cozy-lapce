@@ -6,6 +6,7 @@ use anyhow::Result;
 struct ReleaseInfo {
     version: String,
     branch:  String,
+    date:    String,
 }
 
 fn main() -> Result<()> {
@@ -22,12 +23,17 @@ fn main() -> Result<()> {
 
     let meta_file = Path::new(&env::var("OUT_DIR")?).join("meta.rs");
 
-    let ReleaseInfo { version, branch } = release_info;
+    let ReleaseInfo {
+        version,
+        branch,
+        date,
+    } = release_info;
 
     #[rustfmt::skip]
     let meta = format!(r#"
         pub const NAME: &str = "Lapce-{branch}";
         pub const VERSION: &str = "{version}";
+        pub const BUILD_DATE: &str = "{date}";
         pub const RELEASE: ReleaseType = ReleaseType::{branch};
     "#);
 
@@ -39,12 +45,14 @@ fn main() -> Result<()> {
 fn get_info() -> Result<ReleaseInfo> {
     // CARGO_PKG_* are always available, even in build scripts
     let cargo_tag = env!("CARGO_PKG_VERSION");
-
+    let now = chrono::Local::now();
+    let date = now.format("%Y-%m-%d").to_string();
     // For any downstream that complains about us doing magic
     if env::var("CARGO_FEATURE_DISTRIBUTION").is_ok() {
         return Ok(ReleaseInfo {
             version: cargo_tag.to_string(),
-            branch:  String::from("Stable"),
+            branch: String::from("Stable"),
+            date,
         });
     }
 
@@ -54,7 +62,8 @@ fn get_info() -> Result<ReleaseInfo> {
         if release_tag.starts_with('v') {
             ReleaseInfo {
                 version: cargo_tag.to_string(),
-                branch:  "Stable".to_string(),
+                branch: "Stable".to_string(),
+                date,
             }
         } else {
             #[cfg(not(debug_assertions))]
@@ -68,7 +77,8 @@ fn get_info() -> Result<ReleaseInfo> {
             );
             ReleaseInfo {
                 version: tag,
-                branch:  release.to_string(),
+                branch: release.to_string(),
+                date,
             }
         }
     };

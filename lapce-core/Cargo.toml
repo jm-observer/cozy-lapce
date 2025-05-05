@@ -36,6 +36,7 @@ parking_lot        = { workspace = true }
 serde        = { workspace = true }
 tokio = { workspace = true }
 
+
 [features]
 default      = []
 portable     = []
@@ -43,6 +44,7 @@ distribution = []
 
 [build-dependencies]
 anyhow = { workspace = true }
+chrono = { workspace = true }
 
 [target.'cfg(not(target_os = "linux"))'.build-dependencies]
 git2   = { workspace = true }

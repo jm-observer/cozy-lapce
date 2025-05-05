@@ -9,7 +9,7 @@ use floem::{
     style::{CursorStyle, Display, Position},
     views::{Decorators, container, label, stack, svg},
 };
-use lapce_core::meta::VERSION;
+use lapce_core::meta::*;
 
 use crate::{
     command::CommandKind,
@@ -106,12 +106,16 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
                 s.size(logo_size, logo_size)
                     .color(config.with_color(LapceColor::EDITOR_FOREGROUND))
             }),
-            label(|| "Lapce".to_string()).style(move |s| {
+            label(|| "CozyLapce".to_string()).style(move |s| {
                 s.font_bold()
                     .margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_FOREGROUND))
             }),
             label(|| format!("Version: {}", VERSION)).style(move |s| {
+                s.margin_top(10.0)
+                    .color(config.with_color(LapceColor::EDITOR_DIM))
+            }),
+            label(|| format!("Build Date: {}", BUILD_DATE)).style(move |s| {
                 s.margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_DIM))
             }),
