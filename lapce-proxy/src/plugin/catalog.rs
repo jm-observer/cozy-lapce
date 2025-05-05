@@ -819,6 +819,7 @@ impl PluginCatalog {
                 }
             });
         } else {
+            log::error!("{config:?}");
             self.plugin_rpc.core_rpc.show_message(
                 "debug fail".to_owned(),
                 ShowMessageParams {

@@ -71,30 +71,53 @@ impl CodeLensData {
             let mut program = cargo_args.kind;
             let mut tracing_output = false;
             let mut ty = None;
-            if mode == RunDebugMode::Debug
-                && cargo_args
+            if mode == RunDebugMode::Debug && &program == "cargo" {
+                ty = Some("lldb".to_owned());
+                if cargo_args
                     .args
                     .cargo_args
                     .first()
                     .map(|x| x == "run")
                     .unwrap_or_default()
-                && &program == "cargo"
-            {
-                ty = Some("lldb".to_owned());
-                cargo_args.args.cargo_args[0] = "build".to_owned();
-                let mut args = Vec::with_capacity(cargo_args.args.cargo_args.len());
-                std::mem::swap(&mut args, &mut cargo_args.args.cargo_args);
-                args.push("--message-format=json".to_owned());
-                prelaunch = Some(RunDebugProgram {
-                    program: "cargo".to_string(),
-                    args:    Some(args),
-                });
-                cargo_args
+                {
+                    cargo_args.args.cargo_args[0] = "build".to_owned();
+                    let mut args =
+                        Vec::with_capacity(cargo_args.args.cargo_args.len() + 1);
+                    std::mem::swap(&mut args, &mut cargo_args.args.cargo_args);
+                    args.push("--message-format=json".to_owned());
+                    prelaunch = Some(RunDebugProgram {
+                        program: "cargo".to_string(),
+                        args:    Some(args),
+                    });
+                    cargo_args
+                        .args
+                        .cargo_args
+                        .extend(cargo_args.args.executable_args);
+                    program = "____".to_owned();
+                    tracing_output = true;
+                } else if cargo_args
                     .args
                     .cargo_args
-                    .extend(cargo_args.args.executable_args);
-                program = "____".to_owned();
-                tracing_output = true;
+                    .first()
+                    .map(|x| x == "test")
+                    .unwrap_or_default()
+                {
+                    let mut args =
+                        Vec::with_capacity(cargo_args.args.cargo_args.len() + 2);
+                    std::mem::swap(&mut args, &mut cargo_args.args.cargo_args);
+                    args.push("--no-run".to_owned());
+                    args.push("--message-format=json".to_owned());
+                    prelaunch = Some(RunDebugProgram {
+                        program: "cargo".to_string(),
+                        args:    Some(args),
+                    });
+                    cargo_args
+                        .args
+                        .cargo_args
+                        .extend(cargo_args.args.executable_args);
+                    program = "____".to_owned();
+                    tracing_output = true;
+                }
             } else if !cargo_args.args.executable_args.is_empty() {
                 cargo_args.args.cargo_args.push("--".to_string());
                 cargo_args
