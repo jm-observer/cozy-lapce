@@ -20,7 +20,7 @@ use lapce_rpc::{
     proxy::ProxyResponse,
     terminal::{TermId, TerminalProfile},
 };
-use log::warn;
+use log::{error, warn};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
@@ -862,13 +862,17 @@ struct RustArtifact {
 impl RustArtifact {
     pub fn artifact(self) -> Option<String> {
         if &self.reason == "compiler-artifact" && !self.executable.is_empty() {
-            let is_binary = self.target.kind.contains(&"bin".to_owned());
+            let is_bin_binary = self.target.kind.contains(&"bin".to_owned());
+            let is_example_binary = self.target.kind.contains(&"example".to_owned());
             // let is_build_script =
             //     self.target.crate_types.contains(&"custom-build".to_owned());
-            if is_binary || self.profile.test {
+            if is_bin_binary || is_example_binary || self.profile.test {
                 return Some(self.executable);
             } else {
-                warn!("artifact is none");
+                warn!(
+                    "artifact is none {:?} self.profile.test={}",
+                    self.target.kind, self.profile.test
+                );
             }
         }
         None

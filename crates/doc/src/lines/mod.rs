@@ -3939,7 +3939,6 @@ impl PubUpdateLines {
                 set_pristine,
             } => {
                 let delta = self.buffer_mut().reload(content, set_pristine);
-                debug!("buffer_edit Reload {:?} {:?}", delta.1, delta.2);
                 self.inlay_hints = None;
                 // self.folding_ranges.0.clear();
                 self.semantic_styles = None;
@@ -4189,7 +4188,6 @@ impl PubUpdateLines {
         &mut self,
         action: UpdateFolding,
     ) -> Result<Option<usize>> {
-        log::debug!("{}", serde_json::to_string(&action).unwrap());
         let mut fold_item_start = None;
         match action {
             UpdateFolding::UpdateByItem(item) => {

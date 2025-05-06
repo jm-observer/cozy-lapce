@@ -17,6 +17,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::Rope;
+use log::info;
 use lsp_types::{
     notification::{Initialized, Notification},
     request::{Initialize, Request},
@@ -533,7 +534,13 @@ pub fn read_message<T: BufRead>(reader: &mut T) -> Result<String> {
         let _ = reader.read_line(&mut buffer)?;
         // eprin
         match &buffer {
-            s if s.trim().is_empty() => break,
+            s if s.trim().is_empty() => {
+                if content_length.is_some() {
+                    break;
+                } else {
+                    continue;
+                }
+            },
             s => {
                 match parse_header(s)? {
                     LspHeader::ContentLength(len) => content_length = Some(len),

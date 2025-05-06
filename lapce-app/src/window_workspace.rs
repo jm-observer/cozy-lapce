@@ -2472,7 +2472,7 @@ impl WindowWorkspaceData {
                             x.load(std::sync::atomic::Ordering::Relaxed)
                         });
                         if now_id == task_id {
-                            warn!(
+                            debug!(
                                 "PublishDiagnostics equal exec_after {path:?} \
                                  {now_id}={task_id}",
                             );

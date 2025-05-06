@@ -1676,9 +1676,9 @@ dependencies = [
 
 [[package]]
 name = "custom-utils"
-version = "0.10.18"
+version = "0.10.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d10cd3bfb7451c75594f7c4c5dab19383393f969416fc224822168b0eca79736"
+checksum = "05465465cbecd8d79cc4da524470952679b866a6e5ce84655333f47b49f2f4c9"
 dependencies = [
  "ansi_term",
  "anyhow",
