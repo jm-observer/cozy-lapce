@@ -272,6 +272,9 @@ pub enum ProxyRequest {
     FindFileFromLog {
         log: String,
     },
+    FindLogModulesFromPath {
+        path: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -499,6 +502,9 @@ pub enum ProxyResponse {
     },
     FindFileFromLogResponse {
         rs: RpcResult<FileAndLine>,
+    },
+    FindLogModulesFromPathResponse {
+        rs: RpcResult<String>,
     },
 }
 
@@ -794,6 +800,10 @@ impl ProxyRpcHandler {
 
     pub fn find_file_from_log(&self, log: String, f: impl ProxyCallback + 'static) {
         self.request_async(ProxyRequest::FindFileFromLog { log }, f);
+    }
+
+    pub fn find_log_modules(&self, path: PathBuf, f: impl ProxyCallback + 'static) {
+        self.request_async(ProxyRequest::FindLogModulesFromPath { path }, f);
     }
 
     pub fn create_directory(&self, path: PathBuf, f: impl ProxyCallback + 'static) {

@@ -623,6 +623,9 @@ pub enum LapceWorkbenchCommand {
     #[strum(message = "Inspect Click Info")]
     #[strum(serialize = "inspect_click_info")]
     InspectClickInfo,
+    #[strum(message = "Inspect Log Module")]
+    #[strum(serialize = "inspect_log_module")]
+    InspectLogModule,
 }
 
 #[derive(Clone, Debug)]

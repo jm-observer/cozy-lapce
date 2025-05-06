@@ -1382,6 +1382,22 @@ impl ProxyHandler for Dispatcher {
                     Ok(ProxyResponse::FindFileFromLogResponse { rs }),
                 );
             },
+            FindLogModulesFromPath { path } => {
+                let rs = if let Some(context) = &self.cargo_context {
+                    if let Some(modules) = context.file_path_to_module_path(&path) {
+                        RpcResult::Ok(modules)
+                    } else {
+                        RpcResult::Err(format!("find log modules fail: {path:?}"))
+                    }
+                } else {
+                    RpcResult::Err("cargo context is none".to_string())
+                };
+
+                self.respond_rpc(
+                    id,
+                    Ok(ProxyResponse::FindLogModulesFromPathResponse { rs }),
+                );
+            },
         }
     }
 }

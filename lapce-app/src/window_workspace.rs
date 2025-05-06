@@ -70,6 +70,7 @@ use crate::{
         CommandKind, InternalCommand, LapceCommand, LapceWorkbenchCommand,
         WindowCommand,
     },
+    common::call_back::find_log_modules_call_back,
     completion::{CompletionData, CompletionStatus},
     config::{LapceConfig, WithLapceConfig},
     db::LapceDb,
@@ -1805,6 +1806,21 @@ impl WindowWorkspaceData {
                         typ: MessageType::INFO,
                         message: semantic,
                     });
+                }
+            }
+            InspectLogModule => {
+                if let Some(editor_data) =
+                    self.main_split.active_editor.get_untracked()
+                {
+                    if let Some(path) = editor_data.doc.get_untracked().content.get_untracked().path() {
+                        self.proxy.proxy_rpc.find_log_modules(path.to_path_buf(), find_log_modules_call_back(self.scope, self.common.internal_command));
+                    } else {
+                        self.common.internal_command.send(
+                                InternalCommand::ShowStatusMessage {
+                                    message: "not a file".to_string(),
+                                },
+                            )
+                    }
                 }
             }
             InspectClickInfo => {

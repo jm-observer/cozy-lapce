@@ -1,3 +1,4 @@
+use doc::lines::{register::Clipboard, text::SystemClipboard};
 use floem::{ext_event::create_ext_action, reactive::Scope};
 use lapce_rpc::{
     RpcError,
@@ -43,6 +44,46 @@ pub fn find_file_call_back(
                                     same_editor_tab:    false,
                                 },
                             })
+                        },
+                    }
+                }
+            },
+            Err(err) => {
+                internal_command.send(InternalCommand::ShowStatusMessage {
+                    message: err.to_string(),
+                });
+                error!("{err:?}");
+            },
+        },
+    )
+}
+
+pub fn find_log_modules_call_back(
+    scope: Scope,
+    internal_command: Listener<InternalCommand>,
+) -> impl ProxyCallback + 'static {
+    create_ext_action(
+        scope,
+        move |(_id, response): (u64, Result<ProxyResponse, RpcError>)| match response
+        {
+            Ok(response) => {
+                if let ProxyResponse::FindLogModulesFromPathResponse { rs } =
+                    response
+                {
+                    match rs {
+                        lapce_rpc::RpcResult::Err(err) => internal_command.send(
+                            InternalCommand::ShowStatusMessage {
+                                message: err.to_string(),
+                            },
+                        ),
+                        lapce_rpc::RpcResult::Ok(modules) => {
+                            let mut clipboard = SystemClipboard::new();
+                            clipboard.put_string(modules.clone());
+                            internal_command.send(
+                                InternalCommand::ShowStatusMessage {
+                                    message: format!("copied `{modules}`"),
+                                },
+                            )
                         },
                     }
                 }
