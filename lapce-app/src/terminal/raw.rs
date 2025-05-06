@@ -85,7 +85,7 @@ impl RawTerminal {
 
     pub fn output(&self, line_num: usize) -> Vec<String> {
         let grid = self.term.grid();
-        let mut lines = Vec::with_capacity(5);
+        let mut lines = Vec::with_capacity(line_num);
         let mut rows = Vec::new();
         for line in (grid.topmost_line().0..=grid.bottommost_line().0)
             .map(Line)
@@ -108,6 +108,9 @@ impl RawTerminal {
                             x.into_iter().take(x.line_length().0).map(|x| x.c)
                         })
                         .collect();
+                    if line_str.trim().is_empty() {
+                        continue;
+                    }
                     lines.push(line_str);
                     if lines.len() >= line_num {
                         break;

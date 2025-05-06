@@ -122,7 +122,7 @@ impl DapClient {
         thread::spawn(move || -> Result<()> {
             for msg in io_rx {
                 if let Ok(msg) = serde_json::to_string(&msg) {
-                    log::info!("write to dap server: {}", msg);
+                    log::debug!("write to dap server: {}", msg);
                     let msg =
                         format!("Content-Length: {}\r\n\r\n{}", msg.len(), msg);
                     writer.write_all(msg.as_bytes())?;
@@ -139,10 +139,10 @@ impl DapClient {
                 loop {
                     match crate::plugin::lsp::read_message(&mut reader) {
                         Ok(message_str) => {
-                            log::info!("read from dap server: {message_str}");
+                            log::debug!("read from dap server: {message_str}");
                             // terminated
                             if dap_rpc.handle_server_message(&message_str) {
-                                log::info!("dap stdout terminated");
+                                log::debug!("dap stdout terminated");
                                 break;
                             }
                         },
@@ -172,7 +172,7 @@ impl DapClient {
         args: &[String],
         cwd: Option<&PathBuf>,
     ) -> Result<Child> {
-        log::info!("{} {:?} {:?}", server, args, cwd);
+        log::debug!("{} {:?} {:?}", server, args, cwd);
         let mut process = Command::new(server);
         if let Some(cwd) = cwd {
             process.current_dir(cwd);
@@ -471,7 +471,7 @@ impl DapClient {
 }
 #[allow(clippy::large_enum_variant)]
 pub enum DapRpc {
-    HostRequest(DapRequest),
+    // HostRequest(DapRequest),
     HostEvent(DapEvent),
     RequestFromDap(DapRequest),
     EventFromDap(DapEvent),
@@ -523,7 +523,7 @@ impl DapRpcHandler {
     pub fn mainloop(&self, dap_client: &mut DapClient) {
         for msg in &self.rpc_rx {
             match msg {
-                DapRpc::HostRequest(req) | DapRpc::RequestFromDap(req) => {
+                DapRpc::RequestFromDap(req) => {
                     let result = dap_client.handle_host_request(&req);
                     let seq = self.seq_counter.fetch_add(1, Ordering::Relaxed);
                     let resp = DapResponse {

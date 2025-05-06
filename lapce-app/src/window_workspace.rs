@@ -2560,7 +2560,6 @@ impl WindowWorkspaceData {
                 }
             },
             CoreNotification::TerminalUpdateContent { term_id, content } => {
-                debug!("UpdateTerminal {term_id:?}");
                 self.terminal.terminal_update_content(term_id, content);
                 if self
                     .terminal
@@ -2610,7 +2609,7 @@ impl WindowWorkspaceData {
                             error!("no found terminal {term_id:?}");
                             return;
                         };
-                        error!("{:?}", origin_config);
+                        debug!("{:?}", origin_config);
                         terminal.new_process(Some(RunDebugProcess {
                             mode: RunDebugMode::Debug,
                             origin_config,
@@ -2651,7 +2650,7 @@ impl WindowWorkspaceData {
             CoreNotification::DapBreakpointsResp {
                 path, breakpoints, ..
             } => {
-                log::error!("DapBreakpointsResp {path:?} {breakpoints:?}");
+                log::debug!("DapBreakpointsResp {path:?} {breakpoints:?}");
                 self.terminal
                     .common
                     .breakpoints

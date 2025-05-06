@@ -20,7 +20,7 @@ use lapce_rpc::{
     proxy::ProxyResponse,
     terminal::{TermId, TerminalProfile},
 };
-use log::error;
+use log::warn;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
@@ -823,12 +823,10 @@ fn update_executable(
 ) {
     match &run_debug.config.config_source {
         dap_types::ConfigSource::RustCodeLens => {
-            let lines = raw.write_arc().output(5);
+            let lines = raw.write_arc().output(8);
             if let Some(executable) = lines.into_iter().rev().find_map(|x| {
                 if let Ok(map) = serde_json::from_str::<RustArtifact>(&x) {
                     return map.artifact();
-                } else {
-                    log::debug!("{}", x);
                 }
                 None
             }) {
@@ -865,10 +863,12 @@ impl RustArtifact {
     pub fn artifact(self) -> Option<String> {
         if &self.reason == "compiler-artifact" && !self.executable.is_empty() {
             let is_binary = self.target.kind.contains(&"bin".to_owned());
-            let is_build_script =
-                self.target.crate_types.contains(&"custom-build".to_owned());
-            if (is_binary && !is_build_script) || self.profile.test {
+            // let is_build_script =
+            //     self.target.crate_types.contains(&"custom-build".to_owned());
+            if is_binary || self.profile.test {
                 return Some(self.executable);
+            } else {
+                warn!("artifact is none");
             }
         }
         None
