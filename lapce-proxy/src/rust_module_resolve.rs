@@ -1,3 +1,5 @@
+mod resolve_path;
+
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -12,6 +14,7 @@ use cargo::{
 use directories::UserDirs;
 use lapce_rpc::{RpcResult, proxy::FileAndLine};
 use log::{error, warn};
+use resolve_path::*;
 
 fn cargo_home() -> Result<PathBuf> {
     Ok(if let Ok(path) = std::env::var("CARGO_HOME") {
@@ -58,6 +61,33 @@ pub fn create_cargo_context(manifest_path: &Path) -> anyhow::Result<CargoContext
 }
 
 impl CargoContext {
+    /// 顶层统一接口，根据文件路径，返回 `crate::mod::submod` 形式的 module 路径
+    pub fn file_path_to_module_path(&self, file_path: &Path) -> Option<String> {
+        if let Some(package) = self
+            .workspace
+            .members()
+            .into_iter()
+            .find(|x| x.root() == self.workspace.root())
+        {
+            for target in package.targets() {
+                if let Some(path) = from_bin_path(target, file_path) {
+                    return Some(path);
+                }
+            }
+        }
+        for package in self.workspace.members() {
+            for target in package.targets() {
+                if let Some(path) = from_bin_path(target, file_path) {
+                    return Some(path);
+                }
+            }
+            if let Some(path) = from_src_path(package, file_path) {
+                return Some(path);
+            }
+        }
+        None
+    }
+
     pub fn find_file_by_location(
         &self,
         location_info: &LocationInfo,

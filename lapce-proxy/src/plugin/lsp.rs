@@ -17,7 +17,6 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::Rope;
-use log::info;
 use lsp_types::{
     notification::{Initialized, Notification},
     request::{Initialize, Request},
