@@ -4267,14 +4267,14 @@ impl PubUpdateLines {
         }
         // todo update foldingrange
         self.syntax.lens.apply_delta(delta);
-        for folding in self.folding_ranges.0.iter() {
-            debug!("{:?}", folding.0);
-        }
+        // for folding in self.folding_ranges.0.iter() {
+        //     debug!("{:?}", folding.0);
+        // }
         debug!("{:?}", delta);
         self.folding_ranges.0.apply_shape(delta);
-        for folding in self.folding_ranges.0.iter() {
-            debug!("{:?}", folding.0);
-        }
+        // for folding in self.folding_ranges.0.iter() {
+        //     debug!("{:?}", folding.0);
+        // }
         self.update_diagnostics(delta);
         self.update_inlay_hints(delta);
         if let Err(err) = self.update_completion_lens(delta) {

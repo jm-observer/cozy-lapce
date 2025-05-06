@@ -2249,7 +2249,10 @@ impl EditorData {
     }
 
     fn _apply_completion_item(&self, item: &CompletionItem) -> anyhow::Result<()> {
-        log::debug!("apply_completion_item {:?}", item);
+        log::debug!(
+            "apply_completion_item {}",
+            serde_json::to_string(item).unwrap()
+        );
         let doc = self.doc();
         let buffer = doc.lines.with_untracked(|x| x.buffer().clone());
         let cursor = self.cursor().get_untracked();
@@ -2700,7 +2703,7 @@ impl EditorData {
         });
     }
 
-    pub fn show_code_actions(&self, imports: Option<Vec<String>>) {
+    pub fn show_code_actions(&self, imports: Option<(Vec<String>, Position)>) {
         let doc = self.doc();
         let path = match if doc.loaded() {
             doc.content.with_untracked(|c| c.path().cloned())
@@ -2732,12 +2735,16 @@ impl EditorData {
             });
             (position, rev, diagnostics)
         });
-        let position = match position {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            },
+        let position = if let Some((_, pos)) = &imports {
+            *pos
+        } else {
+            match position {
+                Ok(rs) => rs,
+                Err(err) => {
+                    error!("{err:?}");
+                    return;
+                },
+            }
         };
         log::error!(
             "get_code_actions {path:?} {offset} diagnostics.len={}",
@@ -2755,7 +2762,7 @@ impl EditorData {
                     let code_actions: im::Vector<CodeActionOrCommand> =
                         resp.1.into();
                     log::debug!("{:?}", code_actions);
-                    if let Some(_imports) = imports {
+                    if let Some((_imports, _)) = imports {
                         for import in _imports {
                             if let Some(command) = code_actions.iter().find(|x| {
                                 if let CodeActionOrCommand::CodeAction(action) = x {
@@ -4655,7 +4662,7 @@ fn show_inline_completion(cmd: &EditCommand) -> bool {
 
 fn should_trigger_code_action_after_completion(
     item: &CompletionItem,
-) -> Option<Vec<String>> {
+) -> Option<(Vec<String>, Position)> {
     // 明确声明了导入建议
     if let Some(data) = &item.data {
         if let Some(Value::Array(imports)) = data.get("imports") {
@@ -4677,10 +4684,13 @@ fn should_trigger_code_action_after_completion(
                     }
                 })
                 .collect();
-            if imports.is_empty() {
-                return None;
-            } else {
-                return Some(imports);
+            if !imports.is_empty() {
+                if let Value::Object(positions) = data.get("position")? {
+                    let position: Position =
+                        serde_json::from_value(positions.get("position")?.clone())
+                            .ok()?;
+                    return Some((imports, position));
+                }
             }
         }
     }
