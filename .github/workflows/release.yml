@@ -180,6 +180,12 @@ jobs:
             echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
           fi
 
+      - name: Delete existing nightly release and tag
+        if: env.TAG_NAME == 'nightly'
+        run: |
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+
       - name: Configure release
         run: |
           if [[ "$TAG_NAME" == "nightly" ]]; then
