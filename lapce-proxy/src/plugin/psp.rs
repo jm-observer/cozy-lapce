@@ -128,13 +128,13 @@ pub enum PluginServerRpc {
         language_id: Option<String>,
         path:        Option<PathBuf>,
     },
-    HostRequest {
+    ToHostRequest {
         id:     Id,
         method: String,
         params: Params,
         resp:   ResponseSender,
     },
-    HostNotification {
+    ToHostNotification {
         method: String,
         params: Params,
         from:   String,
@@ -225,7 +225,7 @@ pub trait PluginServerHandler {
         params: Params,
         from: String,
     );
-    fn handle_host_request(
+    fn handle_to_host_request(
         &mut self,
         id: Id,
         method: String,
@@ -453,7 +453,7 @@ impl PluginServerRpcHandler {
         self.handle_rpc(PluginServerRpc::Shutdown);
     }
 
-    pub fn mainloop<H>(&self, handler: &mut H)
+    pub fn mainloop<H>(&self, handler: &mut H, _handler_name: &str)
     where
         H: PluginServerHandler, {
         for msg in &self.rpc_rx {
@@ -495,15 +495,15 @@ impl PluginServerRpcHandler {
                         self.send_server_notification(&method, params);
                     }
                 },
-                PluginServerRpc::HostRequest {
+                PluginServerRpc::ToHostRequest {
                     id,
                     method,
                     params,
                     resp,
                 } => {
-                    handler.handle_host_request(id, method, params, resp);
+                    handler.handle_to_host_request(id, method, params, resp);
                 },
-                PluginServerRpc::HostNotification {
+                PluginServerRpc::ToHostNotification {
                     method,
                     params,
                     from,
@@ -568,7 +568,7 @@ pub fn handle_plugin_server_message(
         Ok(value @ JsonRpc::Request(_)) => {
             let (tx, rx) = crossbeam_channel::bounded(1);
             let id = value.get_id().unwrap();
-            let rpc = PluginServerRpc::HostRequest {
+            let rpc = PluginServerRpc::ToHostRequest {
                 id:     id.clone(),
                 method: value.get_method().unwrap().to_string(),
                 params: value.get_params().unwrap(),
@@ -590,7 +590,7 @@ pub fn handle_plugin_server_message(
             Some(resp)
         },
         Ok(value @ JsonRpc::Notification(_)) => {
-            let rpc = PluginServerRpc::HostNotification {
+            let rpc = PluginServerRpc::ToHostNotification {
                 method: value.get_method().unwrap().to_string(),
                 params: value.get_params().unwrap(),
                 from:   from.to_string(),
@@ -633,7 +633,7 @@ struct ServerRegistrations {
 
 pub struct PluginHostHandler {
     volt_id:                 VoltID,
-    volt_display_name:       String,
+    pub volt_display_name:   String,
     pwd:                     Option<PathBuf>,
     pub(crate) workspace:    Option<PathBuf>,
     document_selector:       Vec<DocumentFilter>,

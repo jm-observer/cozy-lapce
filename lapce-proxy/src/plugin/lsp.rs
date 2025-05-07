@@ -17,6 +17,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::Rope;
+use log::{debug, error};
 use lsp_types::{
     notification::{Initialized, Notification},
     request::{Initialize, Request},
@@ -33,7 +34,10 @@ use super::{
         handle_plugin_server_message,
     },
 };
-use crate::{buffer::Buffer, plugin::PluginCatalogRpcHandler};
+use crate::{
+    buffer::Buffer,
+    plugin::{PluginCatalogRpcHandler, psp::PluginServerRpc},
+};
 
 const HEADER_CONTENT_LENGTH: &str = "content-length";
 const HEADER_CONTENT_TYPE: &str = "content-type";
@@ -91,6 +95,21 @@ impl PluginServerHandler for LspClient {
             },
             InitializeResult(result) => {
                 self.host.server_capabilities = result.capabilities;
+                self.server_rpc.server_notification(
+                    Initialized::METHOD,
+                    InitializedParams {},
+                    None,
+                    None,
+                    false,
+                );
+                if self
+                    .plugin_rpc
+                    .plugin_server_loaded(self.server_rpc.clone())
+                    .is_err()
+                {
+                    self.server_rpc.shutdown();
+                    self.shutdown();
+                }
             },
             Shutdown => {
                 self.shutdown();
@@ -99,7 +118,7 @@ impl PluginServerHandler for LspClient {
         }
     }
 
-    fn handle_host_request(
+    fn handle_to_host_request(
         &mut self,
         id: Id,
         method: String,
@@ -203,7 +222,9 @@ impl LspClient {
             _ => return Err(anyhow!("uri not supported")),
         };
 
-        let mut process = Self::process(workspace.as_ref(), &server, &args)?;
+        debug!("{server} {args:?}");
+        let mut process = Self::process(workspace.as_ref(), &server, &args)
+            .map_err(|x| anyhow!("{server} {args:?} fail: {x:?}"))?;
         let stdin = process.stdin.take().unwrap();
         let stdout = process.stdout.take().unwrap();
         let stderr = process.stderr.take().unwrap();
@@ -274,6 +295,7 @@ impl LspClient {
                         }
                     },
                     Err(_err) => {
+                        error!("{_err:?}");
                         core_rpc.log(
                             lapce_rpc::core::LogLevel::Error,
                             format!("lsp server {server} stopped!"),
@@ -369,7 +391,8 @@ impl LspClient {
 
         let rpc = lsp.server_rpc.clone();
         thread::spawn(move || {
-            rpc.mainloop(&mut lsp);
+            let handler_name = format!("lsp {}", lsp.host.volt_display_name);
+            rpc.mainloop(&mut lsp, &handler_name);
         });
         Ok(plugin_id)
     }
@@ -401,49 +424,29 @@ impl LspClient {
             root_path:                 None,
             work_done_progress_params: WorkDoneProgressParams::default(),
         };
-        match self.server_rpc.server_request(
+        let server_rpc = self.server_rpc.clone();
+        self.server_rpc.server_request_async(
             Initialize::METHOD,
             params,
             None,
             None,
             false,
             id,
-        ) {
-            Ok(value) => {
-                log::debug!("{}", serde_json::to_string(&value).unwrap());
-                let result: InitializeResult =
-                    serde_json::from_value(value).unwrap();
-                self.host.server_capabilities = result.capabilities;
-                self.server_rpc.server_notification(
-                    Initialized::METHOD,
-                    InitializedParams {},
-                    None,
-                    None,
-                    false,
-                );
-                if self
-                    .plugin_rpc
-                    .plugin_server_loaded(self.server_rpc.clone())
-                    .is_err()
-                {
-                    self.server_rpc.shutdown();
-                    self.shutdown();
-                }
+            move |_id, result| match result {
+                Ok(value) => {
+                    log::debug!("{}", serde_json::to_string(&value).unwrap());
+                    let result: InitializeResult =
+                        serde_json::from_value(value).unwrap();
+
+                    server_rpc.handle_rpc(PluginServerRpc::Handler(
+                        PluginHandlerNotification::InitializeResult(result),
+                    ));
+                },
+                Err(err) => {
+                    log::error!("{:?}", err);
+                },
             },
-            Err(err) => {
-                log::error!("{:?}", err);
-            },
-        }
-        //     move |result| {
-        //         if let Ok(value) = result {
-        //             let result: InitializeResult =
-        //                 serde_json::from_value(value).unwrap();
-        //             server_rpc.handle_rpc(PluginServerRpc::Handler(
-        //                 PluginHandlerNotification::InitializeDone(result),
-        //             ));
-        //         }
-        //     },
-        // );
+        );
     }
 
     fn shutdown(&mut self) {

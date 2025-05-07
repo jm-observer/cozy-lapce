@@ -19,6 +19,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
+use log::debug;
 use lsp_types::{
     DocumentFilter, InitializeParams, InitializedParams,
     TextDocumentContentChangeEvent, TextDocumentIdentifier, Url,
@@ -132,7 +133,7 @@ impl PluginServerHandler for Plugin {
         }
     }
 
-    fn handle_host_request(
+    fn handle_to_host_request(
         &mut self,
         id: Id,
         method: String,
@@ -573,6 +574,7 @@ pub fn start_volt(
     let volt_name = format!("volt {}", meta.name);
     linker.func_wrap("lapce", "host_handle_rpc", move || {
         if let Ok(msg) = wasi_read_string(&stdout) {
+            debug!("read from wasi: {msg}");
             if let Some(resp) =
                 handle_plugin_server_message(&local_rpc, &msg, &volt_name)
             {
@@ -616,6 +618,7 @@ pub fn start_volt(
                     exist_id = msg.get_id();
                     break;
                 }
+                debug!("write to wasi: {msg:?}");
                 if let Ok(msg) = serde_json::to_string(&msg) {
                     if let Err(err) = writeln!(stdin.write().unwrap(), "{msg}") {
                         log::error!("{:?}", err);
@@ -668,7 +671,8 @@ pub fn start_volt(
     };
     let local_rpc = rpc.clone();
     thread::spawn(move || {
-        local_rpc.mainloop(&mut plugin);
+        let handler_name = format!("plugin {}", plugin.host.volt_display_name);
+        local_rpc.mainloop(&mut plugin, &handler_name);
     });
 
     if plugin_rpc.plugin_server_loaded(rpc.clone()).is_err() {
