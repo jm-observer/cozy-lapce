@@ -82,7 +82,9 @@ jobs:
   windows-package:
     if: github.event.inputs.build_windows != 'false' && (github.event.inputs.step == 'all' || github.event.inputs.step == 'package')
     runs-on: windows-latest
-    needs: tagname
+    needs:
+      - tagname
+      - windows-build
     env:
       RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
     defaults:
