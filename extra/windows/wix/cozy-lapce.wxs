@@ -19,24 +19,24 @@
         <!-- Create directories -->
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
-                <Directory Id="LapceProgramFiles" Name="Lapce"/>
+                <Directory Id="LapceProgramFiles" Name="CozyLapce"/>
             </Directory>
             <Directory Id="ProgramMenuFolder">
-                <Directory Id="LapceProgramMenu" Name="Lapce"/>
+                <Directory Id="LapceProgramMenu" Name="CozyLapce"/>
             </Directory>
         </Directory>
 
         <!-- Application binaries -->
         <DirectoryRef Id="LapceProgramFiles">
             <Component Id="LapceExe" Guid="*">
-                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="lapce.exe" KeyPath="yes"/>
+                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="cozy-lapce.exe" KeyPath="yes"/>
             </Component>
         </DirectoryRef>
 
         <DirectoryRef Id="LapceProgramMenu">
             <!-- Application shortcut -->
             <Component Id="LapceShortcut" Guid="7d3d3a8e-febb-4759-8eca-873676d5066a">
-                <Shortcut Id="LapceShortcutFile" Icon="lapce.exe" Name="Lapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
+                <Shortcut Id="LapceShortcutFile" Icon="lapce.exe" Name="CozyLapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
                 <RemoveFolder Id="LapceProgramMenu" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\Microsoft\Lapce" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
             </Component>
