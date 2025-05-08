@@ -28,6 +28,7 @@
             <Directory Id="DesktopFolder" Name="Desktop">
               <Component Id="DesktopShortcut" Guid="b8735c94-0426-4d19-83ee-c63a40e8b8f5">
                 <Shortcut Id="CozyLapceDesktopShortcut"
+                          Icon="lapce.exe"
                           Name="Cozy Lapce"
                           Description="Launch Cozy Lapce"
                           Target="[INSTALLFOLDER]cozy-lapce.exe"
