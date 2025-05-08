@@ -227,12 +227,11 @@ impl DiffEditorData {
                         });
                         let jump_ =
                             jump_by_changes_index.try_update(|x| x.take()).flatten();
-                        if let Some(jump) = jump_ {
-                            if let Err(err) =
+                        if let Some(jump) = jump_
+                            && let Err(err) =
                                 count_rect(&right_changes, jump, &right_data)
-                            {
-                                error!("{err}");
-                            }
+                        {
+                            error!("{err}");
                         }
                     }
                 })

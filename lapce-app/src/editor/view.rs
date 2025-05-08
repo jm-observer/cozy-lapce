@@ -481,16 +481,15 @@ impl EditorView {
                 }
             },
         );
-        if let Some(breakline) = breakline {
-            if let Some(info) =
+        if let Some(breakline) = breakline
+            && let Some(info) =
                 screen_lines.visual_line_info_for_origin_line(breakline)
-            {
-                let rect = Rect::from_origin_size(
-                    info.paint_point(screen_lines.base),
-                    (viewport.width(), line_height),
-                );
-                cx.fill(&rect, editor_debug_break_line_color, 0.0);
-            }
+        {
+            let rect = Rect::from_origin_size(
+                info.paint_point(screen_lines.base),
+                (viewport.width(), line_height),
+            );
+            cx.fill(&rect, editor_debug_break_line_color, 0.0);
         }
 
         // Highlight the current line
@@ -1786,10 +1785,9 @@ pub fn count_rect(
                 right_editor.visual_lines.with_untracked(|x| {
                     for (index, line) in x.iter().enumerate() {
                         if let LineTy::DiffEmpty { change_line_start } = line.line_ty
+                            && change_line_start == lines.start
                         {
-                            if change_line_start == lines.start {
-                                return Ok(index);
-                            }
+                            return Ok(index);
                         }
                     }
                     bail!("count_rect Empty {lines:?} {x:?}");
@@ -1802,10 +1800,9 @@ pub fn count_rect(
                             line_range_inclusive,
                             ..
                         } = &line.line_ty
+                            && line_range_inclusive.contains(&lines.start)
                         {
-                            if line_range_inclusive.contains(&lines.start) {
-                                return Ok(index);
-                            }
+                            return Ok(index);
                         }
                     }
                     bail!("count_rect Changed {lines:?} {x:?}");
@@ -2479,24 +2476,10 @@ pub fn changes_colors_screen(
             continue;
         }
 
-        if let Some(_color) = color {
-            if modified {
-                colors.pop();
-            }
-
-            // let rvline = editor.rvline_of_line(pre_line);
-            // let vline = editor.vline_of_line(pre_line);
-            // let y = (vline.0 * line_height) as f64;
-            // let height = {
-            //     // Accumulate the number of line indices each potentially
-            // wrapped line spans     let end_line = rvline.line +
-            // len;
-            //
-            //     editor.iter_rvlines_over(false, rvline, end_line).count()
-            // };
-            // let removed = len == 0;
-            //
-            // colors.push((y, height, removed, color));
+        if let Some(_color) = color
+            && modified
+        {
+            colors.pop();
         }
 
         if line > max {

@@ -429,10 +429,10 @@ impl FileExplorerData {
                 // opened
                 if root.get_file_node(&path).is_some() {
                     for current_path in path.ancestors() {
-                        if let Some(file) = root.get_file_node_mut(current_path) {
-                            if file.is_dir {
-                                file.open = true;
-                            }
+                        if let Some(file) = root.get_file_node_mut(current_path)
+                            && file.is_dir
+                        {
+                            file.open = true;
                         }
                     }
                     root.update_node_count_recursive(&path);

@@ -411,11 +411,12 @@ impl TerminalView {
 
             if terminal_bg != bg {
                 let mut extend = false;
-                if let Some((_, end, color)) = line_content.bg.last_mut() {
-                    if color == &bg && *end == point.column.0 {
-                        *end += 1;
-                        extend = true;
-                    }
+                if let Some((_, end, color)) = line_content.bg.last_mut()
+                    && color == &bg
+                    && *end == point.column.0
+                {
+                    *end += 1;
+                    extend = true;
                 }
                 if !extend {
                     line_content

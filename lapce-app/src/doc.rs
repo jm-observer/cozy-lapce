@@ -1347,17 +1347,15 @@ impl Doc {
 
     fn update_run_debug_config_after_save(&self) {
         let content = self.content.get_untracked();
-        if let DocContent::File { path, .. } = content {
-            if let Ok(Some(config_path)) = self.common.workspace.run_and_debug_path()
-            {
-                if path == config_path {
-                    self.common.update_run_debug_configs(
-                        self,
-                        &path,
-                        &None::<Box<dyn Fn(RunDebugConfigs)>>,
-                    );
-                }
-            }
+        if let DocContent::File { path, .. } = content
+            && let Ok(Some(config_path)) = self.common.workspace.run_and_debug_path()
+            && path == config_path
+        {
+            self.common.update_run_debug_configs(
+                self,
+                &path,
+                &None::<Box<dyn Fn(RunDebugConfigs)>>,
+            );
         }
     }
 

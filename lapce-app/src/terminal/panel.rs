@@ -607,14 +607,14 @@ impl TerminalPanelData {
     pub fn set_process_id(&self, term_id: &TermId, process_id: Option<u32>) {
         if let Some(terminal) = self.get_terminal(*term_id) {
             terminal.data.with_untracked(|x| {
-                if let Some(run_debug) = x.run_debug.as_ref() {
-                    if run_debug.config.debug_command.is_some() {
-                        let dap_id = run_debug.config.dap_id;
-                        self.common
-                            .proxy
-                            .proxy_rpc
-                            .dap_process_id(dap_id, process_id, *term_id);
-                    }
+                if let Some(run_debug) = x.run_debug.as_ref()
+                    && run_debug.config.debug_command.is_some()
+                {
+                    let dap_id = run_debug.config.dap_id;
+                    self.common
+                        .proxy
+                        .proxy_rpc
+                        .dap_process_id(dap_id, process_id, *term_id);
                 }
             });
         }

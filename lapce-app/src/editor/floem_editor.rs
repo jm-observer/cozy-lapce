@@ -1511,15 +1511,14 @@ pub fn paint_text(
                     .layout_runs()
                     .fold(0.0, |sum, line| sum + line.line_w)
                     as f64;
-                if line_w < viewport.x1 {
-                    if let Some(text) = editor
+                if line_w < viewport.x1
+                    && let Some(text) = editor
                         .find_most_serious_diag_by_offset_for_paint(cursor_offset)
-                    {
-                        cx.draw_text_with_layout(
-                            text.layout_runs(),
-                            Point::new(line_w + 20.0, y),
-                        );
-                    }
+                {
+                    cx.draw_text_with_layout(
+                        text.layout_runs(),
+                        Point::new(line_w + 20.0, y),
+                    );
                 }
             }
 

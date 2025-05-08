@@ -576,22 +576,21 @@ fn keyboard_picker_view(
     )
     .keyboard_navigable()
     .on_event_stop(EventListener::KeyDown, move |event| {
-        if let Event::KeyDown(key_event) = event {
-            if let Some(keypress) = KeyPressData::keypress(key_event) {
-                if let Some(keypress) = keypress.keymap_press() {
-                    picker.keys.update(|keys| {
-                        if let Some((last_key, last_key_confirmed)) = keys.last() {
-                            if !*last_key_confirmed && last_key.is_modifiers() {
-                                keys.pop();
-                            }
-                        }
-                        if keys.len() == 2 {
-                            keys.clear();
-                        }
-                        keys.push((keypress, false));
-                    })
+        if let Event::KeyDown(key_event) = event
+            && let Some(keypress) = KeyPressData::keypress(key_event)
+            && let Some(keypress) = keypress.keymap_press()
+        {
+            picker.keys.update(|keys| {
+                if let Some((last_key, last_key_confirmed)) = keys.last() {
+                    if !*last_key_confirmed && last_key.is_modifiers() {
+                        keys.pop();
+                    }
                 }
-            }
+                if keys.len() == 2 {
+                    keys.clear();
+                }
+                keys.push((keypress, false));
+            })
         }
     })
     .on_event_stop(EventListener::KeyUp, move |event| {

@@ -262,11 +262,11 @@ fn file_node_input_view(data: FileExplorerData, err: Option<String>) -> Containe
     let data_keydown = data.clone();
     let text_input_view = text_input(naming_str)
         .on_event_stop(EventListener::KeyDown, move |event: &Event| {
-            if let Event::KeyDown(key_event) = event {
-                if let Key::Named(NamedKey::Enter) = key_event.key.logical_key {
-                    data_keydown.finish_naming();
-                    data_keydown.naming.set(Naming::None);
-                }
+            if let Event::KeyDown(key_event) = event
+                && let Key::Named(NamedKey::Enter) = key_event.key.logical_key
+            {
+                data_keydown.finish_naming();
+                data_keydown.naming.set(Naming::None);
             }
         })
         .on_event_stop(EventListener::FocusLost, move |event| {
@@ -469,10 +469,10 @@ fn file_explorer_view(
                     .on_event_stop(
                         EventListener::PointerDown,
                         move |event| {
-                            if let Event::PointerDown(pointer_event) = event {
-                                if pointer_event.button.is_auxiliary() {
-                                    aux_click_data.middle_click(&aux_click_path);
-                                }
+                            if let Event::PointerDown(pointer_event) = event
+                                && pointer_event.button.is_auxiliary()
+                            {
+                                aux_click_data.middle_click(&aux_click_path);
                             }
                         },
                     )
@@ -485,10 +485,10 @@ fn file_explorer_view(
     )
     .style(|s| s.absolute().size_full().line_height(1.8))
     .on_secondary_click_stop(move |_| {
-        if let Naming::None = naming.get_untracked() {
-            if let Some(path) = &secondary_click_data.common.workspace.path() {
-                secondary_click_data.secondary_click(path);
-            }
+        if let Naming::None = naming.get_untracked()
+            && let Some(path) = &secondary_click_data.common.workspace.path()
+        {
+            secondary_click_data.secondary_click(path);
         }
     })
     .on_resize(move |rect| {

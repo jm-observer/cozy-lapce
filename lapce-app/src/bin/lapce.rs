@@ -4,6 +4,6 @@ use lapce_app::app;
 #[tokio::main]
 pub async fn main() {
     if let Err(err) = app::launch().await {
-        eprintln!("launch fail: {}", err);
+        eprintln!("launch fail: {err}",);
     }
 }

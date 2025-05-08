@@ -469,10 +469,10 @@ impl EditorData {
             )
         });
 
-        if !deltas.is_empty() {
-            if let Some(data) = yank_data {
-                register.add_delete(data?);
-            }
+        if !deltas.is_empty()
+            && let Some(data) = yank_data
+        {
+            register.add_delete(data?);
         }
         self.cursor.set(cursor);
         // self.editor.register.set(register);
@@ -1161,10 +1161,10 @@ impl EditorData {
                 });
             },
             FocusCommand::RepeatLastInlineFind => {
-                if let Some((direction, c)) = self.last_inline_find.get_untracked() {
-                    if let Err(err) = self.inline_find(direction, &c) {
-                        error!("{:?}", err);
-                    }
+                if let Some((direction, c)) = self.last_inline_find.get_untracked()
+                    && let Err(err) = self.inline_find(direction, &c)
+                {
+                    error!("{:?}", err);
                 }
             },
             FocusCommand::Rename => {
@@ -1419,8 +1419,7 @@ impl EditorData {
                 if let Ok(ProxyResponse::GetDefinitionResponse {
                     definition, ..
                 }) = result
-                {
-                    if let Some(location) = match definition {
+                    && let Some(location) = match definition {
                         GotoDefinitionResponse::Scalar(location) => Some(location),
                         GotoDefinitionResponse::Array(locations) => {
                             if !locations.is_empty() {
@@ -1436,57 +1435,56 @@ impl EditorData {
                                 range: location_link.target_selection_range,
                             })
                         },
-                    } {
-                        if location.range.start == start_position {
-                            proxy.proxy_rpc.get_references(
-                                path.clone(),
-                                position,
-                                move |(_, result)| {
-                                    if let Ok(
-                                        ProxyResponse::GetReferencesResponse {
-                                            references,
-                                        },
-                                    ) = result
-                                    {
-                                        if references.is_empty() {
-                                            return;
-                                        }
-                                        if references.len() == 1 {
-                                            let location = &references[0];
-                                            send(DefinitionOrReferece::Location(
-                                                EditorLocation {
-                                                    path:
-                                                        path_from_url(&location.uri),
-                                                    position:           Some(
-                                                        EditorPosition::Position(
-                                                            location.range.start,
-                                                        ),
-                                                    ),
-                                                    scroll_offset:      None,
-                                                    ignore_unconfirmed: false,
-                                                    same_editor_tab:    false,
-                                                },
-                                            ));
-                                        } else {
-                                            send(DefinitionOrReferece::References(
-                                                references,
-                                            ));
-                                        }
+                    }
+                {
+                    if location.range.start == start_position {
+                        proxy.proxy_rpc.get_references(
+                            path.clone(),
+                            position,
+                            move |(_, result)| {
+                                if let Ok(ProxyResponse::GetReferencesResponse {
+                                    references,
+                                }) = result
+                                {
+                                    if references.is_empty() {
+                                        return;
                                     }
-                                },
-                            );
-                        } else {
-                            let path = path_from_url(&location.uri);
-                            send(DefinitionOrReferece::Location(EditorLocation {
-                                path,
-                                position: Some(EditorPosition::Position(
-                                    location.range.start,
-                                )),
-                                scroll_offset: None,
-                                ignore_unconfirmed: false,
-                                same_editor_tab: false,
-                            }));
-                        }
+                                    if references.len() == 1 {
+                                        let location = &references[0];
+                                        send(DefinitionOrReferece::Location(
+                                            EditorLocation {
+                                                path:               path_from_url(
+                                                    &location.uri,
+                                                ),
+                                                position:           Some(
+                                                    EditorPosition::Position(
+                                                        location.range.start,
+                                                    ),
+                                                ),
+                                                scroll_offset:      None,
+                                                ignore_unconfirmed: false,
+                                                same_editor_tab:    false,
+                                            },
+                                        ));
+                                    } else {
+                                        send(DefinitionOrReferece::References(
+                                            references,
+                                        ));
+                                    }
+                                }
+                            },
+                        );
+                    } else {
+                        let path = path_from_url(&location.uri);
+                        send(DefinitionOrReferece::Location(EditorLocation {
+                            path,
+                            position: Some(EditorPosition::Position(
+                                location.range.start,
+                            )),
+                            scroll_offset: None,
+                            ignore_unconfirmed: false,
+                            same_editor_tab: false,
+                        }));
                     }
                 }
             },
@@ -1526,46 +1524,44 @@ impl EditorData {
             path,
             position,
             create_ext_action(self.scope, move |(_, result)| {
-                if let Ok(ProxyResponse::ShowCallHierarchyResponse {
-                    items, ..
-                }) = result
+                if let Ok(ProxyResponse::ShowCallHierarchyResponse { items, .. }) =
+                    result
+                    && let Some(item) = items.and_then(|x| x.into_iter().next())
                 {
-                    if let Some(item) = items.and_then(|x| x.into_iter().next()) {
-                        let root_id = ViewId::new();
-                        let name = item.name.clone();
-                        let root = CallHierarchyItemData {
+                    let root_id = ViewId::new();
+                    let name = item.name.clone();
+                    let root = CallHierarchyItemData {
+                        root_id,
+                        view_id: root_id,
+                        item: Rc::new(item),
+                        from_range: range,
+                        init: false,
+                        open: scope.create_rw_signal(true),
+                        children: scope.create_rw_signal(Vec::with_capacity(0)),
+                    };
+                    let root = window_tab_data
+                        .main_split
+                        .hierarchy
+                        .cx
+                        .create_rw_signal(root);
+                    window_tab_data.main_split.hierarchy.push_tab(
+                        name,
+                        CallHierarchyData {
+                            root,
                             root_id,
-                            view_id: root_id,
-                            item: Rc::new(item),
-                            from_range: range,
-                            init: false,
-                            open: scope.create_rw_signal(true),
-                            children: scope.create_rw_signal(Vec::with_capacity(0)),
-                        };
-                        let root = window_tab_data
-                            .main_split
-                            .hierarchy
-                            .cx
-                            .create_rw_signal(root);
-                        window_tab_data.main_split.hierarchy.push_tab(
-                            name,
-                            CallHierarchyData {
-                                root,
-                                root_id,
-                                scroll_to_line: None,
-                            },
-                        );
-                        // call_hierarchy_data.root.update(|x| {
-                        //     *x = Some(root);
-                        // });
-                        window_tab_data.show_panel(PanelKind::CallHierarchy);
-                        window_tab_data.common.internal_command.send(
-                            InternalCommand::CallHierarchyIncoming {
-                                item_id: root_id,
-                                root_id,
-                            },
-                        );
-                    }
+                            scroll_to_line: None,
+                        },
+                    );
+                    // call_hierarchy_data.root.update(|x| {
+                    //     *x = Some(root);
+                    // });
+                    window_tab_data.show_panel(PanelKind::CallHierarchy);
+                    window_tab_data.common.internal_command.send(
+                        InternalCommand::CallHierarchyIncoming {
+                            item_id: root_id,
+                            root_id,
+                        },
+                    );
                 }
             }),
         );
@@ -1587,12 +1583,9 @@ impl EditorData {
         };
 
         let offset = self.cursor().with_untracked(|c| c.offset());
-        let position = doc.lines.with_untracked(|b| {
-            // let start_offset = b.buffer().prev_code_boundary(offset);
-            // let start_position = b.buffer().offset_to_position(start_offset);
-            let position = b.buffer().offset_to_position(offset);
-            position
-        })?;
+        let position = doc
+            .lines
+            .with_untracked(|b| b.buffer().offset_to_position(offset))?;
         // let (_start_position, position) = (_start_position?, position?);
         let common = self.common.clone();
         let id = self.common.proxy.proxy_rpc.document_highlight(
@@ -1807,7 +1800,7 @@ impl EditorData {
 
         let new_line = if (line + 1) as f64 * line_height + line_height > bottom {
             let line = (bottom / line_height).floor() as usize;
-            if line > 2 { line - 2 } else { 0 }
+            line.saturating_sub(2)
         } else if line as f64 * line_height - line_height < top {
             let line = (top / line_height).ceil() as usize;
             line + 1
@@ -2863,12 +2856,12 @@ impl EditorData {
         // formatting), then we skip normalizing line endings as a common
         // reason for that is large files. (but if the save is typical, even
         // if config format_on_save is false, we normalize)
-        if allow_formatting && normalize_line_endings {
-            if let Err(err) =
+        if allow_formatting
+            && normalize_line_endings
+            && let Err(err) =
                 self.run_edit_command(&EditCommand::NormalizeLineEndings)
-            {
-                error!("{:?}", err);
-            }
+        {
+            error!("{:?}", err);
         }
 
         let rev = doc.rev();
@@ -3422,23 +3415,22 @@ impl EditorData {
                 buffer.line_of_offset(offset)
             });
             doc.document_symbol_data.virtual_list.with_untracked(|x| {
-                if let Some(root) = &x.root {
-                    if let MatchDocumentSymbol::MatchSymbol(id, scroll_line) =
+                if let Some(root) = &x.root
+                    && let MatchDocumentSymbol::MatchSymbol(id, scroll_line) =
                         root.match_line_with_children(line as u32)
-                    {
-                        // log::warn!(
-                        //     "MatchDocumentSymbol::MatchSymbol {:?} line={} \
-                        //      scroll_line={scroll_line}",
-                        //     id,
-                        //     line
-                        // );
-                        batch(|| {
-                            doc.document_symbol_data.select.set(Some(id));
-                            doc.document_symbol_data
-                                .scroll_to
-                                .set(Some(scroll_line as f64))
-                        })
-                    }
+                {
+                    // log::warn!(
+                    //     "MatchDocumentSymbol::MatchSymbol {:?} line={} \
+                    //      scroll_line={scroll_line}",
+                    //     id,
+                    //     line
+                    // );
+                    batch(|| {
+                        doc.document_symbol_data.select.set(Some(id));
+                        doc.document_symbol_data
+                            .scroll_to
+                            .set(Some(scroll_line as f64))
+                    })
                 }
             });
         }
@@ -4664,33 +4656,33 @@ fn should_trigger_code_action_after_completion(
     item: &CompletionItem,
 ) -> Option<(Vec<String>, Position)> {
     // 明确声明了导入建议
-    if let Some(data) = &item.data {
-        if let Some(Value::Array(imports)) = data.get("imports") {
-            let imports: Vec<String> = imports
-                .iter()
-                .filter_map(|x| {
-                    log::debug!("import {x:?}");
-                    if let Value::Object(import) = x {
-                        import.get("full_import_path")
-                    } else {
-                        None
-                    }
-                })
-                .filter_map(|x| {
-                    if let Value::String(import) = x {
-                        Some(import.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if !imports.is_empty() {
-                if let Value::Object(positions) = data.get("position")? {
-                    let position: Position =
-                        serde_json::from_value(positions.get("position")?.clone())
-                            .ok()?;
-                    return Some((imports, position));
+    if let Some(data) = &item.data
+        && let Some(Value::Array(imports)) = data.get("imports")
+    {
+        let imports: Vec<String> = imports
+            .iter()
+            .filter_map(|x| {
+                log::debug!("import {x:?}");
+                if let Value::Object(import) = x {
+                    import.get("full_import_path")
+                } else {
+                    None
                 }
+            })
+            .filter_map(|x| {
+                if let Value::String(import) = x {
+                    Some(import.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !imports.is_empty() {
+            if let Value::Object(positions) = data.get("position")? {
+                let position: Position =
+                    serde_json::from_value(positions.get("position")?.clone())
+                        .ok()?;
+                return Some((imports, position));
             }
         }
     }

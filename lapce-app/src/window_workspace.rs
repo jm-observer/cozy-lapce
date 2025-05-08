@@ -248,14 +248,14 @@ impl CommonData {
     pub fn update_run_debug_configs(
         &self,
         doc: &Doc,
-        run_toml: &PathBuf,
+        run_toml: &Path,
         action: &Option<impl Fn(RunDebugConfigs) + 'static>,
     ) {
         let content = doc.lines.with_untracked(|x| x.buffer().to_string());
         if content.is_empty() {
             doc.reload(Rope::from(DEFAULT_RUN_TOML), false);
             self.internal_command.send(InternalCommand::OpenFile {
-                path: run_toml.clone(),
+                path: run_toml.to_path_buf(),
             });
         } else {
             let configs: Option<RunDebugConfigs> = toml::from_str(&content).ok();
@@ -267,7 +267,7 @@ impl CommonData {
                 self.run_debug_configs.set(configs);
             } else {
                 self.internal_command.send(InternalCommand::OpenFile {
-                    path: run_toml.clone(),
+                    path: run_toml.to_path_buf(),
                 });
             }
         }
@@ -1358,31 +1358,23 @@ impl WindowWorkspaceData {
                 }
             }
             HidePanel => {
-                if let Some(data) = data {
-                    if let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
+                if let Some(data) = data && let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
                         self.hide_panel(kind);
-                    }
                 }
             }
             ShowPanel => {
-                if let Some(data) = data {
-                    if let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
+                if let Some(data) = data && let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
                         self.show_panel(kind);
-                    }
                 }
             }
             TogglePanelFocus => {
-                if let Some(data) = data {
-                    if let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
+                if let Some(data) = data && let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
                         self.toggle_panel_focus(kind);
-                    }
                 }
             }
             TogglePanelVisual => {
-                if let Some(data) = data {
-                    if let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
+                if let Some(data) = data && let Ok(kind) = serde_json::from_value::<PanelKind>(data) {
                         self.toggle_panel_visual(kind);
-                    }
                 }
             }
             TogglePanelLeftVisual => {
@@ -1635,9 +1627,7 @@ impl WindowWorkspaceData {
             }
             SourceControlOpenActiveFileRemoteUrl => {
                 if let Some(editor_data) =
-                    self.main_split.active_editor.get_untracked()
-                {
-                    if let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
+                    self.main_split.active_editor.get_untracked() && let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
                         let offset = editor_data.cursor().with_untracked(|c| c.offset());
                         let line = editor_data.doc()
                             .lines.with_untracked(|x| x.buffer().line_of_offset(offset));
@@ -1654,7 +1644,6 @@ impl WindowWorkspaceData {
                                 }
                             }),
                         );
-                    }
                 }
             }
             RevealInFileExplorer => {

@@ -56,7 +56,6 @@ pub fn common_tab_header<T: Clone + TabHead + 'static>(
                 resize_signal.set(());
             })
             .ensure_visible({
-                let tabs = tabs.clone();
                 move || {
                     resize_signal.track();
                     if let Some(rect) = tabs.get_active_rect() {
@@ -262,7 +261,11 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
         .debug_name("tab icon")
     }
 
-    fn view_content(&self, tabs: Tabs<T>, close_manager: CloseManager<T>) -> impl View + use<T> {
+    fn view_content(
+        &self,
+        tabs: Tabs<T>,
+        close_manager: CloseManager<T>,
+    ) -> impl View + use<T> {
         let config = self.config;
         let active = self.active;
         let rect = self.rect;
@@ -380,13 +383,13 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
         self.tabs
             .get()
             .into_iter()
-            .map(|x| (x, self.close_manager.clone()))
+            .map(|x| (x, self.close_manager))
             .collect::<Vec<_>>()
     }
 
     fn view_close(&self) -> impl View + 'static {
         let config = self.config;
-        let close_tabs = self.clone();
+        let close_tabs = *self;
         clickable_icon(
             || LapceIcons::CLOSE,
             move || {
@@ -528,10 +531,9 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
                 .try_update(|x| {
                     if let Some(index) = x.iter().enumerate().find_map(|x| {
                         if x.1.id == view_id { Some(x.0) } else { None }
-                    }) {
-                        if index + 1 < x.len() {
-                            x.truncate(index + 1);
-                        }
+                    }) && index + 1 < x.len()
+                    {
+                        x.truncate(index + 1);
                     }
                     if let Some(active_id) = active_id {
                         if !x.iter().any(|x| x.id == active_id) {
@@ -606,8 +608,8 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
         let config = self.config;
         let size = create_rw_signal(Size::ZERO);
 
-        let pre_tabs = self.clone();
-        let next_tabs = self.clone();
+        let pre_tabs = *self;
+        let next_tabs = *self;
         stack((
             clickable_icon(
                 || LapceIcons::TAB_PREVIOUS,

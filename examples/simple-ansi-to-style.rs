@@ -78,7 +78,7 @@ fn main() {
     // default\u{1b}[0m\n\n"
     let content = String::from_utf8(input.to_vec()).unwrap();
     let output = parse_byte(input);
-    println!("content: {:?}", content);
+    println!("content: {content:?}",);
     println!("Parsed Text: {}", output.text);
     println!("Styles: {:?}", output.styles);
 

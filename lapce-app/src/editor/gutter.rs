@@ -125,10 +125,10 @@ impl View for EditorGutterView {
 
     fn paint(&mut self, cx: &mut floem::context::PaintCx) {
         let doc = self.editor.doc_signal().get();
-        if let Some(path) = doc.content.get_untracked().path() {
-            if path.ends_with("test.rs") {
-                debug!("{:?}", path);
-            }
+        if let Some(path) = doc.content.get_untracked().path()
+            && path.ends_with("test.rs")
+        {
+            debug!("{:?}", path);
         }
         let viewport = self.editor.viewport_untracked();
         let cursor = self.editor.cursor();

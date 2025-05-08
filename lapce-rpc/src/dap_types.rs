@@ -112,10 +112,10 @@ pub enum ConfigSource {
     },
 }
 impl ConfigSource {
-    pub fn update_program(&mut self, program: &String) {
+    pub fn update_program(&mut self, program: &str) {
         if matches!(self, Self::RustCodeLens) {
             *self = Self::RustCodeLensRestart {
-                program: program.clone(),
+                program: program.to_owned(),
             }
         }
     }

@@ -458,18 +458,18 @@ impl EditorTabManageData {
         path: &Path,
     ) -> Option<(usize, EditorData)> {
         for (i, child) in self.children.iter().enumerate() {
-            if let EditorTabChildId::Editor(editor_id) = child.id() {
-                if let Some(editor) = editors.editor_untracked(*editor_id) {
-                    let is_path = editor.doc().content.with_untracked(|content| {
-                        if let DocContent::File { path: p, .. } = content {
-                            p == path
-                        } else {
-                            false
-                        }
-                    });
-                    if is_path {
-                        return Some((i, editor));
+            if let EditorTabChildId::Editor(editor_id) = child.id()
+                && let Some(editor) = editors.editor_untracked(*editor_id)
+            {
+                let is_path = editor.doc().content.with_untracked(|content| {
+                    if let DocContent::File { path: p, .. } = content {
+                        p == path
+                    } else {
+                        false
                     }
+                });
+                if is_path {
+                    return Some((i, editor));
                 }
             }
         }
@@ -505,7 +505,7 @@ impl EditorTabManageData {
     }
 
     pub fn tab_info(&self, data: &WindowWorkspaceData) -> EditorTabInfo {
-        let info = EditorTabInfo {
+        EditorTabInfo {
             active:   self.active,
             is_focus: data.main_split.active_editor_tab.get_untracked()
                 == Some(self.editor_tab_manage_id),
@@ -514,7 +514,6 @@ impl EditorTabManageData {
                 .iter()
                 .map(|child| child.id().child_info(data))
                 .collect(),
-        };
-        info
+        }
     }
 }

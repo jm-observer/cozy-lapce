@@ -2229,10 +2229,10 @@ impl DocLines {
                                     text.push(' ');
                                 },
                                 (false, true) => {
-                                    text = format!(" {} ", text);
+                                    text = format!(" {text} ",);
                                 },
                                 (false, false) => {
-                                    text = format!(" {}", text);
+                                    text = format!(" {text}");
                                 },
                             }
                             styles.push(PhantomText {
@@ -2891,7 +2891,7 @@ impl DocLines {
     fn apply_semantic_styles_2(
         &self,
         phantom_text: &PhantomTextMultiLine,
-        semantic_styles: &Vec<NewLineStyle>,
+        semantic_styles: &[NewLineStyle],
         attrs_list: &mut AttrsList,
         attrs: Attrs,
     ) {
@@ -3830,15 +3830,15 @@ impl Debug for EditBuffer<'_> {
                 write!(f, "EditBuffer::Init")
             },
             EditBuffer::SetLineEnding(val) => {
-                write!(f, "EditBuffer::SetLineEnding {:?}", val)
+                write!(f, "EditBuffer::SetLineEnding {val:?}",)
             },
             EditBuffer::EditBuffer {
                 iter, edit_type, ..
             } => {
-                write!(f, "EditBuffer::Init iter {:?} edit_type{edit_type:?}", iter,)
+                write!(f, "EditBuffer::Init iter {iter:?} edit_type{edit_type:?}",)
             },
             EditBuffer::SetPristine(val) => {
-                write!(f, "EditBuffer::SetPristine {:?}", val)
+                write!(f, "EditBuffer::SetPristine {val:?}",)
             },
             EditBuffer::Reload { set_pristine, .. } => {
                 write!(f, "EditBuffer::Reload set_pristine {set_pristine:?}")

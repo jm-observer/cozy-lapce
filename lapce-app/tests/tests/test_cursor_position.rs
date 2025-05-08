@@ -66,7 +66,7 @@ pub fn _test_cursor_position() -> Result<()> {
             .cursor_position_of_buffer_offset(offset, CursorAffinity::Backward)
             .unwrap()
             .unwrap();
-        println!("{:?}", point);
+        println!("{point:?}");
     }
 
     {
@@ -89,7 +89,7 @@ pub fn _test_cursor_position() -> Result<()> {
             .cursor_position_of_buffer_offset(offset, CursorAffinity::Forward)
             .unwrap()
             .unwrap();
-        println!("{:?}", point);
+        println!("{point:?}",);
     }
     Ok(())
 }

@@ -66,7 +66,6 @@ impl CargoContext {
         if let Some(package) = self
             .workspace
             .members()
-            .into_iter()
             .find(|x| x.root() == self.workspace.root())
         {
             for target in package.targets() {
@@ -147,7 +146,7 @@ impl CargoContext {
         }
 
         if let Some(last) = location_info.modules.last() {
-            let candidate1 = file_path.join(format!("{}.rs", last));
+            let candidate1 = file_path.join(format!("{last}.rs",));
             let candidate2 = file_path.join(last).join("mod.rs");
 
             if candidate1.exists() {

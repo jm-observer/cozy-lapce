@@ -111,11 +111,11 @@ pub fn about_popup(window_tab_data: WindowWorkspaceData) -> impl View {
                     .margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_FOREGROUND))
             }),
-            label(|| format!("Version: {}", VERSION)).style(move |s| {
+            label(|| format!("Version: {VERSION}",)).style(move |s| {
                 s.margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_DIM))
             }),
-            label(|| format!("Build Date: {}", BUILD_DATE)).style(move |s| {
+            label(|| format!("Build Date: {BUILD_DATE}",)).style(move |s| {
                 s.margin_top(10.0)
                     .color(config.with_color(LapceColor::EDITOR_DIM))
             }),

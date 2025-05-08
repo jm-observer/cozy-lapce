@@ -145,8 +145,7 @@ pub fn new_highlight_config(
         Err(x) => {
             let str = format!(
                 "Encountered {x:?} while trying to construct \
-                 HighlightConfiguration for {}",
-                language_name
+                 HighlightConfiguration for {language_name}",
             );
             Err(HighlightIssue::Error(str))
         },
