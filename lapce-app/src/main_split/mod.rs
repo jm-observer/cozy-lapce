@@ -1694,22 +1694,22 @@ impl MainSplitData {
 
         if split_children.is_empty() {
             self.split_remove(split_id);
-        } else if split_children.len() == 1 {
-            if let Some(parent_split_id) = parent_split_id {
-                let parent_split = splits.get(&parent_split_id).copied()?;
-                let split_index = parent_split.with_untracked(|split| {
-                    split.content_index(&SplitContent::Split(split_id))
-                })?;
-                let (_, orphan) =
-                    split.try_update(|split| split.children.remove(0)).unwrap();
-                self.split_content_set_parent(&orphan, parent_split_id);
-                parent_split.update(|parent_split| {
-                    let size = parent_split.children[split_index].0.get_untracked();
-                    parent_split.children[split_index] =
-                        (parent_split.scope.create_rw_signal(size), orphan);
-                });
-                self.split_remove(split_id);
-            }
+        } else if split_children.len() == 1
+            && let Some(parent_split_id) = parent_split_id
+        {
+            let parent_split = splits.get(&parent_split_id).copied()?;
+            let split_index = parent_split.with_untracked(|split| {
+                split.content_index(&SplitContent::Split(split_id))
+            })?;
+            let (_, orphan) =
+                split.try_update(|split| split.children.remove(0)).unwrap();
+            self.split_content_set_parent(&orphan, parent_split_id);
+            parent_split.update(|parent_split| {
+                let size = parent_split.children[split_index].0.get_untracked();
+                parent_split.children[split_index] =
+                    (parent_split.scope.create_rw_signal(size), orphan);
+            });
+            self.split_remove(split_id);
         }
 
         Some(())
@@ -2106,10 +2106,9 @@ impl MainSplitData {
             plugin_id,
             move |(_, result)| {
                 if let Ok(ProxyResponse::CodeActionResolveResponse { item }) = result
+                    && let Some(edit) = item.edit
                 {
-                    if let Some(edit) = item.edit {
-                        send(edit);
-                    }
+                    send(edit);
                 }
             },
         );
@@ -2903,33 +2902,33 @@ impl MainSplitData {
 
     pub fn export_theme(&self) {
         let child = self.new_file();
-        if let EditorTabChildId::Editor(id) = child {
-            if let Some(editor) = self.editors.editor_untracked(id) {
-                let doc = editor.doc();
-                doc.reload(
-                    Rope::from(
-                        self.common
-                            .config
-                            .with_untracked(|config| config.export_theme()),
-                    ),
-                    true,
-                );
-            }
+        if let EditorTabChildId::Editor(id) = child
+            && let Some(editor) = self.editors.editor_untracked(id)
+        {
+            let doc = editor.doc();
+            doc.reload(
+                Rope::from(
+                    self.common
+                        .config
+                        .with_untracked(|config| config.export_theme()),
+                ),
+                true,
+            );
         }
     }
 
     pub fn show_env(&self) {
         let child = self.new_file();
-        if let EditorTabChildId::Editor(id) = child {
-            if let Some(editor) = self.editors.editor_untracked(id) {
-                let doc = editor.doc();
-                doc.reload(
-                    Rope::from(
-                        std::env::vars().map(|(k, v)| format!("{k}={v}")).join("\n"),
-                    ),
-                    true,
-                );
-            }
+        if let EditorTabChildId::Editor(id) = child
+            && let Some(editor) = self.editors.editor_untracked(id)
+        {
+            let doc = editor.doc();
+            doc.reload(
+                Rope::from(
+                    std::env::vars().map(|(k, v)| format!("{k}={v}")).join("\n"),
+                ),
+                true,
+            );
         }
     }
 
@@ -3232,34 +3231,33 @@ impl MainSplitData {
         action: Option<impl Fn(RunDebugConfigs) + 'static>,
     ) -> Result<RunDebugConfigs> {
         let configs = self.common.run_debug_configs.get_untracked();
-        if !configs.loaded {
-            if let Some(run_toml) = self.common.workspace.run_and_debug_path()? {
-                let (doc, _new_doc) = self.get_doc_with_force(
-                    run_toml.clone(),
-                    None,
-                    false,
-                    DocContent::File {
-                        path:      run_toml.clone(),
-                        read_only: false,
-                    },
-                    false,
-                );
-                let loaded = doc.loaded;
-                let common = self.common.clone();
-                self.common
-                    .scope
-                    .create_effect(move |prev_loaded: Option<bool>| {
-                        if prev_loaded.unwrap_or_default() {
-                            return true;
-                        }
-                        let loaded = loaded.get();
-                        if loaded {
-                            common
-                                .update_run_debug_configs(&doc, &run_toml, &action);
-                        }
-                        loaded
-                    });
-            }
+        if !configs.loaded
+            && let Some(run_toml) = self.common.workspace.run_and_debug_path()?
+        {
+            let (doc, _new_doc) = self.get_doc_with_force(
+                run_toml.clone(),
+                None,
+                false,
+                DocContent::File {
+                    path:      run_toml.clone(),
+                    read_only: false,
+                },
+                false,
+            );
+            let loaded = doc.loaded;
+            let common = self.common.clone();
+            self.common
+                .scope
+                .create_effect(move |prev_loaded: Option<bool>| {
+                    if prev_loaded.unwrap_or_default() {
+                        return true;
+                    }
+                    let loaded = loaded.get();
+                    if loaded {
+                        common.update_run_debug_configs(&doc, &run_toml, &action);
+                    }
+                    loaded
+                });
         }
 
         Ok(configs)

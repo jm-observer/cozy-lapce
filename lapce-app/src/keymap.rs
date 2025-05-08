@@ -466,6 +466,36 @@ fn keyboard_picker_view(
                     })
                 },
             )
+            .on_event_stop(EventListener::PointerDown, move |event| {
+                if let Event::PointerDown(key_event) = event
+                    && let Some(keypress) = KeyPressData::keypress(key_event)
+                    && let Some(keypress) = keypress.keymap_press()
+                {
+                    picker.keys.update(|keys| {
+                        if let Some((last_key, last_key_confirmed)) = keys.last()
+                            && !*last_key_confirmed
+                            && last_key.is_modifiers()
+                        {
+                            keys.pop();
+                        }
+                        if keys.len() == 2 {
+                            keys.clear();
+                        }
+                        keys.push((keypress, false));
+                    })
+                }
+            })
+            .on_event_stop(EventListener::PointerUp, move |event| {
+                if let Event::PointerUp(_key_event) = event {
+                    picker.keys.update(|keys| {
+                        if let Some((_last_key, last_key_confirmed)) =
+                            keys.last_mut()
+                        {
+                            *last_key_confirmed = true;
+                        }
+                    })
+                }
+            })
             .style(move |s| {
                 let (bg, border_color) = config.signal(|config| {
                     (
@@ -556,7 +586,6 @@ fn keyboard_picker_view(
                     .border_color(config.with_color(LapceColor::LAPCE_BORDER))
             }),
         ))
-        .on_event_stop(EventListener::PointerDown, |_| {})
         .style(move |s| {
             let (lb, hbg) = config.signal(|config| {
                 (
@@ -603,6 +632,8 @@ fn keyboard_picker_view(
             })
         }
     })
+    .on_event_stop(EventListener::PointerDown, move |_| {})
+    .on_event_stop(EventListener::PointerUp, move |_| {})
     .style(move |s| {
         s.absolute()
             .size_pct(100.0, 100.0)

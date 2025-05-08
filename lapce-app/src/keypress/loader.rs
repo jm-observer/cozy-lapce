@@ -42,6 +42,9 @@ impl KeyMapLoader {
                 },
             };
 
+            let track = keymap.command == "next_warn";
+            // debug!("{keymap:?}");
+
             let (command, bind) = match keymap.command.strip_prefix('-') {
                 Some(cmd) => (cmd.to_string(), false),
                 None => (keymap.command.clone(), true),
@@ -52,6 +55,9 @@ impl KeyMapLoader {
                 current_keymaps.push(keymap.clone());
                 for i in 1..keymap.key.len() + 1 {
                     let key = keymap.key[..i].to_vec();
+                    if track {
+                        debug!("{key:?}");
+                    }
                     self.keymaps.entry(key).or_default().push(keymap.clone());
                 }
             } else {

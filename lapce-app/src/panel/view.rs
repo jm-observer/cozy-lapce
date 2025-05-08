@@ -437,48 +437,46 @@ fn drag_line(
         }
     })
     .on_event_stop(EventListener::PointerMove, move |event| {
-        if let Event::PointerMove(pointer_event) = event {
-            if drag_start.get_untracked().is_some() {
-                // log::info!("pos.y = {}", pointer_event.pos.y);
-                match position {
-                    PanelContainerPosition::Left => {
-                        let current_panel_size = panel_size.get_untracked();
-                        let new_size = pointer_event.pos.x + current_panel_size.left;
-                        let new_size = new_size.max(150.0);
-                        if new_size != current_panel_size.left {
-                            panel_size.update(|size| {
-                                size.left = new_size;
-                            })
-                        }
-                    },
-                    PanelContainerPosition::Bottom => {
-                        let current_panel_size = panel_size.get_untracked();
-                        let new_size =
-                            current_panel_size.bottom - pointer_event.pos.y;
-                        // log::info!(
-                        //     "new_size={} pointer_event.pos.y={}",
-                        //     new_size,
-                        //     pointer_event.pos.y
-                        // );
-                        let new_size = new_size.max(60.0);
-                        if new_size != current_panel_size.bottom {
-                            panel_size.update(|size| {
-                                size.bottom = new_size;
-                            })
-                        }
-                    },
-                    PanelContainerPosition::Right => {
-                        let current_panel_size = panel_size.get_untracked();
-                        let new_size =
-                            current_panel_size.right - pointer_event.pos.x;
-                        let new_size = new_size.max(150.0);
-                        if new_size != current_panel_size.right {
-                            panel_size.update(|size| {
-                                size.right = new_size;
-                            })
-                        }
-                    },
-                }
+        if let Event::PointerMove(pointer_event) = event
+            && drag_start.get_untracked().is_some()
+        {
+            // log::info!("pos.y = {}", pointer_event.pos.y);
+            match position {
+                PanelContainerPosition::Left => {
+                    let current_panel_size = panel_size.get_untracked();
+                    let new_size = pointer_event.pos.x + current_panel_size.left;
+                    let new_size = new_size.max(150.0);
+                    if new_size != current_panel_size.left {
+                        panel_size.update(|size| {
+                            size.left = new_size;
+                        })
+                    }
+                },
+                PanelContainerPosition::Bottom => {
+                    let current_panel_size = panel_size.get_untracked();
+                    let new_size = current_panel_size.bottom - pointer_event.pos.y;
+                    // log::info!(
+                    //     "new_size={} pointer_event.pos.y={}",
+                    //     new_size,
+                    //     pointer_event.pos.y
+                    // );
+                    let new_size = new_size.max(60.0);
+                    if new_size != current_panel_size.bottom {
+                        panel_size.update(|size| {
+                            size.bottom = new_size;
+                        })
+                    }
+                },
+                PanelContainerPosition::Right => {
+                    let current_panel_size = panel_size.get_untracked();
+                    let new_size = current_panel_size.right - pointer_event.pos.x;
+                    let new_size = new_size.max(150.0);
+                    if new_size != current_panel_size.right {
+                        panel_size.update(|size| {
+                            size.right = new_size;
+                        })
+                    }
+                },
             }
         }
     })

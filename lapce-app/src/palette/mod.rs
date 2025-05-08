@@ -250,10 +250,10 @@ impl PaletteData {
                 let palette = palette.clone();
                 let timer_token =
                     exec_after(Duration::from_millis(500), move |timer_token| {
-                        if timer_token == blink_timer.get_untracked() {
-                            if let Err(err) = palette.run_inner_by_input(new_input) {
-                                error!("{err}");
-                            }
+                        if timer_token == blink_timer.get_untracked()
+                            && let Err(err) = palette.run_inner_by_input(new_input)
+                        {
+                            error!("{err}");
                         }
                     });
                 // warn!("set id={:?} {:?}",

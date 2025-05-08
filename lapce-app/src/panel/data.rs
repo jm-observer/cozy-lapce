@@ -141,13 +141,12 @@ impl PanelData {
     }
 
     pub fn is_panel_visible(&self, kind: &PanelKind) -> bool {
-        if let Some((index, position)) = self.panel_position(kind) {
-            if let Some(style) = self
+        if let Some((index, position)) = self.panel_position(kind)
+            && let Some(style) = self
                 .styles
                 .with_untracked(|styles| styles.get(&position).cloned())
-            {
-                return style.active == index && style.shown;
-            }
+        {
+            return style.active == index && style.shown;
         }
         false
     }
@@ -164,24 +163,12 @@ impl PanelData {
     }
 
     pub fn hide_panel(&self, kind: &PanelKind) {
-        if let Some((_, position)) = self.panel_position(kind) {
-            if let Some((active_panel, _)) =
+        if let Some((_, position)) = self.panel_position(kind)
+            && let Some((active_panel, _)) =
                 self.active_panel_at_position(&position, false)
-            {
-                if &active_panel == kind {
-                    self.set_shown(&position, false);
-                    // let peer_position = position.peer();
-                    // if let Some(order) = self
-                    //     .panels
-                    //     .with_untracked(|panels|
-                    // panels.get(&peer_position).cloned())
-                    // {
-                    //     if order.is_empty() {
-                    //         self.set_shown(&peer_position, false);
-                    //     }
-                    // }
-                }
-            }
+            && &active_panel == kind
+        {
+            self.set_shown(&position, false);
         }
     }
 
@@ -221,12 +208,11 @@ impl PanelData {
 
     pub fn toggle_active_maximize(&self) {
         let focus = self.common.focus.get_untracked();
-        if let Focus::Panel(kind) = focus {
-            if let Some((_, pos)) = self.panel_position(&kind) {
-                if pos.is_bottom() {
-                    self.toggle_bottom_maximize();
-                }
-            }
+        if let Focus::Panel(kind) = focus
+            && let Some((_, pos)) = self.panel_position(&kind)
+            && pos.is_bottom()
+        {
+            self.toggle_bottom_maximize();
         }
     }
 

@@ -30,7 +30,7 @@ pub fn implementation_panel(
     stack((
         common_tab_header(
             window_tab_data.clone(),
-            window_tab_data.main_split.implementations.clone(),
+            window_tab_data.main_split.implementations,
         ),
         common_reference_panel(window_tab_data.clone(), _position, move || {
             window_tab_data
@@ -114,7 +114,7 @@ pub fn common_reference_panel(
                                 .color(color.get()
                                 )
                         }),
-                        label(move || format!("{:?}", path))
+                        label(move || format!("{path:?}", ))
                             .style(move |s| {
                                 s.margin_left(6.0).color(
                                     config.with_color(LapceColor::EDITOR_DIM),

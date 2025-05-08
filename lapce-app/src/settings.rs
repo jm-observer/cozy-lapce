@@ -580,10 +580,12 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                     let common = common.clone();
                     let token =
                         exec_after(Duration::from_millis(500), move |token| {
-                            if let Some(timer) = timer.try_get_untracked() {
-                                if timer == token {
-                                    // let value = query_str.get_untracked();
-                                    let value = match &item_value {
+                            if let Some(timer) = timer.try_get_untracked()
+                                && timer == token
+                            {
+                                // let value = query_str.get_untracked();
+                                let value =
+                                    match &item_value {
                                         SettingsValue::Float(_) => {
                                             value.parse::<f64>().ok().and_then(|v| {
                                                 serde::Serialize::serialize(
@@ -607,14 +609,13 @@ fn settings_item_view(settings_data: SettingsData, item: SettingsItem) -> impl V
                                         .ok(),
                                     };
 
-                                    if let Some(value) = value {
-                                        LapceConfig::update_file(
-                                            &kind,
-                                            &field,
-                                            value,
-                                            common.clone(),
-                                        );
-                                    }
+                                if let Some(value) = value {
+                                    LapceConfig::update_file(
+                                        &kind,
+                                        &field,
+                                        value,
+                                        common.clone(),
+                                    );
                                 }
                             }
                         });
@@ -861,9 +862,11 @@ fn color_section_list(
                         let common = common.clone();
                         let token =
                             exec_after(Duration::from_millis(500), move |token| {
-                                if let Some(timer) = timer.try_get_untracked() {
-                                    if timer == token {
-                                        let default = config.with_untracked(|config_val | {
+                                if let Some(timer) = timer.try_get_untracked()
+                                    && timer == token
+                                {
+                                    let default =
+                                        config.with_untracked(|config_val| {
                                             match kind.as_str() {
                                                 "base" => config_val
                                                     .color_theme
@@ -877,25 +880,26 @@ fn color_section_list(
                                                     .color_theme
                                                     .syntax
                                                     .get(&field),
-                                                _ => None
-                                            }.cloned()
-                                        });
-                                        if default.as_ref() != Some(&value) {
-                                            // info!("update color-theme.{kind} {} {} {:?}", &field, value, default);
-                                            let value_ser = serde::Serialize::serialize(
-                                                &value,
-                                                toml_edit::ser::ValueSerializer::new(
-                                                )
-                                            )
-                                            .ok();
-
-                                            if let Some(value_ser) = value_ser {
-                                                LapceConfig::update_file(
-                                                    &format!("color-theme.{kind}"),
-                                                    &field,
-                                                    value_ser, common
-                                                );
+                                                _ => None,
                                             }
+                                            .cloned()
+                                        });
+                                    if default.as_ref() != Some(&value) {
+                                        // info!("update color-theme.{kind} {} {}
+                                        // {:?}", &field, value, default);
+                                        let value_ser = serde::Serialize::serialize(
+                                            &value,
+                                            toml_edit::ser::ValueSerializer::new(),
+                                        )
+                                        .ok();
+
+                                        if let Some(value_ser) = value_ser {
+                                            LapceConfig::update_file(
+                                                &format!("color-theme.{kind}"),
+                                                &field,
+                                                value_ser,
+                                                common,
+                                            );
                                         }
                                     }
                                 }
@@ -909,25 +913,32 @@ fn color_section_list(
                         s.width(max_width.get()).margin_left(20).margin_right(10)
                     }),
                     text_input(query_str)
-                        .keyboard_navigable().keyboard_navigable().style(move |s| {
-                        s.width(150.0)
-                            .margin_vert(6)
-                            .border(1)
-                            .border_radius(6)
-                            .border_color(
-                                config.with_color(LapceColor::LAPCE_BORDER)
-                            )
-                    }).on_event_stop(EventListener::KeyDown, |_| {}),
+                        .keyboard_navigable()
+                        .keyboard_navigable()
+                        .style(move |s| {
+                            s.width(150.0)
+                                .margin_vert(6)
+                                .border(1)
+                                .border_radius(6)
+                                .border_color(
+                                    config.with_color(LapceColor::LAPCE_BORDER),
+                                )
+                        })
+                        .on_event_stop(EventListener::KeyDown, |_| {}),
                     empty().style(move |s| {
                         let size = text_height.get() + 12.0;
                         let (caret_color, bg) = config.signal(|config| {
                             (
-                                config.color(LapceColor::LAPCE_BORDER), config.color(LapceColor::EDITOR_FOREGROUND)
+                                config.color(LapceColor::LAPCE_BORDER),
+                                config.color(LapceColor::EDITOR_FOREGROUND),
                             )
                         });
                         let mut new_value = query_str.get();
                         if new_value.starts_with("$") {
-                            let origin = base.with_untracked(|x| x.get(new_value.trim_start_matches("$")).map(|x| x.signal()));
+                            let origin = base.with_untracked(|x| {
+                                x.get(new_value.trim_start_matches("$"))
+                                    .map(|x| x.signal())
+                            });
                             new_value = origin.map(|x| x.get()).unwrap_or_default();
                         }
                         let color = Color::from_str(&new_value).ok();
@@ -948,53 +959,63 @@ fn color_section_list(
                             .on_click_stop(move |_| {
                                 LapceConfig::reset_setting(
                                     &format!("color-theme.{local_kind}"),
-                                    &local_key, &config_directory
+                                    &local_key,
+                                    &config_directory,
                                 );
-                                common.internal_command.send(InternalCommand::ReloadConfig);
+                                common
+                                    .internal_command
+                                    .send(InternalCommand::ReloadConfig);
                             })
                             .style(move |s| {
                                 let content = query_str.get();
-                                let (caret_color, bg, same) = config.signal(|config| {
-                                    (
-                                        config.color(LapceColor::LAPCE_BORDER),
-                                        config.color(LapceColor::PANEL_BACKGROUND),
-                                        match kind.as_str() {
-                                            "base" => {
-                                                config.default_color_theme().base.get(&key)
-                                                    == Some(&content)
+                                let (caret_color, bg, same) =
+                                    config.signal(|config| {
+                                        (
+                                            config.color(LapceColor::LAPCE_BORDER),
+                                            config
+                                                .color(LapceColor::PANEL_BACKGROUND),
+                                            match kind.as_str() {
+                                                "base" => {
+                                                    config
+                                                        .default_color_theme()
+                                                        .base
+                                                        .get(&key)
+                                                        == Some(&content)
+                                                },
+                                                "ui" => {
+                                                    config
+                                                        .default_color_theme()
+                                                        .ui
+                                                        .get(&key)
+                                                        == Some(&content)
+                                                },
+                                                "syntax" => {
+                                                    config
+                                                        .default_color_theme()
+                                                        .syntax
+                                                        .get(&key)
+                                                        == Some(&content)
+                                                },
+                                                _ => false,
                                             },
-                                            "ui" => {
-                                                config.default_color_theme().ui.get(&key)
-                                                    == Some(&content)
-                                            },
-                                            "syntax" => {
-                                                config.default_color_theme().syntax.get(&key)
-                                                    == Some(&content)
-                                            },
-                                            _ => false
-                                        }
-                                    )
-                                });
+                                        )
+                                    });
 
                                 s.margin_left(10)
                                     .padding(6)
                                     .cursor(CursorStyle::Pointer)
                                     .border(1)
                                     .border_radius(6)
-                                    .border_color(caret_color.get()
-                                    )
+                                    .border_color(caret_color.get())
                                     .apply_if(same, |s| s.hide())
-                                    .active(|s| {
-                                        s.background(bg.get()
-                                        )
-                                    })
+                                    .active(|s| s.background(bg.get()))
                             })
-                    }
+                    },
                 ))
                 .style(|s| s.items_center())
-            }
+            },
         )
-        .style(|s| s.flex_col().padding_right(20))
+        .style(|s| s.flex_col().padding_right(20)),
     ))
     .style(|s| s.flex_col())
 }

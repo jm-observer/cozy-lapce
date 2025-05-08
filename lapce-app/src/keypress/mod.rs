@@ -243,12 +243,11 @@ impl KeyPressData {
             ..
         } = &keypress.key
             && let Ok(n) = c.parse::<usize>()
+            && (self.count.with_untracked(|count| count.is_some()) || n > 0)
         {
-            if self.count.with_untracked(|count| count.is_some()) || n > 0 {
-                self.count
-                    .update(|count| *count = Some(count.unwrap_or(0) * 10 + n));
-                return true;
-            }
+            self.count
+                .update(|count| *count = Some(count.unwrap_or(0) * 10 + n));
+            return true;
         }
 
         false
@@ -411,18 +410,16 @@ impl KeyPressData {
                     keypress.mods.set(Modifiers::SHIFT, false);
                     if let KeymapMatch::Full(command) =
                         self.match_keymap(&[keypress], focus)
+                        && let Some(cmd) = self.commands.get(&command)
+                        && let CommandKind::Move(_) = cmd.kind
                     {
-                        if let Some(cmd) = self.commands.get(&command) {
-                            if let CommandKind::Move(_) = cmd.kind {
-                                let handled = focus.run_command(cmd, None, mods)
-                                    == CommandExecuted::Yes;
-                                return KeyPressHandle {
-                                    handled,
-                                    keymatch,
-                                    keypress: old_keypress,
-                                };
-                            }
-                        }
+                        let handled = focus.run_command(cmd, None, mods)
+                            == CommandExecuted::Yes;
+                        return KeyPressHandle {
+                            handled,
+                            keymatch,
+                            keypress: old_keypress,
+                        };
                     }
                 }
             },
@@ -491,6 +488,7 @@ impl KeyPressData {
     ) -> KeymapMatch {
         let keypresses: Vec<KeyMapPress> =
             keypresses.iter().filter_map(|k| k.keymap_press()).collect();
+        log::debug!("match_keymap {keypresses:?}");
         let matches: Vec<_> = self
             .keymaps
             .get(&keypresses)
@@ -498,6 +496,7 @@ impl KeyPressData {
                 keymaps
                     .iter()
                     .filter(|keymap| {
+                        log::debug!("match_keymap {keymap:?}");
                         if check.expect_char()
                             && keypresses.len() == 1
                             && keypresses[0].is_char()
@@ -509,10 +508,10 @@ impl KeyPressData {
                         {
                             return false;
                         }
-                        if let Some(condition) = &keymap.when {
-                            if !Self::check_condition(condition, check) {
-                                return false;
-                            }
+                        if let Some(condition) = &keymap.when
+                            && !Self::check_condition(condition, check)
+                        {
+                            return false;
                         }
                         true
                     })
@@ -602,12 +601,11 @@ impl KeyPressData {
             trace!("Failed to load OS defaults: {err}");
         }
 
-        if let Some(path) = Self::file(config_directory) {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                if let Err(err) = loader.load_from_str(&content, is_modal) {
-                    trace!("Failed to load from {path:?}: {err}");
-                }
-            }
+        if let Some(path) = Self::file(config_directory)
+            && let Ok(content) = std::fs::read_to_string(&path)
+            && let Err(err) = loader.load_from_str(&content, is_modal)
+        {
+            trace!("Failed to load from {path:?}: {err}");
         }
 
         Ok(loader.finalize())

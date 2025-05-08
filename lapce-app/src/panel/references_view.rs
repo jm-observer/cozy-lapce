@@ -16,7 +16,7 @@ pub fn references_panel(
     stack((
         common_tab_header(
             window_tab_data.clone(),
-            window_tab_data.main_split.references.clone(),
+            window_tab_data.main_split.references,
         ),
         common_reference_panel(window_tab_data.clone(), _position, move || {
             window_tab_data

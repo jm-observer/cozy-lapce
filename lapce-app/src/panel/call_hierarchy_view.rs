@@ -135,7 +135,7 @@ pub fn show_hierarchy_panel(
     stack((
         common_tab_header(
             window_tab_data.clone(),
-            window_tab_data.main_split.hierarchy.clone(),
+            window_tab_data.main_split.hierarchy,
         )
         .debug_name("hierarchy head"),
         _show_hierarchy_panel(window_tab_data.clone(), _position, move || {
