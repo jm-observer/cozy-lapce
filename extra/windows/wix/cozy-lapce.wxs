@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="windows-1252"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-    <Product Name="Lapce" Id="*" UpgradeCode="9c09a374-1135-4782-959f-2dec376a1dfa" Language="1033" Codepage="1252" Version="0.4.2" Manufacturer="Lapce">
+    <Product Name="CozyLapce" Id="*" UpgradeCode="9c09a374-1135-4782-959f-2dec376a1dfa" Language="1033" Codepage="1252" Version="0.4.2" Manufacturer="CozyLapce">
         <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"/>
         <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
         <Icon Id="lapce.exe" SourceFile=".\extra\windows\lapce.ico"/>
@@ -14,29 +14,41 @@
             <ComponentRef Id="LapceShortcut"/>
             <ComponentRef Id="ModifyPathEnv"/>
             <ComponentRef Id="ContextMenu"/>
+            <ComponentRef Id="DesktopShortcut"/>
         </Feature>
 
         <!-- Create directories -->
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
-                <Directory Id="LapceProgramFiles" Name="Lapce"/>
+                <Directory Id="LapceProgramFiles" Name="CozyLapce"/>
             </Directory>
             <Directory Id="ProgramMenuFolder">
-                <Directory Id="LapceProgramMenu" Name="Lapce"/>
+                <Directory Id="LapceProgramMenu" Name="CozyLapce"/>
+            </Directory>
+            <Directory Id="DesktopFolder" Name="Desktop">
+              <Component Id="DesktopShortcut" Guid="PUT-GUID-HERE">
+                <Shortcut Id="CozyLapceDesktopShortcut"
+                          Name="Cozy Lapce"
+                          Description="Launch Cozy Lapce"
+                          Target="[INSTALLFOLDER]cozy-lapce.exe"
+                          WorkingDirectory="INSTALLFOLDER" />
+                <RemoveFolder Id="DesktopFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\CozyLapce" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+              </Component>
             </Directory>
         </Directory>
 
         <!-- Application binaries -->
         <DirectoryRef Id="LapceProgramFiles">
             <Component Id="LapceExe" Guid="*">
-                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="lapce.exe" KeyPath="yes"/>
+                <File Id="LapceExeFile" Source=".\target\release-lto\cozy-lapce.exe" Name="cozy-lapce.exe" KeyPath="yes"/>
             </Component>
         </DirectoryRef>
 
         <DirectoryRef Id="LapceProgramMenu">
             <!-- Application shortcut -->
             <Component Id="LapceShortcut" Guid="7d3d3a8e-febb-4759-8eca-873676d5066a">
-                <Shortcut Id="LapceShortcutFile" Icon="lapce.exe" Name="Lapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
+                <Shortcut Id="LapceShortcutFile" Icon="lapce.exe" Name="CozyLapce" Description="Lightning-fast and Powerful Code Editor" Target="[LapceProgramFiles]cozy-lapce.exe"/>
                 <RemoveFolder Id="LapceProgramMenu" On="uninstall"/>
                 <RegistryValue Root="HKCU" Key="Software\Microsoft\Lapce" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
             </Component>
@@ -50,15 +62,24 @@
         </DirectoryRef>
 
         <DirectoryRef Id="TARGETDIR">
-            <!-- Add context menu -->
             <Component Id="ContextMenu" Guid="22ad399b-1d77-416c-ae33-57e8f8511177">
+                <!-- 空白处右键菜单 -->
                 <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Lapce here\command">
                     <RegistryValue Type="string" Value="[LapceProgramFiles]cozy-lapce.exe &quot;%V&quot;" KeyPath="yes"/>
                 </RegistryKey>
                 <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Lapce here">
                     <RegistryValue Type="string" Name="Icon" Value="[LapceProgramFiles]cozy-lapce.exe"/>
                 </RegistryKey>
+
+                <!-- 文件夹本身右键菜单 -->
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open Lapce here\command">
+                    <RegistryValue Type="string" Value="[LapceProgramFiles]cozy-lapce.exe &quot;%1&quot;"/>
+                </RegistryKey>
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open Lapce here">
+                    <RegistryValue Type="string" Name="Icon" Value="[LapceProgramFiles]cozy-lapce.exe"/>
+                </RegistryKey>
             </Component>
         </DirectoryRef>
+
     </Product>
 </Wix>

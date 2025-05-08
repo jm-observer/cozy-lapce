@@ -11,10 +11,14 @@ on:
         description: "Build Windows?"
         required: false
         default: 'true'
-#      build_linux:
-#        description: "Build Linux?"
-#        required: false
-#        default: 'false'
+      step:
+        description: "Which step to run: all / build / package"
+        required: false
+        default: all
+      run_id:
+        description: "Optional: run_id to fetch cozy-lapce-bin from (for package step)"
+        required: false
+        default: ""
   schedule:
     - cron: 0 0 * * *
   push:
@@ -55,8 +59,11 @@ jobs:
       - id: tag
         run: echo "tag=$TAG_NAME" | tee -a $GITHUB_OUTPUT
 
-  windows:
-    if: github.event.inputs.build_windows != 'false'
+  windows-build:
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      (github.event.inputs.build_windows != 'false' &&
+       (github.event.inputs.step == 'all' || github.event.inputs.step == 'build'))
     runs-on: windows-latest
     needs: tagname
     env:
@@ -66,17 +73,39 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-
       - name: Update rust
         run: rustup update --no-self-update
-
       - name: Fetch dependencies
         run: cargo fetch --locked
-
       - name: Build
         run: cargo build --frozen --profile release-lto
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cozy-lapce-bin
+          path: ./target/release-lto/cozy-lapce.exe
+          retention-days: 3
 
-      - name: Create msi installer
+  windows-package-from-current-build:
+    if: github.event.inputs.step == 'all'
+    runs-on: windows-latest
+    needs:
+      - tagname
+      - windows-build
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download binary from current build
+        uses: actions/download-artifact@v4
+        with:
+          name: cozy-lapce-bin
+          path: ./target/release-lto
+
+      - name: Create MSI
         run: |
           candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
             -out "./cozy-lapce.wixobj" "extra/windows/wix/cozy-lapce.wxs"
@@ -84,81 +113,66 @@ jobs:
             -out "./CozyLapce-windows.msi" -sice:ICE61 -sice:ICE91 \
             "./cozy-lapce.wixobj"
 
-      - name: Create portable
+      - name: Create portable zip
         shell: pwsh
         run: |
-          cargo build --profile release-lto --features lapce-app/portable
           Compress-Archive ./target/release-lto/cozy-lapce.exe ./CozyLapce-windows-portable.zip
 
-      - name: Upload artifact for nightly
-        if: env.RELEASE_TAG_NAME == 'nightly'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lapce-windows
           path: |
             ./CozyLapce-windows-portable.zip
             ./CozyLapce-windows.msi
-          retention-days: 1
+          retention-days: 3
 
-      - name: Upload artifact for release
-        if: env.RELEASE_TAG_NAME != 'nightly'
+  windows-package-from-previous-build:
+    if: github.event.inputs.step == 'package'
+    runs-on: windows-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download previous build artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          name: cozy-lapce-bin
+          path: ./target/release-lto
+          run_id: ${{ github.event.inputs.run_id }}
+
+      - name: Create MSI
+        run: |
+          candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
+            -out "./cozy-lapce.wixobj" "extra/windows/wix/cozy-lapce.wxs"
+          light.exe -ext WixUIExtension -ext WixUtilExtension \
+            -out "./CozyLapce-windows.msi" -sice:ICE61 -sice:ICE91 \
+            "./cozy-lapce.wixobj"
+
+      - name: Create portable zip
+        shell: pwsh
+        run: |
+          Compress-Archive ./target/release-lto/cozy-lapce.exe ./CozyLapce-windows-portable.zip
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: lapce-windows
           path: |
             ./CozyLapce-windows-portable.zip
             ./CozyLapce-windows.msi
-          retention-days: 30
+          retention-days: 3
 
-#  linux:
-#    if: github.event.inputs.build_linux != 'false'
-#    runs-on: ubuntu-latest
-#    needs: tagname
-#    env:
-#      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Build deb packages
-#        run: |
-#          docker buildx create --driver=docker-container --use
-#          docker buildx bake --pull ubuntu-focal-binary
-#
-#      - name: Gzip
-#        run: |
-#          mkdir Cozy-Lapce
-#          cp ./target/linux_amd64/cozy-lapce Cozy-Lapce/
-#          tar -zcvf ./cozy-lapce-linux-amd64.tar.gz Cozy-Lapce
-#          rm -rf Cozy-Lapce
-#
-#          mkdir Cozy-Lapce
-#          cp ./target/linux_arm64/cozy-lapce Cozy-Lapce/
-#          tar -zcvf ./cozy-lapce-linux-arm64.tar.gz Cozy-Lapce
-#
-#      - name: Fetch dependencies
-#        run: cargo fetch --locked
-#
-#      - name: Vendor dependencies
-#        run: |
-#          cargo vendor --frozen > ./vendor-config.toml
-#          mv ./vendor-config.toml ./vendor/
-#          tar -zcf vendor.tar.gz ./vendor/
-#
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: lapce-linux
-#          path: |
-#            ./cozy-lapce-linux-*.tar.gz
-#            ./vendor.tar.gz
-#          retention-days: 1
-
-  publish:
+  publish-from-current-build:
+    if: github.event.inputs.build_windows != 'false' && github.event.inputs.step == 'all'
     needs:
       - tagname
-      - windows
-#      - linux
+      - windows-package-from-current-build
     runs-on: ubuntu-latest
-    if: success()
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,7 +180,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/download-artifact@v4
 
       - name: Set TAG_NAME
@@ -179,6 +192,61 @@ jobs:
             TAG_NAME=${{ github.ref }}
             echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
           fi
+
+      - name: Delete existing nightly release and tag
+        if: env.TAG_NAME == 'nightly'
+        run: |
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+
+      - name: Configure release
+        run: |
+          if [[ "$TAG_NAME" == "nightly" ]]; then
+            echo 'SUBJECT=Lapce development build' | tee -a $GITHUB_ENV
+            echo 'PRERELEASE=--prerelease' | tee -a $GITHUB_ENV
+          else
+            echo 'SUBJECT=Lapce release build' | tee -a $GITHUB_ENV
+            echo 'PRERELEASE=' | tee -a $GITHUB_ENV
+          fi
+
+      - name: Publish release
+        env:
+          DEBUG: api
+        run: |
+          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
+            lapce-windows/* || echo "Release already exists, skipping."
+
+  publish-from-previous-build:
+    if: github.event.inputs.build_windows != 'false' && github.event.inputs.step == 'package'
+    needs:
+      - tagname
+      - windows-package-from-previous-build
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+
+      - name: Set TAG_NAME
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG_NAME=${{ github.ref }}
+            echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
+          fi
+
+      - name: Delete existing nightly release and tag
+        if: env.TAG_NAME == 'nightly'
+        run: |
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
 
       - name: Configure release
         run: |
