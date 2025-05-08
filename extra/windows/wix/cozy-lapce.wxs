@@ -26,7 +26,7 @@
                 <Directory Id="LapceProgramMenu" Name="CozyLapce"/>
             </Directory>
             <Directory Id="DesktopFolder" Name="Desktop">
-              <Component Id="DesktopShortcut" Guid="PUT-GUID-HERE">
+              <Component Id="DesktopShortcut" Guid="b8735c94-0426-4d19-83ee-c63a40e8b8f5">
                 <Shortcut Id="CozyLapceDesktopShortcut"
                           Name="Cozy Lapce"
                           Description="Launch Cozy Lapce"
