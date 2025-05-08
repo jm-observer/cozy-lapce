@@ -119,15 +119,14 @@ impl SplitData {
 
 impl SplitData {
     pub fn split_info(&self, data: &WindowWorkspaceData) -> SplitInfo {
-        let info = SplitInfo {
+        SplitInfo {
             direction: self.direction,
             children:  self
                 .children
                 .iter()
                 .map(|(_, child)| data.content_info(child))
                 .collect(),
-        };
-        info
+        }
     }
 
     pub fn editor_tab_index(
@@ -326,13 +325,12 @@ impl MainSplitData {
         scroll_offset: Vec2,
     ) -> bool {
         let mut locations = self.locations.get_untracked();
-        if let Some(last_location) = locations.last() {
-            if last_location.path == path
-                && last_location.position == Some(EditorPosition::Offset(offset))
-                && last_location.scroll_offset == Some(scroll_offset)
-            {
-                return false;
-            }
+        if let Some(last_location) = locations.last()
+            && last_location.path == path
+            && last_location.position == Some(EditorPosition::Offset(offset))
+            && last_location.scroll_offset == Some(scroll_offset)
+        {
+            return false;
         }
         let location = EditorLocation {
             path,
@@ -1052,8 +1050,8 @@ impl MainSplitData {
         // check file exists in non active editor tabs
         if show_tab && !ignore_unconfirmed && !same_editor_tab {
             for (editor_tab_id, editor_tab) in &editor_tab_manages {
-                if Some(*editor_tab_id) != active_editor_tab_id {
-                    if let Some(index) =
+                if Some(*editor_tab_id) != active_editor_tab_id
+                    && let Some(index) =
                         editor_tab.with_untracked(|editor_tab| match &source {
                             EditorTabChildSource::Editor { path, .. } => editor_tab
                                 .get_editor(editors, path)
@@ -1108,16 +1106,15 @@ impl MainSplitData {
                             },
                             EditorTabChildSource::NewFileEditor => None,
                         })
-                    {
-                        self.active_editor_tab.set(Some(*editor_tab_id));
-                        editor_tab.update(|editor_tab| {
-                            editor_tab.active = index;
-                        });
-                        let child = editor_tab.with_untracked(|editor_tab| {
-                            editor_tab.children[index].id().clone()
-                        });
-                        return child;
-                    }
+                {
+                    self.active_editor_tab.set(Some(*editor_tab_id));
+                    editor_tab.update(|editor_tab| {
+                        editor_tab.active = index;
+                    });
+                    let child = editor_tab.with_untracked(|editor_tab| {
+                        editor_tab.children[index].id().clone()
+                    });
+                    return child;
                 }
             }
         }

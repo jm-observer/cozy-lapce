@@ -347,11 +347,11 @@ async fn handle_load_icon(
         cache_dir.join(filename)
     });
 
-    if let Some(cache_file) = &cache_file_path {
-        if cache_file.exists() {
-            let icon = VoltIcon::from_bytes(&tokio::fs::read(cache_file).await?)?;
-            return Ok(LocalResponse::LoadIcon { icon });
-        }
+    if let Some(cache_file) = &cache_file_path
+        && cache_file.exists()
+    {
+        let icon = VoltIcon::from_bytes(&tokio::fs::read(cache_file).await?)?;
+        return Ok(LocalResponse::LoadIcon { icon });
     }
     let resp = lapce_proxy::async_get_url(&url, None).await?;
     if !resp.status().is_success() {

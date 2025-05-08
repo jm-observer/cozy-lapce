@@ -242,13 +242,12 @@ impl KeyPressData {
             logical: Key::Character(c),
             ..
         } = &keypress.key
+            && let Ok(n) = c.parse::<usize>()
         {
-            if let Ok(n) = c.parse::<usize>() {
-                if self.count.with_untracked(|count| count.is_some()) || n > 0 {
-                    self.count
-                        .update(|count| *count = Some(count.unwrap_or(0) * 10 + n));
-                    return true;
-                }
+            if self.count.with_untracked(|count| count.is_some()) || n > 0 {
+                self.count
+                    .update(|count| *count = Some(count.unwrap_or(0) * 10 + n));
+                return true;
             }
         }
 
@@ -323,14 +322,13 @@ impl KeyPressData {
         self.pending_keypress
             .update(|(pending_keypress, last_time)| {
                 let last_time = last_time.replace(SystemTime::now());
-                if let Some(last_time_val) = last_time {
-                    if last_time_val
+                if let Some(last_time_val) = last_time
+                    && last_time_val
                         .elapsed()
                         .map(|x| x.as_millis() > 1000)
                         .unwrap_or_default()
-                    {
-                        pending_keypress.clear();
-                    }
+                {
+                    pending_keypress.clear();
                 }
                 pending_keypress.push(keypress.clone());
             });

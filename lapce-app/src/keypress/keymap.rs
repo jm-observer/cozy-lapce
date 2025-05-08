@@ -49,10 +49,10 @@ impl KeyMapPress {
     pub fn is_char(&self) -> bool {
         let mut mods = self.mods;
         mods.set(Modifiers::SHIFT, false);
-        if mods.is_empty() {
-            if let KeyMapKey::Logical(Key::Character(_)) = &self.key {
-                return true;
-            }
+        if mods.is_empty()
+            && let KeyMapKey::Logical(Key::Character(_)) = &self.key
+        {
+            return true;
         }
         false
     }
@@ -316,30 +316,30 @@ impl FromStr for KeyMapKey {
 
 impl Display for KeyMapPress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.mods.contains(Modifiers::CONTROL) {
-            if let Err(err) = f.write_str("Ctrl+") {
-                log::error!("{:?}", err);
-            }
+        if self.mods.contains(Modifiers::CONTROL)
+            && let Err(err) = f.write_str("Ctrl+")
+        {
+            log::error!("{:?}", err);
         }
-        if self.mods.contains(Modifiers::ALT) {
-            if let Err(err) = f.write_str("Alt+") {
-                log::error!("{:?}", err);
-            }
+        if self.mods.contains(Modifiers::ALT)
+            && let Err(err) = f.write_str("Alt+")
+        {
+            log::error!("{:?}", err);
         }
-        if self.mods.contains(Modifiers::ALTGR) {
-            if let Err(err) = f.write_str("AltGr+") {
-                log::error!("{:?}", err);
-            }
+        if self.mods.contains(Modifiers::ALTGR)
+            && let Err(err) = f.write_str("AltGr+")
+        {
+            log::error!("{:?}", err);
         }
-        if self.mods.contains(Modifiers::META) {
-            if let Err(err) = f.write_str("Meta+") {
-                log::error!("{:?}", err);
-            }
+        if self.mods.contains(Modifiers::META)
+            && let Err(err) = f.write_str("Meta+")
+        {
+            log::error!("{:?}", err);
         }
-        if self.mods.contains(Modifiers::SHIFT) {
-            if let Err(err) = f.write_str("Shift+") {
-                log::error!("{:?}", err);
-            }
+        if self.mods.contains(Modifiers::SHIFT)
+            && let Err(err) = f.write_str("Shift+")
+        {
+            log::error!("{:?}", err);
         }
         f.write_str(&self.key.to_string())
     }

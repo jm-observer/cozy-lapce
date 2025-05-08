@@ -3443,10 +3443,10 @@ fn rename(window_tab_data: WindowWorkspaceData) -> impl View {
         .style(|s| s.width(150.0))
         .debug_name("rename")
         .on_event_stop(EventListener::KeyDown, move |event: &Event| {
-            if let Event::KeyDown(key_event) = event {
-                if let Key::Named(NamedKey::Enter) = key_event.key.logical_key {
-                    rename_data_key_down.confirm();
-                }
+            if let Event::KeyDown(key_event) = event
+                && let Key::Named(NamedKey::Enter) = key_event.key.logical_key
+            {
+                rename_data_key_down.confirm();
             }
         })
         .on_event_stop(EventListener::FocusLost, move |event: &Event| {

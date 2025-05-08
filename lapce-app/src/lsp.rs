@@ -25,40 +25,39 @@ pub fn path_from_url(url: &Url) -> PathBuf {
         std::borrow::Cow::from(path)
     };
 
-    if let Some(path) = path.strip_prefix('/') {
-        if let Some((maybe_drive_letter, _path_second_part)) =
+    if let Some(path) = path.strip_prefix('/')
+        && let Some((maybe_drive_letter, _path_second_part)) =
             path.split_once(['/', '\\'])
-        {
-            let b = maybe_drive_letter.as_bytes();
+    {
+        let b = maybe_drive_letter.as_bytes();
 
-            if !b.is_empty() && !b[0].is_ascii_alphabetic() {
-                error!("First byte is not ascii alphabetic: {b:?}");
-            }
+        if !b.is_empty() && !b[0].is_ascii_alphabetic() {
+            error!("First byte is not ascii alphabetic: {b:?}");
+        }
 
-            match maybe_drive_letter.len() {
-                2 => match maybe_drive_letter.chars().nth(1) {
-                    Some(':') => {
-                        return PathBuf::from(path);
-                    },
-                    v => {
-                        error!("Unhandled 'maybe_drive_letter' chars: {v:?}");
-                    },
-                },
-                4 => {
-                    if maybe_drive_letter.contains("%3A") {
-                        let path = path.replace("%3A", ":");
-                        return PathBuf::from(path);
-                    } else {
-                        error!(
-                            "Unhandled 'maybe_drive_letter' pattern: \
-                             {maybe_drive_letter:?}"
-                        );
-                    }
+        match maybe_drive_letter.len() {
+            2 => match maybe_drive_letter.chars().nth(1) {
+                Some(':') => {
+                    return PathBuf::from(path);
                 },
                 v => {
-                    error!("Unhandled 'maybe_drive_letter' length: {v}");
+                    error!("Unhandled 'maybe_drive_letter' chars: {v:?}");
                 },
-            }
+            },
+            4 => {
+                if maybe_drive_letter.contains("%3A") {
+                    let path = path.replace("%3A", ":");
+                    return PathBuf::from(path);
+                } else {
+                    error!(
+                        "Unhandled 'maybe_drive_letter' pattern: \
+                         {maybe_drive_letter:?}"
+                    );
+                }
+            },
+            v => {
+                error!("Unhandled 'maybe_drive_letter' length: {v}");
+            },
         }
     }
 

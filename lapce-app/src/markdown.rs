@@ -154,10 +154,10 @@ pub fn parse_markdown(
                 }
             },
             Event::Text(text) => {
-                if let Some((_, tag)) = tag_stack.last() {
-                    if should_skip_text_in_tag(tag) {
-                        continue;
-                    }
+                if let Some((_, tag)) = tag_stack.last()
+                    && should_skip_text_in_tag(tag)
+                {
+                    continue;
                 }
                 current_text.push_str(&text);
                 pos += text.len();

@@ -22,18 +22,16 @@ impl KeyInput {
         if let KeyInput::Keyboard {
             repeat, logical, ..
         } = self
+            && *repeat
+            && (matches!(
+                logical,
+                Key::Named(NamedKey::Meta)
+                    | Key::Named(NamedKey::Shift)
+                    | Key::Named(NamedKey::Alt)
+                    | Key::Named(NamedKey::Control),
+            ))
         {
-            if *repeat
-                && (matches!(
-                    logical,
-                    Key::Named(NamedKey::Meta)
-                        | Key::Named(NamedKey::Shift)
-                        | Key::Named(NamedKey::Alt)
-                        | Key::Named(NamedKey::Control),
-                ))
-            {
-                return None;
-            }
+            return None;
         }
 
         Some(match self {

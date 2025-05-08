@@ -64,10 +64,10 @@ impl KeyMapLoader {
                     current_keymaps.remove(index);
                 }
                 for i in 1..keymap.key.len() + 1 {
-                    if let Some(keymaps) = self.keymaps.get_mut(&keymap.key[..i]) {
-                        if let Some(index) = keymaps.iter().position(is_keymap) {
-                            keymaps.remove(index);
-                        }
+                    if let Some(keymaps) = self.keymaps.get_mut(&keymap.key[..i])
+                        && let Some(index) = keymaps.iter().position(is_keymap)
+                    {
+                        keymaps.remove(index);
                     }
                 }
             }

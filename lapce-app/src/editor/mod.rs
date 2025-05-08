@@ -4677,13 +4677,12 @@ fn should_trigger_code_action_after_completion(
                 }
             })
             .collect();
-        if !imports.is_empty() {
-            if let Value::Object(positions) = data.get("position")? {
-                let position: Position =
-                    serde_json::from_value(positions.get("position")?.clone())
-                        .ok()?;
-                return Some((imports, position));
-            }
+        if !imports.is_empty()
+            && let Value::Object(positions) = data.get("position")?
+        {
+            let position: Position =
+                serde_json::from_value(positions.get("position")?.clone()).ok()?;
+            return Some((imports, position));
         }
     }
     None

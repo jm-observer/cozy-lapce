@@ -581,10 +581,11 @@ fn keyboard_picker_view(
             && let Some(keypress) = keypress.keymap_press()
         {
             picker.keys.update(|keys| {
-                if let Some((last_key, last_key_confirmed)) = keys.last() {
-                    if !*last_key_confirmed && last_key.is_modifiers() {
-                        keys.pop();
-                    }
+                if let Some((last_key, last_key_confirmed)) = keys.last()
+                    && !*last_key_confirmed
+                    && last_key.is_modifiers()
+                {
+                    keys.pop();
                 }
                 if keys.len() == 2 {
                     keys.clear();
