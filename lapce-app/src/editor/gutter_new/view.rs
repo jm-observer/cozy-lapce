@@ -147,7 +147,7 @@ fn gutter_data_view(
     window_tab_data: &WindowWorkspaceData,
     doc: DocSignal,
     config: WithLapceConfig,
-) -> impl View {
+) -> impl View + use<> {
     let data_clone = data.clone();
     let line_height = window_tab_data.common.ui_line_height;
     let paint_point_y = data.paint_point_y;
@@ -183,7 +183,7 @@ fn marker_view(
     window_tab_data: WindowWorkspaceData,
     config: WithLapceConfig,
     doc_signal: DocSignal,
-) -> impl View {
+) -> impl View + use<> {
     let window_tab_data_click = window_tab_data.clone();
     let svg = match data.marker {
         GutterMarker::None => gutter_marker_none_svg_view(config),

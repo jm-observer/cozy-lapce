@@ -166,7 +166,7 @@ impl Find {
         let is_regex = self.is_regex.get_untracked();
 
         let search_string_unchanged = self.search_string.with_untracked(|search| {
-            if let Some(ref s) = search {
+            if let Some(s) = search {
                 s.content == search_string && s.regex.is_some() == is_regex
             } else {
                 false

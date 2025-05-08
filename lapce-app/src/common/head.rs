@@ -262,11 +262,7 @@ impl<T: Clone + TabHead + 'static> Tab<T> {
         .debug_name("tab icon")
     }
 
-    fn view_content(
-        &self,
-        tabs: Tabs<T>,
-        close_manager: CloseManager<T>,
-    ) -> impl View + 'static {
+    fn view_content(&self, tabs: Tabs<T>, close_manager: CloseManager<T>) -> impl View + use<T> {
         let config = self.config;
         let active = self.active;
         let rect = self.rect;
@@ -380,7 +376,7 @@ impl<T: Clone + TabHead + 'static> Tabs<T> {
         });
     }
 
-    fn tabs(&self) -> impl IntoIterator<Item = (Tab<T>, CloseManager<T>)> + 'static {
+    fn tabs(&self) -> impl IntoIterator<Item = (Tab<T>, CloseManager<T>)> + use<T> {
         self.tabs
             .get()
             .into_iter()

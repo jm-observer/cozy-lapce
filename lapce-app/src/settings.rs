@@ -1153,7 +1153,7 @@ fn dropdown_view(
     expanded: RwSignal<bool>,
     common: Rc<CommonData>,
     config: WithLapceConfig,
-) -> impl View {
+) -> impl View + use<> {
     let window_size = common.window_common.size;
     let window_origin = create_rw_signal(Point::ZERO);
     let size = create_rw_signal(Size::ZERO);
@@ -1273,7 +1273,7 @@ fn dropdown_scroll(
     window_size: RwSignal<Size>,
     config: WithLapceConfig,
     common: Rc<CommonData>,
-) -> impl View {
+) -> impl View + use<> {
     dropdown_scroll_focus.set(true);
 
     let kind = item.kind.clone();

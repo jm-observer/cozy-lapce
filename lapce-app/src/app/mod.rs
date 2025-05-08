@@ -453,7 +453,7 @@ impl AppData {
         window_id: WindowId,
         info: WindowInfo,
         files: Vec<PathObject>,
-    ) -> impl View {
+    ) -> impl View + use<> {
         let app_view_id = create_rw_signal(floem::ViewId::new());
         let window_data = WindowData::new(
             window_id,
@@ -2307,7 +2307,7 @@ fn palette_item(
     palette_item_height: f64,
     config: WithLapceConfig,
     keymap: Option<&KeyMap>,
-) -> impl View {
+) -> impl View + use<> {
     match &item.content {
         PaletteItemContent::File { path, .. }
         | PaletteItemContent::Reference { path, .. } => {
@@ -2805,42 +2805,39 @@ fn palette_content(
                 },
                 move |(i, item)| {
                     let workspace = workspace.clone();
-                    let keymap = {
-                        let cmd_kind = match &item.content {
-                            PaletteItemContent::PaletteHelp { cmd } => {
-                                Some(CommandKind::Workbench(cmd.clone()))
-                            },
-                            PaletteItemContent::Command {
-                                cmd: LapceCommand { kind, .. },
-                            } => Some(kind.clone()),
-                            _ => None,
-                        };
-
-                        cmd_kind
-                            .and_then(|kind| keymaps.get(kind.str()))
-                            .and_then(|maps| maps.first())
+                    let cmd_kind = match &item.content {
+                        PaletteItemContent::PaletteHelp { cmd } => {
+                            Some(CommandKind::Workbench(cmd.clone()))
+                        },
+                        PaletteItemContent::Command {
+                            cmd: LapceCommand { kind, .. },
+                        } => Some(kind.clone()),
+                        _ => None,
                     };
-                    container(palette_item(
-                        workspace,
-                        i,
-                        item,
-                        index,
-                        palette_item_height,
-                        config,
-                        keymap,
-                    ))
-                    .on_click_stop(move |_| {
-                        clicked_index.set(Some(i));
-                    })
-                    .style(move |s| {
-                        s.width_full().cursor(CursorStyle::Pointer).hover(|s| {
-                            s.background(
-                                config.with_color(
-                                    LapceColor::PANEL_HOVERED_BACKGROUND,
-                                ),
-                            )
+
+                    let maps = cmd_kind.and_then(|kind| keymaps.get(kind.str()));
+                    let keymap = maps.and_then(|maps| maps.first());
+                    let view =
+                        container(palette_item(
+                            workspace,
+                            i,
+                            item,
+                            index,
+                            palette_item_height,
+                            config,
+                            keymap,
+                        ))
+                        .on_click_stop(move |_| {
+                            clicked_index.set(Some(i));
                         })
-                    })
+                        .style(move |s| {
+                            s.width_full().cursor(CursorStyle::Pointer).hover(|s| {
+                                s.background(config.with_color(
+                                    LapceColor::PANEL_HOVERED_BACKGROUND,
+                                ))
+                            })
+                        });
+                    view
                 },
             )
             .style(|s| s.width_full().flex_col())

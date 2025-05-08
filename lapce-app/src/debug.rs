@@ -279,7 +279,7 @@ impl BreakPoints {
         self.breakpoints.with_untracked(|x| x.contains_key(path))
     }
 
-    pub fn view_data(&self) -> impl IntoIterator<Item = (PathBuf, LapceBreakpoint)> {
+    pub fn view_data(&self) -> impl IntoIterator<Item = (PathBuf, LapceBreakpoint)> + use<> {
         self.breakpoints
             .get()
             .into_iter()
