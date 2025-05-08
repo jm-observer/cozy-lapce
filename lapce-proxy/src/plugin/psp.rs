@@ -114,7 +114,7 @@ pub enum PluginHandlerNotification {
 pub enum PluginServerRpc {
     Shutdown,
     Handler(PluginHandlerNotification),
-    ServerRequest {
+    HostSendToPluginOrLspRequest {
         id:          Id,
         method:      Cow<'static, str>,
         params:      Params,
@@ -165,16 +165,28 @@ pub enum PluginServerRpc {
         f:      Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
     },
 }
+#[derive(Clone)]
+pub enum HandlerType {
+    Plugin,
+    Lsp,
+}
+
+impl HandlerType {
+    pub fn is_plugin(&self) -> bool {
+        matches!(self, Self::Plugin)
+    }
+}
 
 #[derive(Clone)]
 pub struct PluginServerRpcHandler {
-    pub spawned_by: Option<PluginId>,
-    pub plugin_id:  PluginId,
-    pub volt_id:    VoltID,
-    rpc_tx:         Sender<PluginServerRpc>,
-    rpc_rx:         Receiver<PluginServerRpc>,
-    io_tx:          Sender<JsonRpc>,
-    server_pending: Arc<Mutex<HashMap<Id, ResponseHandler<Value, RpcError>>>>,
+    pub spawned_by:   Option<PluginId>,
+    pub plugin_id:    PluginId,
+    pub volt_id:      VoltID,
+    pub handler_type: HandlerType,
+    rpc_tx:           Sender<PluginServerRpc>,
+    rpc_rx:           Receiver<PluginServerRpc>,
+    io_tx:            Sender<JsonRpc>,
+    server_pending:   Arc<Mutex<HashMap<Id, ResponseHandler<Value, RpcError>>>>,
 }
 
 #[derive(Clone)]
@@ -273,6 +285,7 @@ impl PluginServerRpcHandler {
         plugin_id: Option<PluginId>,
         io_tx: Sender<JsonRpc>,
         id: u64,
+        handler_type: HandlerType,
     ) -> Self {
         let (rpc_tx, rpc_rx) = crossbeam_channel::unbounded();
 
@@ -284,6 +297,7 @@ impl PluginServerRpcHandler {
             rpc_rx,
             io_tx,
             server_pending: Arc::new(Mutex::new(HashMap::new())),
+            handler_type,
         };
 
         rpc.initialize(id);
@@ -423,14 +437,17 @@ impl PluginServerRpcHandler {
     ) {
         let params = Params::from(serde_json::to_value(params).unwrap());
         if check {
-            if let Err(err) = self.rpc_tx.send(PluginServerRpc::ServerRequest {
-                id: Id::Num(id as i64),
-                method,
-                params,
-                language_id,
-                path,
-                rh,
-            }) {
+            if let Err(err) =
+                self.rpc_tx
+                    .send(PluginServerRpc::HostSendToPluginOrLspRequest {
+                        id: Id::Num(id as i64),
+                        method,
+                        params,
+                        language_id,
+                        path,
+                        rh,
+                    })
+            {
                 log::error!("{:?}", err);
             }
         } else {
@@ -458,7 +475,7 @@ impl PluginServerRpcHandler {
         H: PluginServerHandler, {
         for msg in &self.rpc_rx {
             match msg {
-                PluginServerRpc::ServerRequest {
+                PluginServerRpc::HostSendToPluginOrLspRequest {
                     id,
                     method,
                     params,
@@ -472,12 +489,12 @@ impl PluginServerRpcHandler {
                     {
                         self.send_server_request(id, &method, params, rh);
                     } else {
-                        debug!("server not capable: {method}");
+                        debug!("{_handler_name} not capable: {method}");
                         rh.invoke(
                             id,
                             Err(RpcError {
                                 code:    0,
-                                message: "server not capable".to_string(),
+                                message: "{_handler_name} not capable".to_string(),
                             }),
                         );
                     }

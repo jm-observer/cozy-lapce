@@ -36,7 +36,10 @@ use super::{
 };
 use crate::{
     buffer::Buffer,
-    plugin::{PluginCatalogRpcHandler, psp::PluginServerRpc},
+    plugin::{
+        PluginCatalogRpcHandler,
+        psp::{HandlerType, PluginServerRpc},
+    },
 };
 
 const HEADER_CONTENT_LENGTH: &str = "content-length";
@@ -237,6 +240,7 @@ impl LspClient {
             plugin_id,
             io_tx.clone(),
             id,
+            HandlerType::Lsp,
         );
         thread::spawn(move || {
             for msg in io_rx {

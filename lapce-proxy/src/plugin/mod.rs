@@ -52,10 +52,10 @@ use lsp_types::{
     MessageActionItemCapabilities, ParameterInformationSettings,
     PartialResultParams, Position, PrepareRenameResponse,
     PublishDiagnosticsClientCapabilities, Range, ReferenceContext, ReferenceParams,
-    RenameParams, SelectionRange, SelectionRangeParams, SemanticTokens,
-    SemanticTokensClientCapabilities, SemanticTokensClientCapabilitiesRequests,
-    SemanticTokensDeltaParams, SemanticTokensFullDeltaResult,
-    SemanticTokensFullOptions, SemanticTokensParams,
+    RenameParams, SelectionRange, SelectionRangeParams, SemanticTokenType,
+    SemanticTokens, SemanticTokensClientCapabilities,
+    SemanticTokensClientCapabilitiesRequests, SemanticTokensDeltaParams,
+    SemanticTokensFullDeltaResult, SemanticTokensFullOptions, SemanticTokensParams,
     ShowMessageRequestClientCapabilities, SignatureHelp,
     SignatureHelpClientCapabilities, SignatureHelpParams,
     SignatureInformationSettings, SymbolInformation, TextDocumentClientCapabilities,
@@ -1925,6 +1925,7 @@ fn client_capabilities() -> ClientCapabilities {
                         delta: Some(true),
                     }),
                 },
+                token_types: semantic_token_types(),
                 ..Default::default()
             }),
             type_definition: Some(GotoCapability {
@@ -1978,4 +1979,32 @@ fn client_capabilities() -> ClientCapabilities {
         experimental: Some(experimental.into()),
         ..Default::default()
     }
+}
+
+fn semantic_token_types() -> Vec<SemanticTokenType> {
+    vec![
+        "namespace".into(),
+        "type".into(),
+        "class".into(),
+        "enum".into(),
+        "interface".into(),
+        "struct".into(),
+        "typeParameter".into(),
+        "parameter".into(),
+        "variable".into(),
+        "property".into(),
+        "enumMember".into(),
+        "event".into(),
+        "function".into(),
+        "method".into(),
+        "macro".into(),
+        "keyword".into(),
+        "modifier".into(),
+        "comment".into(),
+        "string".into(),
+        "number".into(),
+        "regexp".into(),
+        "operator".into(),
+        "decorator".into(),
+    ]
 }

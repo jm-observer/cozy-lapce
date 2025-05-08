@@ -156,6 +156,9 @@ impl PluginCatalog {
             }
         }
         for (plugin_id, plugin) in self.plugins.iter() {
+            if plugin.handler_type.is_plugin() {
+                continue;
+            }
             let f = dyn_clone::clone_box(&*f);
             let plugin_id = *plugin_id;
             plugin.server_request_async(

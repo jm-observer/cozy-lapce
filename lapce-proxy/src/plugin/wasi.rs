@@ -36,8 +36,9 @@ use wasmtime_wasi::WasiCtxBuilder;
 use super::{
     PluginCatalogRpcHandler, client_capabilities,
     psp::{
-        PluginHandlerNotification, PluginHostHandler, PluginServerHandler,
-        PluginServerRpc, ResponseSender, RpcCallback, handle_plugin_server_message,
+        HandlerType, PluginHandlerNotification, PluginHostHandler,
+        PluginServerHandler, PluginServerRpc, ResponseSender, RpcCallback,
+        handle_plugin_server_message,
     },
     volt_icon,
 };
@@ -567,7 +568,14 @@ pub fn start_volt(
     let mut store = wasmtime::Store::new(&engine, wasi);
 
     let (io_tx, io_rx) = crossbeam_channel::unbounded();
-    let rpc = PluginServerRpcHandler::new(meta.id(), None, None, io_tx, id);
+    let rpc = PluginServerRpcHandler::new(
+        meta.id(),
+        None,
+        None,
+        io_tx,
+        id,
+        HandlerType::Plugin,
+    );
 
     let local_rpc = rpc.clone();
     let local_stdin = stdin.clone();

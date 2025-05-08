@@ -826,7 +826,7 @@ impl Action {
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         // TODO other modes
         let selection = match cursor.mut_mode() {
-            CursorMode::Insert(ref mut sel) => sel,
+            CursorMode::Insert(sel) => sel,
             _ => return vec![],
         };
 
