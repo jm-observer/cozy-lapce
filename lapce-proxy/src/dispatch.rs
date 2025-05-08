@@ -28,8 +28,8 @@ use lapce_rpc::{
     file::FileNodeItem,
     file_line::FileLine,
     proxy::{
-        ProxyHandler, ProxyNotification, ProxyRequest, ProxyResponse,
-        ProxyRpcHandler, SearchMatch,
+        ProxyHandler, ProxyLspRequest, ProxyNotification, ProxyRequest,
+        ProxyResponse, ProxyRpcHandler, SearchMatch,
     },
     source_control::{DiffInfo, FileDiff},
     style::{LineStyle, SemanticStyles},
@@ -351,6 +351,9 @@ impl ProxyHandler for Dispatcher {
         use ProxyRequest::*;
         log::debug!("dispatcher handle_request {:?}", rpc);
         match rpc {
+            LspRequest(rpc) => {
+                self.handle_lsp_request(id, rpc).await;
+            },
             NewBuffer { buffer_id, path } => {
                 let (content, read_only) = self.new_buffer(id, buffer_id, path);
                 self.respond_rpc(
@@ -423,58 +426,7 @@ impl ProxyHandler for Dispatcher {
                     );
                 });
             },
-            CompletionResolve {
-                plugin_id,
-                completion_item,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.completion_resolve(
-                    plugin_id,
-                    *completion_item,
-                    move |result| {
-                        let result = result.map(|item| {
-                            ProxyResponse::CompletionResolveResponse {
-                                item: Box::new(item),
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetHover {
-                request_id,
-                path,
-                position,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.hover(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|hover| {
-                            ProxyResponse::HoverResponse { request_id, hover }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
             GetSignature { .. } => {},
-            GetReferences { path, position } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_references(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|references| {
-                            ProxyResponse::GetReferencesResponse { references }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
             GitGetRemoteFileUrl { file } => {
                 if let Some(workspace) = self.workspace.as_ref() {
                     match git_get_remote_file_url(workspace, &file) {
@@ -485,279 +437,6 @@ impl ProxyHandler for Dispatcher {
                         Err(e) => eprintln!("{e:?}"),
                     }
                 }
-            },
-            GetDefinition {
-                request_id,
-                path,
-                position,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_definition(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|definition| {
-                            ProxyResponse::GetDefinitionResponse {
-                                request_id,
-                                definition,
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetTypeDefinition {
-                request_id,
-                path,
-                position,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_type_definition(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|definition| {
-                            ProxyResponse::GetTypeDefinition {
-                                request_id,
-                                definition,
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            ShowCallHierarchy { path, position } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.show_call_hierarchy(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|items| {
-                            ProxyResponse::ShowCallHierarchyResponse { items }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            DocumentHighlight { path, position } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.document_highlight(
-                    &path,
-                    position,
-                    move |_, result| {
-                        let result = result.map(|items| {
-                            ProxyResponse::DocumentHighlightResponse { items }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            CallHierarchyIncoming {
-                path,
-                call_hierarchy_item,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.call_hierarchy_incoming(
-                    &path,
-                    call_hierarchy_item,
-                    move |_, result| {
-                        let result = result.map(|items| {
-                            ProxyResponse::CallHierarchyIncomingResponse { items }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetInlayHints { path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                let buffer = self.buffers.get(&path).unwrap();
-                let end = match buffer.offset_to_position(buffer.len()) {
-                    Ok(rs) => rs,
-                    Err(err) => {
-                        error!("{err:?}");
-                        return;
-                    },
-                };
-                let range = Range {
-                    start: Position::new(0, 0),
-                    end,
-                };
-                self.catalog_rpc.get_inlay_hints(
-                    &path,
-                    range,
-                    move |_, result| {
-                        let result = result
-                            .map(|hints| ProxyResponse::GetInlayHints { hints });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetInlineCompletions {
-                path,
-                position,
-                trigger_kind,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_inline_completions(
-                    &path,
-                    position,
-                    trigger_kind,
-                    move |_, result| {
-                        let result = result.map(|completions| {
-                            ProxyResponse::GetInlineCompletions { completions }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetSemanticTokens { path } => {
-                let buffer = self.buffers.get(&path).unwrap();
-                let text = buffer.rope.clone();
-                let rev = buffer.rev;
-                let len = buffer.len();
-                let local_path = path.clone();
-                let proxy_rpc = self.proxy_rpc.clone();
-                let catalog_rpc = self.catalog_rpc.clone();
-
-                let handle_tokens = move |_,
-                                          result: Result<
-                    (Vec<LineStyle>, Option<String>),
-                    RpcError,
-                >| {
-                    match result {
-                        Ok((styles, result_id)) => {
-                            proxy_rpc.handle_response(
-                                id,
-                                Ok(ProxyResponse::GetSemanticTokens {
-                                    styles: SemanticStyles {
-                                        rev,
-                                        path: local_path,
-                                        styles,
-                                        len,
-                                    },
-                                    result_id,
-                                }),
-                            );
-                        },
-                        Err(e) => {
-                            proxy_rpc.handle_response(id, Err(e));
-                        },
-                    }
-                };
-
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_semantic_tokens(
-                    &path,
-                    move |plugin_id, result| match result {
-                        Ok(result) => {
-                            catalog_rpc.format_semantic_tokens(
-                                id,
-                                plugin_id,
-                                result,
-                                text,
-                                Box::new(handle_tokens),
-                            );
-                        },
-                        Err(e) => {
-                            proxy_rpc.handle_response(id, Err(e));
-                        },
-                    },
-                    id,
-                );
-            },
-            GetSemanticTokensDelta {
-                path,
-                previous_result_id,
-            } => {
-                // let buffer = self.buffers.get(&path).unwrap();
-                // let text = buffer.rope.clone();
-                // let rev = buffer.rev;
-                // let len = buffer.len();
-                // let local_path = path.clone();
-                // let proxy_rpc = self.proxy_rpc.clone();
-                // let catalog_rpc = self.catalog_rpc.clone();
-
-                // let _handle_tokens = move |_,
-                //                            result: Result<
-                //     Vec<LineStyle>,
-                //     RpcError,
-                // >| match result {
-                //     Ok(styles) => {
-                //         proxy_rpc.handle_response(
-                //             id,
-                //             Ok(ProxyResponse::GetSemanticTokens {
-                //                 styles: SemanticStyles {
-                //                     rev,
-                //                     path: local_path,
-                //                     styles,
-                //                     len,
-                //                 },
-                //             }),
-                //         );
-                //     }
-                //     Err(e) => {
-                //         proxy_rpc.handle_response(id, Err(e));
-                //     }
-                // };
-
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_semantic_tokens_delta(
-                    &path,
-                    previous_result_id,
-                    move |_plugin_id, result| match result {
-                        Ok(_result) => {
-                            // catalog_rpc.format_semantic_tokens(
-                            //     id,
-                            //     plugin_id,
-                            //     result,
-                            //     text,
-                            //     Box::new(handle_tokens),
-                            // );
-                        },
-                        Err(e) => {
-                            proxy_rpc.handle_response(id, Err(e));
-                        },
-                    },
-                    id,
-                );
-            },
-            GetCodeActions {
-                path,
-                position,
-                diagnostics,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_code_actions(
-                    &path,
-                    position,
-                    diagnostics,
-                    move |plugin_id, result| {
-                        let result = result.map(|resp| {
-                            ProxyResponse::GetCodeActionsResponse { plugin_id, resp }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetDocumentSymbols { path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_document_symbols(
-                    &path,
-                    move |_, result| {
-                        let result = result
-                            .map(|resp| ProxyResponse::GetDocumentSymbols { resp });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
             },
             GetWorkspaceSymbols { query } => {
                 let proxy_rpc = self.proxy_rpc.clone();
@@ -1124,39 +803,6 @@ impl ProxyHandler for Dispatcher {
 
                 self.respond_rpc(id, result);
             },
-            GetSelectionRange { positions, path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_selection_range(
-                    path.as_path(),
-                    positions,
-                    move |_, result| {
-                        let result = result.map(|ranges| {
-                            ProxyResponse::GetSelectionRange { ranges }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            CodeActionResolve {
-                action_item,
-                plugin_id,
-            } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.action_resolve(
-                    *action_item,
-                    plugin_id,
-                    move |result| {
-                        let result = result.map(|item| {
-                            ProxyResponse::CodeActionResolveResponse {
-                                item: Box::new(item),
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
             DapVariable { dap_id, reference } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.dap_variable(
@@ -1185,69 +831,6 @@ impl ProxyHandler for Dispatcher {
                             }),
                         );
                     },
-                );
-            },
-            GetCodeLens { path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_code_lens(
-                    &path,
-                    move |plugin_id, result| {
-                        let result = result.map(|resp| {
-                            ProxyResponse::GetCodeLensResponse { plugin_id, resp }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            LspFoldingRange { path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_lsp_folding_range(
-                    &path,
-                    move |plugin_id, result| {
-                        let result = result.map(|resp| {
-                            ProxyResponse::LspFoldingRangeResponse {
-                                plugin_id,
-                                resp,
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GetCodeLensResolve { code_lens, path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_code_lens_resolve(
-                    &path,
-                    &code_lens,
-                    move |plugin_id, result| {
-                        let result = result.map(|resp| {
-                            ProxyResponse::GetCodeLensResolveResponse {
-                                plugin_id,
-                                resp,
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
-            GotoImplementation { path, position } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.go_to_implementation(
-                    &path,
-                    position,
-                    move |plugin_id, result| {
-                        let result = result.map(|resp| {
-                            ProxyResponse::GotoImplementationResponse {
-                                plugin_id,
-                                resp,
-                            }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
                 );
             },
             ReferencesResolve { items } => {
@@ -1296,23 +879,6 @@ impl ProxyHandler for Dispatcher {
                 if let Err(err) = self.catalog_rpc.enable_volt(id, volt) {
                     log::error!("{:?}", err);
                 }
-            },
-            Completion {
-                request_id,
-                path,
-                input,
-                position,
-            } => {
-                self.catalog_rpc
-                    .completion(request_id, id, &path, input, position);
-            },
-            SignatureHelp {
-                request_id,
-                path,
-                position,
-            } => {
-                self.catalog_rpc
-                    .signature_help(request_id, id, &path, position);
             },
             Initialize {
                 workspace,
@@ -1457,6 +1023,450 @@ impl Dispatcher {
         self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
         self.buffers.insert(path, buffer);
         (content, read_only)
+    }
+
+    async fn handle_lsp_request(&mut self, id: RequestId, rpc: ProxyLspRequest) {
+        use ProxyLspRequest::*;
+        log::debug!("dispatcher handle_request {:?}", rpc);
+        match rpc {
+            Completion {
+                request_id,
+                path,
+                input,
+                position,
+            } => {
+                self.catalog_rpc
+                    .completion(request_id, id, &path, input, position);
+            },
+            SignatureHelp {
+                request_id,
+                path,
+                position,
+            } => {
+                self.catalog_rpc
+                    .signature_help(request_id, id, &path, position);
+            },
+            CompletionResolve {
+                plugin_id,
+                completion_item,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.completion_resolve(
+                    plugin_id,
+                    *completion_item,
+                    move |result| {
+                        let result = result.map(|item| {
+                            ProxyResponse::CompletionResolveResponse {
+                                item: Box::new(item),
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetHover {
+                request_id,
+                path,
+                position,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.hover(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|hover| {
+                            ProxyResponse::HoverResponse { request_id, hover }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetReferences { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_references(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|references| {
+                            ProxyResponse::GetReferencesResponse { references }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetDefinition {
+                request_id,
+                path,
+                position,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_definition(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|definition| {
+                            ProxyResponse::GetDefinitionResponse {
+                                request_id,
+                                definition,
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetTypeDefinition {
+                request_id,
+                path,
+                position,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_type_definition(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|definition| {
+                            ProxyResponse::GetTypeDefinition {
+                                request_id,
+                                definition,
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            ShowCallHierarchy { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.show_call_hierarchy(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|items| {
+                            ProxyResponse::ShowCallHierarchyResponse { items }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            DocumentHighlight { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.document_highlight(
+                    &path,
+                    position,
+                    move |_, result| {
+                        let result = result.map(|items| {
+                            ProxyResponse::DocumentHighlightResponse { items }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            CallHierarchyIncoming {
+                path,
+                call_hierarchy_item,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.call_hierarchy_incoming(
+                    &path,
+                    call_hierarchy_item,
+                    move |_, result| {
+                        let result = result.map(|items| {
+                            ProxyResponse::CallHierarchyIncomingResponse { items }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetInlayHints { path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                let buffer = self.buffers.get(&path).unwrap();
+                let end = match buffer.offset_to_position(buffer.len()) {
+                    Ok(rs) => rs,
+                    Err(err) => {
+                        error!("{err:?}");
+                        return;
+                    },
+                };
+                let range = Range {
+                    start: Position::new(0, 0),
+                    end,
+                };
+                self.catalog_rpc.get_inlay_hints(
+                    &path,
+                    range,
+                    move |_, result| {
+                        let result = result
+                            .map(|hints| ProxyResponse::GetInlayHints { hints });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetInlineCompletions {
+                path,
+                position,
+                trigger_kind,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_inline_completions(
+                    &path,
+                    position,
+                    trigger_kind,
+                    move |_, result| {
+                        let result = result.map(|completions| {
+                            ProxyResponse::GetInlineCompletions { completions }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetSemanticTokens { path } => {
+                let buffer = self.buffers.get(&path).unwrap();
+                let text = buffer.rope.clone();
+                let rev = buffer.rev;
+                let len = buffer.len();
+                let local_path = path.clone();
+                let proxy_rpc = self.proxy_rpc.clone();
+                let catalog_rpc = self.catalog_rpc.clone();
+
+                let handle_tokens = move |_,
+                                          result: Result<
+                    (Vec<LineStyle>, Option<String>),
+                    RpcError,
+                >| {
+                    match result {
+                        Ok((styles, result_id)) => {
+                            proxy_rpc.handle_response(
+                                id,
+                                Ok(ProxyResponse::GetSemanticTokens {
+                                    styles: SemanticStyles {
+                                        rev,
+                                        path: local_path,
+                                        styles,
+                                        len,
+                                    },
+                                    result_id,
+                                }),
+                            );
+                        },
+                        Err(e) => {
+                            proxy_rpc.handle_response(id, Err(e));
+                        },
+                    }
+                };
+
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_semantic_tokens(
+                    &path,
+                    move |plugin_id, result| match result {
+                        Ok(result) => {
+                            catalog_rpc.format_semantic_tokens(
+                                id,
+                                plugin_id,
+                                result,
+                                text,
+                                Box::new(handle_tokens),
+                            );
+                        },
+                        Err(e) => {
+                            proxy_rpc.handle_response(id, Err(e));
+                        },
+                    },
+                    id,
+                );
+            },
+            GetSemanticTokensDelta {
+                path,
+                previous_result_id,
+            } => {
+                // let buffer = self.buffers.get(&path).unwrap();
+                // let text = buffer.rope.clone();
+                // let rev = buffer.rev;
+                // let len = buffer.len();
+                // let local_path = path.clone();
+                // let proxy_rpc = self.proxy_rpc.clone();
+                // let catalog_rpc = self.catalog_rpc.clone();
+
+                // let _handle_tokens = move |_,
+                //                            result: Result<
+                //     Vec<LineStyle>,
+                //     RpcError,
+                // >| match result {
+                //     Ok(styles) => {
+                //         proxy_rpc.handle_response(
+                //             id,
+                //             Ok(ProxyResponse::GetSemanticTokens {
+                //                 styles: SemanticStyles {
+                //                     rev,
+                //                     path: local_path,
+                //                     styles,
+                //                     len,
+                //                 },
+                //             }),
+                //         );
+                //     }
+                //     Err(e) => {
+                //         proxy_rpc.handle_response(id, Err(e));
+                //     }
+                // };
+
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_semantic_tokens_delta(
+                    &path,
+                    previous_result_id,
+                    move |_plugin_id, result| match result {
+                        Ok(_result) => {
+                            // catalog_rpc.format_semantic_tokens(
+                            //     id,
+                            //     plugin_id,
+                            //     result,
+                            //     text,
+                            //     Box::new(handle_tokens),
+                            // );
+                        },
+                        Err(e) => {
+                            proxy_rpc.handle_response(id, Err(e));
+                        },
+                    },
+                    id,
+                );
+            },
+            GetCodeActions {
+                path,
+                position,
+                diagnostics,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_code_actions(
+                    &path,
+                    position,
+                    diagnostics,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::GetCodeActionsResponse { plugin_id, resp }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetDocumentSymbols { path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_document_symbols(
+                    &path,
+                    move |_, result| {
+                        let result = result
+                            .map(|resp| ProxyResponse::GetDocumentSymbols { resp });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetSelectionRange { positions, path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_selection_range(
+                    path.as_path(),
+                    positions,
+                    move |_, result| {
+                        let result = result.map(|ranges| {
+                            ProxyResponse::GetSelectionRange { ranges }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            CodeActionResolve {
+                action_item,
+                plugin_id,
+            } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.action_resolve(
+                    *action_item,
+                    plugin_id,
+                    move |result| {
+                        let result = result.map(|item| {
+                            ProxyResponse::CodeActionResolveResponse {
+                                item: Box::new(item),
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetCodeLens { path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_code_lens(
+                    &path,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::GetCodeLensResponse { plugin_id, resp }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            LspFoldingRange { path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_lsp_folding_range(
+                    &path,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::LspFoldingRangeResponse {
+                                plugin_id,
+                                resp,
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GetCodeLensResolve { code_lens, path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_code_lens_resolve(
+                    &path,
+                    &code_lens,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::GetCodeLensResolveResponse {
+                                plugin_id,
+                                resp,
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            GotoImplementation { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.go_to_implementation(
+                    &path,
+                    position,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::GotoImplementationResponse {
+                                plugin_id,
+                                resp,
+                            }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+        }
     }
 }
 

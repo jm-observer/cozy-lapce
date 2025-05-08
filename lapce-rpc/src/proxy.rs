@@ -61,24 +61,7 @@ pub struct SearchMatch {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "method", content = "params")]
-pub enum ProxyRequest {
-    NewBuffer {
-        buffer_id: BufferId,
-        path:      PathBuf,
-    },
-    // ReloadBuffer {
-    //     buffer_id: BufferId,
-    //     path:      PathBuf,
-    // },
-    BufferHead {
-        path: PathBuf,
-    },
-    GlobalSearch {
-        pattern:        String,
-        case_sensitive: bool,
-        whole_word:     bool,
-        is_regex:       bool,
-    },
+pub enum ProxyLspRequest {
     CompletionResolve {
         plugin_id:       PluginId,
         completion_item: Box<CompletionItem>,
@@ -92,16 +75,43 @@ pub enum ProxyRequest {
         path:       PathBuf,
         position:   Position,
     },
-    GetSignature {
-        buffer_id: BufferId,
-        position:  Position,
+    GetTypeDefinition {
+        request_id: usize,
+        path:       PathBuf,
+        position:   Position,
     },
-    GetSelectionRange {
+    GetInlayHints {
+        path: PathBuf,
+    },
+    GetInlineCompletions {
+        path:         PathBuf,
+        position:     Position,
+        trigger_kind: InlineCompletionTriggerKind,
+    },
+    GetSemanticTokens {
+        path: PathBuf,
+    },
+    GetSemanticTokensDelta {
+        path:               PathBuf,
+        previous_result_id: String,
+    },
+    LspFoldingRange {
+        path: PathBuf,
+    },
+    GetCodeActions {
+        path:        PathBuf,
+        position:    Position,
+        diagnostics: Vec<Diagnostic>,
+    },
+    GetCodeLens {
+        path: PathBuf,
+    },
+    GetCodeLensResolve {
+        code_lens: CodeLens,
         path:      PathBuf,
-        positions: Vec<Position>,
     },
-    GitGetRemoteFileUrl {
-        file: PathBuf,
+    GetDocumentSymbols {
+        path: PathBuf,
     },
     GetReferences {
         path:     PathBuf,
@@ -128,29 +138,58 @@ pub enum ProxyRequest {
         path:                PathBuf,
         call_hierarchy_item: CallHierarchyItem,
     },
-    GetTypeDefinition {
+    GetSelectionRange {
+        path:      PathBuf,
+        positions: Vec<Position>,
+    },
+    Completion {
+        request_id: usize,
+        path:       PathBuf,
+        input:      String,
+        position:   Position,
+    },
+    SignatureHelp {
         request_id: usize,
         path:       PathBuf,
         position:   Position,
     },
-    GetInlayHints {
+}
+
+impl From<ProxyLspRequest> for ProxyRequest {
+    fn from(value: ProxyLspRequest) -> Self {
+        Self::LspRequest(value)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "method", content = "params")]
+pub enum ProxyRequest {
+    GetSignature {
+        buffer_id: BufferId,
+        position:  Position,
+    },
+    NewBuffer {
+        buffer_id: BufferId,
+        path:      PathBuf,
+    },
+    // ReloadBuffer {
+    //     buffer_id: BufferId,
+    //     path:      PathBuf,
+    // },
+    BufferHead {
         path: PathBuf,
     },
-    GetInlineCompletions {
-        path:         PathBuf,
-        position:     Position,
-        trigger_kind: InlineCompletionTriggerKind,
+    GlobalSearch {
+        pattern:        String,
+        case_sensitive: bool,
+        whole_word:     bool,
+        is_regex:       bool,
     },
-    GetSemanticTokens {
-        path: PathBuf,
+    GitGetRemoteFileUrl {
+        file: PathBuf,
     },
-    GetSemanticTokensDelta {
-        path:               PathBuf,
-        previous_result_id: String,
-    },
-    LspFoldingRange {
-        path: PathBuf,
-    },
+    LspRequest(ProxyLspRequest),
     PrepareRename {
         path:     PathBuf,
         position: Position,
@@ -159,21 +198,6 @@ pub enum ProxyRequest {
         path:     PathBuf,
         position: Position,
         new_name: String,
-    },
-    GetCodeActions {
-        path:        PathBuf,
-        position:    Position,
-        diagnostics: Vec<Diagnostic>,
-    },
-    GetCodeLens {
-        path: PathBuf,
-    },
-    GetCodeLensResolve {
-        code_lens: CodeLens,
-        path:      PathBuf,
-    },
-    GetDocumentSymbols {
-        path: PathBuf,
     },
     GetWorkspaceSymbols {
         /// The search query
@@ -257,17 +281,6 @@ pub enum ProxyRequest {
         plugin_configurations: HashMap<String, HashMap<String, serde_json::Value>>,
         window_id:             usize,
         tab_id:                usize,
-    },
-    Completion {
-        request_id: usize,
-        path:       PathBuf,
-        input:      String,
-        position:   Position,
-    },
-    SignatureHelp {
-        request_id: usize,
-        path:       PathBuf,
-        position:   Position,
     },
     FindFileFromLog {
         log: String,
@@ -625,10 +638,10 @@ impl ProxyRpcHandler {
 
     pub fn request_async(
         &self,
-        request: ProxyRequest,
+        request: impl Into<ProxyRequest>,
         f: impl ProxyCallback + 'static,
     ) -> u64 {
-        self.request_common(request, ResponseHandler::Callback(Box::new(f)))
+        self.request_common(request.into(), ResponseHandler::Callback(Box::new(f)))
     }
 
     pub fn handle_response(
@@ -722,7 +735,7 @@ impl ProxyRpcHandler {
         position: Position,
     ) {
         self.request_async(
-            ProxyRequest::Completion {
+            ProxyLspRequest::Completion {
                 request_id,
                 path,
                 input,
@@ -739,7 +752,7 @@ impl ProxyRpcHandler {
         position: Position,
     ) {
         self.request_async(
-            ProxyRequest::SignatureHelp {
+            ProxyLspRequest::SignatureHelp {
                 request_id,
                 path,
                 position,
@@ -927,7 +940,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::CompletionResolve {
+            ProxyLspRequest::CompletionResolve {
                 plugin_id,
                 completion_item: Box::new(completion_item),
             },
@@ -942,7 +955,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::CodeActionResolve {
+            ProxyLspRequest::CodeActionResolve {
                 action_item: Box::new(action_item),
                 plugin_id,
             },
@@ -958,7 +971,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetHover {
+            ProxyLspRequest::GetHover {
                 request_id,
                 path,
                 position,
@@ -975,7 +988,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetDefinition {
+            ProxyLspRequest::GetDefinition {
                 request_id,
                 path,
                 position,
@@ -990,7 +1003,7 @@ impl ProxyRpcHandler {
         position: Position,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::ShowCallHierarchy { path, position }, f);
+        self.request_async(ProxyLspRequest::ShowCallHierarchy { path, position }, f);
     }
 
     pub fn document_highlight(
@@ -999,7 +1012,7 @@ impl ProxyRpcHandler {
         position: Position,
         f: impl ProxyCallback + 'static,
     ) -> u64 {
-        self.request_async(ProxyRequest::DocumentHighlight { path, position }, f)
+        self.request_async(ProxyLspRequest::DocumentHighlight { path, position }, f)
     }
 
     pub fn call_hierarchy_incoming(
@@ -1009,7 +1022,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::CallHierarchyIncoming {
+            ProxyLspRequest::CallHierarchyIncoming {
                 path,
                 call_hierarchy_item,
             },
@@ -1025,7 +1038,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetTypeDefinition {
+            ProxyLspRequest::GetTypeDefinition {
                 request_id,
                 path,
                 position,
@@ -1039,7 +1052,7 @@ impl ProxyRpcHandler {
         path: PathBuf,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::LspFoldingRange { path }, f);
+        self.request_async(ProxyLspRequest::LspFoldingRange { path }, f);
     }
 
     pub fn get_references(
@@ -1048,7 +1061,7 @@ impl ProxyRpcHandler {
         position: Position,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetReferences { path, position }, f);
+        self.request_async(ProxyLspRequest::GetReferences { path, position }, f);
     }
 
     pub fn references_resolve(
@@ -1065,7 +1078,10 @@ impl ProxyRpcHandler {
         position: Position,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GotoImplementation { path, position }, f);
+        self.request_async(
+            ProxyLspRequest::GotoImplementation { path, position },
+            f,
+        );
     }
 
     pub fn get_code_actions(
@@ -1076,7 +1092,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetCodeActions {
+            ProxyLspRequest::GetCodeActions {
                 path,
                 position,
                 diagnostics,
@@ -1086,7 +1102,7 @@ impl ProxyRpcHandler {
     }
 
     pub fn get_code_lens(&self, path: PathBuf, f: impl ProxyCallback + 'static) {
-        self.request_async(ProxyRequest::GetCodeLens { path }, f);
+        self.request_async(ProxyLspRequest::GetCodeLens { path }, f);
     }
 
     pub fn get_code_lens_resolve(
@@ -1095,7 +1111,10 @@ impl ProxyRpcHandler {
         path: PathBuf,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetCodeLensResolve { code_lens, path }, f);
+        self.request_async(
+            ProxyLspRequest::GetCodeLensResolve { code_lens, path },
+            f,
+        );
     }
 
     pub fn get_document_formatting(
@@ -1111,7 +1130,7 @@ impl ProxyRpcHandler {
         path: PathBuf,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetSemanticTokens { path }, f);
+        self.request_async(ProxyLspRequest::GetSemanticTokens { path }, f);
     }
 
     pub fn get_semantic_tokens_delta(
@@ -1121,7 +1140,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetSemanticTokensDelta {
+            ProxyLspRequest::GetSemanticTokensDelta {
                 path,
                 previous_result_id,
             },
@@ -1134,7 +1153,7 @@ impl ProxyRpcHandler {
         path: PathBuf,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetDocumentSymbols { path }, f);
+        self.request_async(ProxyLspRequest::GetDocumentSymbols { path }, f);
     }
 
     pub fn get_workspace_symbols(
@@ -1180,7 +1199,7 @@ impl ProxyRpcHandler {
     }
 
     pub fn get_inlay_hints(&self, path: PathBuf, f: impl ProxyCallback + 'static) {
-        self.request_async(ProxyRequest::GetInlayHints { path }, f);
+        self.request_async(ProxyLspRequest::GetInlayHints { path }, f);
     }
 
     pub fn get_inline_completions(
@@ -1191,7 +1210,7 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(
-            ProxyRequest::GetInlineCompletions {
+            ProxyLspRequest::GetInlineCompletions {
                 path,
                 position,
                 trigger_kind,
@@ -1225,7 +1244,10 @@ impl ProxyRpcHandler {
         positions: Vec<Position>,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetSelectionRange { path, positions }, f);
+        self.request_async(
+            ProxyLspRequest::GetSelectionRange { path, positions },
+            f,
+        );
     }
 
     pub fn dap_start(

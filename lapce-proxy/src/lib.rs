@@ -23,9 +23,9 @@ use dispatch::Dispatcher;
 use lapce_core::{directory::Directory, meta};
 use lapce_rpc::{
     RpcMessage,
-    core::{CoreRpc, CoreRpcHandler},
+    core::{CoreResponse, CoreRpc, CoreRpcHandler},
     file::PathObject,
-    proxy::{ProxyMessage, ProxyNotification, ProxyRpcHandler},
+    proxy::{ProxyMessage, ProxyNotification, ProxyRequest, ProxyRpcHandler},
     stdio::stdio_transport,
 };
 use log::error;
@@ -64,7 +64,9 @@ pub async fn mainloop() -> Result<()> {
         Dispatcher::new(core_rpc.clone(), proxy_rpc.clone(), directory.clone());
 
     let (writer_tx, writer_rx) = crossbeam_channel::unbounded();
-    let (reader_tx, reader_rx) = crossbeam_channel::unbounded();
+    let (reader_tx, reader_rx) = crossbeam_channel::unbounded::<
+        RpcMessage<ProxyRequest, ProxyNotification, CoreResponse>,
+    >();
     stdio_transport(stdout(), writer_rx, BufReader::new(stdin()), reader_tx);
 
     let local_core_rpc = core_rpc.clone();

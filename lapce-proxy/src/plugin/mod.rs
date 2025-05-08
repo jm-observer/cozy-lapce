@@ -93,7 +93,7 @@ pub type PluginName = String;
 
 #[allow(clippy::large_enum_variant)]
 pub enum PluginCatalogRpc {
-    ServerRequest {
+    SendToPluginOrLspRequest {
         plugin_id:    Option<PluginId>,
         request_sent: Option<Arc<AtomicUsize>>,
         method:       Cow<'static, str>,
@@ -270,7 +270,7 @@ impl PluginCatalogRpcHandler {
         let plugin_rx = self.plugin_rx.lock().take().unwrap();
         for msg in plugin_rx {
             match msg {
-                PluginCatalogRpc::ServerRequest {
+                PluginCatalogRpc::SendToPluginOrLspRequest {
                     plugin_id,
                     request_sent,
                     method,
@@ -465,7 +465,7 @@ impl PluginCatalogRpcHandler {
         f: impl FnOnce(Id, PluginId, Result<Value, RpcError>) + Send + DynClone + 'static,
     ) {
         let params = serde_json::to_value(params).unwrap();
-        let rpc = PluginCatalogRpc::ServerRequest {
+        let rpc = PluginCatalogRpc::SendToPluginOrLspRequest {
             plugin_id,
             request_sent,
             method: method.into(),
