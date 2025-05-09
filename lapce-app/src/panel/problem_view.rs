@@ -1,8 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
-use doc::diagnostic::DiagnosticData;
+use doc::{
+    diagnostic::DiagnosticData,
+    lines::{register::Clipboard, text::SystemClipboard},
+};
 use floem::{
     View,
+    event::EventListener,
     peniko::Color,
     reactive::{
         SignalGet, SignalUpdate, SignalWith, create_effect, create_rw_signal,
@@ -289,17 +293,26 @@ fn item_view(
         ignore_unconfirmed: false,
         same_editor_tab: false,
     };
+    let message = d.diagnostic.message.clone();
     stack((
         container({
             stack((
-                label(move || d.diagnostic.message.clone()).style(move |s| {
-                    s.width_pct(100.0)
-                        .min_width(0.0)
-                        .padding_left(
-                            10.0 + (config.with_icon_size() as f32 + 6.0) * 3.0,
-                        )
-                        .padding_right(10.0)
-                }),
+                label(move || d.diagnostic.message.clone())
+                    .style(move |s| {
+                        s.width_pct(100.0)
+                            .min_width(0.0)
+                            .padding_left(
+                                10.0 + (config.with_icon_size() as f32 + 6.0) * 3.0,
+                            )
+                            .padding_right(10.0)
+                    })
+                    .on_event_stop(EventListener::SecondaryClick, move |_event| {
+                        let mut clipboard = SystemClipboard::new();
+                        clipboard.put_string(message.clone());
+                        internal_command.send(InternalCommand::ShowStatusMessage {
+                            message: "copied message!".to_owned(),
+                        })
+                    }),
                 stack((
                     svg(move || config.with_ui_svg(icon)).style(move |s| {
                         let size = config.with_icon_size() as f32;
@@ -365,6 +378,7 @@ fn related_view(
                     same_editor_tab:    false,
                 };
                 let message = format!("{path}{}", related.message);
+                let copy_message = message.clone();
                 container(
                     label(move || message.clone())
                         .style(move |s| s.width_pct(100.0).min_width(0.0)),
@@ -373,6 +387,13 @@ fn related_view(
                     internal_command.send(InternalCommand::JumpToLocation {
                         location: location.clone(),
                     });
+                })
+                .on_event_stop(EventListener::SecondaryClick, move |_event| {
+                    let mut clipboard = SystemClipboard::new();
+                    clipboard.put_string(copy_message.clone());
+                    internal_command.send(InternalCommand::ShowStatusMessage {
+                        message: "copied message!".to_owned(),
+                    })
                 })
                 .style(move |s| {
                     let (icon_size, color) = config.signal(|config| {
