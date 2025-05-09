@@ -172,6 +172,7 @@ pub struct EditorData {
     pub sticky_header_height: RwSignal<f64>,
     pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
     pub last_movement:        RwSignal<Movement>,
+    pub auto_save_token:               RwSignal<TimerToken>,
 }
 
 impl PartialEq for EditorData {
@@ -275,6 +276,7 @@ impl EditorData {
             sticky_header_info: cx.create_rw_signal(StickyHeaderInfo::default()),
             last_movement: cx.create_rw_signal(Movement::Left),
             editor_id: EditorId::next(),
+            auto_save_token: cx.create_rw_signal(TimerToken::INVALID),
         }
     }
 
@@ -2444,7 +2446,11 @@ impl EditorData {
             };
             let editor = self.clone();
             let rev = doc.rev();
-            exec_after(Duration::from_millis(autosave_interval), move |_| {
+            let auto_save_token = self.auto_save_token;
+            self.auto_save_token.set(exec_after(Duration::from_millis(autosave_interval), move |token| {
+                if auto_save_token.get_untracked() != token {
+                    return;
+                }
                 let is_pristine = editor
                     .doc()
                     .lines
@@ -2461,7 +2467,7 @@ impl EditorData {
                 if !is_pristine && is_current_rec && !editor.has_completions() {
                     editor.save(true, || {});
                 }
-            });
+            }));
         }
     }
 
