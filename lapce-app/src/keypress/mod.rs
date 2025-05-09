@@ -437,25 +437,25 @@ impl KeyPressData {
             mods.set(Modifiers::SHIFT, false);
             mods.set(Modifiers::ALTGR, false);
         }
-        if mods.is_empty() {
-            if let KeyInput::Keyboard { logical, .. } = &keypress.key {
-                if let Key::Character(c) = logical {
-                    focus.receive_char(c);
-                    self.count.set(None);
-                    return KeyPressHandle {
-                        handled: true,
-                        keymatch,
-                        keypress,
-                    };
-                } else if let Key::Named(NamedKey::Space) = logical {
-                    focus.receive_char(" ");
-                    self.count.set(None);
-                    return KeyPressHandle {
-                        handled: true,
-                        keymatch,
-                        keypress,
-                    };
-                }
+        if mods.is_empty()
+            && let KeyInput::Keyboard { logical, .. } = &keypress.key
+        {
+            if let Key::Character(c) = logical {
+                focus.receive_char(c);
+                self.count.set(None);
+                return KeyPressHandle {
+                    handled: true,
+                    keymatch,
+                    keypress,
+                };
+            } else if let Key::Named(NamedKey::Space) = logical {
+                focus.receive_char(" ");
+                self.count.set(None);
+                return KeyPressHandle {
+                    handled: true,
+                    keymatch,
+                    keypress,
+                };
             }
         }
 

@@ -217,10 +217,10 @@ impl PanelData {
     }
 
     pub fn toggle_maximize(&self, kind: &PanelKind) {
-        if let Some((_, p)) = self.panel_position(kind) {
-            if p.is_bottom() {
-                self.toggle_bottom_maximize();
-            }
+        if let Some((_, p)) = self.panel_position(kind)
+            && p.is_bottom()
+        {
+            self.toggle_bottom_maximize();
         }
     }
 
@@ -277,14 +277,14 @@ impl PanelData {
         let index = self
             .panels
             .try_update(|panels| {
-                if let Some((index, current_position)) = current_position {
-                    if let Some(panels) = panels.get_mut(&current_position) {
-                        panels.remove(index);
+                if let Some((index, current_position)) = current_position
+                    && let Some(panels) = panels.get_mut(&current_position)
+                {
+                    panels.remove(index);
 
-                        let max_index = panels.len().saturating_sub(1);
-                        if index > max_index {
-                            new_index_at_old_position = Some(max_index);
-                        }
+                    let max_index = panels.len().saturating_sub(1);
+                    if index > max_index {
+                        new_index_at_old_position = Some(max_index);
                     }
                 }
                 let panels = panels.entry(*position).or_default();
@@ -293,11 +293,11 @@ impl PanelData {
             })
             .unwrap();
         self.styles.update(|styles| {
-            if let Some((_, current_position)) = current_position {
-                if let Some(new_index) = new_index_at_old_position {
-                    let style = styles.entry(current_position).or_default();
-                    style.active = new_index;
-                }
+            if let Some((_, current_position)) = current_position
+                && let Some(new_index) = new_index_at_old_position
+            {
+                let style = styles.entry(current_position).or_default();
+                style.active = new_index;
             }
 
             let style = styles.entry(*position).or_default();

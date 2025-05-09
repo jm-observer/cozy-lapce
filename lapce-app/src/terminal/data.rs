@@ -786,10 +786,11 @@ impl TerminalData {
 
     pub fn stop(&self) {
         let (dap_id, raw_id) = self.data.with_untracked(|x| {
-            if let Some(process) = &x.run_debug {
-                if !process.is_prelaunch && process.mode == RunDebugMode::Debug {
-                    return (Some(process.config.dap_id), x.raw_id);
-                }
+            if let Some(process) = &x.run_debug
+                && !process.is_prelaunch
+                && process.mode == RunDebugMode::Debug
+            {
+                return (Some(process.config.dap_id), x.raw_id);
             }
             (None, x.raw_id)
         });

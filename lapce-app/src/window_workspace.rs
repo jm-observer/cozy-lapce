@@ -1637,10 +1637,8 @@ impl WindowWorkspaceData {
                                 if let Ok(ProxyResponse::GitGetRemoteFileUrl {
                                               file_url
                                           }) = result
-                                {
-                                    if let Err(err) = open::that(format!("{}#L{}", file_url, line)) {
-                                        error!("Failed to open file in github: {}",  err);
-                                    }
+                                && let Err(err) = open::that(format!("{file_url}#L{line}",)) {
+                                        error!("Failed to open file in github: {err}",  );
                                 }
                             }),
                         );
@@ -1649,20 +1647,18 @@ impl WindowWorkspaceData {
             RevealInFileExplorer => {
                 if let Some(editor_data) =
                     self.main_split.active_editor.get_untracked()
-                {
-                    if let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
+                && let DocContent::File { path, .. } = editor_data.doc().content.get_untracked() {
                         let path = path.parent().unwrap_or(&path);
                         if !path.exists() {
                             return Ok(());
                         }
                         if let Err(err) = open::that(path) {
                             error!(
-                            "Failed to reveal file in system file explorer: {}",
-                            err
+                            "Failed to reveal file in system file explorer: {err}",
+                            
                         );
                         }
                     }
-                }
             }
             FoldCode => {
                 if let Some(editor_data) =
@@ -1835,8 +1831,7 @@ impl WindowWorkspaceData {
                                 debug!("{level}");
                             }
             InternalCommand::MakeConfirmed => {
-                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() && let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
                                         x.get(&tab_id).map(|data| {
                                             data.with_untracked(|manage| {
                                                 manage.active_child().confirmed_mut()
@@ -1844,7 +1839,6 @@ impl WindowWorkspaceData {
                                         })
                                     }) {
                                         confirmed.set(true);
-                                    }
                                 }
                                 // if let Some(editor) = self.main_split.active_editor.get_untracked() {
                                 //     editor.confirmed.set(true);
@@ -1873,8 +1867,7 @@ impl WindowWorkspaceData {
                                     },
                                     None,
                                 );
-                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() {
-                                    if let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
+                                if let Some(tab_id) = self.main_split.active_editor_tab.get_untracked() && let Some(confirmed) = self.main_split.editor_tabs.with_untracked(|x| {
                                         x.get(&tab_id).map(|data| {
                                             data.with_untracked(|manage| {
                                                 manage.active_child().confirmed_mut()
@@ -1882,7 +1875,6 @@ impl WindowWorkspaceData {
                                         })
                                     }) {
                                         confirmed.set(true);
-                                    }
                                 }
                                 // if let Some(editor) = self.main_split.active_editor.get_untracked() {
                                 //     editor.confirmed.set(true);
@@ -1983,12 +1975,10 @@ impl WindowWorkspaceData {
                                                     content.update(|content| {
                                                         if let DocContent::File { path, .. } =
                                                             content
-                                                        {
-                                                            if let Ok(suffix) =
+                                                        && let Ok(suffix) =
                                                                 path.strip_prefix(&send_current_path)
                                                             {
                                                                 *path = new_path.join(suffix);
-                                                            }
                                                         }
                                                     });
                                                 }
@@ -2028,12 +2018,10 @@ impl WindowWorkspaceData {
                                                 // Open a new file in the editor
                                                 if let ProxyResponse::CreatePathResponse { path } =
                                                     response
-                                                {
-                                                    if !is_dir {
+                                                && !is_dir {
                                                         internal_command.send(
                                                             InternalCommand::OpenFile { path }
                                                         );
-                                                    }
                                                 }
                                             }
                                             Err(err) => {
@@ -2279,18 +2267,14 @@ impl WindowWorkspaceData {
                                 // can just reset one of them.
                                 match self.common.focus.get_untracked() {
                                     Focus::Panel(PanelKind::Terminal) => {
-                                        if let Some(tab) = self.terminal.active_tab_untracked() {
-                                            if let Some(id) = tab.data.with_untracked(|x| x.view_id) {
+                                        if let Some(tab) = self.terminal.active_tab_untracked() && let Some(id) = tab.data.with_untracked(|x| x.view_id) {
                                                 // log::debug!("BlinkCursor Terminal {:?}", id.data().as_ffi());
                                                 id.request_paint();
-                                            }
                                         }
                                     }
                                     Focus::Workbench => {
-                                        if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                                            if let Some(id) = e_data.editor_view_id.get_untracked() {
+                                        if let Some(e_data) = self.main_split.active_editor.get_untracked() && let Some(id) = e_data.editor_view_id.get_untracked() {
                                                 id.request_paint();
-                                            }
                                         }
                                     }
                                     _ => {}
@@ -2359,10 +2343,8 @@ impl WindowWorkspaceData {
                                 self.call_hierarchy_incoming(root_id, item_id);
                             }
             InternalCommand::DocumentHighlight => {
-                                if let Some(e_data) = self.main_split.active_editor.get_untracked() {
-                                    if let Err(err) = e_data.document_highlight(self.clone()) {
+                                if let Some(e_data) = self.main_split.active_editor.get_untracked() && let Err(err) = e_data.document_highlight(self.clone()) {
                                         error!("DocumentHighlight {err}");
-                                    }
                                 }
                             }
             InternalCommand::AddOrRemoveBreakPoint { doc, line_num } =>  {
@@ -3108,10 +3090,8 @@ impl WindowWorkspaceData {
             if self.common.focus.get_untracked() == Focus::Workbench {
                 let active_editor = self.main_split.active_editor.get_untracked();
                 let word = active_editor.map(|editor| editor.word_at_cursor());
-                if let Some(word) = word {
-                    if !word.is_empty() {
+                if let Some(word) = word && !word.is_empty() {
                         self.global_search.set_pattern(word);
-                    }
                 }
             }
             self.global_search

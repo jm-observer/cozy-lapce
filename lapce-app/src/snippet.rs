@@ -212,15 +212,14 @@ impl Snippet {
         let mut chars_iter = s[pos..].chars().peekable();
 
         while let Some(char) = chars_iter.next() {
-            if char == '\\' {
-                if let Some(&next) = chars_iter.peek() {
-                    if escs.iter().chain(loose_escs.iter()).any(|c| *c == next) {
-                        chars_iter.next();
-                        ele.push(next);
-                        end += 1 + next.len_utf8();
-                        continue;
-                    }
-                }
+            if char == '\\'
+                && let Some(&next) = chars_iter.peek()
+                && escs.iter().chain(loose_escs.iter()).any(|c| *c == next)
+            {
+                chars_iter.next();
+                ele.push(next);
+                end += 1 + next.len_utf8();
+                continue;
             }
             if escs.contains(&char) {
                 break;

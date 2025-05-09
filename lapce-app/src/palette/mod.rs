@@ -931,11 +931,11 @@ impl PaletteData {
     }
 
     fn reset_workspace_id(&self, id: u64) -> bool {
-        if let Some(_old_id) = self.workspace_document_id.get_untracked() {
-            if _old_id == id {
-                self.workspace_document_id.set(None);
-                return true;
-            }
+        if let Some(_old_id) = self.workspace_document_id.get_untracked()
+            && _old_id == id
+        {
+            self.workspace_document_id.set(None);
+            return true;
         }
         false
     }
@@ -974,7 +974,7 @@ impl PaletteData {
             .output();
 
         let distros = if let Ok(proc) = cmd {
-            let distros = String::from_utf16(bytemuck::cast_slice(&proc.stdout))
+            String::from_utf16(bytemuck::cast_slice(&proc.stdout))
                 .unwrap_or_default()
                 .lines()
                 .skip(1)
@@ -988,9 +988,7 @@ impl PaletteData {
                         .next()?;
                     Some(name.to_string())
                 })
-                .collect();
-
-            distros
+                .collect()
         } else {
             vec![]
         };
@@ -1039,12 +1037,7 @@ impl PaletteData {
         Ok(())
     }
 
-    fn set_run_configs(
-        &self,
-        run_id: u64,
-        input: &String,
-        configs: RunDebugConfigs,
-    ) {
+    fn set_run_configs(&self, run_id: u64, input: &str, configs: RunDebugConfigs) {
         if configs.loaded {
             let executed_run_configs = self.executed_run_configs.borrow();
             let mut items = Vec::new();
@@ -1097,7 +1090,7 @@ impl PaletteData {
 
             self.filter_items(
                 run_id,
-                &input,
+                input,
                 items.into_iter().map(|(_, item)| item).collect(),
             );
         }

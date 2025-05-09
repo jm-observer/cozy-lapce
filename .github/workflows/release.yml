@@ -7,10 +7,6 @@ on:
         description: "Tag name for release"
         required: false
         default: nightly
-      build_windows:
-        description: "Build Windows?"
-        required: false
-        default: 'true'
       step:
         description: "Which step to run: build / package"
         required: false

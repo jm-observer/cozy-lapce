@@ -186,16 +186,16 @@ impl TerminalPanelData {
             let handle = keypress.key_down(event, &terminal);
             let mode = terminal.get_mode();
 
-            if !handle.handled && mode == Mode::Terminal {
-                if let EventRef::Keyboard(key_event) = event.into() {
-                    if terminal.send_keypress(key_event) {
-                        return Some(KeyPressHandle {
-                            handled:  true,
-                            keymatch: handle.keymatch,
-                            keypress: handle.keypress,
-                        });
-                    }
-                }
+            if !handle.handled
+                && mode == Mode::Terminal
+                && let EventRef::Keyboard(key_event) = event.into()
+                && terminal.send_keypress(key_event)
+            {
+                return Some(KeyPressHandle {
+                    handled:  true,
+                    keymatch: handle.keymatch,
+                    keypress: handle.keypress,
+                });
             }
             Some(handle)
         } else {
@@ -251,8 +251,8 @@ impl TerminalPanelData {
             .tab_infos
             .try_update(|info| {
                 let mut close_tab = None;
-                if let Some(terminal_tab_id) = terminal_tab_id {
-                    if let Some(index) =
+                if let Some(terminal_tab_id) = terminal_tab_id
+                    && let Some(index) =
                         info.tabs.iter().enumerate().find_map(|(index, t)| {
                             if t.term_id == terminal_tab_id {
                                 Some(index)
@@ -260,18 +260,8 @@ impl TerminalPanelData {
                                 None
                             }
                         })
-                    {
-                        close_tab = Some(info.tabs.remove(index));
-                    }
-                    // } else {
-                    //     let mut active_index =
-                    //         info.active_tab().map(|x|
-                    // x.0).unwrap_or_default();
-                    //     let active =
-                    // info.active.min(info.tabs.len().saturating_sub(1));
-                    //     if !info.tabs.is_empty() {
-                    //         info.tabs.remove(active);
-                    //     }
+                {
+                    close_tab = Some(info.tabs.remove(index));
                 }
                 if info.active == terminal_tab_id {
                     info.next_tab();
@@ -470,20 +460,21 @@ impl TerminalPanelData {
         self.tab_infos.with_untracked(|info| {
             for terminal in &info.tabs {
                 if terminal.data.with_untracked(|x| {
-                    if let Some(run_debug) = x.run_debug.as_ref() {
-                        if run_debug.stopped && &run_debug.mode == mode {
-                            match run_debug.mode {
-                                RunDebugMode::Run => {
-                                    if run_debug.config.name == config.name {
-                                        return true;
-                                    }
-                                },
-                                RunDebugMode::Debug => {
-                                    if run_debug.config.dap_id == config.dap_id {
-                                        return true;
-                                    }
-                                },
-                            }
+                    if let Some(run_debug) = x.run_debug.as_ref()
+                        && run_debug.stopped
+                        && &run_debug.mode == mode
+                    {
+                        match run_debug.mode {
+                            RunDebugMode::Run => {
+                                if run_debug.config.name == config.name {
+                                    return true;
+                                }
+                            },
+                            RunDebugMode::Debug => {
+                                if run_debug.config.dap_id == config.dap_id {
+                                    return true;
+                                }
+                            },
                         }
                     }
                     false
@@ -516,10 +507,10 @@ impl TerminalPanelData {
                 if current_active != Some(term_id) {
                     self.debug.active_term.set(Some(term_id));
                 }
-            } else if let Some(active) = current_active {
-                if self.get_terminal(active).is_none() {
-                    self.debug.active_term.set(None);
-                }
+            } else if let Some(active) = current_active
+                && self.get_terminal(active).is_none()
+            {
+                self.debug.active_term.set(None);
             }
         } else {
             self.debug.active_term.set(None);
