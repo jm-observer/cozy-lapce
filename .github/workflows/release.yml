@@ -12,9 +12,9 @@ on:
         required: false
         default: 'true'
       step:
-        description: "Which step to run: all / build / package"
+        description: "Which step to run: build / package"
         required: false
-        default: all
+        default: build
       run_id:
         description: "Optional: run_id to fetch cozy-lapce-bin from (for package step)"
         required: false
@@ -61,9 +61,7 @@ jobs:
 
   windows-build:
     if: |
-      github.event_name != 'workflow_dispatch' ||
-      (github.event.inputs.build_windows != 'false' &&
-       (github.event.inputs.step == 'all' || github.event.inputs.step == 'build'))
+      github.event_name != 'workflow_dispatch' || github.event.inputs.step == 'build'
     runs-on: windows-latest
     needs: tagname
     env:
@@ -87,7 +85,8 @@ jobs:
           retention-days: 3
 
   windows-package-from-current-build:
-    if: github.event.inputs.step == 'all'
+    if: |
+      github.event_name != 'workflow_dispatch' || github.event.inputs.step == 'build'
     runs-on: windows-latest
     needs:
       - tagname
@@ -168,7 +167,8 @@ jobs:
           retention-days: 3
 
   publish-from-current-build:
-    if: github.event.inputs.build_windows != 'false' && github.event.inputs.step == 'all'
+    if: |
+      github.event_name != 'workflow_dispatch' || github.event.inputs.step == 'build'
     needs:
       - tagname
       - windows-package-from-current-build
@@ -217,7 +217,7 @@ jobs:
             lapce-windows/* || echo "Release already exists, skipping."
 
   publish-from-previous-build:
-    if: github.event.inputs.build_windows != 'false' && github.event.inputs.step == 'package'
+    if: github.event.inputs.step == 'package'
     needs:
       - tagname
       - windows-package-from-previous-build
