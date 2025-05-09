@@ -7,6 +7,7 @@
 
 ### Coding
 - [Navigate Diagnostics and Show Fixes](#navigate-diagnostics-and-show-fixes)
+- [⭐️⭐️⭐️Quickly Locate Log Code from Terminal](#quickly-locate-log-code-from-terminal)
 - [Quickly Locate Error Code from Terminal](#quickly-locate-error-code-from-terminal)
 
 ### Other
@@ -74,6 +75,13 @@ You can quickly jump to diagnostics and view available fixes with the following 
 
 > 💡 This helps you quickly locate issues and apply fixes without leaving the keyboard.
 
+
+### ⭐️⭐️⭐️Quickly Locate Log Code from Terminal
+
+In the terminal, **Ctrl+clicking** on a log like `[lapce_app::window_workspace:2755]` will jump directly to the line of code where the log was printed.
+
+![Terminal Ctrl Click Demo](../resources/gif/jump_to_log_location.gif)
+
 ## Quickly Locate Error Code from Terminal
 
 When an error message appears in the terminal (e.g. during build or run),  
@@ -89,9 +97,10 @@ you can **hold `Ctrl` and click** on the file path and line number to jump direc
 To copy text from the terminal:
 
 1. **Select** the content you want to copy directly in the terminal;
-2. Then **right-click** to automatically copy the selected content to the clipboard.
+2. Then, **right-click on the selected content** to automatically copy it to the clipboard, and a confirmation message will appear in the status bar.
 
-> ⚠️ Note: The current terminal output experience is not very polished.  
+> ⚠️ Note: You must right-click within the selected content. 
+> The current terminal output experience is not very polished.  
 > We plan to improve its usability in future versions.
 
 ## Inspect Syntax Type for Theme Customization

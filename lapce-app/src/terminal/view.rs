@@ -592,7 +592,13 @@ impl View for TerminalView {
                                     selection.end,
                                 );
                                 if !content.is_empty() {
+                                    let message = format!("copied `{content}`");
                                     clipboard.put_string(content);
+                                    self.internal_command.send(
+                                        InternalCommand::ShowStatusMessage {
+                                            message,
+                                        },
+                                    )
                                 }
                             }
                             clear_selection = true;
