@@ -16,6 +16,12 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_DISTRIBUTION");
     println!("cargo:rerun-if-env-changed=RELEASE_TAG_NAME");
 
+    let branch = std::fs::read_to_string("../.git/HEAD")?;
+    if let Some(stripped) = branch.strip_prefix("ref: ") {
+        let path = format!("../.git/{}", stripped.trim());
+        println!("cargo:rerun-if-changed={}", path);
+    }
+
     let release_info = get_info()?;
 
     // Print info to terminal during compilation
