@@ -29,7 +29,7 @@ use lapce_rpc::{
     file_line::FileLine,
     proxy::{
         ProxyHandler, ProxyLspRequest, ProxyNotification, ProxyRequest,
-        ProxyResponse, ProxyRpcHandler, SearchMatch,
+        ProxyResponse, ProxyRpcHandler, SearchMatch, WorkspaceContext,
     },
     source_control::{DiffInfo, FileDiff},
     style::{LineStyle, SemanticStyles},
@@ -42,11 +42,10 @@ use lsp_types::{
     notification::{Cancel, Notification},
 };
 use parking_lot::Mutex;
-
+use lapce_rpc::rust_module_resolve::create_cargo_context;
 use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
-    rust_module_resolve::{CargoContext, create_cargo_context},
     terminal::{Terminal, TerminalSender, Terminals},
     watcher::{FileWatcher, Notify, WatchToken},
 };
@@ -65,7 +64,6 @@ pub struct Dispatcher {
     window_id:     usize,
     tab_id:        usize,
     directory:     Directory,
-    cargo_context: Option<CargoContext>,
 }
 
 impl ProxyHandler for Dispatcher {
@@ -347,7 +345,12 @@ impl ProxyHandler for Dispatcher {
         }
     }
 
-    async fn handle_request(&mut self, id: RequestId, rpc: ProxyRequest) {
+    async fn handle_request(
+        &mut self,
+        id: RequestId,
+        rpc: ProxyRequest,
+        workspace_context: &mut WorkspaceContext,
+    ) {
         use ProxyRequest::*;
         log::debug!("dispatcher handle_request {:?}", rpc);
         match rpc {
@@ -902,8 +905,9 @@ impl ProxyHandler for Dispatcher {
                         .watch(workspace, true, WORKSPACE_EVENT_TOKEN);
                     let manifest_path = workspace.join("Cargo.toml");
                     if manifest_path.exists() {
-                        match create_cargo_context(&manifest_path) {
-                            Ok(context) => self.cargo_context = Some(context),
+                        match create_cargo_context(&manifest_path, )
+                        {
+                            Ok(context) => workspace_context.cargo_context = Some(context),
                             Err(err) => {
                                 error!("{err:?}");
                             },
@@ -938,7 +942,7 @@ impl ProxyHandler for Dispatcher {
                 }
             },
             FindFileFromLog { log } => {
-                let rs = if let Some(context) = &self.cargo_context {
+                let rs = if let Some(context) = &workspace_context.cargo_context {
                     context.find_file_by_log(&log)
                 } else {
                     RpcResult::Err("cargo context is none".to_string())
@@ -949,7 +953,7 @@ impl ProxyHandler for Dispatcher {
                 );
             },
             FindLogModulesFromPath { path } => {
-                let rs = if let Some(context) = &self.cargo_context {
+                let rs = if let Some(context) = &workspace_context.cargo_context {
                     if let Some(modules) = context.file_path_to_module_path(&path) {
                         RpcResult::Ok(modules)
                     } else {
@@ -990,7 +994,6 @@ impl Dispatcher {
             window_id: 1,
             tab_id: 1,
             directory,
-            cargo_context: None,
         }
     }
 

@@ -14,7 +14,7 @@ use lapce_proxy::dispatch::Dispatcher;
 use lapce_rpc::{
     core::{CoreHandler, CoreNotification, CoreRpcHandler},
     plugin::VoltID,
-    proxy::{ProxyRpcHandler, ProxyStatus},
+    proxy::{ProxyRpcHandler, ProxyStatus, WorkspaceContext},
 };
 use log::error;
 
@@ -179,5 +179,6 @@ async fn start_local_proxy(
 ) {
     let mut dispatcher = Dispatcher::new(core_rpc, proxy_rpc, directory);
     let proxy_rpc = dispatcher.proxy_rpc.clone();
-    proxy_rpc.mainloop(&mut dispatcher).await;
+    let mut workspace = WorkspaceContext::default();
+    proxy_rpc.mainloop(&mut dispatcher, &mut workspace).await;
 }

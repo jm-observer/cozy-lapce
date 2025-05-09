@@ -13,6 +13,7 @@ pub mod source_control;
 pub mod stdio;
 pub mod style;
 pub mod terminal;
+pub mod rust_module_resolve;
 
 use std::fmt::Display;
 

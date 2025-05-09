@@ -1,10 +1,7 @@
 mod resolve_path;
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use anyhow::{Result, bail};
 use cargo::{
     core::{PackageSet, Resolve, Shell, Workspace},
@@ -12,7 +9,10 @@ use cargo::{
     util::GlobalContext,
 };
 use directories::UserDirs;
-use lapce_rpc::{RpcResult, proxy::FileAndLine};
+use crate::{
+    RpcResult,
+    proxy::{FileAndLine},
+};
 use log::{error, warn};
 use resolve_path::*;
 
@@ -27,7 +27,7 @@ fn cargo_home() -> Result<PathBuf> {
 }
 
 pub struct CargoContext {
-    pub gctx:      Arc<GlobalContext>,
+    pub gctx:      Rc<GlobalContext>,
     pub workspace: Workspace<'static>,
     pub resolve:   Resolve,
     pub packages:  PackageSet<'static>,
@@ -35,16 +35,14 @@ pub struct CargoContext {
 
 pub fn create_cargo_context(manifest_path: &Path) -> anyhow::Result<CargoContext> {
     // GlobalContext
-    let gctx = Arc::new(GlobalContext::new(
+    let gctx = Rc::new(GlobalContext::new(
         Shell::new(),
         std::env::current_dir()?,
         cargo_home()?,
     ));
     // 这里 leak 成 'static 生命周期
-    let leaked_gctx: &'static GlobalContext = unsafe {
-        let raw = Arc::into_raw(gctx.clone());
-        &*raw
-    };
+    let leaked_gctx: &'static GlobalContext = unsafe { &*Rc::into_raw(gctx.clone()) };
+
     // Workspace
     let workspace = Workspace::new(manifest_path, leaked_gctx)?;
     let (packages, resolve) = ops::resolve_ws(&workspace, true)?;

@@ -35,6 +35,7 @@ use crate::{
     style::SemanticStyles,
     terminal::{TermId, TerminalProfile},
 };
+use crate::rust_module_resolve::CargoContext;
 
 #[allow(clippy::large_enum_variant)]
 pub enum ProxyRpc {
@@ -567,6 +568,7 @@ pub trait ProxyHandler {
         &mut self,
         id: RequestId,
         rpc: ProxyRequest,
+        workspace: &mut WorkspaceContext,
     ) -> impl std::future::Future<Output = ()>;
 }
 
@@ -593,15 +595,18 @@ impl ProxyRpcHandler {
         &self.rx
     }
 
-    pub async fn mainloop<H>(&self, handler: &mut H)
-    where
+    pub async fn mainloop<H>(
+        &self,
+        handler: &mut H,
+        workspace: &mut WorkspaceContext,
+    ) where
         H: ProxyHandler, {
         use ProxyRpc::*;
         for msg in &self.rx {
             match msg {
                 Request(id, request) => {
                     // info!("Request: {request:?}");
-                    handler.handle_request(id, request).await;
+                    handler.handle_request(id, request, workspace).await;
                 },
                 Notification(notification) => {
                     // info!("Notification: {notification:?}");
@@ -1349,4 +1354,9 @@ impl Default for ProxyRpcHandler {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Default)]
+pub struct WorkspaceContext {
+    pub cargo_context: Option<CargoContext>,
 }

@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::AddAssign, rc::Rc};
+use std::{cmp::Ordering, ops::AddAssign};
 
 use anyhow::{Result, bail};
 use floem::kurbo::{Point, Rect};
@@ -40,7 +40,7 @@ pub struct ScreenLines {
     /// Guaranteed to have an entry for each `VLine` in `lines`
     /// You should likely use accessor functions rather than this
     /// directly.
-    pub diff_sections: Option<Rc<Vec<DiffSection>>>,
+    pub diff_sections: Option<Vec<DiffSection>>,
     // The base y position that all the y positions inside `info` are
     // relative to. This exists so that if a text layout is
     // created outside of the view, we don't have to completely

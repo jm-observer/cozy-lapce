@@ -5,7 +5,6 @@ pub mod cli;
 pub mod dispatch;
 pub mod plugin;
 pub mod rust_build;
-pub mod rust_module_resolve;
 pub mod terminal;
 pub mod watcher;
 
@@ -25,7 +24,10 @@ use lapce_rpc::{
     RpcMessage,
     core::{CoreResponse, CoreRpc, CoreRpcHandler},
     file::PathObject,
-    proxy::{ProxyMessage, ProxyNotification, ProxyRequest, ProxyRpcHandler},
+    proxy::{
+        ProxyMessage, ProxyNotification, ProxyRequest, ProxyRpcHandler,
+        WorkspaceContext,
+    },
     stdio::stdio_transport,
 };
 use log::error;
@@ -146,7 +148,9 @@ pub async fn mainloop() -> Result<()> {
         log::error!("{:?}", err);
     }
 
-    proxy_rpc.mainloop(&mut dispatcher).await;
+    let mut workspace = WorkspaceContext::default();
+
+    proxy_rpc.mainloop(&mut dispatcher, &mut workspace).await;
     Ok(())
 }
 

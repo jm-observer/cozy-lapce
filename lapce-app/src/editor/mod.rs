@@ -2739,7 +2739,7 @@ impl EditorData {
                 },
             }
         };
-        log::error!(
+        log::debug!(
             "get_code_actions {path:?} {offset} diagnostics.len={}",
             diagnostics.len()
         );
