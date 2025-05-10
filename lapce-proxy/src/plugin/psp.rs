@@ -492,14 +492,10 @@ impl PluginServerRpcHandler {
                     {
                         self.send_server_request(id, &method, params, rh);
                     } else {
-                        debug!("{_handler_name} not capable: {method}");
-                        rh.invoke(
-                            id,
-                            Err(RpcError {
-                                code:    0,
-                                message: "{_handler_name} not capable".to_string(),
-                            }),
-                        );
+                        let message =
+                            format!("{_handler_name} not capable: {method}");
+                        debug!("{message}");
+                        rh.invoke(id, Err(RpcError { code: 0, message }));
                     }
                 },
                 PluginServerRpc::ServerNotification {

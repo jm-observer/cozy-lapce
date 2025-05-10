@@ -22,7 +22,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::{debug, error};
+use log::debug;
 use lsp_types::{
     DidOpenTextDocumentParams, MessageType, SemanticTokens, ShowMessageParams,
     TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier,
@@ -147,7 +147,7 @@ impl PluginCatalog {
                 check,
                 id,
                 move |id, result| {
-                    error!("handle_server_request response {id:?} {plugin_id:?}");
+                    // error!("handle_server_request response {id:?} {plugin_id:?}");
                     f(id, plugin_id, result);
                 },
             );

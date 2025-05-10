@@ -21,7 +21,6 @@ use lapce_rpc::{
     terminal::{TermId, TerminalProfile},
 };
 use log::{error, warn};
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use super::data::TerminalData;
@@ -29,7 +28,6 @@ use crate::{
     debug::{DapData, DapVariable, RunDebugData},
     keypress::{EventRef, KeyPressData, KeyPressFocus, KeyPressHandle},
     main_split::MainSplitData,
-    terminal::raw::RawTerminal,
     window_workspace::{CommonData, Focus},
 };
 pub struct TerminalTabInfo {
@@ -372,9 +370,36 @@ impl TerminalPanelData {
 
     pub fn terminal_update_content(&self, term_id: &TermId, content: &Vec<u8>) {
         if let Some(terminal) = self.get_terminal(*term_id) {
-            let raw = terminal.data.with_untracked(|x| x.raw.clone());
-            raw.write().update_content(content);
+            terminal.data.update(|x| {
+                x.raw.update_content(content);
+            });
             self.view_id.get_untracked().request_paint();
+        }
+    }
+
+    fn update_executable(
+        &self,
+        run_debug: &mut RunDebugProcess,
+        terminal: &TerminalData,
+    ) {
+        match &run_debug.config.config_source {
+            dap_types::ConfigSource::RustCodeLens => {
+                if let Some(executable) = terminal.data.with_untracked(|x| {
+                    let lines = x.raw.output(8);
+                    lines.into_iter().rev().find_map(|x| {
+                        if let Ok(map) = serde_json::from_str::<RustArtifact>(&x) {
+                            return map.artifact();
+                        }
+                        None
+                    })
+                }) {
+                    run_debug.config.program = executable;
+                }
+            },
+            dap_types::ConfigSource::RustCodeLensRestart { program } => {
+                run_debug.config.program = program.clone();
+            },
+            _ => {},
         }
     }
 
@@ -386,9 +411,9 @@ impl TerminalPanelData {
     ) {
         log::info!("terminal_stopped exit_code={exit_code:?}");
         if let Some(terminal) = self.get_terminal(*term_id) {
-            let (is_some, raw, raw_id) = terminal.data.with_untracked(|x| {
-                (x.run_debug.is_some(), x.raw.clone(), x.raw_id)
-            });
+            let (is_some, raw_id) = terminal
+                .data
+                .with_untracked(|x| (x.run_debug.is_some(), x.raw_id));
 
             if stopped_by_dap {
                 self.common
@@ -432,7 +457,7 @@ impl TerminalPanelData {
                     });
                     // if let Some(mut run_debug) = run_debug {
                     if run_debug.mode == RunDebugMode::Debug {
-                        update_executable(&mut run_debug, raw);
+                        self.update_executable(&mut run_debug, &terminal);
 
                         self.common.proxy.proxy_rpc.dap_start(
                             run_debug.config,
@@ -550,10 +575,10 @@ impl TerminalPanelData {
         };
         let raw_id = x.1;
 
-        error!(
-            "manual_stop_run_debug {:?} {:?}",
-            run_debug.mode, terminal.term_id
-        );
+        // error!(
+        //     "manual_stop_run_debug {:?} {:?}",
+        //     run_debug.mode, terminal.term_id
+        // );
         match run_debug.mode {
             RunDebugMode::Run => {
                 self.common
@@ -805,29 +830,6 @@ impl TerminalPanelData {
                 },
             );
         }
-    }
-}
-
-fn update_executable(
-    run_debug: &mut RunDebugProcess,
-    raw: Arc<RwLock<RawTerminal>>,
-) {
-    match &run_debug.config.config_source {
-        dap_types::ConfigSource::RustCodeLens => {
-            let lines = raw.write_arc().output(8);
-            if let Some(executable) = lines.into_iter().rev().find_map(|x| {
-                if let Ok(map) = serde_json::from_str::<RustArtifact>(&x) {
-                    return map.artifact();
-                }
-                None
-            }) {
-                run_debug.config.program = executable;
-            }
-        },
-        dap_types::ConfigSource::RustCodeLensRestart { program } => {
-            run_debug.config.program = program.clone();
-        },
-        _ => {},
     }
 }
 

@@ -30,7 +30,7 @@ use lapce_rpc::{
     terminal::TermId,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::{error, warn};
+use log::{debug, error};
 use lsp_types::{
     CallHierarchyClientCapabilities, CallHierarchyIncomingCall,
     CallHierarchyIncomingCallsParams, CallHierarchyItem, CallHierarchyPrepareParams,
@@ -444,7 +444,7 @@ impl PluginCatalogRpcHandler {
                 if result.is_ok() {
                     cb(plugin_id, result)
                 } else {
-                    warn!("{id:?} {method} {plugin_id:?} {result:?} ");
+                    debug!("{id:?} {method} {plugin_id:?} {result:?} ");
                     let rx = err_received.fetch_add(1, Ordering::Relaxed) + 1;
                     if request_sent.load(Ordering::Acquire) == rx {
                         cb(plugin_id, result)

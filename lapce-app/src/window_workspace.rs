@@ -2314,12 +2314,10 @@ impl WindowWorkspaceData {
                                     })
                                 }) else {
                                     bail!(
-                                        "cound not find terminal tab data: \
-                         terminal_id={terminal_id:?}"
+                                        "cound not find terminal tab data: terminal_id={terminal_id:?}"
                                     );
                                 };
-                                let raw = tab.data.with_untracked(|x| x.raw.clone());
-                                raw.write().term.reset_state();
+                                tab.data.update(|x| x.raw.term.reset_state());
                                 view_id.request_paint();
                             }
             InternalCommand::StopTerminal { terminal_id } => {
@@ -2475,7 +2473,7 @@ impl WindowWorkspaceData {
                                 doc.init_diagnostics();
                             }
                         } else {
-                            warn!(
+                            debug!(
                                 "PublishDiagnostics exec_after {path:?} \
                                  now_id={now_id} id={task_id}",
                             );

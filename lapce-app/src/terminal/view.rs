@@ -172,18 +172,21 @@ impl TerminalView {
     }
 
     fn click(&self, pos: Point) -> Option<()> {
-        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
-        let raw = raw.read();
         let position = self.get_terminal_point(pos);
-        let start_point = raw.term.semantic_search_left(position);
-        let end_point = raw.term.semantic_search_right(position);
-        let mut selection =
-            Selection::new(SelectionType::Simple, start_point, Side::Left);
-        selection.update(end_point, Side::Right);
-        selection.include_all();
-        if let Some(selection) = selection.to_range(&raw.term) {
-            let content = raw.term.bounds_to_string(selection.start, selection.end);
+        let content = self.terminal_data.data.with_untracked(|x| {
+            let raw = &x.raw;
+            let start_point = raw.term.semantic_search_left(position);
+            let end_point = raw.term.semantic_search_right(position);
+            let mut selection =
+                Selection::new(SelectionType::Simple, start_point, Side::Left);
+            selection.update(end_point, Side::Right);
+            selection.include_all();
+            selection
+                .to_range(&raw.term)
+                .map(|x| raw.term.bounds_to_string(x.start, x.end))
+        });
 
+        if let Some(content) = content {
             if let Some(rs) =
                 self.hyper_regs.iter().find_map(|x| x.captures(&content))
             {
@@ -325,201 +328,19 @@ impl TerminalView {
     }
 
     fn get_terminal_point(&self, pos: Point) -> alacritty_terminal::index::Point {
-        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
-        let raw = raw.read();
-        let col = (pos.x / self.char_size().width) as usize;
-        let line_no = pos.y as i32
-            / (self
-                .config
-                .with(|config| config.terminal_line_height() as i32))
-            - raw.term.grid().display_offset() as i32;
-        alacritty_terminal::index::Point::new(
-            alacritty_terminal::index::Line(line_no),
-            alacritty_terminal::index::Column(col),
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn paint_content(
-        &self,
-        cx: &mut PaintCx,
-        content: RenderableContent,
-        line_height: f64,
-        char_size: Size,
-        config: &LapceConfig,
-        cursor: Color,
-        error: Color,
-        caret: Color,
-        terminal_font_family: &str,
-        terminal_font_size: usize,
-        terminal_bg: Color,
-    ) {
-        let family: Vec<FamilyOwned> =
-            FamilyOwned::parse_list(terminal_font_family).collect();
-        let attrs = Attrs::new()
-            .family(&family)
-            .font_size(terminal_font_size as f32);
-
-        let char_width = char_size.width;
-
-        let cursor_point = &content.cursor.point;
-
-        let mut line_content = TerminalLineContent {
-            y:         0.0,
-            bg:        Vec::new(),
-            underline: Vec::new(),
-            chars:     Vec::new(),
-            cursor:    None,
-        };
-        for item in content.display_iter {
-            let point = item.point;
-            let cell = item.cell;
-            let inverse = cell.flags.contains(Flags::INVERSE);
-
-            let x = point.column.0 as f64 * char_width;
-            let y =
-                (point.line.0 as f64 + content.display_offset as f64) * line_height;
-            let char_y = y + (line_height - char_size.height) / 2.0;
-            if y != line_content.y {
-                self.paint_line_content(
-                    cx,
-                    &line_content,
-                    line_height,
-                    char_width,
-                    cursor,
-                    error,
-                    caret,
-                );
-                line_content.y = y;
-                line_content.bg.clear();
-                line_content.underline.clear();
-                line_content.chars.clear();
-                line_content.cursor = None;
-            }
-
-            let mut bg = config.terminal_get_color(&cell.bg, content.colors);
-            let mut fg = config.terminal_get_color(&cell.fg, content.colors);
-            if cell.flags.contains(Flags::DIM)
-                || cell.flags.contains(Flags::DIM_BOLD)
-            {
-                fg = fg.multiply_alpha(0.66);
-            }
-
-            if inverse {
-                std::mem::swap(&mut fg, &mut bg);
-            }
-
-            if terminal_bg != bg {
-                let mut extend = false;
-                if let Some((_, end, color)) = line_content.bg.last_mut()
-                    && color == &bg
-                    && *end == point.column.0
-                {
-                    *end += 1;
-                    extend = true;
-                }
-                if !extend {
-                    line_content
-                        .bg
-                        .push((point.column.0, point.column.0 + 1, bg));
-                }
-            }
-
-            if cursor_point == &point {
-                line_content.cursor = Some((cell.c, x));
-            }
-
-            let bold = cell.flags.contains(Flags::BOLD)
-                || cell.flags.contains(Flags::DIM_BOLD);
-
-            if &point == cursor_point && self.is_focused {
-                fg = terminal_bg;
-            }
-
-            if cell.c != ' ' && cell.c != '\t' {
-                let mut attrs = attrs.color(fg);
-                if bold {
-                    attrs = attrs.weight(Weight::BOLD);
-                }
-                line_content.chars.push((cell.c, attrs, x, char_y));
-            }
-        }
-        self.paint_line_content(
-            cx,
-            &line_content,
-            line_height,
-            char_width,
-            cursor,
-            error,
-            caret,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn paint_line_content(
-        &self,
-        cx: &mut PaintCx,
-        line_content: &TerminalLineContent,
-        line_height: f64,
-        char_width: f64,
-        cursor: Color,
-        error: Color,
-        caret: Color,
-    ) {
-        for (start, end, bg) in &line_content.bg {
-            let rect = Size::new(
-                char_width * (end.saturating_sub(*start) as f64),
-                line_height,
+        self.terminal_data.data.with_untracked(|x| {
+            let raw = &x.raw;
+            let col = (pos.x / self.char_size().width) as usize;
+            let line_no = pos.y as i32
+                / (self
+                    .config
+                    .with(|config| config.terminal_line_height() as i32))
+                - raw.term.grid().display_offset() as i32;
+            alacritty_terminal::index::Point::new(
+                alacritty_terminal::index::Line(line_no),
+                alacritty_terminal::index::Column(col),
             )
-            .to_rect()
-            .with_origin(Point::new(*start as f64 * char_width, line_content.y));
-            cx.fill(&rect, bg, 0.0);
-        }
-
-        for (start, end, fg, y) in &line_content.underline {
-            let rect =
-                Size::new(char_width * (end.saturating_sub(*start) as f64), 1.0)
-                    .to_rect()
-                    .with_origin(Point::new(*start as f64 * char_width, y - 1.0));
-            cx.fill(&rect, fg, 0.0);
-        }
-
-        if let Some((_, x)) = line_content.cursor {
-            let rect = Size::new(2.0, line_height)
-                .to_rect()
-                .with_origin(Point::new(x, line_content.y));
-
-            let (mode, stopped) = self.terminal_data.data.with_untracked(|x| {
-                (
-                    x.mode,
-                    x.run_debug.as_ref().map(|r| r.stopped).unwrap_or(false),
-                )
-            });
-            let cursor_color = if mode == Mode::Terminal {
-                if stopped { error } else { cursor }
-            } else {
-                caret
-            };
-            let hide_cursor = self
-                .terminal_data
-                .common
-                .window_common
-                .hide_cursor
-                .get_untracked();
-            // info!("hide_cursor {}, self.is_focused={}", hide_cursor,
-            // self.is_focused);
-            if self.is_focused && !hide_cursor {
-                cx.fill(&rect, cursor_color, 0.0);
-                // } else {
-                //     cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
-            }
-        }
-
-        for (char, attr, x, y) in &line_content.chars {
-            let text_layout =
-                TextLayout::new_with_text(&char.to_string(), AttrsList::new(*attr));
-            cx.draw_text_with_layout(text_layout.layout_runs(), Point::new(*x, *y));
-        }
+        })
     }
 }
 
@@ -533,7 +354,6 @@ impl View for TerminalView {
         _cx: &mut EventCx,
         event: &Event,
     ) -> EventPropagation {
-        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
         match event {
             Event::PointerDown(e) => {
                 self.update_mouse_action_by_down(e);
@@ -557,51 +377,62 @@ impl View for TerminalView {
                         selection
                             .update(self.get_terminal_point(end_pos), Side::Right);
                         selection.include_all();
-                        raw.write().term.selection = Some(selection);
+                        self.terminal_data
+                            .data
+                            .update(|x| x.raw.term.selection = Some(selection));
                         _cx.app_state_mut().request_paint(self.id);
                     },
                     MouseAction::LeftDouble { pos } => {
                         let position = self.get_terminal_point(pos);
-                        let mut raw = raw.write();
-                        let start_point = raw.term.semantic_search_left(position);
-                        let end_point = raw.term.semantic_search_right(position);
+                        self.terminal_data.data.update(|x| {
+                            let raw = &mut x.raw;
+                            let start_point =
+                                raw.term.semantic_search_left(position);
+                            let end_point = raw.term.semantic_search_right(position);
 
-                        let mut selection = Selection::new(
-                            SelectionType::Simple,
-                            start_point,
-                            Side::Left,
-                        );
-                        selection.update(end_point, Side::Right);
-                        selection.include_all();
-                        raw.term.selection = Some(selection);
+                            let mut selection = Selection::new(
+                                SelectionType::Simple,
+                                start_point,
+                                Side::Left,
+                            );
+                            selection.update(end_point, Side::Right);
+                            selection.include_all();
+                            raw.term.selection = Some(selection);
+                        });
+
                         _cx.app_state_mut().request_paint(self.id);
                     },
                     MouseAction::RightOnce { pos } => {
                         let position = self.get_terminal_point(pos);
-                        let raw = raw.read();
-                        if let Some(selection) = &raw
-                            .term
-                            .selection
-                            .as_ref()
-                            .and_then(|x| x.to_range(&raw.term))
-                        {
-                            if selection.contains(position) {
-                                let mut clipboard = SystemClipboard::new();
-                                let content = raw.term.bounds_to_string(
-                                    selection.start,
-                                    selection.end,
-                                );
-                                if !content.is_empty() {
-                                    let message = format!("copied `{content}`");
-                                    clipboard.put_string(content);
-                                    self.internal_command.send(
-                                        InternalCommand::ShowStatusMessage {
-                                            message,
-                                        },
+
+                        if let Some(content) =
+                            self.terminal_data.data.with_untracked(|x| {
+                                if let Some(selection) =
+                                    &x.raw.term.selection.as_ref().and_then(
+                                        |selection| selection.to_range(&x.raw.term),
                                     )
+                                    && selection.contains(position)
+                                {
+                                    return Some(x.raw.term.bounds_to_string(
+                                        selection.start,
+                                        selection.end,
+                                    ));
                                 }
-                            }
-                            clear_selection = true;
+                                None
+                            })
+                            && !content.is_empty()
+                        {
+                            let message = if content.contains('\n') {
+                                "copied".to_owned()
+                            } else {
+                                format!("copied `{content}`")
+                            };
+                            let mut clipboard = SystemClipboard::new();
+                            clipboard.put_string(content);
+                            self.internal_command.send(
+                                InternalCommand::ShowStatusMessage { message },
+                            );
+                            return EventPropagation::Stop;
                         }
                     },
                     _ => {
@@ -609,7 +440,9 @@ impl View for TerminalView {
                     },
                 }
                 if clear_selection {
-                    raw.write().term.selection = None;
+                    self.terminal_data
+                        .data
+                        .update(|x| x.raw.term.selection = None);
                     _cx.app_state_mut().request_paint(self.id);
                 }
             },
@@ -647,7 +480,6 @@ impl View for TerminalView {
         &mut self,
         _cx: &mut floem::context::ComputeLayoutCx,
     ) -> Option<Rect> {
-        let raw = self.terminal_data.data.with_untracked(|x| x.raw.clone());
         let layout = self.id.get_layout().unwrap_or_default();
         let size = layout.size;
         let size = Size::new(size.width as f64, size.height as f64);
@@ -658,7 +490,9 @@ impl View for TerminalView {
             self.size = size;
             let (width, height) = self.terminal_size();
             let term_size = TermSize::new(width, height);
-            raw.write().term.resize(term_size);
+            self.terminal_data
+                .data
+                .update(|x| x.raw.term.resize(term_size));
             self.proxy.terminal_resize(self.term_id, width, height);
             log::debug!("{:?} {}-{}", self.term_id, width, height);
         }
@@ -669,10 +503,22 @@ impl View for TerminalView {
     fn paint(&mut self, cx: &mut floem::context::PaintCx) {
         let config = self.config.get();
 
-        let (mode, launch_error, raw) = self
+        let (mode, launch_error, stopped) =
+            self.terminal_data.data.with_untracked(|x| {
+                (
+                    x.mode,
+                    x.launch_error.clone(),
+                    x.run_debug.as_ref().map(|r| r.stopped).unwrap_or(false),
+                )
+            });
+        let is_focused = self.is_focused;
+        let hide_cursorv = self
             .terminal_data
-            .data
-            .with_untracked(|x| (x.mode, x.launch_error.clone(), x.raw.clone()));
+            .common
+            .window_common
+            .hide_cursor
+            .get_untracked();
+
         let line_height = config.terminal_line_height() as f64;
         let font_family = config.terminal_font_family();
         let font_size = config.terminal_font_size();
@@ -697,59 +543,6 @@ impl View for TerminalView {
             return;
         }
 
-        let raw = raw.read();
-        let term = &raw.term;
-        let content = term.renderable_content();
-
-        // let mut search = RegexSearch::new("[\\w\\\\?]+\\.rs:\\d+:\\d+").unwrap();
-        // self.hyper_matches = visible_regex_match_iter(term, &mut
-        // search).collect();
-
-        if let Some(selection) = content.selection.as_ref() {
-            let start_line = selection.start.line.0 + content.display_offset as i32;
-            let start_line = if start_line < 0 {
-                0
-            } else {
-                start_line as usize
-            };
-            let start_col = selection.start.column.0;
-
-            let end_line = selection.end.line.0 + content.display_offset as i32;
-            let end_line = if end_line < 0 { 0 } else { end_line as usize };
-            let end_col = selection.end.column.0;
-
-            for line in start_line..end_line + 1 {
-                let left_col = if selection.is_block || line == start_line {
-                    start_col
-                } else {
-                    0
-                };
-                let right_col = if selection.is_block || line == end_line {
-                    end_col + 1
-                } else {
-                    term.last_column().0
-                };
-                let x0 = left_col as f64 * char_width;
-                let x1 = right_col as f64 * char_width;
-                let y0 = line as f64 * line_height;
-                let y1 = y0 + line_height;
-                cx.fill(
-                    &Rect::new(x0, y0, x1, y1),
-                    config.color(LapceColor::EDITOR_SELECTION),
-                    0.0,
-                );
-            }
-        } else if mode != Mode::Terminal {
-            let y = (content.cursor.point.line.0 as f64
-                + content.display_offset as f64)
-                * line_height;
-            cx.fill(
-                &Rect::new(0.0, y, self.size.width, y + line_height),
-                config.color(LapceColor::EDITOR_CURRENT_LINE),
-                0.0,
-            );
-        }
-
         let (
             cursor,
             error,
@@ -766,20 +559,253 @@ impl View for TerminalView {
             config.color(LapceColor::TERMINAL_BACKGROUND),
         );
 
-        self.paint_content(
-            cx,
-            content,
-            line_height,
-            char_size,
-            &config,
-            cursor,
-            error,
-            caret,
-            terminal_font_family,
-            terminal_font_size,
-            terminal_bg,
-        );
+        self.terminal_data.data.with_untracked(|x| {
+            let content = x.raw.term.renderable_content();
+            if let Some(selection) = content.selection.as_ref() {
+                let start_line =
+                    selection.start.line.0 + content.display_offset as i32;
+                let start_line = if start_line < 0 {
+                    0
+                } else {
+                    start_line as usize
+                };
+                let start_col = selection.start.column.0;
+
+                let end_line = selection.end.line.0 + content.display_offset as i32;
+                let end_line = if end_line < 0 { 0 } else { end_line as usize };
+                let end_col = selection.end.column.0;
+
+                for line in start_line..end_line + 1 {
+                    let left_col = if selection.is_block || line == start_line {
+                        start_col
+                    } else {
+                        0
+                    };
+                    let right_col = if selection.is_block || line == end_line {
+                        end_col + 1
+                    } else {
+                        x.raw.term.last_column().0
+                    };
+                    let x0 = left_col as f64 * char_width;
+                    let x1 = right_col as f64 * char_width;
+                    let y0 = line as f64 * line_height;
+                    let y1 = y0 + line_height;
+                    cx.fill(
+                        &Rect::new(x0, y0, x1, y1),
+                        config.color(LapceColor::EDITOR_SELECTION),
+                        0.0,
+                    );
+                }
+            } else if mode != Mode::Terminal {
+                let y = (content.cursor.point.line.0 as f64
+                    + content.display_offset as f64)
+                    * line_height;
+                cx.fill(
+                    &Rect::new(0.0, y, self.size.width, y + line_height),
+                    config.color(LapceColor::EDITOR_CURRENT_LINE),
+                    0.0,
+                );
+            }
+            paint_content(
+                cx,
+                content,
+                line_height,
+                char_size,
+                &config,
+                cursor,
+                error,
+                caret,
+                terminal_font_family,
+                terminal_font_size,
+                terminal_bg,
+                mode,
+                stopped,
+                hide_cursorv,
+                is_focused,
+            );
+        });
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_line_content(
+    cx: &mut PaintCx,
+    line_content: &TerminalLineContent,
+    line_height: f64,
+    char_width: f64,
+    cursor: Color,
+    error: Color,
+    caret: Color,
+    mode: Mode,
+    stopped: bool,
+    hide_cursor: bool,
+    is_focused: bool,
+) {
+    for (start, end, bg) in &line_content.bg {
+        let rect = Size::new(
+            char_width * (end.saturating_sub(*start) as f64),
+            line_height,
+        )
+        .to_rect()
+        .with_origin(Point::new(*start as f64 * char_width, line_content.y));
+        cx.fill(&rect, bg, 0.0);
+    }
+
+    for (start, end, fg, y) in &line_content.underline {
+        let rect = Size::new(char_width * (end.saturating_sub(*start) as f64), 1.0)
+            .to_rect()
+            .with_origin(Point::new(*start as f64 * char_width, y - 1.0));
+        cx.fill(&rect, fg, 0.0);
+    }
+
+    if let Some((_, x)) = line_content.cursor {
+        let rect = Size::new(2.0, line_height)
+            .to_rect()
+            .with_origin(Point::new(x, line_content.y));
+
+        let cursor_color = if mode == Mode::Terminal {
+            if stopped { error } else { cursor }
+        } else {
+            caret
+        };
+        // info!("hide_cursor {}, self.is_focused={}", hide_cursor,
+        // self.is_focused);
+        if is_focused && !hide_cursor {
+            cx.fill(&rect, cursor_color, 0.0);
+            // } else {
+            //     cx.stroke(&rect, cursor_color, &Stroke::new(1.0));
+        }
+    }
+
+    for (char, attr, x, y) in &line_content.chars {
+        let text_layout =
+            TextLayout::new_with_text(&char.to_string(), AttrsList::new(*attr));
+        cx.draw_text_with_layout(text_layout.layout_runs(), Point::new(*x, *y));
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_content(
+    cx: &mut PaintCx,
+    content: RenderableContent,
+    line_height: f64,
+    char_size: Size,
+    config: &LapceConfig,
+    cursor: Color,
+    error: Color,
+    caret: Color,
+    terminal_font_family: &str,
+    terminal_font_size: usize,
+    terminal_bg: Color,
+    mode: Mode,
+    stopped: bool,
+    hide_cursor: bool,
+    is_focused: bool,
+) {
+    let family: Vec<FamilyOwned> =
+        FamilyOwned::parse_list(terminal_font_family).collect();
+    let attrs = Attrs::new()
+        .family(&family)
+        .font_size(terminal_font_size as f32);
+
+    let char_width = char_size.width;
+
+    let cursor_point = &content.cursor.point;
+
+    let mut line_content = TerminalLineContent {
+        y:         0.0,
+        bg:        Vec::new(),
+        underline: Vec::new(),
+        chars:     Vec::new(),
+        cursor:    None,
+    };
+    for item in content.display_iter {
+        let point = item.point;
+        let cell = item.cell;
+        let inverse = cell.flags.contains(Flags::INVERSE);
+
+        let x = point.column.0 as f64 * char_width;
+        let y = (point.line.0 as f64 + content.display_offset as f64) * line_height;
+        let char_y = y + (line_height - char_size.height) / 2.0;
+        if y != line_content.y {
+            paint_line_content(
+                cx,
+                &line_content,
+                line_height,
+                char_width,
+                cursor,
+                error,
+                caret,
+                mode,
+                stopped,
+                hide_cursor,
+                is_focused,
+            );
+            line_content.y = y;
+            line_content.bg.clear();
+            line_content.underline.clear();
+            line_content.chars.clear();
+            line_content.cursor = None;
+        }
+
+        let mut bg = config.terminal_get_color(&cell.bg, content.colors);
+        let mut fg = config.terminal_get_color(&cell.fg, content.colors);
+        if cell.flags.contains(Flags::DIM) || cell.flags.contains(Flags::DIM_BOLD) {
+            fg = fg.multiply_alpha(0.66);
+        }
+
+        if inverse {
+            std::mem::swap(&mut fg, &mut bg);
+        }
+
+        if terminal_bg != bg {
+            let mut extend = false;
+            if let Some((_, end, color)) = line_content.bg.last_mut()
+                && color == &bg
+                && *end == point.column.0
+            {
+                *end += 1;
+                extend = true;
+            }
+            if !extend {
+                line_content
+                    .bg
+                    .push((point.column.0, point.column.0 + 1, bg));
+            }
+        }
+
+        if cursor_point == &point {
+            line_content.cursor = Some((cell.c, x));
+        }
+
+        let bold =
+            cell.flags.contains(Flags::BOLD) || cell.flags.contains(Flags::DIM_BOLD);
+
+        if &point == cursor_point && is_focused {
+            fg = terminal_bg;
+        }
+
+        if cell.c != ' ' && cell.c != '\t' {
+            let mut attrs = attrs.color(fg);
+            if bold {
+                attrs = attrs.weight(Weight::BOLD);
+            }
+            line_content.chars.push((cell.c, attrs, x, char_y));
+        }
+    }
+    paint_line_content(
+        cx,
+        &line_content,
+        line_height,
+        char_width,
+        cursor,
+        error,
+        caret,
+        mode,
+        stopped,
+        hide_cursor,
+        is_focused,
+    );
 }
 
 #[derive(Debug, Default, Copy, Clone)]

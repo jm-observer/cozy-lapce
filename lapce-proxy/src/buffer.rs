@@ -57,11 +57,11 @@ impl Buffer {
     }
 
     pub fn save(&mut self, rev: u64, create_parents: bool) -> Result<()> {
-        log::warn!(
-            "save request_rev={rev}, read_only={} buffer_rev={}",
-            self.read_only,
-            self.rev
-        );
+        // log::warn!(
+        //     "save request_rev={rev}, read_only={} buffer_rev={}",
+        //     self.read_only,
+        //     self.rev
+        // );
         if self.read_only {
             return Err(anyhow!("can't save to read only file"));
         }

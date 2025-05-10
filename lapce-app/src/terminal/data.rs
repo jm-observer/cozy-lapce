@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 
 use alacritty_terminal::{
-    Term,
     grid::{Dimensions, Scroll},
     selection::{Selection, SelectionType},
     term::{TermMode, test::TermSize},
@@ -30,10 +29,9 @@ use lapce_rpc::{
     dap_types::RunDebugConfig,
     terminal::{TermId, TerminalProfile},
 };
-use parking_lot::RwLock;
 use url::Url;
 
-use super::raw::{EventProxy, RawTerminal};
+use super::raw::RawTerminal;
 use crate::{
     command::CommandKind,
     keypress::{KeyPressFocus, condition::Condition},
@@ -49,14 +47,13 @@ pub struct TerminalData {
     pub data:      RwSignal<TerminalSignalData>,
 }
 
-#[derive(Clone)]
 pub struct TerminalSignalData {
     pub raw_id:       u64,
     pub title:        String,
     pub launch_error: Option<String>,
     pub mode:         Mode,
     pub visual_mode:  VisualMode,
-    pub raw:          Arc<RwLock<RawTerminal>>,
+    pub raw:          RawTerminal,
     pub run_debug:    Option<RunDebugProcess>,
     pub view_id:      Option<ViewId>,
 }
@@ -111,56 +108,57 @@ impl KeyPressFocus for TerminalData {
         match &command.kind {
             CommandKind::Move(cmd) => {
                 let movement = cmd.to_movement(count);
-                let raw = self.data.with_untracked(|x| x.raw.clone());
-                let mut raw = raw.write();
-                let term = &mut raw.term;
-                match movement {
-                    Movement::Left => {
-                        term.vi_motion(ViMotion::Left);
-                    },
-                    Movement::Right => {
-                        term.vi_motion(ViMotion::Right);
-                    },
-                    Movement::Up => {
-                        term.vi_motion(ViMotion::Up);
-                    },
-                    Movement::Down => {
-                        term.vi_motion(ViMotion::Down);
-                    },
-                    Movement::FirstNonBlank => {
-                        term.vi_motion(ViMotion::FirstOccupied);
-                    },
-                    Movement::StartOfLine => {
-                        term.vi_motion(ViMotion::First);
-                    },
-                    Movement::EndOfLine => {
-                        term.vi_motion(ViMotion::Last);
-                    },
-                    Movement::WordForward => {
-                        term.vi_motion(ViMotion::SemanticRight);
-                    },
-                    Movement::WordEndForward => {
-                        term.vi_motion(ViMotion::SemanticRightEnd);
-                    },
-                    Movement::WordBackward => {
-                        term.vi_motion(ViMotion::SemanticLeft);
-                    },
-                    Movement::Line(line) => {
-                        match line {
-                            LinePosition::First => {
-                                term.scroll_display(Scroll::Top);
-                                term.vi_mode_cursor.point.line = term.topmost_line();
-                            },
-                            LinePosition::Last => {
-                                term.scroll_display(Scroll::Bottom);
-                                term.vi_mode_cursor.point.line =
-                                    term.bottommost_line();
-                            },
-                            LinePosition::Line(_) => {},
-                        };
-                    },
-                    _ => (),
-                };
+                self.data.update(|x| {
+                    let term = &mut x.raw.term;
+                    match movement {
+                        Movement::Left => {
+                            term.vi_motion(ViMotion::Left);
+                        },
+                        Movement::Right => {
+                            term.vi_motion(ViMotion::Right);
+                        },
+                        Movement::Up => {
+                            term.vi_motion(ViMotion::Up);
+                        },
+                        Movement::Down => {
+                            term.vi_motion(ViMotion::Down);
+                        },
+                        Movement::FirstNonBlank => {
+                            term.vi_motion(ViMotion::FirstOccupied);
+                        },
+                        Movement::StartOfLine => {
+                            term.vi_motion(ViMotion::First);
+                        },
+                        Movement::EndOfLine => {
+                            term.vi_motion(ViMotion::Last);
+                        },
+                        Movement::WordForward => {
+                            term.vi_motion(ViMotion::SemanticRight);
+                        },
+                        Movement::WordEndForward => {
+                            term.vi_motion(ViMotion::SemanticRightEnd);
+                        },
+                        Movement::WordBackward => {
+                            term.vi_motion(ViMotion::SemanticLeft);
+                        },
+                        Movement::Line(line) => {
+                            match line {
+                                LinePosition::First => {
+                                    term.scroll_display(Scroll::Top);
+                                    term.vi_mode_cursor.point.line =
+                                        term.topmost_line();
+                                },
+                                LinePosition::Last => {
+                                    term.scroll_display(Scroll::Bottom);
+                                    term.vi_mode_cursor.point.line =
+                                        term.bottommost_line();
+                                },
+                                LinePosition::Line(_) => {},
+                            };
+                        },
+                        _ => (),
+                    };
+                });
             },
             CommandKind::Edit(cmd) => match cmd {
                 EditCommand::NormalMode => {
@@ -173,8 +171,7 @@ impl KeyPressFocus for TerminalData {
                     }
                     self.data.update(|x| {
                         x.mode = Mode::Normal;
-                        let mut raw = x.raw.write();
-                        let term = &mut raw.term;
+                        let term = &mut x.raw.term;
                         if !term.mode().contains(TermMode::VI) {
                             term.toggle_vi_mode();
                         }
@@ -190,7 +187,7 @@ impl KeyPressFocus for TerminalData {
                 EditCommand::InsertMode => {
                     self.data.update(|x| {
                         x.mode = Mode::Terminal;
-                        let mut raw = x.raw.write();
+                        let raw = &mut x.raw;
                         let term = &mut raw.term;
                         if !term.mode().contains(TermMode::VI) {
                             term.toggle_vi_mode();
@@ -210,8 +207,7 @@ impl KeyPressFocus for TerminalData {
                         if matches!(x.mode, Mode::Visual(_)) {
                             x.mode = Mode::Normal;
                         }
-                        let mut raw = x.raw.write();
-                        let term = &mut raw.term;
+                        let term = &mut x.raw.term;
                         if let Some(content) = term.selection_to_string() {
                             clipboard.put_string(content);
                         }
@@ -223,10 +219,9 @@ impl KeyPressFocus for TerminalData {
                 EditCommand::ClipboardPaste => {
                     let mut clipboard = SystemClipboard::new();
                     let mut check_bracketed_paste: bool = false;
-                    self.data.with_untracked(|x| {
+                    self.data.update(|x| {
                         if x.mode == Mode::Terminal {
-                            let mut raw = x.raw.write();
-                            let term = &mut raw.term;
+                            let term = &mut x.raw.term;
                             term.selection = None;
                             if term.mode().contains(TermMode::BRACKETED_PASTE) {
                                 check_bracketed_paste = true;
@@ -247,9 +242,8 @@ impl KeyPressFocus for TerminalData {
             },
             CommandKind::Scroll(cmd) => match cmd {
                 ScrollCommand::PageUp => {
-                    self.data.with_untracked(|x| {
-                        let mut raw = x.raw.write();
-                        let term = &mut raw.term;
+                    self.data.update(|x| {
+                        let term = &mut x.raw.term;
                         let scroll_lines = term.screen_lines() as i32 / 2;
                         term.vi_mode_cursor =
                             term.vi_mode_cursor.scroll(term, scroll_lines);
@@ -260,9 +254,8 @@ impl KeyPressFocus for TerminalData {
                     });
                 },
                 ScrollCommand::PageDown => {
-                    self.data.with_untracked(|x| {
-                        let mut raw = x.raw.write();
-                        let term = &mut raw.term;
+                    self.data.update(|x| {
+                        let term = &mut x.raw.term;
                         let scroll_lines = -(term.screen_lines() as i32 / 2);
                         term.vi_mode_cursor =
                             term.vi_mode_cursor.scroll(term, scroll_lines);
@@ -312,14 +305,14 @@ impl KeyPressFocus for TerminalData {
     }
 
     fn receive_char(&self, c: &str) {
-        self.data.with_untracked(|x| {
+        self.data.update(|x| {
             if x.mode == Mode::Terminal {
                 self.common.proxy.proxy_rpc.terminal_write(
                     self.term_id,
                     x.raw_id,
                     c.to_string(),
                 );
-                x.raw.write().term.scroll_display(Scroll::Bottom);
+                x.raw.term.scroll_display(Scroll::Bottom);
             }
         })
     }
@@ -387,15 +380,11 @@ impl TerminalData {
         run_debug: Option<&RunDebugProcess>,
         profile: Option<TerminalProfile>,
         common: Rc<CommonData>,
-    ) -> (Arc<RwLock<RawTerminal>>, u64, Option<String>) {
+    ) -> (RawTerminal, u64, Option<String>) {
         let mut launch_error = None;
         log::debug!("term_id={term_id:?} new_raw_terminal");
         let raw_id = TermId::next().to_raw();
-        let raw = Arc::new(RwLock::new(RawTerminal::new(
-            term_id,
-            raw_id,
-            common.clone(),
-        )));
+        let raw = RawTerminal::new(term_id, raw_id, common.clone());
 
         let mut profile = profile.unwrap_or_default();
 
@@ -661,8 +650,8 @@ impl TerminalData {
             .common
             .config
             .with_untracked(|config| config.terminal_line_height() as f64);
-        self.data.with_untracked(|x| {
-            let mut raw = x.raw.write();
+        self.data.update(|x| {
+            let raw = &mut x.raw;
             raw.scroll_delta -= delta;
             let delta = (raw.scroll_delta / step) as i32;
             raw.scroll_delta -= delta as f64 * step;
@@ -682,85 +671,62 @@ impl TerminalData {
             return;
         }
 
-        let raw = self
-            .data
-            .try_update(|x| {
-                match x.mode {
-                    Mode::Normal => {
-                        x.mode = Mode::Visual(visual_mode);
+        self.data.update(|x| {
+            match x.mode {
+                Mode::Normal => {
+                    x.mode = Mode::Visual(visual_mode);
+                    x.visual_mode = visual_mode;
+                },
+                Mode::Visual(_) => {
+                    if x.visual_mode == visual_mode {
+                        x.mode = Mode::Normal;
+                    } else {
                         x.visual_mode = visual_mode;
-                    },
-                    Mode::Visual(_) => {
-                        if x.visual_mode == visual_mode {
-                            x.mode = Mode::Normal;
-                        } else {
-                            x.visual_mode = visual_mode;
-                        }
-                    },
-                    _ => (),
-                }
-                x.raw.clone()
-            })
-            .unwrap();
-        let mut raw = raw.write();
-        let term = &mut raw.term;
-        if !term.mode().contains(TermMode::VI) {
-            term.toggle_vi_mode();
-        }
-        let ty = match visual_mode {
-            VisualMode::Normal => SelectionType::Simple,
-            VisualMode::Linewise => SelectionType::Lines,
-            VisualMode::Blockwise => SelectionType::Block,
-        };
-        let point = term.renderable_content().cursor.point;
-        self.toggle_selection(
-            term,
-            ty,
-            point,
-            alacritty_terminal::index::Side::Left,
-        );
-        if let Some(selection) = term.selection.as_mut() {
-            selection.include_all();
-        }
-    }
+                    }
+                },
+                _ => (),
+            }
+            let raw = &mut x.raw;
+            let term = &mut raw.term;
+            if !term.mode().contains(TermMode::VI) {
+                term.toggle_vi_mode();
+            }
+            let ty = match visual_mode {
+                VisualMode::Normal => SelectionType::Simple,
+                VisualMode::Linewise => SelectionType::Lines,
+                VisualMode::Blockwise => SelectionType::Block,
+            };
+            let point = term.renderable_content().cursor.point;
 
-    pub fn toggle_selection(
-        &self,
-        term: &mut Term<EventProxy>,
-        ty: SelectionType,
-        point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
-    ) {
-        match &mut term.selection {
-            Some(selection) if selection.ty == ty && !selection.is_empty() => {
-                term.selection = None;
-            },
-            Some(selection) if !selection.is_empty() => {
-                selection.ty = ty;
-            },
-            _ => self.start_selection(term, ty, point, side),
-        }
-    }
-
-    fn start_selection(
-        &self,
-        term: &mut Term<EventProxy>,
-        ty: SelectionType,
-        point: alacritty_terminal::index::Point,
-        side: alacritty_terminal::index::Side,
-    ) {
-        term.selection = Some(Selection::new(ty, point, side));
+            match &mut term.selection {
+                Some(selection) if selection.ty == ty && !selection.is_empty() => {
+                    term.selection = None;
+                },
+                Some(selection) if !selection.is_empty() => {
+                    selection.ty = ty;
+                },
+                _ => {
+                    term.selection = Some(Selection::new(
+                        ty,
+                        point,
+                        alacritty_terminal::index::Side::Left,
+                    ))
+                },
+            }
+            if let Some(selection) = term.selection.as_mut() {
+                selection.include_all();
+            }
+        });
     }
 
     pub fn new_process(&self, run_debug: Option<RunDebugProcess>) {
         let (width, height) = self.data.with_untracked(|x| {
-            let raw = x.raw.read();
-            let width = raw.term.columns();
-            let height = raw.term.screen_lines();
+            let width = x.raw.term.columns();
+            let height = x.raw.term.screen_lines();
             (width, height)
         });
 
-        let (raw, raw_id, launch_error) = Self::new_raw_terminal(
+        let (mut raw, raw_id, launch_error) = Self::new_raw_terminal(
             &self.workspace,
             self.term_id,
             run_debug.as_ref(),
@@ -769,7 +735,7 @@ impl TerminalData {
         );
 
         let term_size = TermSize::new(width, height);
-        raw.write().term.resize(term_size);
+        raw.term.resize(term_size);
 
         self.data.update(|x| {
             x.raw = raw;
