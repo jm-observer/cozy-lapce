@@ -30,7 +30,7 @@ use lapce_rpc::{
     terminal::TermId,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::error;
+use log::{error, warn};
 use lsp_types::{
     CallHierarchyClientCapabilities, CallHierarchyIncomingCall,
     CallHierarchyIncomingCallsParams, CallHierarchyItem, CallHierarchyPrepareParams,
@@ -408,7 +408,7 @@ impl PluginCatalogRpcHandler {
         cb: impl FnOnce(PluginId, Result<Resp, RpcError>) + Clone + Send + 'static,
     ) where
         P: Serialize,
-        Resp: DeserializeOwned, {
+        Resp: DeserializeOwned + std::fmt::Debug, {
         let got_success = Arc::new(AtomicBool::new(false));
         let request_sent = Arc::new(AtomicUsize::new(0));
         let err_received = Arc::new(AtomicUsize::new(0));
@@ -421,8 +421,10 @@ impl PluginCatalogRpcHandler {
             path,
             true,
             id,
-            move |_, plugin_id, result| {
-                if got_success.load(Ordering::Acquire) {
+            move |id, plugin_id, result| {
+                let got_success_rs = got_success.load(Ordering::Acquire);
+                // debug!("{got_success_rs} {id:?} {plugin_id:?} {result:?} ");
+                if got_success_rs {
                     return;
                 }
                 let result = match result {
@@ -442,6 +444,7 @@ impl PluginCatalogRpcHandler {
                 if result.is_ok() {
                     cb(plugin_id, result)
                 } else {
+                    warn!("{id:?} {method} {plugin_id:?} {result:?} ");
                     let rx = err_received.fetch_add(1, Ordering::Relaxed) + 1;
                     if request_sent.load(Ordering::Acquire) == rx {
                         cb(plugin_id, result)

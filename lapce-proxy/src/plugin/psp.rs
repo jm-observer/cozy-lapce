@@ -319,7 +319,9 @@ impl PluginServerRpcHandler {
     ) {
         {
             let mut pending = self.server_pending.lock();
-            pending.insert(id.clone(), rh);
+            if pending.insert(id.clone(), rh).is_some() {
+                error!("send_server_request {id:?} repeat");
+            }
         }
         let msg = JsonRpc::request_with_params(id, method, params);
         self.send_server_rpc(msg);
@@ -456,8 +458,9 @@ impl PluginServerRpcHandler {
     }
 
     pub fn handle_server_response(&self, id: Id, result: Result<Value, RpcError>) {
-        if let Some(handler) = { self.server_pending.lock().remove(&id) } {
-            handler.invoke(id, result);
+        match self.server_pending.lock().remove(&id) {
+            Some(handler) => handler.invoke(id, result),
+            None => error!("handle_server_response {id:?} not found"),
         }
     }
 

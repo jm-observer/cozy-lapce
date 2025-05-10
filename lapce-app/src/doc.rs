@@ -383,7 +383,7 @@ impl Doc {
             error!("buffer_edit_with_config try update none??!");
             return vec![];
         };
-        if need_check_and_update {
+        if need_check_and_update && !rs.is_empty() {
             assert_eq!(old_rev + rs.len() as u64, new_rev);
             let content = self.content.get_untracked();
             log::debug!(

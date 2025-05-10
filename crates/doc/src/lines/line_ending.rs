@@ -33,19 +33,21 @@ impl LineEnding {
 
         let mut had_entries = false;
         for (range, kind) in FullLeChunkSearch::new(text.iter_chunks(..)) {
-            had_entries = true;
             match kind {
                 LeChunkKind::CrLf => {
                     if self == LineEnding::Lf {
+                        had_entries = true;
                         builder.replace(range, LF.clone());
                     }
                 },
                 LeChunkKind::Lf => {
                     if self == LineEnding::CrLf {
+                        had_entries = true;
                         builder.replace(range, CR_LF.clone());
                     }
                 },
                 LeChunkKind::Cr => {
+                    had_entries = true;
                     builder.replace(range, le.clone());
                 },
             }

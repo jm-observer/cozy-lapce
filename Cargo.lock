@@ -1402,6 +1402,7 @@ dependencies = [
  "floem",
  "lapce-app",
  "lapce-proxy",
+ "lapce-rpc",
  "log",
  "rust-resolve",
  "tokio",

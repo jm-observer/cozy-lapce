@@ -172,7 +172,7 @@ pub struct EditorData {
     pub sticky_header_height: RwSignal<f64>,
     pub sticky_header_info:   RwSignal<StickyHeaderInfo>,
     pub last_movement:        RwSignal<Movement>,
-    pub auto_save_token:               RwSignal<TimerToken>,
+    pub auto_save_token:      RwSignal<TimerToken>,
 }
 
 impl PartialEq for EditorData {
@@ -2447,27 +2447,32 @@ impl EditorData {
             let editor = self.clone();
             let rev = doc.rev();
             let auto_save_token = self.auto_save_token;
-            self.auto_save_token.set(exec_after(Duration::from_millis(autosave_interval), move |token| {
-                if auto_save_token.get_untracked() != token {
-                    return;
-                }
-                let is_pristine = editor
-                    .doc()
-                    .lines
-                    .with_untracked(|x| x.buffer().is_pristine());
-                let is_current_rec = editor.doc().rev() == rev;
-                let has_completions = editor.has_completions();
-                let has_has_inline_completions = editor.has_inline_completions();
-                log::debug!(
-                    "check_auto_save {is_current_rec} is_pristine={is_pristine} \
-                     has_inline_completions={has_has_inline_completions} \
-                     has_completions={has_completions} {:?}",
-                    doc.content.get_untracked()
-                );
-                if !is_pristine && is_current_rec && !editor.has_completions() {
-                    editor.save(true, || {});
-                }
-            }));
+            self.auto_save_token.set(exec_after(
+                Duration::from_millis(autosave_interval),
+                move |token| {
+                    if auto_save_token.get_untracked() != token {
+                        return;
+                    }
+                    auto_save_token.set(TimerToken::INVALID);
+                    let is_pristine = editor
+                        .doc()
+                        .lines
+                        .with_untracked(|x| x.buffer().is_pristine());
+                    let is_current_rec = editor.doc().rev() == rev;
+                    let has_completions = editor.has_completions();
+                    let has_has_inline_completions = editor.has_inline_completions();
+                    log::debug!(
+                        "check_auto_save {is_current_rec} \
+                         is_pristine={is_pristine} \
+                         has_inline_completions={has_has_inline_completions} \
+                         has_completions={has_completions} {:?}",
+                        doc.content.get_untracked()
+                    );
+                    if !is_pristine && is_current_rec && !editor.has_completions() {
+                        editor.save(true, || {});
+                    }
+                },
+            ));
         }
     }
 

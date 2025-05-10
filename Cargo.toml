@@ -8,6 +8,7 @@ default-run  = "cozy-lapce"
 
 [dependencies]
 lapce-app   = { path = "./lapce-app", default-features = false }
+lapce-rpc = { path = "./lapce-rpc" }
 lapce-proxy = { path = "./lapce-proxy" }
 tokio = {workspace = true}
 

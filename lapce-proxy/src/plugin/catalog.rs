@@ -22,7 +22,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::debug;
+use log::{debug, error};
 use lsp_types::{
     DidOpenTextDocumentParams, MessageType, SemanticTokens, ShowMessageParams,
     TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier,
@@ -131,6 +131,27 @@ impl PluginCatalog {
             }
             return;
         }
+        let mut count = 0;
+        for (plugin_id, plugin) in self.plugins.iter() {
+            if plugin.handler_type.is_plugin() {
+                continue;
+            }
+            count += 1;
+            let f = dyn_clone::clone_box(&*f);
+            let plugin_id = *plugin_id;
+            plugin.server_request_async(
+                method.clone(),
+                params.clone(),
+                language_id.clone(),
+                path.clone(),
+                check,
+                id,
+                move |id, result| {
+                    error!("handle_server_request response {id:?} {plugin_id:?}");
+                    f(id, plugin_id, result);
+                },
+            );
+        }
 
         if let Some(request_sent) = request_sent {
             // if there are no plugins installed the callback of the client is not
@@ -152,26 +173,8 @@ impl PluginCatalog {
                 );
                 return;
             } else {
-                request_sent.fetch_add(self.plugins.len(), Ordering::Relaxed);
+                request_sent.fetch_add(count, Ordering::Relaxed);
             }
-        }
-        for (plugin_id, plugin) in self.plugins.iter() {
-            if plugin.handler_type.is_plugin() {
-                continue;
-            }
-            let f = dyn_clone::clone_box(&*f);
-            let plugin_id = *plugin_id;
-            plugin.server_request_async(
-                method.clone(),
-                params.clone(),
-                language_id.clone(),
-                path.clone(),
-                check,
-                id,
-                move |id, result| {
-                    f(id, plugin_id, result);
-                },
-            );
         }
     }
 

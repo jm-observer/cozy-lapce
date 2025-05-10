@@ -31,6 +31,7 @@ use lapce_rpc::{
         ProxyHandler, ProxyLspRequest, ProxyNotification, ProxyRequest,
         ProxyResponse, ProxyRpcHandler, SearchMatch, WorkspaceContext,
     },
+    rust_module_resolve::create_cargo_context,
     source_control::{DiffInfo, FileDiff},
     style::{LineStyle, SemanticStyles},
 };
@@ -42,7 +43,7 @@ use lsp_types::{
     notification::{Cancel, Notification},
 };
 use parking_lot::Mutex;
-use lapce_rpc::rust_module_resolve::create_cargo_context;
+
 use crate::{
     buffer::{Buffer, get_mod_time, load_file},
     plugin::{PluginCatalogRpcHandler, catalog::PluginCatalog},
@@ -905,9 +906,10 @@ impl ProxyHandler for Dispatcher {
                         .watch(workspace, true, WORKSPACE_EVENT_TOKEN);
                     let manifest_path = workspace.join("Cargo.toml");
                     if manifest_path.exists() {
-                        match create_cargo_context(&manifest_path, )
-                        {
-                            Ok(context) => workspace_context.cargo_context = Some(context),
+                        match create_cargo_context(&manifest_path) {
+                            Ok(context) => {
+                                workspace_context.cargo_context = Some(context)
+                            },
                             Err(err) => {
                                 error!("{err:?}");
                             },
