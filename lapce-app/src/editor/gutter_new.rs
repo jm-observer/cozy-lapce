@@ -61,12 +61,9 @@ pub fn gutter_data(
             .map(|vl_info| {
                 match vl_info {
                     VisualLineInfo::OriginText { text } => {
-                        let style_color =
-                            if text.folded_line.origin_line_start == current_line {
-                                fg
-                            } else {
-                                dim
-                            };
+                        let is_current_line =
+                            text.folded_line.origin_line_start == current_line;
+                        let style_color = if is_current_line { fg } else { dim };
                         if current_debug_line == text.folded_line.origin_line_start {
                             GutterData {
                                 origin_line_start: Some(
@@ -78,6 +75,7 @@ pub fn gutter_data(
                                 style_width: width,
                                 style_font_size,
                                 style_font_family: font_family.1.clone(),
+                                is_current_line,
                             }
                         } else if code_lens
                             .contains_key(&text.folded_line.origin_line_start)
@@ -92,6 +90,7 @@ pub fn gutter_data(
                                 style_width: width,
                                 style_font_size,
                                 style_font_family: font_family.1.clone(),
+                                is_current_line,
                             }
                         } else if let Some(breakpoint) =
                             breakpoints.get(&text.folded_line.origin_line_start)
@@ -107,6 +106,7 @@ pub fn gutter_data(
                                     style_width: width,
                                     style_font_size,
                                     style_font_family: font_family.1.clone(),
+                                    is_current_line,
                                 }
                             } else if breakpoint.active {
                                 GutterData {
@@ -119,6 +119,7 @@ pub fn gutter_data(
                                     style_width: width,
                                     style_font_size,
                                     style_font_family: font_family.1.clone(),
+                                    is_current_line,
                                 }
                             } else {
                                 GutterData {
@@ -131,6 +132,7 @@ pub fn gutter_data(
                                     style_width: width,
                                     style_font_size,
                                     style_font_family: font_family.1.clone(),
+                                    is_current_line,
                                 }
                             }
                         } else {
@@ -144,6 +146,7 @@ pub fn gutter_data(
                                 style_width: width,
                                 style_font_size,
                                 style_font_family: font_family.1.clone(),
+                                is_current_line,
                             }
                         }
                     },
@@ -157,6 +160,7 @@ pub fn gutter_data(
                             style_width: width,
                             style_font_size,
                             style_font_family: font_family.1.clone(),
+                            is_current_line: false,
                         }
                     },
                 }
@@ -165,12 +169,13 @@ pub fn gutter_data(
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GutterData {
     origin_line_start: Option<usize>,
     paint_point_y:     f64,
     marker:            GutterMarker,
     style_width:       f64,
+    is_current_line:   bool,
     style_color:       Color,
     style_font_size:   usize,
     style_font_family: String,
@@ -189,6 +194,7 @@ impl PartialEq for GutterData {
         self.paint_point_y.to_bits() == other.paint_point_y.to_bits()
             && self.origin_line_start == other.origin_line_start
             && self.marker == other.marker
+            && self.is_current_line == other.is_current_line
     }
 }
 
