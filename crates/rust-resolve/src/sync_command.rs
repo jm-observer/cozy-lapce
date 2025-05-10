@@ -4,7 +4,7 @@ use std::{
     thread,
 };
 
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use cozy_floem::{channel::ExtChannel, views::tree_with_panel::data::StyledText};
 use log::{error, info};
 
@@ -19,8 +19,20 @@ pub fn run_command(
         .stderr(std::process::Stdio::piped())
         .spawn()
         .expect("Failed to start cargo build");
-    let stdout = child.stdout.take().ok_or(anyhow!("stdout is none"))?;
-    let stderr = child.stderr.take().ok_or(anyhow!("stderr is none"))?;
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            child.wait()?;
+            bail!("stdout is none");
+        },
+    };
+    let stderr = match child.stderr.take() {
+        Some(stdout) => stdout,
+        None => {
+            child.wait()?;
+            bail!("stderr is none");
+        },
+    };
 
     let mut out_lines = BufReader::new(stdout).lines();
     let mut err_lines = BufReader::new(stderr).lines();
@@ -44,7 +56,7 @@ pub fn run_command(
     if let Err(err) = err_thread.join() {
         error!("{err:?}");
     }
-
+    #[allow(clippy::unreachable)]
     let status = child.wait()?;
     if !status.success() {
         bail!("child process failed: {}", status);
