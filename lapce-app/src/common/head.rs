@@ -664,11 +664,11 @@ fn tab_secondary_click<T: Clone + TabHead + 'static>(
         .entry(MenuItem::new("Close All Tabs").action(move || {
             tabs.action_close_all();
         }))
-        .entry(MenuItem::new("Close Tabs to the Right").action(move || {
-            tabs.close_right_tab(view_id);
-        }))
         .entry(MenuItem::new("Close Tabs to the Left").action(move || {
             tabs.close_left_tab(view_id);
+        }))
+        .entry(MenuItem::new("Close Tabs to the Right").action(move || {
+            tabs.close_right_tab(view_id);
         }));
     show_context_menu(menu, None);
 }

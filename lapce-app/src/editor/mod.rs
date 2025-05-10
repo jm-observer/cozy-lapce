@@ -3669,36 +3669,10 @@ impl EditorData {
     }
 
     fn right_click(&self, pointer_event: &PointerInputEvent) {
-        // ??
-        // let mode = self.cursor().with_untracked(|c| c.mode().clone());
-        // let (offset, _, _) =
-        //     match self.editor.offset_of_point(&mode, pointer_event.pos) {
-        //         Ok(rs) => rs,
-        //         Err(err) => {
-        //             error!("{err:?}");
-        //             return;
-        //         }
-        //     };
-        //
-        // let doc = self.doc();
-        // let pointer_inside_selection = doc.lines.with_untracked(|buffer| {
-        //     self.cursor().with_untracked(|c| {
-        //         match c.edit_selection(buffer.buffer()) {
-        //             Ok(rs) => rs,
-        //             Err(err) => {
-        //                 error!("{err:?}");
-        //                 return false;
-        //             }
-        //         }
-        //         .contains(offset)
-        //     })
-        // });
-        // if !pointer_inside_selection {
-        //     // move cursor to pointer position if outside current selection
-        //     self.single_click(pointer_event);
-        // }
         let doc = self.doc();
         self.single_click(pointer_event);
+
+        let code_lens = doc.code_lens.get_untracked();
 
         let (path, is_file) = doc.content.with_untracked(|content| match content {
             DocContent::File { path, .. } => {

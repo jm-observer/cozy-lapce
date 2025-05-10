@@ -648,25 +648,6 @@ impl WindowWorkspaceData {
             proxy.core_rpc.clone(),
         );
 
-        // {
-        //     let notification = create_signal_from_channel(term_notification_rx);
-        //     let terminal = terminal.clone();
-        //     cx.create_effect(move |_| {
-        //         notification.with(|notification| {
-        //             if let Some(notification) = notification.as_ref() {
-        //                 match notification {
-        //                     TermNotification::SetTitle { term_id, title } => {
-        //                         terminal.set_title(term_id, title);
-        //                     },
-        //                     TermNotification::RequestPaint => {
-        //                         view_id.get_untracked().request_paint();
-        //                     },
-        //                 }
-        //             }
-        //         });
-        //     });
-        // }
-
         let about_data = AboutData::new(cx, common.focus);
         let alert_data = AlertBoxData::new(cx, common.clone());
         let build_data = TreePanelData::new(cx, DocStyle::default());
@@ -3353,18 +3334,6 @@ impl WindowWorkspaceData {
                 },
             ));
         });
-    }
-
-    pub fn update_code_lens_id(&self, view_id: Option<ViewId>) {
-        if let Some(Some(old_id)) = self.code_lens.try_update(|x| {
-            let old = x.take();
-            if let Some(id) = view_id {
-                let _ = x.insert(id);
-            }
-            old
-        }) {
-            remove_overlay(old_id);
-        }
     }
 
     pub fn show_code_lens(

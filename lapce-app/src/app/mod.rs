@@ -4505,18 +4505,18 @@ fn tab_secondary_click(
         .entry(MenuItem::new("Close All Tabs").action(move || {
             internal_command.send(InternalCommand::EditorTabClose { editor_tab_id });
         }))
-        .entry(MenuItem::new("Close Tabs to the Right").action(move || {
-            internal_command.send(InternalCommand::EditorTabCloseByKind {
-                editor_tab_id,
-                child: child_right.clone(),
-                kind: TabCloseKind::CloseToRight,
-            });
-        }))
         .entry(MenuItem::new("Close Tabs to the Left").action(move || {
             internal_command.send(InternalCommand::EditorTabCloseByKind {
                 editor_tab_id,
                 child: child_left.clone(),
                 kind: TabCloseKind::CloseToLeft,
+            });
+        }))
+        .entry(MenuItem::new("Close Tabs to the Right").action(move || {
+            internal_command.send(InternalCommand::EditorTabCloseByKind {
+                editor_tab_id,
+                child: child_right.clone(),
+                kind: TabCloseKind::CloseToRight,
             });
         }));
     show_context_menu(menu, None);
