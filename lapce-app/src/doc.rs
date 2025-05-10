@@ -5,10 +5,7 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{
-        Arc,
-        atomic::{self},
-    },
+    sync::atomic::{self},
 };
 
 use doc::{
@@ -524,7 +521,7 @@ impl Doc {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
-        screen_lines: Arc<ScreenLines>,
+        screen_lines: &ScreenLines,
     ) -> Vec<(Rope, RopeDelta, InvalLines)> {
         if self.content.with_untracked(|c| c.read_only())
             && !cmd.not_changing_buffer()
@@ -1580,7 +1577,7 @@ impl CommonAction for Doc {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
-        screen_lines: Arc<ScreenLines>,
+        screen_lines: &ScreenLines,
     ) -> bool {
         let deltas = Doc::do_edit(
             self,

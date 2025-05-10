@@ -156,7 +156,7 @@ pub struct EditorData {
 
     pub window_origin:        RwSignal<Point>,
     pub viewport:             RwSignal<Rect>,
-    pub screen_lines:         RwSignal<Arc<ScreenLines>>,
+    pub screen_lines:         RwSignal<ScreenLines>,
     pub visual_lines:         RwSignal<Vec<VisualLine>>,
     pub folding_display_item: RwSignal<Vec<FoldingDisplayItem>>,
     pub cursor:               RwSignal<Cursor>,
@@ -194,7 +194,7 @@ impl EditorData {
         let cx = cx.create_child();
 
         let viewport = cx.create_rw_signal(Rect::ZERO);
-        let screen_lines = cx.create_rw_signal(Arc::new(ScreenLines::default()));
+        let screen_lines = cx.create_rw_signal(ScreenLines::default());
         let visual_lines = cx.create_rw_signal(vec![]);
 
         let folding_display_item = cx.create_rw_signal(vec![]);
@@ -467,7 +467,7 @@ impl EditorData {
                 modal,
                 &mut register,
                 smart_tab,
-                self.screen_lines.get_untracked(),
+                &self.screen_lines.get_untracked(),
             )
         });
 

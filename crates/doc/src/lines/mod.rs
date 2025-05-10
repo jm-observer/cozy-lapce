@@ -1461,7 +1461,7 @@ impl DocLines {
         &mut self,
         base: Rect,
         view_kind: EditorViewKind,
-    ) -> Result<(Arc<ScreenLines>, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
+    ) -> Result<(ScreenLines, Vec<FoldingDisplayItem>, Vec<VisualLine>)> {
         debug!("_compute_screen_lines base={base:?} kind={view_kind:?}");
         let line_height = self.config.line_height;
         let (y0, y1) = (base.y0, base.y1);
@@ -1524,7 +1524,7 @@ impl DocLines {
         };
 
         self.signals.trigger();
-        Ok((Arc::new(screen_lines), display_items, visual_lines))
+        Ok((screen_lines, display_items, visual_lines))
     }
 
     pub fn _compute_screen_lines_new(
@@ -3811,7 +3811,7 @@ pub enum EditBuffer<'a> {
         modal:        bool,
         register:     &'a mut Register,
         smart_tab:    bool,
-        screen_lines: Arc<ScreenLines>,
+        screen_lines: &'a ScreenLines,
     },
     DoInsertBuffer {
         cursor: &'a mut Cursor,
@@ -3985,7 +3985,7 @@ impl PubUpdateLines {
                         keep_indent: true,
                         auto_indent: true,
                     },
-                    &screen_lines,
+                    screen_lines,
                 );
                 if !rs.is_empty() {
                     self.buffer_mut().set_cursor_before(old_cursor);

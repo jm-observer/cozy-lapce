@@ -171,7 +171,6 @@ impl PluginCatalog {
                             .to_string(),
                     }),
                 );
-                return;
             } else {
                 request_sent.fetch_add(count, Ordering::Relaxed);
             }

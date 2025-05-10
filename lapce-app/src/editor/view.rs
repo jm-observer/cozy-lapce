@@ -1037,7 +1037,7 @@ impl View for EditorView {
             viewport,
             is_active,
             cursor_hidden,
-            screen_lines,
+            &screen_lines,
             lines,
             font_family,
             visible_whitespace,

@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let branch = std::fs::read_to_string("../.git/HEAD")?;
     if let Some(stripped) = branch.strip_prefix("ref: ") {
         let path = format!("../.git/{}", stripped.trim());
-        println!("cargo:rerun-if-changed={}", path);
+        println!("cargo:rerun-if-changed={path}",);
     }
 
     let release_info = get_info()?;

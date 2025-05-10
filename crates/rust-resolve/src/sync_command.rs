@@ -4,7 +4,7 @@ use std::{
     thread,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use cozy_floem::{channel::ExtChannel, views::tree_with_panel::data::StyledText};
 use log::{error, info};
 
@@ -43,6 +43,11 @@ pub fn run_command(
     }
     if let Err(err) = err_thread.join() {
         error!("{err:?}");
+    }
+
+    let status = child.wait()?;
+    if !status.success() {
+        bail!("child process failed: {}", status);
     }
     info!("run end");
     Ok(())

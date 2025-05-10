@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::Range, sync::Arc};
+use std::{borrow::Cow, ops::Range};
 
 use anyhow::Result;
 use doc::lines::{
@@ -1054,7 +1054,7 @@ pub trait CommonAction {
         modal: bool,
         register: &mut Register,
         smart_tab: bool,
-        screen_lines: Arc<ScreenLines>,
+        screen_lines: &ScreenLines,
     ) -> bool;
 }
 
@@ -1381,7 +1381,7 @@ pub fn paint_text(
     viewport: Rect,
     is_active: bool,
     hide_cursor: bool,
-    screen_lines: Arc<ScreenLines>,
+    screen_lines: &ScreenLines,
     lines: DocLinesManager,
     font_family: Cow<[FamilyOwned]>,
     visible_whitespace: Color,
@@ -1455,7 +1455,7 @@ pub fn paint_text(
                 select_color,
                 start_offset,
                 end_offset,
-                &screen_lines,
+                screen_lines,
                 start_affinity,
                 end_affinity,
             )?;
