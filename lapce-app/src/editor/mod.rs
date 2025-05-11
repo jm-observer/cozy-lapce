@@ -41,7 +41,7 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::{Point, Rect, Vec2},
-    menu::{Menu, MenuItem},
+    menu::Menu,
     peniko::Color,
     pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
@@ -85,6 +85,7 @@ use crate::{
     editor_tab::EditorTabChildId,
     inline_completion::{InlineCompletionItem, InlineCompletionStatus},
     keypress::{KeyPressFocus, condition::Condition},
+    listener::Listener,
     lsp::path_from_url,
     markdown::{
         MarkdownContent, from_marked_string, from_plaintext, parse_markdown,
@@ -3687,42 +3688,33 @@ impl EditorData {
             | DocContent::History(_)
             | DocContent::Scratch { .. } => (None, false),
         });
-        let mut menu = Menu::new("");
-        let mut cmds = if let Some(path) = path {
+        let add_go_to = self.diff_editor_id.get_untracked().is_some() && is_file;
+        let menu = if let Some(path) = path {
             if path.file_name().and_then(|x| x.to_str()) == Some("run.toml") {
-                run_toml_menu()
+                run_toml_menu(add_go_to, self.common.lapce_command)
             } else {
-                file_menu(path, code_lens)
+                file_menu(path, code_lens, add_go_to, self.common.lapce_command)
             }
         } else {
-            vec![
-                Some(CommandKind::Edit(EditCommand::ClipboardCut)),
-                Some(CommandKind::Edit(EditCommand::ClipboardCopy)),
-                Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
-                None,
-                Some(CommandKind::Workbench(
-                    LapceWorkbenchCommand::PaletteCommand,
-                )),
-            ]
+            Menu::new("")
+                .entry(
+                    CommandKind::Edit(EditCommand::ClipboardCut)
+                        .to_menu(self.common.lapce_command),
+                )
+                .entry(
+                    CommandKind::Edit(EditCommand::ClipboardCopy)
+                        .to_menu(self.common.lapce_command),
+                )
+                .entry(
+                    CommandKind::Edit(EditCommand::ClipboardPaste)
+                        .to_menu(self.common.lapce_command),
+                )
+                .separator()
+                .entry(
+                    CommandKind::Workbench(LapceWorkbenchCommand::PaletteCommand)
+                        .to_menu(self.common.lapce_command),
+                )
         };
-        if self.diff_editor_id.get_untracked().is_some() && is_file {
-            cmds.push(Some(CommandKind::Workbench(
-                LapceWorkbenchCommand::GoToLocation,
-            )));
-        }
-        let lapce_command = self.common.lapce_command;
-        for cmd in cmds {
-            if let Some(cmd) = cmd {
-                menu = menu.entry(MenuItem::new(cmd.title()).action(move || {
-                    lapce_command.send(LapceCommand {
-                        kind: cmd.clone(),
-                        data: None,
-                    })
-                }));
-            } else {
-                menu = menu.separator();
-            }
-        }
         show_context_menu(menu, None);
     }
 
@@ -4752,85 +4744,157 @@ fn parse_hover_resp(
 fn file_menu(
     _path: PathBuf,
     codelens: im::Vector<(Id, CodeLens)>,
-) -> Vec<Option<CommandKind>> {
-    let mut cmds = vec![
-        Some(CommandKind::Focus(FocusCommand::GotoDefinition)),
-        Some(CommandKind::Focus(FocusCommand::GotoTypeDefinition)),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::ShowCallHierarchy,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::FindReferences,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::GoToImplementation,
-        )),
-        Some(CommandKind::Focus(FocusCommand::Rename)),
-        Some(CommandKind::Workbench(LapceWorkbenchCommand::RunInTerminal)),
-        None,
-        Some(CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::RevealInFileExplorer,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::RevealInDocumentSymbolPanel,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
-        )),
-        None,
-        Some(CommandKind::Edit(EditCommand::ClipboardCut)),
-        Some(CommandKind::Edit(EditCommand::ClipboardCopy)),
-        Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
-        None,
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::PaletteCommand,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::InspectSemanticType,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::InspectClickInfo,
-        )),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::InspectLogModule,
-        )),
-    ];
-    let codelens = codelens.into_iter().filter_map(|codelen| {
-        if let Some(_cmd) = codelen.1.command {
-            Some(Some(CommandKind::Other(
-                crate::command::OtherCommand::RightMenuRunCodeLen {
-                    id:    codelen.0,
-                    title: _cmd.title,
-                },
-            )))
-        } else {
-            None
+    add_go_to: bool,
+    lapce_command: Listener<LapceCommand>,
+) -> Menu {
+    let menu = Menu::new("")
+        .entry(
+            CommandKind::Focus(FocusCommand::GotoDefinition).to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Focus(FocusCommand::GotoTypeDefinition)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::ShowCallHierarchy)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::FindReferences)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::GoToImplementation)
+                .to_menu(lapce_command),
+        )
+        .separator()
+        .entry(CommandKind::Focus(FocusCommand::Rename).to_menu(lapce_command))
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::RunInTerminal)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::RevealInFileExplorer)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(
+                LapceWorkbenchCommand::RevealInDocumentSymbolPanel,
+            )
+            .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(
+                LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
+            )
+            .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::PaletteCommand)
+                .to_menu(lapce_command),
+        )
+        .separator()
+        .entry(edit_menu(lapce_command))
+        .entry(
+            Menu::new("inspect")
+                .entry(
+                    CommandKind::Workbench(
+                        LapceWorkbenchCommand::InspectSemanticType,
+                    )
+                    .to_menu(lapce_command),
+                )
+                .entry(
+                    CommandKind::Workbench(LapceWorkbenchCommand::InspectClickInfo)
+                        .to_menu(lapce_command),
+                )
+                .entry(
+                    CommandKind::Workbench(LapceWorkbenchCommand::InspectLogModule)
+                        .to_menu(lapce_command),
+                ),
+        );
+
+    let mut codelens: im::Vector<CommandKind> = codelens
+        .into_iter()
+        .filter_map(|codelen| {
+            if let Some(_cmd) = codelen.1.command {
+                Some(CommandKind::Other(
+                    crate::command::OtherCommand::RightMenuRunCodeLen {
+                        id:    codelen.0,
+                        title: _cmd.title,
+                    },
+                ))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let menu = if codelens.is_empty() {
+        menu
+    } else if codelens.len() == 1
+        && let Some(code_len) = codelens.pop_front()
+    {
+        menu.entry(code_len.to_menu(lapce_command))
+    } else {
+        let mut sub_menu = Menu::new("run code len");
+        for code_len in codelens {
+            sub_menu = sub_menu.entry(code_len.to_menu(lapce_command));
         }
-    });
-    cmds.extend(codelens);
-    cmds
+        menu.entry(sub_menu)
+    };
+    if add_go_to {
+        menu.entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::GoToLocation)
+                .to_menu(lapce_command),
+        )
+    } else {
+        menu
+    }
 }
 
-fn run_toml_menu() -> Vec<Option<CommandKind>> {
-    vec![
-        Some(CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::RevealInFileExplorer,
-        )),
-        Some(CommandKind::Workbench(
+fn run_toml_menu(add_go_to: bool, lapce_command: Listener<LapceCommand>) -> Menu {
+    let mut menu = Menu::new("");
+
+    menu = menu.entry(
+        CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)
+            .to_menu(lapce_command),
+    );
+    menu = menu.entry(
+        CommandKind::Workbench(LapceWorkbenchCommand::RevealInFileExplorer)
+            .to_menu(lapce_command),
+    );
+    menu = menu.entry(
+        CommandKind::Workbench(
             LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
-        )),
-        None,
-        Some(CommandKind::Edit(EditCommand::ClipboardCut)),
-        Some(CommandKind::Edit(EditCommand::ClipboardCopy)),
-        Some(CommandKind::Edit(EditCommand::ClipboardPaste)),
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::AddRunDebugConfig,
-        )),
-        None,
-        Some(CommandKind::Workbench(
-            LapceWorkbenchCommand::PaletteCommand,
-        )),
-    ]
+        )
+        .to_menu(lapce_command),
+    );
+    menu = menu.separator().entry(edit_menu(lapce_command));
+    menu = menu.entry(
+        CommandKind::Workbench(LapceWorkbenchCommand::AddRunDebugConfig)
+            .to_menu(lapce_command),
+    );
+    menu = menu.separator();
+    menu = menu.entry(
+        CommandKind::Workbench(LapceWorkbenchCommand::PaletteCommand)
+            .to_menu(lapce_command),
+    );
+    if add_go_to {
+        menu.entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::GoToLocation)
+                .to_menu(lapce_command),
+        )
+    } else {
+        menu
+    }
+}
+
+fn edit_menu(lapce_command: Listener<LapceCommand>) -> Menu {
+    Menu::new("edit")
+        .entry(CommandKind::Edit(EditCommand::ClipboardCut).to_menu(lapce_command))
+        .entry(CommandKind::Edit(EditCommand::ClipboardCopy).to_menu(lapce_command))
+        .entry(CommandKind::Edit(EditCommand::ClipboardPaste).to_menu(lapce_command))
 }

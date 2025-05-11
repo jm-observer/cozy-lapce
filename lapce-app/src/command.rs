@@ -1,7 +1,7 @@
 use std::{path::PathBuf, rc::Rc, sync::Arc};
 
 use doc::lines::{command::*, editor_command::Command};
-use floem::{ViewId, keyboard::Modifiers, peniko::kurbo::Vec2};
+use floem::{ViewId, keyboard::Modifiers, menu::MenuItem, peniko::kurbo::Vec2};
 use indexmap::IndexMap;
 use lapce_core::{
     debug::RunDebugMode,
@@ -26,6 +26,7 @@ use crate::{
     doc::Doc,
     editor::{DocSignal, location::EditorLocation},
     editor_tab::EditorTabChildId,
+    listener::Listener,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -71,6 +72,15 @@ impl OtherCommand {
 }
 
 impl CommandKind {
+    pub fn to_menu(self, lapce_command: Listener<LapceCommand>) -> MenuItem {
+        MenuItem::new(self.title()).action(move || {
+            lapce_command.send(LapceCommand {
+                kind: self.clone(),
+                data: None,
+            })
+        })
+    }
+
     pub fn desc(&self) -> Option<&'static str> {
         match &self {
             CommandKind::Workbench(cmd) => cmd.get_detailed_message(),
