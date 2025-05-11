@@ -242,6 +242,7 @@ impl LspClient {
             id,
             HandlerType::Lsp,
         );
+        let volt_display_name_clone = volt_display_name.clone();
         thread::spawn(move || {
             for msg in io_rx {
                 if msg
@@ -256,10 +257,12 @@ impl LspClient {
                     let msg =
                         format!("Content-Length: {}\r\n\r\n{}", msg.len(), msg);
                     if let Err(err) = writer.write(msg.as_bytes()) {
-                        log::error!("{:?}", err);
+                        log::error!("{volt_display_name_clone} {:?}", err);
+                        break;
                     }
                     if let Err(err) = writer.flush() {
-                        log::error!("{:?}", err);
+                        log::error!("{volt_display_name_clone} {:?}", err);
+                        break;
                     }
                 }
             }
@@ -294,12 +297,12 @@ impl LspClient {
                             &name,
                         ) {
                             if let Err(err) = io_tx.send(resp) {
-                                log::error!("{:?}", err);
+                                log::error!("{name} {:?}", err);
                             }
                         }
                     },
                     Err(_err) => {
-                        error!("{_err:?}");
+                        error!("{name} {_err:?}");
                         core_rpc.log(
                             lapce_rpc::core::LogLevel::Error,
                             format!("lsp server {server} stopped!"),
@@ -316,6 +319,7 @@ impl LspClient {
 
         let core_rpc = plugin_rpc.core_rpc.clone();
         let volt_id_closure = volt_id.clone();
+
         thread::spawn(move || {
             let mut reader = Box::new(BufReader::new(stderr));
             loop {
@@ -334,7 +338,8 @@ impl LspClient {
                             )),
                         );
                     },
-                    Err(_) => {
+                    Err(_err) => {
+                        error!("{} {_err:?}", volt_id_closure.name);
                         return;
                     },
                 }

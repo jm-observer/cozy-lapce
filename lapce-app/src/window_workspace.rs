@@ -887,11 +887,14 @@ impl WindowWorkspaceData {
                                 .find_map(|x| x.2.iter().find(|x| x.0 == id))
                                 .cloned()
                         })
+                    && let Some(command) = code_len.1.command
                 {
-                    error!("{:?}", code_len.1.command);
-                    self.common
-                        .show_status_message(format!("{:?}", code_len.1.command));
-                    // run code len
+                    self.main_split.run_code_lens(
+                        &command.command,
+                        command.arguments.unwrap_or_default(),
+                    );
+                } else {
+                    debug!("code len {id:?} not found or command is none");
                 }
             },
         }
@@ -1491,6 +1494,48 @@ impl WindowWorkspaceData {
                     }
             RestartToUpdate => {
                         log::error!("todo restart to update");
+                        // if let Some(release) = self
+                        //     .common
+                        //     .window_common
+                        //     .latest_release
+                        //     .get_untracked()
+                        //     .as_ref()
+                        // {
+                        //     let release = release.clone();
+                        //     let update_in_progress = self.update_in_progress;
+                        //     if release.version != *meta::VERSION {
+                        //         if let Ok(process_path) = env::current_exe() {
+                        //             update_in_progress.set(true);
+                        //             let send = create_ext_action(
+                        //                 self.common.scope,
+                        //                 move |_started| {
+                        //                     update_in_progress.set(false);
+                        //                 },
+                        //             );
+                        //             let updates_directory = self.common.directory.updates_directory.clone();
+                        //             // todo remove thread
+                        //             std::thread::Builder::new().name("RestartToUpdate".to_owned()).spawn(move || {
+                        //                 let do_update = || -> anyhow::Result<()> {
+                        //                     let src =
+                        //                         crate::update::download_release(&release, updates_directory.as_ref())?;
+                        //
+                        //                     let path =
+                        //                         crate::update::extract(&src, &process_path)?;
+                        //
+                        //                     crate::update::restart(&path)?;
+                        //
+                        //                     Ok(())
+                        //                 };
+                        //
+                        //                 if let Err(err) = do_update() {
+                        //                     error!("Failed to update: {err}");
+                        //                 }
+                        //
+                        //                 send(false);
+                        //             }).unwrap();
+                        //         }
+                        //     }
+                        // }
                     }
             #[cfg(target_os = "macos")]
                     InstallToPATH => {
@@ -1606,10 +1651,7 @@ impl WindowWorkspaceData {
                                     return Ok(());
                                 }
                                 if let Err(err) = open::that(path) {
-                                    error!(
-                                    "Failed to reveal file in system file explorer: {err}",
-                            
-                                );
+                                    error!("Failed to reveal file in system file explorer: {err}");
                                 }
                             }
                     }
