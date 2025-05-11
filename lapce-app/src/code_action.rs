@@ -83,7 +83,7 @@ impl KeyPressFocus for CodeActionData {
                 self.run_focus_command(cmd);
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {},
+            CommandKind::MultiSelection(_) | CommandKind::Other(_) => {},
         }
         CommandExecuted::Yes
     }

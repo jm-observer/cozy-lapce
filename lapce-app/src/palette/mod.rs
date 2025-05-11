@@ -1800,7 +1800,7 @@ impl KeyPressFocus for PaletteData {
                 error!("todo run_command {command:?}");
                 // self.input_editor.run_command(command, count, mods);
             },
-            CommandKind::MotionMode(_) => {},
+            CommandKind::MotionMode(_) | CommandKind::Other(_) => {},
         }
         CommandExecuted::Yes
     }

@@ -62,10 +62,10 @@ use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
 use log::{error, info};
 use lsp_types::{
-    CodeActionOrCommand, CodeActionResponse, CompletionItem, CompletionTextEdit,
-    Diagnostic, DiagnosticSeverity, GotoDefinitionResponse, HoverContents,
-    InlineCompletionTriggerKind, Location, MarkedString, MarkupKind, Position,
-    Range, TextEdit,
+    CodeActionOrCommand, CodeActionResponse, CodeLens, CompletionItem,
+    CompletionTextEdit, Diagnostic, DiagnosticSeverity, GotoDefinitionResponse,
+    HoverContents, InlineCompletionTriggerKind, Location, MarkedString, MarkupKind,
+    Position, Range, TextEdit,
 };
 use nucleo::Utf32Str;
 use serde_json::Value;
@@ -3672,7 +3672,12 @@ impl EditorData {
         let doc = self.doc();
         self.single_click(pointer_event);
 
-        let code_lens = doc.code_lens.get_untracked();
+        let code_lens: im::Vector<(Id, CodeLens)> = doc
+            .code_lens
+            .get_untracked()
+            .into_values()
+            .flat_map(|x| x.2)
+            .collect();
 
         let (path, is_file) = doc.content.with_untracked(|content| match content {
             DocContent::File { path, .. } => {
@@ -3687,7 +3692,7 @@ impl EditorData {
             if path.file_name().and_then(|x| x.to_str()) == Some("run.toml") {
                 run_toml_menu()
             } else {
-                file_menu(path)
+                file_menu(path, code_lens)
             }
         } else {
             vec![
@@ -3708,16 +3713,12 @@ impl EditorData {
         let lapce_command = self.common.lapce_command;
         for cmd in cmds {
             if let Some(cmd) = cmd {
-                menu = menu.entry(
-                    MenuItem::new(cmd.desc().unwrap_or_else(|| cmd.str())).action(
-                        move || {
-                            lapce_command.send(LapceCommand {
-                                kind: cmd.clone(),
-                                data: None,
-                            })
-                        },
-                    ),
-                );
+                menu = menu.entry(MenuItem::new(cmd.title()).action(move || {
+                    lapce_command.send(LapceCommand {
+                        kind: cmd.clone(),
+                        data: None,
+                    })
+                }));
             } else {
                 menu = menu.separator();
             }
@@ -4206,6 +4207,7 @@ impl KeyPressFocus for EditorData {
             crate::command::CommandKind::MultiSelection(cmd) => {
                 self.run_multi_selection_command(cmd)
             },
+            CommandKind::Other(_) => CommandExecuted::No,
         }
     }
 
@@ -4747,8 +4749,11 @@ fn parse_hover_resp(
     }
 }
 
-fn file_menu(_path: PathBuf) -> Vec<Option<CommandKind>> {
-    vec![
+fn file_menu(
+    _path: PathBuf,
+    codelens: im::Vector<(Id, CodeLens)>,
+) -> Vec<Option<CommandKind>> {
+    let mut cmds = vec![
         Some(CommandKind::Focus(FocusCommand::GotoDefinition)),
         Some(CommandKind::Focus(FocusCommand::GotoTypeDefinition)),
         Some(CommandKind::Workbench(
@@ -4790,7 +4795,21 @@ fn file_menu(_path: PathBuf) -> Vec<Option<CommandKind>> {
         Some(CommandKind::Workbench(
             LapceWorkbenchCommand::InspectLogModule,
         )),
-    ]
+    ];
+    let codelens = codelens.into_iter().filter_map(|codelen| {
+        if let Some(_cmd) = codelen.1.command {
+            Some(Some(CommandKind::Other(
+                crate::command::OtherCommand::RightMenuRunCodeLen {
+                    id:    codelen.0,
+                    title: _cmd.title,
+                },
+            )))
+        } else {
+            None
+        }
+    });
+    cmds.extend(codelens);
+    cmds
 }
 
 fn run_toml_menu() -> Vec<Option<CommandKind>> {

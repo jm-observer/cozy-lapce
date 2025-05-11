@@ -31,11 +31,11 @@ use crate::{
     file::{FileNodeItem, PathObject},
     file_line::FileLine,
     plugin::{PluginId, VoltInfo, VoltMetadata},
+    rust_module_resolve::CargoContext,
     source_control::FileDiff,
     style::SemanticStyles,
     terminal::{TermId, TerminalProfile},
 };
-use crate::rust_module_resolve::CargoContext;
 
 #[allow(clippy::large_enum_variant)]
 pub enum ProxyRpc {

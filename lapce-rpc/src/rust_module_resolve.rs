@@ -1,7 +1,10 @@
 mod resolve_path;
 
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+};
+
 use anyhow::{Result, bail};
 use cargo::{
     core::{PackageSet, Resolve, Shell, Workspace},
@@ -9,12 +12,10 @@ use cargo::{
     util::GlobalContext,
 };
 use directories::UserDirs;
-use crate::{
-    RpcResult,
-    proxy::{FileAndLine},
-};
 use log::{error, warn};
 use resolve_path::*;
+
+use crate::{RpcResult, proxy::FileAndLine};
 
 fn cargo_home() -> Result<PathBuf> {
     Ok(if let Ok(path) = std::env::var("CARGO_HOME") {
@@ -41,7 +42,8 @@ pub fn create_cargo_context(manifest_path: &Path) -> anyhow::Result<CargoContext
         cargo_home()?,
     ));
     // 这里 leak 成 'static 生命周期
-    let leaked_gctx: &'static GlobalContext = unsafe { &*Rc::into_raw(gctx.clone()) };
+    let leaked_gctx: &'static GlobalContext =
+        unsafe { &*Rc::into_raw(gctx.clone()) };
 
     // Workspace
     let workspace = Workspace::new(manifest_path, leaked_gctx)?;

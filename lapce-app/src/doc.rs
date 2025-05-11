@@ -41,7 +41,7 @@ use floem::{
 };
 use itertools::Itertools;
 use lapce_core::{
-    debug::RunDebugConfigs, doc::DocContent, workspace::LapceWorkspace,
+    debug::RunDebugConfigs, doc::DocContent, id::Id, workspace::LapceWorkspace,
 };
 use lapce_rpc::{buffer::BufferId, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Interval, Rope, RopeDelta, spans::SpansBuilder};
@@ -85,7 +85,7 @@ pub struct DocInfo {
     pub cursor_offset: usize,
 }
 
-pub type AllCodeLens = im::HashMap<usize, (PluginId, usize, im::Vector<CodeLens>)>;
+pub type AllCodeLens = HashMap<usize, (PluginId, usize, im::Vector<(Id, CodeLens)>)>;
 
 #[derive(Clone)]
 pub struct Doc {
@@ -184,7 +184,7 @@ impl Doc {
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
-            code_lens: cx.create_rw_signal(im::HashMap::new()),
+            code_lens: cx.create_rw_signal(HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
             // folding_ranges: cx.create_rw_signal(FoldingRanges::default()),
             // semantic_previous_rs_id: cx.create_rw_signal(None),
@@ -262,7 +262,7 @@ impl Doc {
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
-            code_lens: cx.create_rw_signal(im::HashMap::new()),
+            code_lens: cx.create_rw_signal(HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
             lines,
         }
@@ -348,7 +348,7 @@ impl Doc {
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
-            code_lens: cx.create_rw_signal(im::HashMap::new()),
+            code_lens: cx.create_rw_signal(HashMap::new()),
             document_symbol_data: DocumentSymbolViewData::new(cx),
             // folding_ranges: cx.create_rw_signal(FoldingRanges::default()),
             // semantic_previous_rs_id: cx.create_rw_signal(None),
@@ -851,7 +851,7 @@ impl Doc {
                                 .or_insert_with(|| {
                                     (plugin_id, rs, im::Vector::new())
                                 });
-                            entry.2.push_back(codelens);
+                            entry.2.push_back((Id::next(), codelens));
                         }
                     });
                 }

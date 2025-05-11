@@ -9,11 +9,11 @@ pub mod file_line;
 mod parse;
 pub mod plugin;
 pub mod proxy;
+pub mod rust_module_resolve;
 pub mod source_control;
 pub mod stdio;
 pub mod style;
 pub mod terminal;
-pub mod rust_module_resolve;
 
 use std::fmt::Display;
 

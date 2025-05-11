@@ -140,7 +140,7 @@ impl KeyPressFocus for PluginData {
                     _ => {},
                 };
             },
-            CommandKind::MotionMode(_) => {},
+            CommandKind::MotionMode(_) | CommandKind::Other(_) => (),
         }
         CommandExecuted::No
     }

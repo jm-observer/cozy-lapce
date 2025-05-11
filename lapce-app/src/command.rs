@@ -43,6 +43,31 @@ pub enum CommandKind {
     Focus(FocusCommand),
     MotionMode(MotionModeCommand),
     MultiSelection(MultiSelectionCommand),
+    Other(OtherCommand),
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OtherCommand {
+    RightMenuRunCodeLen { id: Id, title: String },
+}
+
+impl OtherCommand {
+    pub fn desc(&self) -> Option<&'static str> {
+        match &self {
+            Self::RightMenuRunCodeLen { .. } => Some("RightMenuRunCodeLen"),
+        }
+    }
+
+    pub fn str(&self) -> &'static str {
+        match &self {
+            Self::RightMenuRunCodeLen { .. } => "RightMenuRunCodeLen",
+        }
+    }
+
+    pub fn title(&self) -> String {
+        match self {
+            OtherCommand::RightMenuRunCodeLen { title, .. } => title.clone(),
+        }
+    }
 }
 
 impl CommandKind {
@@ -55,6 +80,15 @@ impl CommandKind {
             CommandKind::Focus(cmd) => cmd.get_detailed_message(),
             CommandKind::MotionMode(cmd) => cmd.get_detailed_message(),
             CommandKind::MultiSelection(cmd) => cmd.get_detailed_message(),
+            CommandKind::Other(cmd) => cmd.desc(),
+        }
+    }
+
+    pub fn title(&self) -> String {
+        if let Self::Other(cmd) = self {
+            cmd.title()
+        } else {
+            self.desc().unwrap_or_else(|| self.str()).to_owned()
         }
     }
 
@@ -67,6 +101,7 @@ impl CommandKind {
             CommandKind::Focus(cmd) => cmd.into(),
             CommandKind::MotionMode(cmd) => cmd.into(),
             CommandKind::MultiSelection(cmd) => cmd.into(),
+            CommandKind::Other(cmd) => cmd.str(),
         }
     }
 }

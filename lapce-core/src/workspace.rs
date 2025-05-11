@@ -123,6 +123,7 @@ impl LapceWorkspace {
             last_open,
         }
     }
+
     #[cfg(windows)]
     pub fn new_remote_wsl(wsl: WslHost) -> Self {
         Self::new(LapceWorkspaceType::RemoteWSL(wsl), None, 0)

@@ -82,7 +82,7 @@ impl KeyPressFocus for AboutData {
                 }
             },
             CommandKind::MotionMode(_) => {},
-            CommandKind::MultiSelection(_) => {},
+            CommandKind::MultiSelection(_) | CommandKind::Other(_) => {},
         }
         CommandExecuted::Yes
     }

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use log::debug;
 use lapce_rpc::rust_module_resolve::create_cargo_context;
+use log::debug;
 
 fn main() -> anyhow::Result<()> {
     custom_utils::logger::logger_stdout(
