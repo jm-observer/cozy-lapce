@@ -278,6 +278,17 @@ impl CommonData {
         self.internal_command
             .send(InternalCommand::ShowStatusMessage { message });
     }
+
+    pub fn show_popup_message(
+        &self,
+        title: String,
+        typ: MessageType,
+        message: String,
+    ) {
+        self.proxy
+            .core_rpc
+            .show_message(title, ShowMessageParams { typ, message });
+    }
 }
 
 #[derive(Clone)]

@@ -359,11 +359,8 @@ impl ProxyHandler for Dispatcher {
                 self.handle_lsp_request(id, rpc).await;
             },
             NewBuffer { buffer_id, path } => {
-                let (content, read_only) = self.new_buffer(id, buffer_id, path);
-                self.respond_rpc(
-                    id,
-                    Ok(ProxyResponse::NewBufferResponse { content, read_only }),
-                );
+                let rs = self.new_buffer(id, buffer_id, path);
+                self.respond_rpc(id, Ok(ProxyResponse::NewBufferResponse { rs }));
             },
             BufferHead { path } => {
                 let result = if let Some(workspace) = self.workspace.as_ref() {
@@ -1014,20 +1011,24 @@ impl Dispatcher {
         id: RequestId,
         buffer_id: BufferId,
         path: PathBuf,
-    ) -> (String, bool) {
-        let buffer = Buffer::new(buffer_id, path.clone());
-        let content = buffer.rope.to_string();
-        let read_only = buffer.read_only;
-        self.catalog_rpc.did_open_document(
-            &path,
-            buffer.language_id.to_string(),
-            buffer.rev as i32,
-            content.clone(),
-            id,
-        );
-        self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
-        self.buffers.insert(path, buffer);
-        (content, read_only)
+    ) -> RpcResult<(String, bool)> {
+        if path.exists() {
+            let buffer = Buffer::new(buffer_id, path.clone());
+            let content = buffer.rope.to_string();
+            let read_only = buffer.read_only;
+            self.catalog_rpc.did_open_document(
+                &path,
+                buffer.language_id.to_string(),
+                buffer.rev as i32,
+                content.clone(),
+                id,
+            );
+            self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
+            self.buffers.insert(path, buffer);
+            RpcResult::Ok((content, read_only))
+        } else {
+            format!("{path:?} not exists").into()
+        }
     }
 
     async fn handle_lsp_request(&mut self, id: RequestId, rpc: ProxyLspRequest) {

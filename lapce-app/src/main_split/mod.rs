@@ -44,7 +44,7 @@ use lapce_xi_rope::Rope;
 use log::{error, warn};
 use lsp_types::{
     CodeAction, CodeActionOrCommand, DiagnosticSeverity, DocumentChangeOperation,
-    DocumentChanges, OneOf, Position, TextEdit, Url, WorkspaceEdit,
+    DocumentChanges, MessageType, OneOf, Position, TextEdit, Url, WorkspaceEdit,
 };
 use serde_json::Value;
 
@@ -428,18 +428,34 @@ impl MainSplitData {
             let doc = doc.clone();
             let local_doc = doc.clone();
             let send = create_ext_action(cx, move |result| {
-                if let Ok(ProxyResponse::NewBufferResponse { content, read_only }) =
-                    result
-                {
-                    local_doc.init_content(Rope::from(content));
-                    if read_only {
-                        local_doc.content.update(|content| {
-                            if let DocContent::File { read_only, .. } = content {
-                                *read_only = true;
+                if let Ok(ProxyResponse::NewBufferResponse { rs }) = result {
+                    match rs {
+                        lapce_rpc::RpcResult::Err(err) => {
+                            local_doc.common.show_popup_message(
+                                "open doc fail".to_owned(),
+                                MessageType::ERROR,
+                                err,
+                            );
+                        },
+                        lapce_rpc::RpcResult::Ok((content, read_only)) => {
+                            local_doc.init_content(Rope::from(content));
+                            if read_only {
+                                local_doc.content.update(|content| {
+                                    if let DocContent::File { read_only, .. } =
+                                        content
+                                    {
+                                        *read_only = true;
+                                    }
+                                });
+                            } else if let Some(unsaved) = unsaved {
+                                local_doc.reload(Rope::from(unsaved), false);
                             }
-                        });
-                    } else if let Some(unsaved) = unsaved {
-                        local_doc.reload(Rope::from(unsaved), false);
+                            if lsp_req {
+                                local_doc.get_code_lens();
+                                local_doc.get_folding_range();
+                                local_doc.get_document_symbol();
+                            }
+                        },
                     }
                 }
             });
@@ -451,11 +467,6 @@ impl MainSplitData {
                     send(result);
                 },
             );
-        }
-        if lsp_req {
-            doc.get_code_lens();
-            doc.get_folding_range();
-            doc.get_document_symbol();
         }
         (doc, true)
     }

@@ -193,16 +193,11 @@ impl TerminalView {
                 if let (Some(path), Some(line), col) =
                     (rs.get(1), rs.get(3), rs.get(5))
                 {
-                    let mut file: PathBuf = path.as_str().into();
+                    let file: PathBuf = path.as_str().into();
                     let line = line.as_str().parse::<u32>().ok()?;
                     let col = col
                         .and_then(|x| x.as_str().parse::<u32>().ok())
                         .unwrap_or(0);
-
-                    if !file.exists() {
-                        log::info!("{file:?} is not exists");
-                        file = self.workspace.path()?.join(file);
-                    }
                     self.internal_command.send(InternalCommand::JumpToLocation {
                         location: EditorLocation {
                             path:               file,

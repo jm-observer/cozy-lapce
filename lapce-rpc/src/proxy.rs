@@ -403,8 +403,9 @@ pub enum ProxyResponse {
         file_url: String,
     },
     NewBufferResponse {
-        content:   String,
-        read_only: bool,
+        rs: RpcResult<(String, bool)>,
+        // content:   String,
+        // read_only: bool,
     },
     BufferHeadResponse {
         version: String,
