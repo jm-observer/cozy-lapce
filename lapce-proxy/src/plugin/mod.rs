@@ -281,7 +281,7 @@ impl PluginCatalogRpcHandler {
                     id,
                     f,
                 } => {
-                    plugin.handle_server_request(
+                    if let Err(err) = plugin.handle_server_request(
                         plugin_id,
                         request_sent,
                         method,
@@ -291,7 +291,9 @@ impl PluginCatalogRpcHandler {
                         check,
                         id,
                         f,
-                    );
+                    ) {
+                        error!("handle_server_request {err}");
+                    }
                 },
                 PluginCatalogRpc::ServerNotification {
                     plugin_id,
@@ -301,17 +303,22 @@ impl PluginCatalogRpcHandler {
                     path,
                     check,
                 } => {
-                    plugin.handle_server_notification(
+                    if let Err(err) = plugin.handle_server_notification(
                         plugin_id,
                         method,
                         params,
                         language_id,
                         path,
                         check,
-                    );
+                    ) {
+                        error!("handle_server_notification {err}");
+                    }
                 },
                 PluginCatalogRpc::Handler(notification) => {
-                    plugin.handle_notification(notification).await;
+                    if let Err(err) = plugin.handle_notification(notification).await
+                    {
+                        error!("handle_server_notification {err}");
+                    }
                 },
                 PluginCatalogRpc::FormatSemanticTokens {
                     plugin_id,
@@ -320,10 +327,18 @@ impl PluginCatalogRpcHandler {
                     f,
                     id,
                 } => {
-                    plugin.format_semantic_tokens(id, plugin_id, tokens, text, f);
+                    if let Err(err) =
+                        plugin.format_semantic_tokens(id, plugin_id, tokens, text, f)
+                    {
+                        error!("FormatSemanticTokens {err}");
+                    }
                 },
                 PluginCatalogRpc::DidOpenTextDocument { document, id } => {
-                    plugin.handle_did_open_text_document(document, id);
+                    if let Err(err) =
+                        plugin.handle_did_open_text_document(document, id)
+                    {
+                        error!("DidOpenTextDocument {err}");
+                    }
                 },
                 PluginCatalogRpc::DidSaveTextDocument {
                     language_id,
@@ -331,12 +346,14 @@ impl PluginCatalogRpcHandler {
                     text_document,
                     text,
                 } => {
-                    plugin.handle_did_save_text_document(
+                    if let Err(err) = plugin.handle_did_save_text_document(
                         language_id,
                         path,
                         text_document,
                         text,
-                    );
+                    ) {
+                        error!("handle_did_save_text_document {err}");
+                    }
                 },
                 PluginCatalogRpc::DidChangeTextDocument {
                     language_id,
@@ -345,13 +362,15 @@ impl PluginCatalogRpcHandler {
                     text,
                     new_text,
                 } => {
-                    plugin.handle_did_change_text_document(
+                    if let Err(err) = plugin.handle_did_change_text_document(
                         language_id,
                         document,
                         delta,
                         text,
                         new_text,
-                    );
+                    ) {
+                        error!("handle_did_change_text_document {err}");
+                    }
                 },
                 PluginCatalogRpc::DapVariable {
                     dap_id,
@@ -371,7 +390,9 @@ impl PluginCatalogRpcHandler {
                     return;
                 },
                 PluginCatalogRpc::RemoveVolt { volt, f, id } => {
-                    plugin.shutdown_volt(volt, f, id);
+                    if let Err(err) = plugin.shutdown_volt(volt, f, id) {
+                        error!("RemoveVolt {err}");
+                    }
                 },
             }
         }

@@ -37,8 +37,7 @@ use super::{
 use crate::{
     buffer::Buffer,
     plugin::{
-        PluginCatalogRpcHandler,
-        psp::{HandlerType, PluginServerRpc},
+        PluginCatalogRpcHandler, psp::HandlerType, wasi::handle_initialize_response,
     },
 };
 
@@ -90,11 +89,11 @@ impl PluginServerHandler for LspClient {
     fn handle_handler_notification(
         &mut self,
         notification: PluginHandlerNotification,
-    ) {
+    ) -> Result<()> {
         use PluginHandlerNotification::*;
         match notification {
             Initialize(id) => {
-                self.initialize(id);
+                self.initialize(id)?;
             },
             InitializeResult(result) => {
                 self.host.server_capabilities = result.capabilities;
@@ -104,13 +103,13 @@ impl PluginServerHandler for LspClient {
                     None,
                     None,
                     false,
-                );
+                )?;
                 if self
                     .plugin_rpc
                     .plugin_server_loaded(self.server_rpc.clone())
                     .is_err()
                 {
-                    self.server_rpc.shutdown();
+                    self.server_rpc.shutdown()?;
                     self.shutdown();
                 }
             },
@@ -119,6 +118,7 @@ impl PluginServerHandler for LspClient {
             },
             SpawnedPluginLoaded { .. } => {},
         }
+        Ok(())
     }
 
     fn handle_to_host_request(
@@ -136,10 +136,8 @@ impl PluginServerHandler for LspClient {
         method: String,
         params: Params,
         from: String,
-    ) {
-        if let Err(err) = self.host.handle_notification(method, params, from) {
-            log::error!("{:?}", err);
-        }
+    ) -> Result<()> {
+        self.host.handle_notification(method, params, from)
     }
 
     fn handle_did_save_text_document(
@@ -148,13 +146,13 @@ impl PluginServerHandler for LspClient {
         path: PathBuf,
         text_document: TextDocumentIdentifier,
         text: lapce_xi_rope::Rope,
-    ) {
+    ) -> Result<()> {
         self.host.handle_did_save_text_document(
             language_id,
             path,
             text_document,
             text,
-        );
+        )
     }
 
     fn handle_did_change_text_document(
@@ -170,7 +168,7 @@ impl PluginServerHandler for LspClient {
                 Option<TextDocumentContentChangeEvent>,
             )>,
         >,
-    ) {
+    ) -> Result<()> {
         self.host.handle_did_change_text_document(
             language_id,
             document,
@@ -178,7 +176,7 @@ impl PluginServerHandler for LspClient {
             text,
             new_text,
             change,
-        );
+        )
     }
 
     fn format_semantic_tokens(
@@ -241,7 +239,7 @@ impl LspClient {
             io_tx.clone(),
             id,
             HandlerType::Lsp,
-        );
+        )?;
         let volt_display_name_clone = volt_display_name.clone();
         thread::spawn(move || {
             for msg in io_rx {
@@ -406,7 +404,7 @@ impl LspClient {
         Ok(plugin_id)
     }
 
-    fn initialize(&mut self, id: u64) {
+    fn initialize(&mut self, id: u64) -> Result<()> {
         let root_uri = self
             .workspace
             .clone()
@@ -441,21 +439,12 @@ impl LspClient {
             None,
             false,
             id,
-            move |_id, result| match result {
-                Ok(value) => {
-                    log::debug!("{}", serde_json::to_string(&value).unwrap());
-                    let result: InitializeResult =
-                        serde_json::from_value(value).unwrap();
-
-                    server_rpc.handle_rpc(PluginServerRpc::Handler(
-                        PluginHandlerNotification::InitializeResult(result),
-                    ));
-                },
-                Err(err) => {
+            move |_id, result| {
+                if let Err(err) = handle_initialize_response(server_rpc, result) {
                     log::error!("{:?}", err);
-                },
+                }
             },
-        );
+        )
     }
 
     fn shutdown(&mut self) {

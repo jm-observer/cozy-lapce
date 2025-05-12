@@ -236,7 +236,7 @@ pub trait PluginServerHandler {
         method: String,
         params: Params,
         from: String,
-    );
+    ) -> Result<()>;
     fn handle_to_host_request(
         &mut self,
         id: Id,
@@ -247,14 +247,14 @@ pub trait PluginServerHandler {
     fn handle_handler_notification(
         &mut self,
         notification: PluginHandlerNotification,
-    );
+    ) -> Result<()>;
     fn handle_did_save_text_document(
         &self,
         language_id: String,
         path: PathBuf,
         text_document: TextDocumentIdentifier,
         text: Rope,
-    );
+    ) -> Result<()>;
     fn handle_did_change_text_document(
         &mut self,
         language_id: String,
@@ -268,7 +268,7 @@ pub trait PluginServerHandler {
                 Option<TextDocumentContentChangeEvent>,
             )>,
         >,
-    );
+    ) -> Result<()>;
     fn format_semantic_tokens(
         &self,
         id: u64,
@@ -286,7 +286,7 @@ impl PluginServerRpcHandler {
         io_tx: Sender<JsonRpc>,
         id: u64,
         handler_type: HandlerType,
-    ) -> Self {
+    ) -> Result<Self> {
         let (rpc_tx, rpc_rx) = crossbeam_channel::unbounded();
 
         let rpc = Self {
@@ -300,14 +300,14 @@ impl PluginServerRpcHandler {
             handler_type,
         };
 
-        rpc.initialize(id);
-        rpc
+        rpc.initialize(id)?;
+        Ok(rpc)
     }
 
-    fn initialize(&self, id: u64) {
+    fn initialize(&self, id: u64) -> Result<()> {
         self.handle_rpc(PluginServerRpc::Handler(
             PluginHandlerNotification::Initialize(id),
-        ));
+        ))
     }
 
     fn send_server_request(
@@ -316,7 +316,7 @@ impl PluginServerRpcHandler {
         method: &str,
         params: Params,
         rh: ResponseHandler<Value, RpcError>,
-    ) {
+    ) -> Result<()> {
         {
             let mut pending = self.server_pending.lock();
             if pending.insert(id.clone(), rh).is_some() {
@@ -324,24 +324,24 @@ impl PluginServerRpcHandler {
             }
         }
         let msg = JsonRpc::request_with_params(id, method, params);
-        self.send_server_rpc(msg);
+        self.send_server_rpc(msg)
     }
 
-    fn send_server_notification(&self, method: &str, params: Params) {
+    fn send_server_notification(&self, method: &str, params: Params) -> Result<()> {
         let msg = JsonRpc::notification_with_params(method, params);
-        self.send_server_rpc(msg);
+        self.send_server_rpc(msg)
     }
 
-    fn send_server_rpc(&self, msg: JsonRpc) {
-        if let Err(err) = self.io_tx.send(msg) {
-            log::error!("{:?}", err);
-        }
+    fn send_server_rpc(&self, msg: JsonRpc) -> Result<()> {
+        self.io_tx.send(msg)?;
+        Ok(())
     }
 
-    pub fn handle_rpc(&self, rpc: PluginServerRpc) {
-        if let Err(err) = self.rpc_tx.send(rpc) {
-            log::error!("{:?}", err);
-        }
+    pub fn handle_rpc(&self, rpc: PluginServerRpc) -> Result<()> {
+        self.rpc_tx
+            .send(rpc)
+            .map_err(|_| anyhow!("send rpc fail"))?;
+        Ok(())
     }
 
     /// Send a notification.  
@@ -353,22 +353,23 @@ impl PluginServerRpcHandler {
         language_id: Option<String>,
         path: Option<PathBuf>,
         check: bool,
-    ) {
+    ) -> Result<()> {
         let params = Params::from(serde_json::to_value(params).unwrap());
         let method = method.into();
 
         if check {
-            if let Err(err) = self.rpc_tx.send(PluginServerRpc::ServerNotification {
-                method,
-                params,
-                language_id,
-                path,
-            }) {
-                log::error!("{:?}", err);
-            }
+            self.rpc_tx
+                .send(PluginServerRpc::ServerNotification {
+                    method,
+                    params,
+                    language_id,
+                    path,
+                })
+                .map_err(|_| anyhow!("send notification fail"))?;
         } else {
-            self.send_server_notification(&method, params);
+            self.send_server_notification(&method, params)?;
         }
+        Ok(())
     }
 
     /// Make a request to plugin/language server and get the response.
@@ -395,7 +396,14 @@ impl PluginServerRpcHandler {
             check,
             id,
             ResponseHandler::Chan(tx),
-        );
+        )
+        .map_err(|err| {
+            error!("server_request_common {err}");
+            RpcError {
+                code:    0,
+                message: "io error".to_string(),
+            }
+        })?;
         rx.recv()
             .map_err(|_| RpcError {
                 code:    0,
@@ -414,7 +422,7 @@ impl PluginServerRpcHandler {
         check: bool,
         id: u64,
         f: impl RpcCallback<Value, RpcError> + 'static,
-    ) {
+    ) -> Result<()> {
         self.server_request_common(
             method.into(),
             params,
@@ -423,7 +431,7 @@ impl PluginServerRpcHandler {
             check,
             id,
             ResponseHandler::Callback(Box::new(f)),
-        );
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -436,24 +444,22 @@ impl PluginServerRpcHandler {
         check: bool,
         id: u64,
         rh: ResponseHandler<Value, RpcError>,
-    ) {
+    ) -> Result<()> {
         let params = Params::from(serde_json::to_value(params).unwrap());
         if check {
-            if let Err(err) =
-                self.rpc_tx
-                    .send(PluginServerRpc::HostSendToPluginOrLspRequest {
-                        id: Id::Num(id as i64),
-                        method,
-                        params,
-                        language_id,
-                        path,
-                        rh,
-                    })
-            {
-                log::error!("{:?}", err);
-            }
+            self.rpc_tx
+                .send(PluginServerRpc::HostSendToPluginOrLspRequest {
+                    id: Id::Num(id as i64),
+                    method,
+                    params,
+                    language_id,
+                    path,
+                    rh,
+                })
+                .map_err(|_| anyhow!("send fail"))?;
+            Ok(())
         } else {
-            self.send_server_request(Id::Num(id as i64), &method, params, rh);
+            self.send_server_request(Id::Num(id as i64), &method, params, rh)
         }
     }
 
@@ -464,13 +470,13 @@ impl PluginServerRpcHandler {
         }
     }
 
-    pub fn shutdown(&self) {
+    pub fn shutdown(&self) -> Result<()> {
         // to kill lsp
         self.handle_rpc(PluginServerRpc::Handler(
             PluginHandlerNotification::Shutdown,
-        ));
+        ))?;
         // to end PluginServerRpcHandler::mainloop
-        self.handle_rpc(PluginServerRpc::Shutdown);
+        self.handle_rpc(PluginServerRpc::Shutdown)
     }
 
     pub fn mainloop<H>(&self, handler: &mut H, _handler_name: &str)
@@ -490,7 +496,11 @@ impl PluginServerRpcHandler {
                         .document_supported(language_id.as_deref(), path.as_deref())
                         && handler.method_registered(&method)
                     {
-                        self.send_server_request(id, &method, params, rh);
+                        if let Err(err) =
+                            self.send_server_request(id, &method, params, rh)
+                        {
+                            error!("send_server_request fail {err}")
+                        }
                     } else {
                         let message =
                             format!("{_handler_name} not capable: {method}");
@@ -508,7 +518,11 @@ impl PluginServerRpcHandler {
                         .document_supported(language_id.as_deref(), path.as_deref())
                         && handler.method_registered(&method)
                     {
-                        self.send_server_notification(&method, params);
+                        if let Err(err) =
+                            self.send_server_notification(&method, params)
+                        {
+                            error!("send_server_notification fail {err}")
+                        }
                     }
                 },
                 PluginServerRpc::ToHostRequest {
@@ -524,7 +538,11 @@ impl PluginServerRpcHandler {
                     params,
                     from,
                 } => {
-                    handler.handle_host_notification(method, params, from);
+                    if let Err(err) =
+                        handler.handle_host_notification(method, params, from)
+                    {
+                        error!("handle_host_notification {err}")
+                    }
                 },
                 PluginServerRpc::DidSaveTextDocument {
                     language_id,
@@ -532,12 +550,14 @@ impl PluginServerRpcHandler {
                     text_document,
                     text,
                 } => {
-                    handler.handle_did_save_text_document(
+                    if let Err(err) = handler.handle_did_save_text_document(
                         language_id,
                         path,
                         text_document,
                         text,
-                    );
+                    ) {
+                        error!("handle_did_save_text_document {err}")
+                    }
                 },
                 PluginServerRpc::DidChangeTextDocument {
                     language_id,
@@ -547,14 +567,16 @@ impl PluginServerRpcHandler {
                     new_text,
                     change,
                 } => {
-                    handler.handle_did_change_text_document(
+                    if let Err(err) = handler.handle_did_change_text_document(
                         language_id,
                         document,
                         delta,
                         text,
                         new_text,
                         change,
-                    );
+                    ) {
+                        error!("handle_did_change_text_document {err}")
+                    }
                 },
                 PluginServerRpc::FormatSemanticTokens {
                     id,
@@ -565,7 +587,11 @@ impl PluginServerRpcHandler {
                     handler.format_semantic_tokens(id, tokens, text, f);
                 },
                 PluginServerRpc::Handler(notification) => {
-                    handler.handle_handler_notification(notification)
+                    if let Err(err) =
+                        handler.handle_handler_notification(notification)
+                    {
+                        error!("handle_handler_notification {err:?}");
+                    }
                 },
                 PluginServerRpc::Shutdown => {
                     return;
@@ -590,7 +616,10 @@ pub fn handle_plugin_server_message(
                 params: value.get_params().unwrap(),
                 resp:   ResponseSender::new(tx),
             };
-            server_rpc.handle_rpc(rpc);
+            if let Err(err) = server_rpc.handle_rpc(rpc) {
+                error!("handle_host_notification {err}");
+                return None;
+            }
             let result = rx.recv().unwrap();
             let resp = match result {
                 Ok(v) => JsonRpc::success(id, &v),
@@ -611,7 +640,10 @@ pub fn handle_plugin_server_message(
                 params: value.get_params().unwrap(),
                 from:   from.to_string(),
             };
-            server_rpc.handle_rpc(rpc);
+            if let Err(err) = server_rpc.handle_rpc(rpc) {
+                error!("handle_rpc Notification {err}");
+                return None;
+            }
             None
         },
         Ok(value @ JsonRpc::Success(_)) => {
@@ -1258,11 +1290,11 @@ impl PluginHostHandler {
         path: PathBuf,
         text_document: TextDocumentIdentifier,
         text: Rope,
-    ) {
+    ) -> Result<()> {
         let (should_send, include_text) =
             self.check_save_capability(language_id.as_str(), &path);
         if !should_send {
-            return;
+            return Ok(());
         }
         let params = DidSaveTextDocumentParams {
             text_document,
@@ -1278,7 +1310,7 @@ impl PluginHostHandler {
             Some(language_id),
             Some(path),
             false,
-        );
+        )
     }
 
     pub fn handle_did_change_text_document(
@@ -1294,7 +1326,7 @@ impl PluginHostHandler {
                 Option<TextDocumentContentChangeEvent>,
             )>,
         >,
-    ) {
+    ) -> Result<()> {
         let kind = match &self.server_capabilities.text_document_sync {
             Some(TextDocumentSyncCapability::Kind(kind)) => *kind,
             Some(TextDocumentSyncCapability::Options(options)) => {
@@ -1332,8 +1364,8 @@ impl PluginHostHandler {
                     change
                 }
             },
-            TextDocumentSyncKind::NONE => return,
-            _ => return,
+            TextDocumentSyncKind::NONE => return Ok(()),
+            _ => return Ok(()),
         };
 
         let path = document.uri.to_file_path().ok();
@@ -1349,7 +1381,7 @@ impl PluginHostHandler {
             Some(lanaguage_id),
             path,
             false,
-        );
+        )
     }
 
     pub fn format_semantic_tokens(

@@ -9,6 +9,7 @@ use std::{
     thread,
 };
 
+use anyhow::Result;
 use jsonrpc_lite::Id;
 use lapce_core::directory::Directory;
 use lapce_rpc::{
@@ -22,7 +23,7 @@ use lapce_rpc::{
     style::LineStyle,
 };
 use lapce_xi_rope::{Rope, RopeDelta};
-use log::debug;
+use log::{debug, error};
 use lsp_types::{
     DidOpenTextDocumentParams, MessageType, SemanticTokens, ShowMessageParams,
     TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier,
@@ -105,7 +106,7 @@ impl PluginCatalog {
         check: bool,
         id: u64,
         f: Box<dyn ClonableCallback<Value, RpcError>>,
-    ) {
+    ) -> Result<()> {
         if let Some(plugin_id) = plugin_id {
             if let Some(plugin) = self.plugins.get(&plugin_id) {
                 plugin.server_request_async(
@@ -118,7 +119,7 @@ impl PluginCatalog {
                     move |id, result| {
                         f(id, plugin_id, result);
                     },
-                );
+                )?;
             } else {
                 f(
                     Id::Num(id as i64),
@@ -129,7 +130,7 @@ impl PluginCatalog {
                     }),
                 );
             }
-            return;
+            return Ok(());
         }
         let mut count = 0;
         for (plugin_id, plugin) in self.plugins.iter() {
@@ -150,7 +151,7 @@ impl PluginCatalog {
                     // error!("handle_server_request response {id:?} {plugin_id:?}");
                     f(id, plugin_id, result);
                 },
-            );
+            )?;
         }
 
         if let Some(request_sent) = request_sent {
@@ -175,6 +176,8 @@ impl PluginCatalog {
                 request_sent.fetch_add(count, Ordering::Relaxed);
             }
         }
+
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -186,13 +189,19 @@ impl PluginCatalog {
         language_id: Option<String>,
         path: Option<PathBuf>,
         check: bool,
-    ) {
+    ) -> Result<()> {
         if let Some(plugin_id) = plugin_id {
             if let Some(plugin) = self.plugins.get(&plugin_id) {
-                plugin.server_notification(method, params, language_id, path, check);
+                plugin.server_notification(
+                    method,
+                    params,
+                    language_id,
+                    path,
+                    check,
+                )?;
             }
 
-            return;
+            return Ok(());
         }
 
         // Otherwise send it to all plugins
@@ -204,8 +213,9 @@ impl PluginCatalog {
                 language_id.clone(),
                 path.clone(),
                 check,
-            );
+            )?;
         }
+        Ok(())
     }
 
     pub fn shutdown_volt(
@@ -213,7 +223,7 @@ impl PluginCatalog {
         volt: VoltInfo,
         f: Box<dyn ClonableCallback<Value, RpcError>>,
         request_id: u64,
-    ) {
+    ) -> Result<()> {
         let id = volt.id();
         for (plugin_id, plugin) in self.plugins.iter() {
             if plugin.volt_id == id {
@@ -229,10 +239,13 @@ impl PluginCatalog {
                     move |id, result| {
                         f(id, plugin_id, result);
                     },
-                );
-                plugin.shutdown();
+                )?;
+                if let Err(err) = plugin.shutdown() {
+                    error!("shutdown fail {plugin_id:?} {err}");
+                }
             }
         }
+        Ok(())
     }
 
     fn start_unactivated_volts(
@@ -328,7 +341,7 @@ impl PluginCatalog {
         &mut self,
         document: TextDocumentItem,
         id: u64,
-    ) {
+    ) -> Result<()> {
         match document.uri.to_file_path() {
             Ok(path) => {
                 self.open_files.insert(path, document.language_id.clone());
@@ -362,8 +375,10 @@ impl PluginCatalog {
                 Some(document.language_id.clone()),
                 path.clone(),
                 true,
-            );
+            )?;
         }
+
+        Ok(())
     }
 
     pub fn handle_did_save_text_document(
@@ -372,15 +387,16 @@ impl PluginCatalog {
         path: PathBuf,
         text_document: TextDocumentIdentifier,
         text: Rope,
-    ) {
+    ) -> Result<()> {
         for (_, plugin) in self.plugins.iter() {
             plugin.handle_rpc(PluginServerRpc::DidSaveTextDocument {
                 language_id:   language_id.clone(),
                 path:          path.clone(),
                 text_document: text_document.clone(),
                 text:          text.clone(),
-            });
+            })?;
         }
+        Ok(())
     }
 
     pub fn handle_did_change_text_document(
@@ -390,7 +406,7 @@ impl PluginCatalog {
         delta: RopeDelta,
         text: Rope,
         new_text: Rope,
-    ) {
+    ) -> Result<()> {
         let change = Arc::new(Mutex::new((None, None)));
         for (_, plugin) in self.plugins.iter() {
             plugin.handle_rpc(PluginServerRpc::DidChangeTextDocument {
@@ -400,8 +416,9 @@ impl PluginCatalog {
                 text:        text.clone(),
                 new_text:    new_text.clone(),
                 change:      change.clone(),
-            });
+            })?;
         }
+        Ok(())
     }
 
     pub fn format_semantic_tokens(
@@ -411,14 +428,14 @@ impl PluginCatalog {
         tokens: SemanticTokens,
         text: Rope,
         f: Box<dyn RpcCallback<(Vec<LineStyle>, Option<String>), RpcError>>,
-    ) {
+    ) -> Result<()> {
         if let Some(plugin) = self.plugins.get(&plugin_id) {
             plugin.handle_rpc(PluginServerRpc::FormatSemanticTokens {
                 id,
                 tokens,
                 text,
                 f,
-            });
+            })?;
         } else {
             f.call(
                 Id::Num(id as i64),
@@ -428,6 +445,7 @@ impl PluginCatalog {
                 }),
             );
         }
+        Ok(())
     }
 
     pub fn dap_variable(
@@ -534,7 +552,7 @@ impl PluginCatalog {
     pub async fn handle_notification(
         &mut self,
         notification: PluginCatalogNotification,
-    ) {
+    ) -> Result<()> {
         use PluginCatalogNotification::*;
         match notification {
             UnactivatedVolts(volts, id) => {
@@ -564,7 +582,7 @@ impl PluginCatalog {
                                 language_id,
                                 path,
                                 true,
-                            );
+                            )?;
                         }
                     },
                     Ok(_) => {},
@@ -584,7 +602,7 @@ impl PluginCatalog {
                             PluginHandlerNotification::SpawnedPluginLoaded {
                                 plugin_id,
                             },
-                        ));
+                        ))?;
                     }
                 }
             },
@@ -617,7 +635,9 @@ impl PluginCatalog {
                 for id in ids {
                     if self.plugins.get(&id).unwrap().volt_id == volt_id {
                         let plugin = self.plugins.remove(&id).unwrap();
-                        plugin.shutdown();
+                        if let Err(err) = plugin.shutdown() {
+                            error!("shutdown fail {volt_id:?} {err}");
+                        }
                     }
                 }
                 if let Err(err) = self.plugin_rpc.unactivated_volts(vec![volt], id) {
@@ -631,7 +651,9 @@ impl PluginCatalog {
                 for id in ids {
                     if self.plugins.get(&id).unwrap().volt_id == volt_id {
                         let plugin = self.plugins.remove(&id).unwrap();
-                        plugin.shutdown();
+                        if let Err(err) = plugin.shutdown() {
+                            error!("shutdown fail {volt_id:?} {err}");
+                        }
                     }
                 }
             },
@@ -640,7 +662,7 @@ impl PluginCatalog {
                 let volt_id = volt.id();
                 for (_, volt) in self.plugins.iter() {
                     if volt.volt_id == volt_id {
-                        return;
+                        return Ok(());
                     }
                 }
                 let plugin_rpc = self.plugin_rpc.clone();
@@ -671,14 +693,18 @@ impl PluginCatalog {
                 );
             },
             Shutdown => {
-                for (_, plugin) in self.plugins.iter() {
-                    plugin.shutdown();
+                for (id, plugin) in self.plugins.iter() {
+                    if let Err(err) = plugin.shutdown() {
+                        error!("shutdown fail {id:?} {err}");
+                    }
                 }
             },
             DapLoaded(dap_rpc) => {
                 self.daps.insert(dap_rpc.dap_id, dap_rpc);
             },
         }
+
+        Ok(())
     }
 
     async fn handle_dap_notification_of_user(

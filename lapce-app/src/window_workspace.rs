@@ -1650,9 +1650,12 @@ impl WindowWorkspaceData {
                                 if !path.exists() {
                                     return Ok(());
                                 }
-                                if let Err(err) = open::that(path) {
-                                    error!("Failed to reveal file in system file explorer: {err}");
-                                }
+                        if let Err(err) = open::that(path) {
+                            error!(
+                            "Failed to reveal file in system file explorer: {err}",
+                            
+                        );
+                        }
                             }
                     }
             FoldCode => {

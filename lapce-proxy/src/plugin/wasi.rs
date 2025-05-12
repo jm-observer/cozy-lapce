@@ -105,11 +105,11 @@ impl PluginServerHandler for Plugin {
     fn handle_handler_notification(
         &mut self,
         notification: PluginHandlerNotification,
-    ) {
+    ) -> Result<()> {
         use PluginHandlerNotification::*;
         match notification {
             Initialize(id) => {
-                self.initialize(id);
+                self.initialize(id)?;
             },
             InitializeResult(result) => {
                 self.host.server_capabilities = result.capabilities;
@@ -121,6 +121,7 @@ impl PluginServerHandler for Plugin {
                 self.host.handle_spawned_plugin_loaded(plugin_id);
             },
         }
+        Ok(())
     }
 
     fn handle_host_notification(
@@ -128,10 +129,8 @@ impl PluginServerHandler for Plugin {
         method: String,
         params: Params,
         from: String,
-    ) {
-        if let Err(err) = self.host.handle_notification(method, params, from) {
-            log::error!("{:?}", err);
-        }
+    ) -> Result<()> {
+        self.host.handle_notification(method, params, from)
     }
 
     fn handle_to_host_request(
@@ -150,13 +149,13 @@ impl PluginServerHandler for Plugin {
         path: PathBuf,
         text_document: TextDocumentIdentifier,
         text: Rope,
-    ) {
+    ) -> Result<()> {
         self.host.handle_did_save_text_document(
             language_id,
             path,
             text_document,
             text,
-        );
+        )
     }
 
     fn handle_did_change_text_document(
@@ -172,7 +171,7 @@ impl PluginServerHandler for Plugin {
                 Option<TextDocumentContentChangeEvent>,
             )>,
         >,
-    ) {
+    ) -> Result<()> {
         self.host.handle_did_change_text_document(
             language_id,
             document,
@@ -180,7 +179,7 @@ impl PluginServerHandler for Plugin {
             text,
             new_text,
             change,
-        );
+        )
     }
 
     fn format_semantic_tokens(
@@ -195,7 +194,7 @@ impl PluginServerHandler for Plugin {
 }
 
 impl Plugin {
-    fn initialize(&mut self, id: u64) {
+    fn initialize(&mut self, id: u64) -> Result<()> {
         let workspace = self.host.workspace.clone();
         let configurations = self.configurations.as_ref().map(unflatten_map);
         let root_uri = workspace.map(|p| Url::from_directory_path(p).unwrap());
@@ -224,30 +223,36 @@ impl Plugin {
             None,
             false,
             id,
-            move |_id, value| match value {
-                Ok(value) => {
-                    if let Ok(result) = serde_json::from_value(value) {
-                        server_rpc.handle_rpc(PluginServerRpc::Handler(
-                            PluginHandlerNotification::InitializeResult(result),
-                        ));
-                        server_rpc.server_notification(
-                            Initialized::METHOD,
-                            InitializedParams {},
-                            None,
-                            None,
-                            false,
-                        );
-                    }
-                },
-                Err(err) => {
+            move |_id, value| {
+                if let Err(err) = handle_initialize_response(server_rpc, value) {
                     log::error!("{:?}", err);
-                },
+                }
             },
-        );
+        )
     }
 
     fn shutdown(&self) {}
 }
+
+pub fn handle_initialize_response(
+    server_rpc: PluginServerRpcHandler,
+    response: Result<Value, RpcError>,
+) -> Result<()> {
+    let response = response.map_err(|err| anyhow!("response error: {err:?}"))?;
+    let result = serde_json::from_value(response)?;
+    server_rpc.handle_rpc(PluginServerRpc::Handler(
+        PluginHandlerNotification::InitializeResult(result),
+    ))?;
+    server_rpc.server_notification(
+        Initialized::METHOD,
+        InitializedParams {},
+        None,
+        None,
+        false,
+    )?;
+    Ok(())
+}
+
 #[tokio::main]
 pub async fn load_all_volts(
     plugin_rpc: PluginCatalogRpcHandler,
@@ -575,7 +580,7 @@ pub fn start_volt(
         io_tx,
         id,
         HandlerType::Plugin,
-    );
+    )?;
 
     let local_rpc = rpc.clone();
     let local_stdin = stdin.clone();
@@ -684,7 +689,7 @@ pub fn start_volt(
     });
 
     if plugin_rpc.plugin_server_loaded(rpc.clone()).is_err() {
-        rpc.shutdown();
+        rpc.shutdown()?;
     }
     Ok(())
 }
