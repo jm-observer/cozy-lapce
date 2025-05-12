@@ -40,10 +40,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build binary packages
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build binary packages (with output)
         run: |
           docker buildx create --driver=docker-container --use
-          docker buildx bake --pull ubuntu-focal-binary
+          timeout --preserve-status --foreground 15m bash -c '
+            while true; do echo "Still building..."; sleep 60; done &
+            docker buildx bake --pull ubuntu-focal-binary
+          '
 
       - name: Gzip
         run: |
