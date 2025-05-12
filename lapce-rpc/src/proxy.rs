@@ -404,7 +404,7 @@ pub enum ProxyResponse {
         file_url: String,
     },
     NewBufferResponse {
-        rs: RpcResult<(String, bool)>,
+        rs: RpcResult<(String, bool, Option<PathBuf>)>,
         // content:   String,
         // read_only: bool,
     },

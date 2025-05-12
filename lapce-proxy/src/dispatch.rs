@@ -1016,24 +1016,34 @@ impl Dispatcher {
         buffer_id: BufferId,
         path: PathBuf,
         check_if_exists: bool,
-    ) -> RpcResult<(String, bool)> {
-        if !check_if_exists || path.exists() {
-            let buffer = Buffer::new(buffer_id, path.clone());
-            let content = buffer.rope.to_string();
-            let read_only = buffer.read_only;
-            self.catalog_rpc.did_open_document(
-                &path,
-                buffer.language_id.to_string(),
-                buffer.rev as i32,
-                content.clone(),
-                id,
-            );
-            self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
-            self.buffers.insert(path, buffer);
-            RpcResult::Ok((content, read_only))
+    ) -> RpcResult<(String, bool, Option<PathBuf>)> {
+        let mut real_path = None;
+        let path = if check_if_exists {
+            if path.exists() {
+                path
+            } else if let Some(real) = self.workspace.as_ref().map(|x| x.join(&path))
+            {
+                real_path = Some(real.clone());
+                real
+            } else {
+                return format!("{path:?} not exists").into();
+            }
         } else {
-            format!("{path:?} not exists").into()
-        }
+            path
+        };
+        let buffer = Buffer::new(buffer_id, path.clone());
+        let content = buffer.rope.to_string();
+        let read_only = buffer.read_only;
+        self.catalog_rpc.did_open_document(
+            &path,
+            buffer.language_id.to_string(),
+            buffer.rev as i32,
+            content.clone(),
+            id,
+        );
+        self.file_watcher.watch(&path, false, OPEN_FILE_EVENT_TOKEN);
+        self.buffers.insert(path, buffer);
+        RpcResult::Ok((content, read_only, real_path))
     }
 
     async fn handle_lsp_request(&mut self, id: RequestId, rpc: ProxyLspRequest) {

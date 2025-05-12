@@ -428,6 +428,7 @@ impl MainSplitData {
         {
             let doc = doc.clone();
             let local_doc = doc.clone();
+            let data = self.clone();
             let send = create_ext_action(cx, move |result| {
                 if let Ok(ProxyResponse::NewBufferResponse { rs }) = result {
                     match rs {
@@ -438,17 +439,40 @@ impl MainSplitData {
                                 err,
                             );
                         },
-                        lapce_rpc::RpcResult::Ok((content, read_only)) => {
+                        lapce_rpc::RpcResult::Ok((
+                            content,
+                            read_only,
+                            real_path,
+                        )) => {
                             local_doc.init_content(Rope::from(content));
-                            if read_only {
-                                local_doc.content.update(|content| {
-                                    if let DocContent::File { read_only, .. } =
-                                        content
-                                    {
-                                        *read_only = true;
-                                    }
-                                });
-                            } else if let Some(unsaved) = unsaved {
+                            if read_only && real_path.is_some() {
+                                let old_content = local_doc.content.get_untracked();
+                                if let Some(new_content) =
+                                    local_doc.content.try_update(|content| {
+                                        if let DocContent::File {
+                                            read_only: file_read_only,
+                                            path,
+                                        } = content
+                                        {
+                                            *file_read_only = read_only;
+                                            if let Some(real_path) = real_path {
+                                                *path = real_path;
+                                            }
+                                        }
+                                        content.clone()
+                                    })
+                                {
+                                    data.docs.update(|x| {
+                                        x.remove(&old_content);
+                                        x.insert(new_content, local_doc.clone());
+                                    });
+                                } else {
+                                    data.docs.update(|x| {
+                                        x.remove(&old_content);
+                                    });
+                                }
+                            }
+                            if let Some(unsaved) = unsaved {
                                 local_doc.reload(Rope::from(unsaved), false);
                             }
                             if lsp_req {
@@ -503,7 +527,7 @@ impl MainSplitData {
                             return false;
                         }
                     },
-                    crate::doc::DocStatus::Err { msg } => {
+                    crate::doc::DocStatus::Err { .. } => {
                         return true;
                     },
                 }
