@@ -41,7 +41,7 @@ use floem::{
     ext_event::create_ext_action,
     keyboard::Modifiers,
     kurbo::{Point, Rect, Vec2},
-    menu::Menu,
+    menu::{Menu, MenuEntry},
     peniko::Color,
     pointer::{MouseButton, PointerButton, PointerInputEvent, PointerMoveEvent},
     reactive::{
@@ -4773,20 +4773,7 @@ fn file_menu(
             CommandKind::Workbench(LapceWorkbenchCommand::RunInTerminal)
                 .to_menu(lapce_command),
         )
-        .entry(
-            CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)
-                .to_menu(lapce_command),
-        )
-        .entry(
-            CommandKind::Workbench(LapceWorkbenchCommand::RevealInFileExplorer)
-                .to_menu(lapce_command),
-        )
-        .entry(
-            CommandKind::Workbench(
-                LapceWorkbenchCommand::RevealInDocumentSymbolPanel,
-            )
-            .to_menu(lapce_command),
-        )
+        .entry(reveal_menu(lapce_command))
         .entry(
             CommandKind::Workbench(
                 LapceWorkbenchCommand::SourceControlOpenActiveFileRemoteUrl,
@@ -4799,24 +4786,28 @@ fn file_menu(
         )
         .separator()
         .entry(edit_menu(lapce_command))
-        .entry(
-            Menu::new("inspect")
-                .entry(
-                    CommandKind::Workbench(
-                        LapceWorkbenchCommand::InspectSemanticType,
-                    )
-                    .to_menu(lapce_command),
-                )
-                .entry(
-                    CommandKind::Workbench(LapceWorkbenchCommand::InspectClickInfo)
-                        .to_menu(lapce_command),
-                )
-                .entry(
-                    CommandKind::Workbench(LapceWorkbenchCommand::InspectLogModule)
-                        .to_menu(lapce_command),
-                ),
-        );
+        .entry(inspect_menu(lapce_command));
+    let menu =
+        if let Some(code_lens_menu) = run_code_len_menu(codelens, lapce_command) {
+            menu.entry(code_lens_menu)
+        } else {
+            menu
+        };
 
+    if add_go_to {
+        menu.entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::GoToLocation)
+                .to_menu(lapce_command),
+        )
+    } else {
+        menu
+    }
+}
+
+fn run_code_len_menu(
+    codelens: im::Vector<(Id, CodeLens)>,
+    lapce_command: Listener<LapceCommand>,
+) -> Option<MenuEntry> {
     let mut codelens: im::Vector<CommandKind> = codelens
         .into_iter()
         .filter_map(|codelen| {
@@ -4832,29 +4823,20 @@ fn file_menu(
             }
         })
         .collect();
-    let menu = if codelens.is_empty() {
-        menu
+    if codelens.is_empty() {
+        None
     } else if codelens.len() == 1
         && let Some(code_len) = codelens.pop_front()
     {
-        menu.entry(code_len.to_menu(lapce_command))
+        Some(code_len.to_menu(lapce_command).into())
     } else {
-        let mut sub_menu = Menu::new("run code len");
+        let mut sub_menu = Menu::new("Run code len");
         for code_len in codelens {
             sub_menu = sub_menu.entry(code_len.to_menu(lapce_command));
         }
-        menu.entry(sub_menu)
-    };
-    if add_go_to {
-        menu.entry(
-            CommandKind::Workbench(LapceWorkbenchCommand::GoToLocation)
-                .to_menu(lapce_command),
-        )
-    } else {
-        menu
+        Some(sub_menu.into())
     }
 }
-
 fn run_toml_menu(add_go_to: bool, lapce_command: Listener<LapceCommand>) -> Menu {
     let mut menu = Menu::new("");
 
@@ -4891,9 +4873,42 @@ fn run_toml_menu(add_go_to: bool, lapce_command: Listener<LapceCommand>) -> Menu
         menu
     }
 }
+fn reveal_menu(lapce_command: Listener<LapceCommand>) -> Menu {
+    Menu::new("Reveal")
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::RevealInPanel)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::RevealInFileExplorer)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(
+                LapceWorkbenchCommand::RevealInDocumentSymbolPanel,
+            )
+            .to_menu(lapce_command),
+        )
+}
+
+fn inspect_menu(lapce_command: Listener<LapceCommand>) -> Menu {
+    Menu::new("Inspect")
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::InspectSemanticType)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::InspectClickInfo)
+                .to_menu(lapce_command),
+        )
+        .entry(
+            CommandKind::Workbench(LapceWorkbenchCommand::InspectLogModule)
+                .to_menu(lapce_command),
+        )
+}
 
 fn edit_menu(lapce_command: Listener<LapceCommand>) -> Menu {
-    Menu::new("edit")
+    Menu::new("Edit")
         .entry(CommandKind::Edit(EditCommand::ClipboardCut).to_menu(lapce_command))
         .entry(CommandKind::Edit(EditCommand::ClipboardCopy).to_menu(lapce_command))
         .entry(CommandKind::Edit(EditCommand::ClipboardPaste).to_menu(lapce_command))

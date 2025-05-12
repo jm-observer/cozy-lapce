@@ -65,18 +65,18 @@
         <DirectoryRef Id="TARGETDIR">
             <Component Id="ContextMenu" Guid="22ad399b-1d77-416c-ae33-57e8f8511177">
                 <!-- 空白处右键菜单 -->
-                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Lapce here\command">
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open CozyLapce here\command">
                     <RegistryValue Type="string" Value="[InstallDir]cozy-lapce.exe &quot;%V&quot;" KeyPath="yes"/>
                 </RegistryKey>
-                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Lapce here">
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open CozyLapce here">
                     <RegistryValue Type="string" Name="Icon" Value="[InstallDir]cozy-lapce.exe"/>
                 </RegistryKey>
 
                 <!-- 文件夹本身右键菜单 -->
-                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open Lapce here\command">
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open CozyLapce here\command">
                     <RegistryValue Type="string" Value="[InstallDir]cozy-lapce.exe &quot;%1&quot;"/>
                 </RegistryKey>
-                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open Lapce here">
+                <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\Open CozyLapce here">
                     <RegistryValue Type="string" Name="Icon" Value="[InstallDir]cozy-lapce.exe"/>
                 </RegistryKey>
             </Component>
