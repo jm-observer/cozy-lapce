@@ -182,6 +182,9 @@ pub enum ProxyRequest {
     BufferHead {
         path: PathBuf,
     },
+    GetAbsolutePath {
+        path: PathBuf,
+    },
     GlobalSearch {
         pattern:        String,
         case_sensitive: bool,
@@ -521,6 +524,9 @@ pub enum ProxyResponse {
     },
     FindLogModulesFromPathResponse {
         rs: RpcResult<String>,
+    },
+    GetAbsolutePathResponse {
+        path: Option<PathBuf>,
     },
 }
 
@@ -929,6 +935,10 @@ impl ProxyRpcHandler {
             },
             f,
         );
+    }
+
+    pub fn get_absolute_path(&self, path: PathBuf, f: impl ProxyCallback + 'static) {
+        self.request_async(ProxyRequest::GetAbsolutePath { path }, f);
     }
 
     pub fn get_files(&self, f: impl ProxyCallback + 'static) {

@@ -971,6 +971,14 @@ impl ProxyHandler for Dispatcher {
                     Ok(ProxyResponse::FindLogModulesFromPathResponse { rs }),
                 );
             },
+            GetAbsolutePath { path } => {
+                self.respond_rpc(
+                    id,
+                    Ok(ProxyResponse::GetAbsolutePathResponse {
+                        path: self.get_absolute_path(path),
+                    }),
+                );
+            },
         }
     }
 }
@@ -998,6 +1006,15 @@ impl Dispatcher {
             tab_id: 1,
             directory,
         }
+    }
+
+    fn get_absolute_path(&self, path: PathBuf) -> Option<PathBuf> {
+        if path.exists() {
+            return Some(path);
+        }
+        let workspace_path = self.workspace.as_ref()?;
+        let path = workspace_path.join(&path);
+        if path.exists() { Some(path) } else { None }
     }
 
     fn respond_rpc(&self, id: RequestId, result: Result<ProxyResponse, RpcError>) {

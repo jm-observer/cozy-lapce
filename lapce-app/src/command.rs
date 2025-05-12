@@ -24,7 +24,10 @@ use strum_macros::{Display, EnumIter, EnumMessage, EnumString, IntoStaticStr};
 use crate::{
     alert::AlertButton,
     doc::Doc,
-    editor::{DocSignal, location::EditorLocation},
+    editor::{
+        DocSignal,
+        location::{EditorLocation, EditorMaybeRelativeLocation},
+    },
     editor_tab::EditorTabChildId,
     listener::Listener,
 };
@@ -711,6 +714,9 @@ pub enum InternalCommand {
     },
     JumpToLocation {
         location: EditorLocation,
+    },
+    JumpToMaybeRelativeLocation {
+        location: EditorMaybeRelativeLocation,
     },
     PaletteReferences {
         references: Vec<EditorLocation>,

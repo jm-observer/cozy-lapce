@@ -30,7 +30,9 @@ use crate::{
     command::InternalCommand,
     common::call_back::find_file_call_back,
     config::{LapceConfig, WithLapceConfig, color::LapceColor},
-    editor::location::{EditorLocation, EditorPosition},
+    editor::location::{
+        EditorLocation, EditorMaybeRelativeLocation, EditorPosition,
+    },
     listener::Listener,
     terminal::data::TerminalData,
     window_workspace::Focus,
@@ -198,20 +200,43 @@ impl TerminalView {
                     let col = col
                         .and_then(|x| x.as_str().parse::<u32>().ok())
                         .unwrap_or(0);
-                    self.internal_command.send(InternalCommand::JumpToLocation {
-                        location: EditorLocation {
-                            path:               file,
-                            position:           Some(EditorPosition::Position(
-                                Position::new(
-                                    line.saturating_sub(1),
-                                    col.saturating_sub(1),
-                                ),
-                            )),
-                            scroll_offset:      None,
-                            ignore_unconfirmed: false,
-                            same_editor_tab:    false,
-                        },
-                    });
+                    if let Some(workspace_path) = self.workspace.path() {
+                        if file.strip_prefix(workspace_path).is_ok() {
+                            self.internal_command.send(
+                                InternalCommand::JumpToLocation {
+                                    location: EditorLocation {
+                                        path:               file,
+                                        position:           Some(
+                                            EditorPosition::Position(Position::new(
+                                                line.saturating_sub(1),
+                                                col.saturating_sub(1),
+                                            )),
+                                        ),
+                                        scroll_offset:      None,
+                                        ignore_unconfirmed: false,
+                                        same_editor_tab:    false,
+                                    },
+                                },
+                            );
+                        } else {
+                            self.internal_command.send(
+                                InternalCommand::JumpToMaybeRelativeLocation {
+                                    location: EditorMaybeRelativeLocation {
+                                        relative_path:      file,
+                                        position:           Some(
+                                            EditorPosition::Position(Position::new(
+                                                line.saturating_sub(1),
+                                                col.saturating_sub(1),
+                                            )),
+                                        ),
+                                        scroll_offset:      None,
+                                        ignore_unconfirmed: false,
+                                        same_editor_tab:    false,
+                                    },
+                                },
+                            );
+                        }
+                    }
                 }
                 return Some(());
             } else {
