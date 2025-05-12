@@ -2657,11 +2657,17 @@ impl EditorData {
                     return true;
                 }
                 let loaded = loaded.get();
-                if loaded {
-                    editor.common.offset_line_from_top.set(off_top_line);
-                    editor.do_go_to_location(location.clone(), edits.clone());
+                match loaded {
+                    crate::doc::DocStatus::Ok { loaded } => {
+                        if loaded {
+                            editor.common.offset_line_from_top.set(off_top_line);
+                            editor
+                                .do_go_to_location(location.clone(), edits.clone());
+                        }
+                        loaded
+                    },
+                    crate::doc::DocStatus::Err { .. } => true,
                 }
-                loaded
             });
         }
     }

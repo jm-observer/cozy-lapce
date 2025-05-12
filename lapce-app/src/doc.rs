@@ -87,6 +87,25 @@ pub struct DocInfo {
 
 pub type AllCodeLens = HashMap<usize, (PluginId, usize, im::Vector<(Id, CodeLens)>)>;
 
+#[derive(Clone, Debug)]
+pub enum DocStatus {
+    Ok { loaded: bool },
+    Err { msg: String },
+}
+
+impl DocStatus {}
+
+impl Default for DocStatus {
+    fn default() -> Self {
+        Self::Ok { loaded: false }
+    }
+}
+impl From<String> for DocStatus {
+    fn from(value: String) -> Self {
+        Self::Err { msg: value }
+    }
+}
+
 #[derive(Clone)]
 pub struct Doc {
     pub name:      Option<String>,
@@ -96,7 +115,7 @@ pub struct Doc {
     pub cache_rev: RwSignal<u64>,
     /// Whether the buffer's content has been loaded/initialized into the
     /// buffer.
-    pub loaded:    RwSignal<bool>,
+    pub loaded:    RwSignal<DocStatus>,
     // pub kind: RwSignal<EditorViewKind>,
     pub code_lens: RwSignal<AllCodeLens>,
 
@@ -177,7 +196,7 @@ impl Doc {
             buffer_id: BufferId::next(),
             cache_rev: cx.create_rw_signal(0),
             content: cx.create_rw_signal(doc_content),
-            loaded: cx.create_rw_signal(false),
+            loaded: cx.create_rw_signal(DocStatus::default()),
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
@@ -258,7 +277,7 @@ impl Doc {
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
-            loaded: cx.create_rw_signal(true),
+            loaded: cx.create_rw_signal(DocStatus::Ok { loaded: true }),
             find_result: FindResult::new(cx),
             // preedit: PreeditData::new(cx),
             common,
@@ -342,7 +361,7 @@ impl Doc {
             cache_rev: cx.create_rw_signal(0),
             content: cx.create_rw_signal(content),
             sticky_headers: Rc::new(RefCell::new(HashMap::new())),
-            loaded: cx.create_rw_signal(false),
+            loaded: cx.create_rw_signal(DocStatus::default()),
             histories: cx.create_rw_signal(im::HashMap::new()),
             head_changes: cx.create_rw_signal(im::Vector::new()),
             find_result: FindResult::new(cx),
@@ -440,14 +459,22 @@ impl Doc {
 
     /// Whether or not the underlying buffer is loaded
     pub fn loaded(&self) -> bool {
-        self.loaded.get_untracked()
+        self.loaded.with_untracked(|x| {
+            if let DocStatus::Ok { loaded } = x
+                && *loaded
+            {
+                true
+            } else {
+                false
+            }
+        })
     }
 
     //// Initialize the content with some text, this marks the document as loaded.
     pub fn init_content(&self, content: Rope) {
         batch(|| {
             self.buffer_edit_with_config(EditBuffer::Init(content), false);
-            self.loaded.set(true);
+            self.loaded.set(DocStatus::Ok { loaded: true });
             self.on_update(None);
             self.retrieve_head();
         });

@@ -19,7 +19,7 @@ use log::error;
 
 use super::{EditorData, view::count_rect};
 use crate::{
-    doc::Doc,
+    doc::{Doc, DocStatus},
     local_task::{LocalRequest, LocalResponse},
     main_split::Editors,
     window_workspace::CommonData,
@@ -166,7 +166,10 @@ impl DiffEditorData {
 
         let common = self.common.clone();
         let jump_by_changes_index = self.jump_by_changes_index;
-        cx.create_effect(move |_| {
+        cx.create_effect(move |prev| {
+            if prev == Some(true) {
+                return true;
+            }
             let (_, left_rev) = left_doc_rev.get();
             let (left_editor_view, left_doc) =
                 (left.kind_rw(), left.doc_signal().get());
@@ -175,8 +178,23 @@ impl DiffEditorData {
                 (right.kind_rw(), right.doc_signal().get());
             let left_loaded = left_doc.loaded.get();
             let right_loaded = right_doc.loaded.get();
-            if !left_loaded || !right_loaded {
-                return;
+
+            match (left_loaded, right_loaded) {
+                (DocStatus::Err { .. }, _) | (_, DocStatus::Err { .. }) => {
+                    return true;
+                },
+                (
+                    DocStatus::Ok {
+                        loaded: left_loaded,
+                    },
+                    DocStatus::Ok {
+                        loaded: right_loaded,
+                    },
+                ) => {
+                    if !left_loaded || !right_loaded {
+                        return false;
+                    }
+                },
             }
             let (left_atomic_rev, left_rope) =
                 left_doc.lines.with_untracked(|buffer| {
@@ -256,17 +274,7 @@ impl DiffEditorData {
                     },
                 },
             );
-
-            // rayon::spawn(move || {
-            //     let changes = rope_diff(
-            //         left_rope,
-            //         right_rope,
-            //         right_rev,
-            //         right_atomic_rev.clone(),
-            //         Some(3),
-            //     );
-            //     send(changes);
-            // });
+            false
         });
     }
 }

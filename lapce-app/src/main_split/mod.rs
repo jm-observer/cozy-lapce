@@ -481,11 +481,6 @@ impl MainSplitData {
         if self.common.focus.get_untracked() != Focus::Workbench {
             self.common.focus.set(Focus::Workbench);
         }
-        let mut off_top_line: Option<f64> = None;
-        // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
-        if let Some(tab) = self.get_active_editor_untracked() {
-            off_top_line = tab.upper_lines_of_cursor();
-        }
         let path = location.path.clone();
         let (doc, new_doc) = self.get_doc(
             path.clone(),
@@ -496,10 +491,59 @@ impl MainSplitData {
                 read_only: false,
             },
         );
-        log::debug!("go_to_location {:?} {:?}", location, off_top_line);
+        if new_doc {
+            let data = self.clone();
+            self.scope.create_effect(move |x| {
+                if x == Some(true) {
+                    return true;
+                }
+                match doc.loaded.get() {
+                    crate::doc::DocStatus::Ok { loaded } => {
+                        if !loaded {
+                            return false;
+                        }
+                    },
+                    crate::doc::DocStatus::Err { msg } => {
+                        return true;
+                    },
+                }
+                if let Err(err) = data.open_loaded_file(
+                    &path,
+                    doc.clone(),
+                    &location,
+                    &edits,
+                    new_doc,
+                ) {
+                    error!("open_loaded_file {err}");
+                }
+                true
+            });
+        } else {
+            self.open_loaded_file(&path, doc, &location, &edits, new_doc)?;
+        }
 
+        Ok(())
+    }
+
+    pub fn open_loaded_file(
+        &self,
+        path: &Path,
+        doc: Rc<Doc>,
+        location: &EditorLocation,
+        edits: &Option<Vec<TextEdit>>,
+        new_doc: bool,
+    ) -> Result<()> {
+        let mut off_top_line: Option<f64> = None;
+        // 计算当前鼠标所在行在窗口的位置，便于跳转后依旧在该位置
+        if let Some(tab) = self.get_active_editor_untracked() {
+            off_top_line = tab.upper_lines_of_cursor();
+        }
+        log::debug!("go_to_location {:?} {:?}", location, off_top_line);
         let child = self.get_editor_tab_child(
-            EditorTabChildSource::Editor { path, doc },
+            EditorTabChildSource::Editor {
+                path: path.to_path_buf(),
+                doc,
+            },
             location.ignore_unconfirmed,
             location.same_editor_tab,
         );
@@ -508,16 +552,21 @@ impl MainSplitData {
                 batch(|| {
                     let is_empty =
                         edits.as_ref().map(|x| x.is_empty()).unwrap_or(true);
-                    editor.go_to_location(location, new_doc, edits, off_top_line);
+                    editor.go_to_location(
+                        location.clone(),
+                        new_doc,
+                        edits.clone(),
+                        off_top_line,
+                    );
                     if !is_empty {
                         editor.check_auto_save();
                     }
                 });
             }
+            Ok(())
         } else {
             anyhow::bail!("get_editor_tab_child not EditorTabChildId::Editor");
         }
-        Ok(())
     }
 
     pub fn open_file_changes(&self, path: PathBuf) {
@@ -3268,10 +3317,17 @@ impl MainSplitData {
                         return true;
                     }
                     let loaded = loaded.get();
-                    if loaded {
-                        common.update_run_debug_configs(&doc, &run_toml, &action);
+                    match loaded {
+                        crate::doc::DocStatus::Ok { loaded } => {
+                            if loaded {
+                                common.update_run_debug_configs(
+                                    &doc, &run_toml, &action,
+                                );
+                            }
+                            loaded
+                        },
+                        crate::doc::DocStatus::Err { .. } => true,
                     }
-                    loaded
                 });
         }
 
