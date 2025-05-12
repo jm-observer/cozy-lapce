@@ -126,8 +126,10 @@ pub fn terminal_view(
     });
 
     // for rust
-    let reg =
-        regex::Regex::new(r"([:\.\w\\/-]+\.(rs|toml)?):(\d+)(:(\d+))?").unwrap();
+    let reg = regex::Regex::new(
+        r"(?:\\\\\?\\)?((?:[A-Z]:)?[./\\\w\-/]+?\.(rs|toml)):(\d+)(?::(\d+))?",
+    )
+    .unwrap();
     // let raw = raw_data.with_untracked(|x| x.raw.clone());
 
     TerminalView {
