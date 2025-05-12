@@ -171,8 +171,9 @@ pub enum ProxyRequest {
         position:  Position,
     },
     NewBuffer {
-        buffer_id: BufferId,
-        path:      PathBuf,
+        buffer_id:       BufferId,
+        path:            PathBuf,
+        check_if_exists: bool,
     },
     // ReloadBuffer {
     //     buffer_id: BufferId,
@@ -804,9 +805,17 @@ impl ProxyRpcHandler {
         &self,
         buffer_id: BufferId,
         path: PathBuf,
+        check_if_exists: bool,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::NewBuffer { buffer_id, path }, f);
+        self.request_async(
+            ProxyRequest::NewBuffer {
+                buffer_id,
+                path,
+                check_if_exists,
+            },
+            f,
+        );
     }
 
     pub fn get_buffer_head(&self, path: PathBuf, f: impl ProxyCallback + 'static) {

@@ -382,7 +382,7 @@ impl MainSplitData {
         lsp_req: bool,
         content: DocContent,
     ) -> (Rc<Doc>, bool) {
-        self.get_doc_with_force(path, unsaved, lsp_req, content, false)
+        self.get_doc_with_force(path, unsaved, lsp_req, content, false, true)
     }
 
     pub fn get_doc_with_force(
@@ -392,6 +392,7 @@ impl MainSplitData {
         lsp_req: bool,
         content: DocContent,
         force: bool,
+        check_if_exists: bool,
     ) -> (Rc<Doc>, bool) {
         let cx = self.scope;
         let doc = self.docs.with_untracked(|docs| docs.get(&content).cloned());
@@ -463,6 +464,7 @@ impl MainSplitData {
             self.common.proxy.proxy_rpc.new_buffer(
                 doc.buffer_id,
                 path,
+                check_if_exists,
                 move |(_, result)| {
                     send(result);
                 },
@@ -1797,6 +1799,7 @@ impl MainSplitData {
                             None,
                             false,
                             doc_content,
+                            true,
                             true,
                         );
                     } else {
@@ -3253,6 +3256,7 @@ impl MainSplitData {
                     path:      run_toml.clone(),
                     read_only: false,
                 },
+                false,
                 false,
             );
             let loaded = doc.loaded;

@@ -358,8 +358,12 @@ impl ProxyHandler for Dispatcher {
             LspRequest(rpc) => {
                 self.handle_lsp_request(id, rpc).await;
             },
-            NewBuffer { buffer_id, path } => {
-                let rs = self.new_buffer(id, buffer_id, path);
+            NewBuffer {
+                buffer_id,
+                path,
+                check_if_exists,
+            } => {
+                let rs = self.new_buffer(id, buffer_id, path, check_if_exists);
                 self.respond_rpc(id, Ok(ProxyResponse::NewBufferResponse { rs }));
             },
             BufferHead { path } => {
@@ -1011,8 +1015,9 @@ impl Dispatcher {
         id: RequestId,
         buffer_id: BufferId,
         path: PathBuf,
+        check_if_exists: bool,
     ) -> RpcResult<(String, bool)> {
-        if path.exists() {
+        if !check_if_exists || path.exists() {
             let buffer = Buffer::new(buffer_id, path.clone());
             let content = buffer.rope.to_string();
             let read_only = buffer.read_only;
