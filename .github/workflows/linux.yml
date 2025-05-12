@@ -32,7 +32,7 @@ jobs:
       - id: tag
         run: echo "tag=$TAG_NAME" | tee -a $GITHUB_OUTPUT
 
-  linux:
+  build-amd64:
     runs-on: ubuntu-latest
     needs: tagname
     env:
@@ -50,39 +50,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Build binary packages (with output)
+      - name: Build amd64 binary
         run: |
           docker buildx create --driver=docker-container --use
           timeout --preserve-status --foreground 15m bash -c '
-            while true; do echo "Still building..."; sleep 60; done &
-            docker buildx bake --pull ubuntu-focal-binary
+            while true; do echo "Still building amd64..."; sleep 60; done &
+            docker buildx build --pull --platform linux/amd64 -f extra/docker/Dockerfile.binary -t lapce-linux-amd64 . --output=type=local,dest=./target/linux_amd64
           '
 
-      - name: Gzip
+      - name: Gzip amd64 binary
         run: |
           mkdir Lapce
           cp ./target/linux_amd64/lapce Lapce/
           tar -zcvf ./lapce-linux-amd64.tar.gz Lapce
 
-          rm -rf Lapce
-
-          mkdir Lapce
-          cp ./target/linux_arm64/lapce Lapce/
-          tar -zcvf ./lapce-linux-arm64.tar.gz Lapce
-
-      - name: Fetch dependencies
-        run: cargo fetch --locked
-
-      - name: Vendor dependencies
-        run: |
-          cargo vendor --frozen > ./vendor-config.toml
-          mv ./vendor-config.toml ./vendor/
-          tar -zcf vendor.tar.gz ./vendor/
-
       - uses: actions/upload-artifact@v4
         with:
-          name: lapce-linux
-          path: |
-            ./lapce-linux-*.tar.gz
-            ./vendor.tar.gz
+          name: lapce-linux-amd64
+          path: ./lapce-linux-amd64.tar.gz
           retention-days: 1
