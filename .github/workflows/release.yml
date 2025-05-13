@@ -147,46 +147,6 @@ jobs:
           path: ./cozy-lapce-linux-amd64.tar.gz
           retention-days: 3
 
-  windows-package-from-previous-build:
-    if: github.event.inputs.step == 'package'
-    runs-on: windows-latest
-    needs: tagname
-    env:
-      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download previous build artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          name: cozy-lapce-bin
-          path: ./target/release-lto
-          run_id: ${{ github.event.inputs.run_id }}
-
-      - name: Create MSI
-        run: |
-          candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
-            -out "./cozy-lapce.wixobj" "extra/windows/wix/cozy-lapce.wxs"
-          light.exe -ext WixUIExtension -ext WixUtilExtension \
-            -out "./CozyLapce-windows.msi" -sice:ICE61 -sice:ICE91 \
-            "./cozy-lapce.wixobj"
-
-      - name: Create portable zip
-        shell: pwsh
-        run: |
-          Compress-Archive ./target/release-lto/cozy-lapce.exe ./CozyLapce-windows-portable.zip
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lapce-windows
-          path: |
-            ./CozyLapce-windows-portable.zip
-            ./CozyLapce-windows.msi
-          retention-days: 3
-
   publish-from-current-build:
     if: |
       github.event_name != 'workflow_dispatch' || github.event.inputs.step == 'build'
@@ -236,53 +196,5 @@ jobs:
           DEBUG: api
         run: |
           gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
-            lapce-windows/* || echo "Release already exists, skipping."
-
-  publish-from-previous-build:
-    if: github.event.inputs.step == 'package'
-    needs:
-      - tagname
-      - windows-package-from-previous-build
-    runs-on: ubuntu-latest
-    env:
-      GH_REPO: ${{ github.repository }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-
-      - name: Set TAG_NAME
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | tee -a $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo 'TAG_NAME=nightly' | tee -a $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            TAG_NAME=${{ github.ref }}
-            echo "TAG_NAME=${TAG_NAME#refs/tags/}" | tee -a $GITHUB_ENV
-          fi
-
-      - name: Delete existing nightly release and tag
-        if: env.TAG_NAME == 'nightly'
-        run: |
-          gh release delete nightly --yes || true
-          git push origin :nightly || true
-
-      - name: Configure release
-        run: |
-          if [[ "$TAG_NAME" == "nightly" ]]; then
-            echo 'SUBJECT=Lapce development build' | tee -a $GITHUB_ENV
-            echo 'PRERELEASE=--prerelease' | tee -a $GITHUB_ENV
-          else
-            echo 'SUBJECT=Lapce release build' | tee -a $GITHUB_ENV
-            echo 'PRERELEASE=' | tee -a $GITHUB_ENV
-          fi
-
-      - name: Publish release
-        env:
-          DEBUG: api
-        run: |
-          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
-            lapce-windows/* || echo "Release already exists, skipping."
+            cozy-lapce-windows/* \
+            cozy-lapce-linux-amd64/* || echo "Release already exists, skipping."
