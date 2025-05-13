@@ -132,8 +132,7 @@ jobs:
       - name: Build deb packages
         run: |
           docker buildx create --driver=docker-container --use
-          docker buildx bake --pull ubuntu-focal-binary
-          docker buildx bake --pull ubuntu-focal-binary 
+          docker buildx bake --pull amd-ubuntu-focal-binary
 
       - name: Gzip amd64 binary
         run: |
@@ -143,9 +142,71 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cozy-lapce-linux-amd64
+          name: cozy-lapce-amd64-binary
           path: ./cozy-lapce-linux-amd64.tar.gz
           retention-days: 3
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build deb packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull arm-ubuntu-focal-binary 
+
+      - name: Gzip arm64 binary
+        run: |
+          mkdir CozyLapce
+          cp ./target/cozy-lapce CozyLapce/
+          tar -zcvf ./cozy-lapce-linux-arm64.tar.gz CozyLapce
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cozy-lapce-arm64-binary
+          path: ./cozy-lapce-linux-arm64.tar.gz
+          retention-days: 3
+
+  deb:
+    runs-on: ubuntu-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os-name: debian
+            os-version: bookworm
+          - os-name: debian
+            os-version: bullseye
+          - os-name: ubuntu
+            os-version: focal
+          - os-name: ubuntu
+            os-version: jammy
+          - os-name: ubuntu
+            os-version: lunar
+          - os-name: ubuntu
+            os-version: mantic
+          - os-name: ubuntu
+            os-version: noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build deb packages
+        run: |
+          docker buildx create --driver=docker-container --use
+          docker buildx bake --pull amd-${{ matrix.os-name }}-${{ matrix.os-version }}-package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cozy-lapce-amd64-${{ matrix.os-name }}-${{ matrix.os-version }}-package
+          path: |
+            ./target/linux_*/*
+          retention-days: 1
 
   publish-from-current-build:
     if: |
@@ -197,4 +258,5 @@ jobs:
         run: |
           gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA \
             cozy-lapce-windows/* \
-            cozy-lapce-linux-amd64/* || echo "Release already exists, skipping."
+            cozy-lapce-arm*/* \
+            cozy-lapce-amd*/* || echo "Release already exists, skipping."

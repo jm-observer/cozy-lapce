@@ -115,16 +115,42 @@ target "cross-debian" {
   inherits = ["debian", "cross-package"]
 }
 
-target "ubuntu" {
+target "ubuntu-amd" {
   inherits   = [build.type]
-  name       = "${os_name}-${build.os_version}-${build.type}"
+  name       = "amd-${os_name}-${build.os_version}-${build.type}"
   dockerfile = "extra/linux/docker/${os_name}/Dockerfile"
   args = {
     DISTRIBUTION_NAME     = os_name
     DISTRIBUTION_VERSION  = build.os_version
     DISTRIBUTION_PACKAGES = join(" ", coalesce(build.packages, DPKG_FAMILY_PACKAGES))
   }
-  platforms = coalesce(build.platforms, platforms)
+  platforms = ["linux/amd64"]
+  matrix = {
+    os_name = ["ubuntu"]
+    build = [
+      { packages = null, platforms = null, type = "package", os_version = "bionic"   }, # 18.04
+      { packages = null, platforms = null, type = "package", os_version = "focal"    }, # 20.04
+      { packages = null, platforms = null, type = "package", os_version = "jammy"    }, # 22.04
+      { packages = null, platforms = null, type = "package", os_version = "noble"    }, # 24.04
+      { packages = null, platforms = null, type = "package", os_version = "oracular" }, # 24.10
+      # static binary, it looks ugly to define the target this way
+      # but I don't have a better way to make it more friendly on CLI side without
+      # more terrible code-wise way to implement it
+      { packages = null, platforms = null, type = "binary", os_version = "focal"   }, # 20.04
+    ]
+  }
+}
+
+target "ubuntu-arm" {
+  inherits   = [build.type]
+  name       = "arm-${os_name}-${build.os_version}-${build.type}"
+  dockerfile = "extra/linux/docker/${os_name}/Dockerfile"
+  args = {
+    DISTRIBUTION_NAME     = os_name
+    DISTRIBUTION_VERSION  = build.os_version
+    DISTRIBUTION_PACKAGES = join(" ", coalesce(build.packages, DPKG_FAMILY_PACKAGES))
+  }
+  platforms = ["linux/arm64"]
   matrix = {
     os_name = ["ubuntu"]
     build = [
