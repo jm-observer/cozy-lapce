@@ -124,7 +124,7 @@ env
 
 xx-cargo build \
   --frozen \
-  --package lapce-app \
+  --bin cozy-lapce \
   --profile release-lto \
   --no-default-features
 
