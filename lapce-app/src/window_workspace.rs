@@ -1664,7 +1664,6 @@ impl WindowWorkspaceData {
                         if let Err(err) = open::that(path) {
                             error!(
                             "Failed to reveal file in system file explorer: {err}",
-                            
                         );
                         }
                             }
@@ -2391,8 +2390,7 @@ impl WindowWorkspaceData {
                 },
                 Err(err) => error!("{err}"),
             });
-            
-                self.proxy.proxy_rpc.get_absolute_path(path, move |(_, result)| {
+            self.proxy.proxy_rpc.get_absolute_path(path, move |(_, result)| {
                     send(result);
                 });
             },

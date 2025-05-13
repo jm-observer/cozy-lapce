@@ -53,10 +53,7 @@ jobs:
       - name: Build amd64 binary
         run: |
           docker buildx create --driver=docker-container --use
-          timeout --preserve-status --foreground 15m bash -c '
-            while true; do echo "Still building amd64..."; sleep 60; done &
-            docker buildx build --pull --platform linux/amd64 -f extra/docker/Dockerfile.binary -t lapce-linux-amd64 . --output=type=local,dest=./target/linux_amd64
-          '
+          docker buildx bake --pull ubuntu-focal-binary 
 
       - name: Gzip amd64 binary
         run: |

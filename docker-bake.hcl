@@ -27,7 +27,6 @@ target "_common" {
 variable "platforms" {
   default = [
     "linux/amd64",
-    "linux/arm64",
   ]
 }
 

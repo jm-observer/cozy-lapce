@@ -12,3 +12,4 @@ vendor/
 *.patch
 flamegraph*
 cargo-flamegraph*
+*.hcl
