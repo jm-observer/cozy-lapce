@@ -10,10 +10,10 @@ use floem::{
     reactive::{
         ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal,
     },
-    style::{AlignItems, CursorStyle, Position, Style},
+    style::{AlignItems, Position, Style},
     text::Style as FontStyle,
     views::{
-        Container, Decorators, container, dyn_stack, label, scroll, stack, svg,
+        Container, Decorators, container, dyn_stack, label, stack, svg,
         virtual_stack,
     },
 };
@@ -352,6 +352,7 @@ fn file_explorer_view(
                 let open = node.open;
                 let is_dir = node.is_dir;
 
+                let svg_data = data.clone();
                 let view = stack((
                     svg(move || {
                         let svg_str = match open {
@@ -359,6 +360,14 @@ fn file_explorer_view(
                             false => LapceIcons::ITEM_CLOSED,
                         };
                         config.with_ui_svg(svg_str)
+                    })
+                    .on_click_stop({
+                        let kind = kind.clone();
+                        move |_| {
+                            if is_dir && let FileNodeViewKind::Path(path) = &kind {
+                                svg_data.toggle_expand(path);
+                            }
+                        }
                     })
                     .style(move |s| {
                         let (size, color) = config.signal(|config| {
@@ -426,12 +435,12 @@ fn file_explorer_view(
                             .min_width_full()
                             .padding_left((level * 10) as f32)
                             .align_items(AlignItems::Center)
-                            .hover(|s| {
-                                s.background(config.with_color(
-                                    LapceColor::PANEL_HOVERED_BACKGROUND,
-                                ))
-                                .cursor(CursorStyle::Pointer)
-                            })
+                            // .hover(|s| {
+                            //     s.background(config.with_color(
+                            //         LapceColor::PANEL_HOVERED_BACKGROUND,
+                            //     ))
+                            //     .cursor(CursorStyle::Pointer)
+                            // })
                             .apply_if(
                                 select.get().map(|x| x == kind).unwrap_or_default(),
                                 |x| {

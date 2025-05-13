@@ -410,9 +410,7 @@ impl FileExplorerData {
     }
 
     pub fn click(&self, path: &Path, config: WithLapceConfig) {
-        if self.is_dir(path) {
-            self.toggle_expand(path);
-        } else if !config.with_untracked(|x| x.core.file_explorer_double_click) {
+        if !config.with_untracked(|x| x.core.file_explorer_double_click) {
             self.common
                 .internal_command
                 .send(InternalCommand::OpenFile {
@@ -481,6 +479,7 @@ impl FileExplorerData {
         config: WithLapceConfig,
     ) -> EventPropagation {
         if self.is_dir(path) {
+            self.toggle_expand(path);
             EventPropagation::Continue
         } else if config.with_untracked(|x| x.core.file_explorer_double_click) {
             self.common.internal_command.send(
