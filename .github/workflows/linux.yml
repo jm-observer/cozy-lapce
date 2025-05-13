@@ -39,20 +39,10 @@ jobs:
       RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Build amd64 binary
+      - name: Build deb packages
         run: |
           docker buildx create --driver=docker-container --use
+          docker buildx bake --pull ubuntu-focal-binary
           docker buildx bake --pull ubuntu-focal-binary 
 
       - name: Gzip amd64 binary
