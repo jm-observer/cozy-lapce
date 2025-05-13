@@ -2213,19 +2213,15 @@ impl MainSplitData {
         if let Some(edits) = workspace_edits(edit) {
             for (url, edits) in edits {
                 if let Ok(path) = url.to_file_path() {
-                    let active_path = self
-                        .active_editor
-                        .get_untracked()
-                        .map(|editor| editor.doc())
-                        .map(|doc| doc.content.get_untracked())
-                        .and_then(|content| content.path().cloned());
-                    let position = if active_path.as_ref() == Some(&path) {
-                        None
-                    } else {
-                        edits
-                            .first()
-                            .map(|edit| EditorPosition::Position(edit.range.start))
-                    };
+                    // let active_path = self
+                    //     .active_editor
+                    //     .get_untracked()
+                    //     .map(|editor| editor.doc())
+                    //     .map(|doc| doc.content.get_untracked())
+                    //     .and_then(|content| content.path().cloned());
+                    let position = edits
+                        .last()
+                        .map(|edit| EditorPosition::Position(edit.range.start));
                     let location = EditorLocation {
                         path,
                         position,
