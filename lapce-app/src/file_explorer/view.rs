@@ -13,7 +13,7 @@ use floem::{
     style::{AlignItems, Position, Style},
     text::Style as FontStyle,
     views::{
-        Container, Decorators, container, dyn_stack, label, stack, svg,
+        Container, Decorators, container, dyn_stack, label, scroll, stack, svg,
         virtual_stack,
     },
 };

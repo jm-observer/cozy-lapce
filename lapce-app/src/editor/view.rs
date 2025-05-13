@@ -646,22 +646,6 @@ impl EditorView {
         } else {
             0.0
         };
-        // Clear background
-        // let area_height = sticky_header_info
-        //     .sticky_lines
-        //     .iter()
-        //     .copied()
-        //     .map(
-        //         |line| match self.editor.editor.text_layout_of_visual_line(line) {
-        //             Ok(layout) => layout.line_count() * line_height,
-        //             Err(err) => {
-        //                 error!("{:?}", err);
-        //                 0
-        //             }
-        //         }
-        //     )
-        //     .sum::<usize>() as f64
-        //     - scroll_offset;
 
         let sticky_lines = sticky_header_info.sticky_lines.clone();
         let (attrs, line_ending, sticky_lines): (
@@ -1153,39 +1137,7 @@ fn get_sticky_header_info(
         };
     }
 
-    // let scroll_offset = if last_sticky_should_scroll {
-    //     y_diff
-    // } else {
-    //     0.0
-    // };
-
-    // let sticky_header_height = sticky_lines
-    //     .iter()
-    //     // .enumerate()
-    //     .map(|line| {
-    //         // TODO(question): won't y_diff always be scroll_offset here? so we
-    // should just sub on         // the outside
-    //         // let y_diff = if i == total_sticky_lines - 1 {
-    //         //     scroll_offset
-    //         // } else {
-    //         //     0.0
-    //         // };
-    //         match editor.text_layout_of_visual_line(*line) {
-    //             Ok(layout) => { layout.line_count() as f64 * line_height }
-    //             Err(err) => {
-    //                 error!("{:?}", err);
-    //                 0.0
-    //             }
-    //         }
-    //     })
-    //     .sum();
-
     let sticky_header_height = sticky_lines.len() as f64 * line_height;
-
-    // info!(
-    //     "sticky_header_height={sticky_header_height} len={} y_diff={y_diff}
-    // last_sticky_should_scroll={last_sticky_should_scroll}",     sticky_lines.
-    // len() );
     sticky_header_height_signal.set(sticky_header_height);
     StickyHeaderInfo {
         sticky_lines,
