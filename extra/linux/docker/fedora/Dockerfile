@@ -120,6 +120,10 @@ esac
 export DISTRO_ID="$(echo $ID | tr - _)"
 export DISTRO_VERSION="$(echo $VERSION_ID | tr - _)"
 
+DATE_STR=$(LC_ALL=C date "+%a %b %d %Y")  # 输出如：Tue May 14 2025
+EMAIL="huangjiemin <dev@example.com>"
+VERSION="${RELEASE_TAG_NAME}"  # 你已经动态算好了
+
 cat > cozy-lapce.spec <<EOL
 Name:     ${PACKAGE_NAME}
 Version:  ${RELEASE_TAG_NAME}
@@ -143,7 +147,7 @@ xx-cargo build --profile release-lto --bin cozy-lapce --frozen
 xx-verify "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce
 
 %install
-install -Dm755 "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/lapce %{buildroot}%{_bindir}/lapce
+install -Dm755 "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce %{buildroot}%{_bindir}/cozy-lapce
 install -Dm644 extra/linux/dev.cozy.lapce.desktop %{buildroot}/usr/share/applications/dev.cozy.lapce.desktop
 install -Dm644 extra/linux/dev.cozy.lapce.metainfo.xml %{buildroot}/usr/share/metainfo/dev.cozy.lapce.metainfo.xml
 install -Dm644 extra/images/logo.png %{buildroot}/usr/share/pixmaps/dev.cozy.lapce.png
@@ -157,6 +161,7 @@ install -Dm644 extra/images/logo.png %{buildroot}/usr/share/pixmaps/dev.cozy.lap
 /usr/share/pixmaps/dev.cozy.lapce.png
 
 %changelog
+* ${DATE_STR} ${EMAIL} - ${VERSION}
 - See GitHub for full changelog
 EOL
 

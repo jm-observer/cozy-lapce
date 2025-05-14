@@ -44,12 +44,12 @@ target "binary" {
   target   = "binary"
   args = {
     ZSTD_SYS_USE_PKG_CONFIG = "1"
-    LIBGIT2_STATIC          = "1"
-    LIBSSH2_STATIC          = "1"
-    LIBZ_SYS_STATIC         = "1"
-    OPENSSL_STATIC          = "1"
-    OPENSSL_NO_VENDOR       = "0"
-    PKG_CONFIG_ALL_STATIC   = "1"
+    LIBGIT2_STATIC          = "0"
+    LIBSSH2_STATIC          = "0"
+    LIBZ_SYS_STATIC         = "0"
+    OPENSSL_STATIC          = "0"
+    OPENSSL_NO_VENDOR       = "1"
+    PKG_CONFIG_ALL_STATIC   = "0"
   }
 }
 

@@ -145,6 +145,7 @@ dev = ["lapce-app/dev"]
 inherits      = "release"
 lto           = "thin"
 codegen-units = 1
+debug = false
 
 [profile.release]
 debug           = true

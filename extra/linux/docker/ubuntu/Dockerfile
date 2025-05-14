@@ -17,7 +17,8 @@ ARG XX_VERSION
 RUN echo "DISTRIBUTION_VERSION=$DISTRIBUTION_VERSION" && \
     echo "RUST_VERSION=$RUST_VERSION" && \
     echo "BUILDPLATFORM=$BUILDPLATFORM" && \
-    echo "XX_VERSION=$XX_VERSION"
+    echo "XX_VERSION=$XX_VERSION" && \
+    echo ${DISTRIBUTION_PACKAGES}
 
 SHELL [ "/bin/bash", "-c" ]
 
@@ -141,11 +142,26 @@ xx-cargo build \
 
 xx-verify "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce
 
+TARGET_TRIPLE=$(xx-cargo --print-target-triple)
+FILE="${CARGO_TARGET_DIR}/${TARGET_TRIPLE}/release-lto/cozy-lapce"
+echo "File path: $FILE"
+if [ -f "$FILE" ]; then
+    stat -c "Size: %s bytes" "$FILE"
+    du -h "$FILE"
+else
+    echo "File not found: $FILE"
+    exit 1
+fi
+
+
+
 mkdir -p /target
 mv -v "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce /target/
-
+ldd /target/cozy-lapce
 cargo pkgid | cut -d'#' -f2 | cut -d'@' -f2 | cut -d':' -f2 | tee /target/cozy-lapce.version
 EOF
+
+RUN find /target -type f -exec du -h {} + | sort -hr
 
 FROM build-base AS dev
 COPY . ./dev
@@ -197,24 +213,24 @@ case "${RELEASE_TAG_NAME}" in
   ;;
 esac
 
-#cat <<- EOL > debian/control
-#	Package: ${PACKAGE_NAME}
-#	Version: ${RELEASE_TAG_NAME}
-#	Conflicts: ${conflicts}
-#	Maintainer: Jakub Panek <me+debian@panekj.dev>
-#	Architecture: ${_PACKAGE_ARCHITECTURE}
-#	Description: Lightning-fast and Powerful Code Editor
-#	Source: https://lapce.dev
-#EOL
+cat <<EOL > debian/control
+Package: ${PACKAGE_NAME}
+Version: ${RELEASE_TAG_NAME}
+Conflicts: ${conflicts}
+Maintainer: huangjiemin <huangjiemin+debian@gmail.com>
+Architecture: ${_PACKAGE_ARCHITECTURE}
+Description: Cozy Lapce – Fast and lightweight code editor
+Source: https://github.com/jm-observer/cozy-lapce
+EOL
 
 depends=$(dpkg-shlibdeps -O -e usr/bin/cozy-lapce)
 depends=$(echo "${depends}" | sed 's/shlibs:Depends=//')
 echo "Depends: ${depends}" >> debian/control
+
 mv debian DEBIAN
 
 . /etc/os-release
-
-dpkg-deb --root-owner-group --build . "${OUTPUT_DIR}"/"${PACKAGE_NAME}.${ID}.${VERSION_CODENAME}.${_PACKAGE_ARCHITECTURE}.deb"
+dpkg-deb --root-owner-group --build . "${OUTPUT_DIR}/${PACKAGE_NAME}.${ID}.${VERSION_CODENAME}.${_PACKAGE_ARCHITECTURE}.deb"
 EOF
 
 FROM scratch AS package

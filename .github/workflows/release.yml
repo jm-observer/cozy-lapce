@@ -76,7 +76,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: cozy-lapce-bin
+          name: bin-cozy-lapce
           path: ./target/release-lto/cozy-lapce.exe
           retention-days: 3
 
@@ -97,7 +97,7 @@ jobs:
       - name: Download binary from current build
         uses: actions/download-artifact@v4
         with:
-          name: cozy-lapce-bin
+          name: bin-cozy-lapce
           path: ./target/release-lto
 
       - name: Create MSI
@@ -118,9 +118,9 @@ jobs:
         with:
           name: cozy-lapce-windows
           path: |
-            ./CozyLapce-windows-portable.zip
             ./CozyLapce-windows.msi
-          retention-days: 3
+            ./CozyLapce-windows-portable.zip
+          retention-days: 1
 
   deb:
     runs-on: ubuntu-latest
@@ -133,15 +133,12 @@ jobs:
         include:
           - os-name: debian
             os-version: bullseye
-            platform: arm64
-          - os-name: debian
-            os-version: bullseye
             platform: amd64
           - os-name: debian
             os-version: bookworm
-            platform: arm64
-          - os-name: debian
-            os-version: bookworm
+            platform: amd64
+          - os-name: ubuntu
+            os-version: focal
             platform: amd64
     steps:
       - uses: actions/checkout@v4
@@ -198,9 +195,6 @@ jobs:
           - os-name: ubuntu
             os-version: focal
             platform: amd64
-          - os-name: ubuntu
-            os-version: focal
-            platform: arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -211,24 +205,20 @@ jobs:
 
       - name: Inspect build output
         run: |
-          echo "::group::Current working directory"
-          ls -alh ./
-          echo "::endgroup::"
-          
-          echo "::group::./target directory"
-          ls -alh ./target || echo "Directory ./target does not exist"
-          echo "::endgroup::"
-          
-          echo "::group::./target/linux_* directory"
-          ls -alh ./target/linux_* || echo "No ./target/linux_* matched"
+          echo "::group::List all files and their sizes (sorted)"
+          du -h --max-depth=1 | sort -hr
           echo "::endgroup::"
 
-
+      - name: Gzip
+        run: |
+          mkdir CozyLapce
+          cp ./target/cozy-lapce CozyLapce/
+          tar -zcvf ./cozy-lapce-focal-amd64.tar.gz CozyLapce
       - uses: actions/upload-artifact@v4
         with:
           name: cozy-lapce-${{ matrix.os-name }}-${{ matrix.platform }}-${{ matrix.os-version }}-binary
           path: |
-            ./target/*
+            ./cozy-lapce-linux-*.tar.gz
           retention-days: 1
 
   publish-from-current-build:
@@ -237,7 +227,7 @@ jobs:
     needs:
       - tagname
       - windows-package-from-current-build
-      - linux
+#      - linux
       - deb
       - rpm
     runs-on: ubuntu-latest
@@ -247,8 +237,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+        with:
+          path: .
 
       - name: Set TAG_NAME
         run: |
@@ -280,11 +271,7 @@ jobs:
       - name: List files in ./ and ./target (with size)
         run: |
           echo "::group::Files in ./"
-          du -h ./* | sort -h || true
-          echo "::endgroup::"
-          
-          echo "::group::Files in ./target"
-          du -h ./target/* | sort -h || true
+          du -sh ./*
           echo "::endgroup::"
 
 
