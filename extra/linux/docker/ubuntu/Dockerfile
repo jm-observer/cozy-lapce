@@ -8,6 +8,17 @@ FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
 FROM --platform=$BUILDPLATFORM ubuntu:${DISTRIBUTION_VERSION} AS build-base
 COPY --from=xx / /
 
+# ✅ 再声明一次 ARG，否则这一阶段内部不能访问上面的值
+ARG DISTRIBUTION_VERSION
+ARG RUST_VERSION
+ARG XX_VERSION
+
+# ✅ 打印参数值
+RUN echo "DISTRIBUTION_VERSION=$DISTRIBUTION_VERSION" && \
+    echo "RUST_VERSION=$RUST_VERSION" && \
+    echo "BUILDPLATFORM=$BUILDPLATFORM" && \
+    echo "XX_VERSION=$XX_VERSION"
+
 SHELL [ "/bin/bash", "-c" ]
 
 ENV DEBIAN_FRONTEND=noninteractive

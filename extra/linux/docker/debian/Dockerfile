@@ -6,6 +6,18 @@ ARG XX_VERSION=latest
 
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
 FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-${DISTRIBUTION_VERSION} AS build-base
+
+# ✅ 再声明一次 ARG，否则这一阶段内部不能访问上面的值
+ARG DISTRIBUTION_VERSION
+ARG RUST_VERSION
+ARG XX_VERSION
+
+# ✅ 打印参数值
+RUN echo "DISTRIBUTION_VERSION=$DISTRIBUTION_VERSION" && \
+    echo "RUST_VERSION=$RUST_VERSION" && \
+    echo "BUILDPLATFORM=$BUILDPLATFORM" && \
+    echo "XX_VERSION=$XX_VERSION"
+
 COPY --from=xx / /
 
 SHELL [ "/bin/bash", "-c" ]
@@ -99,14 +111,14 @@ export CARGO_BUILD_TARGET="$(xx-cargo --print-target-triple)"
 
 xx-cargo build \
   --frozen \
-  --package lapce-app \
+  --bin cozy-lapce \
   --profile release-lto \
   --no-default-features
 
-xx-verify "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/lapce
+xx-verify "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce
 
 mkdir -p /target
-mv -v "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/lapce /target/
+mv -v "${CARGO_TARGET_DIR}"/"$(xx-cargo --print-target-triple)"/release-lto/cozy-lapce /target/
 
 cargo pkgid | cut -d'#' -f2 | cut -d'@' -f2 | cut -d':' -f2 | tee /target/lapce.version
 EOF
@@ -121,16 +133,16 @@ export _PACKAGE_ARCHITECTURE=$(xx-info debian-arch)
 mkdir -v -p ${PACKAGE_NAME}/{etc,usr/{bin,share/{applications,metainfo,pixmaps}},debian}
 cd ${PACKAGE_NAME}
 
-cp '/source/extra/linux/dev.lapce.lapce.desktop' './usr/share/applications/dev.lapce.lapce.desktop'
-cp '/source/extra/linux/dev.lapce.lapce.metainfo.xml' './usr/share/metainfo/dev.lapce.lapce.metainfo.xml'
+cp '/source/extra/linux/dev.cozy.lapce.desktop' './usr/share/applications/dev.cozy.lapce.desktop'
+cp '/source/extra/linux/dev.cozy.lapce.metainfo.xml' './usr/share/metainfo/dev.cozy.lapce.metainfo.xml'
 cp '/source/extra/images/logo.png' './usr/share/pixmaps/dev.lapce.lapce.png'
 
-mv '/target/lapce' './usr/bin/'
+mv '/target/cozy-lapce' './usr/bin/'
 
-if [[ "${PACKAGE_NAME}" == "lapce" ]]; then
-  conflicts="lapce-nightly"
+if [[ "${PACKAGE_NAME}" == "cozy-lapce" ]]; then
+  conflicts="cozy-lapce-nightly"
 else
-  conflicts="lapce"
+  conflicts="cozy-lapce"
 fi
 
 case "${RELEASE_TAG_NAME}" in
@@ -150,19 +162,20 @@ case "${RELEASE_TAG_NAME}" in
   ;;
 esac
 
-cat <<- EOL > debian/control
-	Package: ${PACKAGE_NAME}
-	Version: ${RELEASE_TAG_NAME}
-	Conflicts: ${conflicts}
-	Maintainer: Jakub Panek <me+debian@panekj.dev>
-	Architecture: ${_PACKAGE_ARCHITECTURE}
-	Description: Lightning-fast and Powerful Code Editor
-	Source: https://lapce.dev
+cat <<EOL > debian/control
+Package: ${PACKAGE_NAME}
+Version: ${RELEASE_TAG_NAME}
+Conflicts: ${conflicts}
+Maintainer: huangjiemin <huangjiemin+debian@gmail.com>
+Architecture: ${_PACKAGE_ARCHITECTURE}
+Description: Cozy Lapce – Fast and lightweight code editor
+Source: https://github.com/jm-observer/cozy-lapce
 EOL
 
-depends=$(dpkg-shlibdeps -O -e usr/bin/lapce)
+depends=$(dpkg-shlibdeps -O -e usr/bin/cozy-lapce)
 depends=$(echo "${depends}" | sed 's/shlibs:Depends=//')
 echo "Depends: ${depends}" >> debian/control
+
 mv debian DEBIAN
 
 . /etc/os-release
@@ -174,10 +187,10 @@ FROM build-base AS dev
 COPY . ./dev
 
 FROM scratch AS binary
-COPY --from=build /output/lapce .
+COPY --from=build /output/cozy-lapce .
 
 FROM scratch AS cross-binary
-COPY --from=build /output/lapce .
+COPY --from=build /output/cozy-lapce .
 
 FROM scratch AS package
 COPY --from=build /output/*.deb .

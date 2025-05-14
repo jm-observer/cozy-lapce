@@ -122,30 +122,6 @@ jobs:
             ./CozyLapce-windows.msi
           retention-days: 3
 
-  build-linux:
-    runs-on: ubuntu-latest
-    needs: tagname
-    env:
-      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build deb packages
-        run: |
-          docker buildx create --driver=docker-container --use
-          docker buildx bake --pull amd-ubuntu-focal-binary
-
-      - name: Gzip amd64 binary
-        run: |
-          mkdir CozyLapce
-          cp ./target/cozy-lapce CozyLapce/
-          tar -zcvf ./cozy-lapce-linux-amd64.tar.gz CozyLapce
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cozy-lapce-amd64-binary
-          path: ./cozy-lapce-linux-amd64.tar.gz
-          retention-days: 3
-
   deb:
     runs-on: ubuntu-latest
     needs: tagname
@@ -161,10 +137,10 @@ jobs:
           - os-name: debian
             os-version: bullseye
             platform: amd64
-          - os-name: ubuntu
+          - os-name: debian
             os-version: bookworm
             platform: arm64
-          - os-name: ubuntu
+          - os-name: debian
             os-version: bookworm
             platform: amd64
     steps:
@@ -179,7 +155,7 @@ jobs:
         with:
           name: cozy-lapce-${{ matrix.os-name }}-${{ matrix.platform }}-${{ matrix.os-version }}-package
           path: |
-            ./target/linux_*/*
+            ./target/*
           retention-days: 1
 
   linux:
@@ -205,11 +181,26 @@ jobs:
           docker buildx create --driver=docker-container --use
           docker buildx bake --pull ${{ matrix.os-name }}-${{ matrix.platform }}-${{ matrix.os-version }}-binary
 
+      - name: Inspect build output
+        run: |
+          echo "::group::Current working directory"
+          ls -alh ./
+          echo "::endgroup::"
+          
+          echo "::group::./target directory"
+          ls -alh ./target || echo "Directory ./target does not exist"
+          echo "::endgroup::"
+          
+          echo "::group::./target/linux_* directory"
+          ls -alh ./target/linux_* || echo "No ./target/linux_* matched"
+          echo "::endgroup::"
+
+
       - uses: actions/upload-artifact@v4
         with:
           name: cozy-lapce-${{ matrix.os-name }}-${{ matrix.platform }}-${{ matrix.os-version }}-binary
           path: |
-            ./target/linux_*/*
+            ./target/*
           retention-days: 1
 
   publish-from-current-build:
@@ -219,6 +210,7 @@ jobs:
       - tagname
       - windows-package-from-current-build
       - linux
+      - deb
     runs-on: ubuntu-latest
     env:
       GH_REPO: ${{ github.repository }}
@@ -255,6 +247,17 @@ jobs:
             echo 'SUBJECT=Lapce release build' | tee -a $GITHUB_ENV
             echo 'PRERELEASE=' | tee -a $GITHUB_ENV
           fi
+
+      - name: List files in ./ and ./target (with size)
+        run: |
+          echo "::group::Files in ./"
+          du -h ./* | sort -h || true
+          echo "::endgroup::"
+          
+          echo "::group::Files in ./target"
+          du -h ./target/* | sort -h || true
+          echo "::endgroup::"
+
 
       - name: Publish release
         env:

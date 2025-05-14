@@ -7,7 +7,7 @@ variable "XX_VERSION" {
 }
 
 variable "PACKAGE_NAME" {
-  default = RELEASE_TAG_NAME == "nightly" ? "lapce-nightly" : "lapce"
+  default = RELEASE_TAG_NAME == "nightly" ? "cozy-lapce-nightly" : "cozy-lapce"
 }
 
 variable "RELEASE_TAG_NAME" {}
@@ -27,6 +27,7 @@ target "_common" {
 variable "platforms" {
   default = [
     "linux/amd64",
+    "linux/arm64",
   ]
 }
 
@@ -94,21 +95,22 @@ variable "DPKG_FAMILY_PACKAGES" {
 
 target "debian" {
   inherits   = [build.type]
-  name       = "${os_name}-${build.platform}-${build.os_version}-${build.type}"
+  name       = "${os_name}-${build.platform-name}-${build.os_version}-${build.type}"
   dockerfile = "extra/linux/docker/${os_name}/Dockerfile"
   args = {
     DISTRIBUTION_NAME     = os_name
     DISTRIBUTION_VERSION  = build.os_version
+    BUILDPLATFORM         = build.platform-full
     DISTRIBUTION_PACKAGES = join(" ", coalesce(build.packages, DPKG_FAMILY_PACKAGES))
   }
-  platforms = coalesce(build.platforms, platforms)
+  platforms = build.platforms
   matrix = {
     os_name = ["debian"]
     build = [
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "bullseye" }, # 11
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "bookworm" }, # 12
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "bullseye" }, # 11
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "bookworm" }, # 12
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "bullseye" }, # 11
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "bookworm" }, # 12
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "bullseye" }, # 11
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "bookworm" }, # 12
     ]
   }
 }
@@ -119,29 +121,29 @@ target "cross-debian" {
 
 target "ubuntu" {
   inherits   = [build.type]
-  name       = "${os_name}-${build.platform}-${build.os_version}-${build.type}"
+  name       = "${os_name}-${build.platform-name}-${build.os_version}-${build.type}"
   dockerfile = "extra/linux/docker/${os_name}/Dockerfile"
   args = {
     DISTRIBUTION_NAME     = os_name
     DISTRIBUTION_VERSION  = build.os_version
+    BUILDPLATFORM = build.platform-full
     DISTRIBUTION_PACKAGES = join(" ", coalesce(build.packages, DPKG_FAMILY_PACKAGES))
   }
-  platforms = coalesce(build.platforms, platforms)
+  platforms = build.platforms
   matrix = {
     os_name = ["ubuntu"]
     build = [
-      # { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "bionic"   }, # 18.04
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "focal"    }, # 20.04
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "jammy"    }, # 22.04
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "noble"    }, # 24.04
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "package", os_version = "oracular" }, # 24.10
-      { packages = null, platforms = ["linux/amd64"], platform = "amd64", type = "binary", os_version = "focal"   }, # 20.04
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "focal"    }, # 20.04
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "jammy"    }, # 22.04
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "noble"    }, # 24.04
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "package", os_version = "oracular" }, # 24.10
+      { packages = null, platforms = ["linux/amd64"], platform-full = "linux/amd64", platform-name = "amd64", type = "binary", os_version = "focal"   }, # 20.04
 
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "focal"    }, # 20.04
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "jammy"    }, # 22.04
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "noble"    }, # 24.04
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "package", os_version = "oracular" }, # 24.10
-      { packages = null, platforms = ["linux/arm64"], platform = "arm64", type = "binary", os_version = "focal"   }, # 20.04
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "focal"    }, # 20.04
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "jammy"    }, # 22.04
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "noble"    }, # 24.04
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "package", os_version = "oracular" }, # 24.10
+      { packages = null, platforms = ["linux/arm64"], platform-full = "linux/arm64", platform-name = "arm64", type = "binary", os_version = "focal"   }, # 20.04
     ]
   }
 }
