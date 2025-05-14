@@ -111,6 +111,14 @@ pub enum ProxyLspRequest {
         code_lens: CodeLens,
         path:      PathBuf,
     },
+    GetDocumentFormatting {
+        path: PathBuf,
+    },
+    OnTypeFormatting {
+        path:     PathBuf,
+        position: Position,
+        ch:       String,
+    },
     GetDocumentSymbols {
         path: PathBuf,
     },
@@ -207,9 +215,6 @@ pub enum ProxyRequest {
     GetWorkspaceSymbols {
         /// The search query
         query: String,
-    },
-    GetDocumentFormatting {
-        path: PathBuf,
     },
     GetOpenFilesContent {},
     GetFiles {
@@ -473,6 +478,9 @@ pub enum ProxyResponse {
     },
     GetDocumentFormatting {
         edits: Vec<TextEdit>,
+    },
+    OnTypeFormatting {
+        edits: Option<Vec<TextEdit>>,
     },
     GetDocumentSymbols {
         resp: DocumentSymbolResponse,
@@ -1147,7 +1155,20 @@ impl ProxyRpcHandler {
         path: PathBuf,
         f: impl ProxyCallback + 'static,
     ) {
-        self.request_async(ProxyRequest::GetDocumentFormatting { path }, f);
+        self.request_async(ProxyLspRequest::GetDocumentFormatting { path }, f);
+    }
+
+    pub fn on_type_formatting(
+        &self,
+        path: PathBuf,
+        position: Position,
+        ch: String,
+        f: impl ProxyCallback + 'static,
+    ) {
+        self.request_async(
+            ProxyLspRequest::OnTypeFormatting { path, position, ch },
+            f,
+        );
     }
 
     pub fn get_semantic_tokens(

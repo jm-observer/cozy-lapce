@@ -456,19 +456,6 @@ impl ProxyHandler for Dispatcher {
                     id,
                 );
             },
-            GetDocumentFormatting { path } => {
-                let proxy_rpc = self.proxy_rpc.clone();
-                self.catalog_rpc.get_document_formatting(
-                    &path,
-                    move |_, result| {
-                        let result = result.map(|edits| {
-                            ProxyResponse::GetDocumentFormatting { edits }
-                        });
-                        proxy_rpc.handle_response(id, result);
-                    },
-                    id,
-                );
-            },
             PrepareRename { path, position } => {
                 let proxy_rpc = self.proxy_rpc.clone();
                 self.catalog_rpc.prepare_rename(
@@ -1067,6 +1054,34 @@ impl Dispatcher {
         use ProxyLspRequest::*;
         log::debug!("dispatcher handle_request {:?}", rpc);
         match rpc {
+            GetDocumentFormatting { path } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.get_document_formatting(
+                    &path,
+                    move |_, result| {
+                        let result = result.map(|edits| {
+                            ProxyResponse::GetDocumentFormatting { edits }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
+            OnTypeFormatting { path, position, ch } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.on_type_formatting(
+                    &path,
+                    position,
+                    ch,
+                    move |_, result| {
+                        let result = result.map(|edits| {
+                            ProxyResponse::GetDocumentFormatting { edits }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
             Completion {
                 request_id,
                 path,

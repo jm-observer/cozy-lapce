@@ -2933,6 +2933,52 @@ impl EditorData {
         }
     }
 
+    pub fn on_type_formatting(&self, _ch: String) -> Result<()> {
+        // todo
+        Ok(())
+        // if !(&ch == "\n" || &ch == "{") {
+        //     return Ok(());
+        // }
+        // let doc = self.doc();
+        // let rev = doc.rev();
+        // let content = doc.content.get_untracked();
+        // if let DocContent::File { path, .. } = content {
+        //     let cursor = self.cursor().get_untracked();
+        //     let offset = cursor.offset();
+        //     let (line, character) = doc.lines.with_untracked(|x| {
+        //         let line = x.buffer().line_of_offset(offset);
+        //         let index_of_line = x.buffer().offset_of_line(line);
+        //         (line, index_of_line)
+        //     });
+        //     let character = character?;
+        //     let editor = self.clone();
+        //     let send = create_ext_action(self.scope, move |result| {
+        //         if let ProxyResponse::OnTypeFormatting { edits } = result
+        //             && let Some(edits) = edits
+        //         {
+        //             let current_rev = editor.doc().rev();
+        //             if current_rev == rev && !edits.is_empty() {
+        //                 editor.do_text_edit(&edits, true);
+        //             }
+        //         }
+        //     });
+
+        //     self.common.proxy.proxy_rpc.on_type_formatting(
+        //         path.clone(),
+        //         Position {
+        //             line:      line as u32,
+        //             character: character as u32,
+        //         },
+        //         ch,
+        //         move |(_, result)| match result {
+        //             Ok(rs) => send(rs),
+        //             Err(err) => error!("{err:?}"),
+        //         },
+        //     );
+        // }
+        // Ok(())
+    }
+
     fn search_whole_word_forward(&self, mods: Modifiers) {
         let offset = self.cursor().with_untracked(|c| c.offset());
         let (word, buffer) = self.doc().lines.with_untracked(|buffer| {
@@ -4164,6 +4210,7 @@ impl KeyPressFocus for EditorData {
             }
         }
 
+        error!("editor run_command {}", command.kind.str());
         match &command.kind {
             crate::command::CommandKind::Workbench(_) => CommandExecuted::No,
             crate::command::CommandKind::Edit(cmd) => {
@@ -4237,18 +4284,19 @@ impl KeyPressFocus for EditorData {
             self.common.hover.active.set(false);
             // normal editor receive char
             if self.get_mode() == Mode::Insert {
+                error!("receive_char {c}");
                 let mut cursor = self.cursor().get_untracked();
                 let doc = self.doc();
                 let offset = cursor.offset();
-                let next_is_whitespace = doc
-                    .lines
-                    .with_untracked(|x| {
-                        x.buffer().char_at_offset(offset).map(|x| {
+                let next_is_whitespace = doc.lines.with_untracked(|x| {
+                    x.buffer()
+                        .char_at_offset(offset)
+                        .map(|x| {
                             // log::info!("receive_char offset_c={x}");
                             x.is_whitespace() || x.is_ascii_punctuation()
                         })
-                    })
-                    .unwrap_or(true);
+                        .unwrap_or(true)
+                });
                 let deltas = doc.do_insert(&mut cursor, c);
                 self.cursor().set(cursor);
                 if !c
@@ -4268,6 +4316,9 @@ impl KeyPressFocus for EditorData {
                 }
 
                 self.apply_deltas(&deltas);
+                if let Err(err) = self.on_type_formatting(c.to_owned()) {
+                    error!("on_type_formatting {err:?}")
+                }
                 self.check_auto_save();
             } else if let Some(direction) = self.inline_find.get_untracked() {
                 if let Err(err) = self.inline_find(direction.clone(), c) {

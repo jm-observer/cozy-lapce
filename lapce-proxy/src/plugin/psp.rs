@@ -43,8 +43,8 @@ use lsp_types::{
         DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
         Formatting, GotoDefinition, GotoImplementation, GotoTypeDefinition,
         HoverRequest, Initialize, InlayHintRequest, InlineCompletionRequest,
-        PrepareRenameRequest, References, RegisterCapability, Rename,
-        ResolveCompletionItem, SelectionRangeRequest,
+        OnTypeFormatting, PrepareRenameRequest, References, RegisterCapability,
+        Rename, ResolveCompletionItem, SelectionRangeRequest,
         SemanticTokensFullDeltaRequest, SemanticTokensFullRequest,
         SignatureHelpRequest, WorkDoneProgressCreate, WorkspaceSymbolRequest,
     },
@@ -761,6 +761,10 @@ impl PluginHostHandler {
             Completion::METHOD => {
                 self.server_capabilities.completion_provider.is_some()
             },
+            OnTypeFormatting::METHOD => self
+                .server_capabilities
+                .document_on_type_formatting_provider
+                .is_some(),
             ResolveCompletionItem::METHOD => self
                 .server_capabilities
                 .completion_provider

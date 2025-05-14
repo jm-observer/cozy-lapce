@@ -42,6 +42,7 @@ use lsp_types::{
     CompletionItemCapabilityResolveSupport, CompletionParams, CompletionResponse,
     Diagnostic, DocumentFormattingParams, DocumentHighlight,
     DocumentHighlightClientCapabilities, DocumentHighlightParams,
+    DocumentOnTypeFormattingClientCapabilities, DocumentOnTypeFormattingParams,
     DocumentSymbolClientCapabilities, DocumentSymbolParams, DocumentSymbolResponse,
     FoldingRange, FoldingRangeClientCapabilities, FoldingRangeParams,
     FormattingOptions, GotoCapability, GotoDefinitionParams, GotoDefinitionResponse,
@@ -70,7 +71,7 @@ use lsp_types::{
         DocumentHighlightRequest, DocumentSymbolRequest, FoldingRangeRequest,
         Formatting, GotoDefinition, GotoImplementation, GotoImplementationResponse,
         GotoTypeDefinition, GotoTypeDefinitionParams, GotoTypeDefinitionResponse,
-        HoverRequest, InlayHintRequest, InlineCompletionRequest,
+        HoverRequest, InlayHintRequest, InlineCompletionRequest, OnTypeFormatting,
         PrepareRenameRequest, References, Rename, Request, ResolveCompletionItem,
         SelectionRangeRequest, SemanticTokensFullDeltaRequest,
         SemanticTokensFullRequest, SignatureHelpRequest, WorkspaceSymbolRequest,
@@ -1088,6 +1089,43 @@ impl PluginCatalogRpcHandler {
         );
     }
 
+    pub fn on_type_formatting(
+        &self,
+        path: &Path,
+        position: Position,
+        ch: String,
+        cb: impl FnOnce(PluginId, Result<Vec<TextEdit>, RpcError>)
+        + Clone
+        + Send
+        + 'static,
+        id: u64,
+    ) {
+        let uri = Url::from_file_path(path).unwrap();
+        let method = OnTypeFormatting::METHOD;
+        let params = DocumentOnTypeFormattingParams {
+            options: FormattingOptions {
+                tab_size: 4,
+                insert_spaces: true,
+                ..Default::default()
+            },
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri },
+                position,
+            },
+            ch,
+        };
+        let language_id =
+            Some(language_id_from_path(path).unwrap_or("").to_string());
+        self.send_request_to_all_plugins(
+            method,
+            params,
+            language_id,
+            Some(path.to_path_buf()),
+            id,
+            cb,
+        );
+    }
+
     pub fn prepare_rename(
         &self,
         path: &Path,
@@ -1884,6 +1922,9 @@ fn client_capabilities() -> ClientCapabilities {
             document_highlight: Some(DocumentHighlightClientCapabilities {
                 ..Default::default()
             }),
+            on_type_formatting: Some(
+                DocumentOnTypeFormattingClientCapabilities::default(),
+            ),
             completion: Some(CompletionClientCapabilities {
                 completion_item: Some(CompletionItemCapability {
                     snippet_support: Some(true),
