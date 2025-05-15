@@ -945,6 +945,16 @@ impl PluginHostHandler {
                 .server_capabilities
                 .document_highlight_provider
                 .is_some(),
+            "experimental/onEnter" => {
+                if let Some(Value::Object(values)) =
+                    &self.server_capabilities.experimental
+                    && let Some(Value::Bool(on_enter)) = values.get("onEnter")
+                {
+                    *on_enter
+                } else {
+                    false
+                }
+            },
             _ => false,
         }
     }

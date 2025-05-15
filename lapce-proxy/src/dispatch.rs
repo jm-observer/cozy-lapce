@@ -1519,6 +1519,20 @@ impl Dispatcher {
                     id,
                 );
             },
+            OnEnter { path, position } => {
+                let proxy_rpc = self.proxy_rpc.clone();
+                self.catalog_rpc.on_enter(
+                    &path,
+                    position,
+                    move |plugin_id, result| {
+                        let result = result.map(|resp| {
+                            ProxyResponse::OnEnterResponse { plugin_id, resp }
+                        });
+                        proxy_rpc.handle_response(id, result);
+                    },
+                    id,
+                );
+            },
         }
     }
 }

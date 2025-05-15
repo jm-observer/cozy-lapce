@@ -21,7 +21,7 @@ use dyn_clone::DynClone;
 use flate2::read::GzDecoder;
 use jsonrpc_lite::Id;
 use lapce_rpc::{
-    RequestId, RpcError,
+    RequestId, RpcError, SnippetTextEdit,
     core::CoreRpcHandler,
     dap_types::{self, DapId, RunDebugConfig, SourceBreakpoint, ThreadId},
     plugin::{PluginId, VoltInfo, VoltMetadata},
@@ -842,6 +842,35 @@ impl PluginCatalogRpcHandler {
             },
             work_done_progress_params:     WorkDoneProgressParams::default(),
             partial_result_params:         PartialResultParams::default(),
+        };
+
+        let language_id =
+            Some(language_id_from_path(path).unwrap_or("").to_string());
+        self.send_request_to_all_plugins(
+            method,
+            params,
+            language_id,
+            Some(path.to_path_buf()),
+            id,
+            cb,
+        );
+    }
+
+    pub fn on_enter(
+        &self,
+        path: &Path,
+        position: Position,
+        cb: impl FnOnce(PluginId, Result<Option<Vec<SnippetTextEdit>>, RpcError>)
+        + Clone
+        + Send
+        + 'static,
+        id: u64,
+    ) {
+        let uri = Url::from_file_path(path).unwrap();
+        let method = "experimental/onEnter";
+        let params = TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier { uri },
+            position,
         };
 
         let language_id =
@@ -1904,12 +1933,12 @@ fn client_capabilities() -> ClientCapabilities {
     // https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#server-status
     let mut experimental = Map::new();
     experimental.insert("serverStatusNotification".into(), true.into());
+    experimental.insert("onEnter".into(), true.into());
     let command_vec = ["rust-analyzer.runSingle", "rust-analyzer.debugSingle"]
         .map(Value::from)
         .to_vec();
 
     let mut commands = Map::new();
-    experimental.insert("serverStatusNotification".into(), true.into());
     commands.insert("commands".into(), command_vec.into());
     experimental.insert("commands".into(), commands.into());
     ClientCapabilities {

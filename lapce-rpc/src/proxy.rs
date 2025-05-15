@@ -114,6 +114,10 @@ pub enum ProxyLspRequest {
     GetDocumentFormatting {
         path: PathBuf,
     },
+    OnEnter {
+        path:     PathBuf,
+        position: Position,
+    },
     OnTypeFormatting {
         path:     PathBuf,
         position: Position,
@@ -472,6 +476,10 @@ pub enum ProxyResponse {
     GotoImplementationResponse {
         plugin_id: PluginId,
         resp:      Option<GotoImplementationResponse>,
+    },
+    OnEnterResponse {
+        plugin_id: PluginId,
+        resp:      Option<Vec<crate::SnippetTextEdit>>,
     },
     GetFilesResponse {
         items: Vec<PathBuf>,
@@ -1156,6 +1164,15 @@ impl ProxyRpcHandler {
         f: impl ProxyCallback + 'static,
     ) {
         self.request_async(ProxyLspRequest::GetDocumentFormatting { path }, f);
+    }
+
+    pub fn on_enter(
+        &self,
+        path: PathBuf,
+        position: Position,
+        f: impl ProxyCallback + 'static,
+    ) {
+        self.request_async(ProxyLspRequest::OnEnter { path, position }, f);
     }
 
     pub fn on_type_formatting(

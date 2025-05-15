@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use doc::{
     EditorViewKind,
     lines::{
@@ -58,14 +58,14 @@ use lapce_core::{
     main_split::{SplitDirection, SplitMoveDirection},
     panel::PanelKind,
 };
-use lapce_rpc::{plugin::PluginId, proxy::ProxyResponse};
+use lapce_rpc::{RpcError, SnippetTextEdit, plugin::PluginId, proxy::ProxyResponse};
 use lapce_xi_rope::{Rope, RopeDelta, Transformer};
-use log::{error, info};
+use log::{debug, error, info};
 use lsp_types::{
     CodeActionOrCommand, CodeActionResponse, CodeLens, CompletionItem,
     CompletionTextEdit, Diagnostic, DiagnosticSeverity, GotoDefinitionResponse,
-    HoverContents, InlineCompletionTriggerKind, Location, MarkedString, MarkupKind,
-    Position, Range, TextEdit,
+    HoverContents, InlineCompletionTriggerKind, InsertTextFormat, Location,
+    MarkedString, MarkupKind, Position, Range, TextEdit,
 };
 use nucleo::Utf32Str;
 use serde_json::Value;
@@ -2346,6 +2346,51 @@ impl EditorData {
         Ok(())
     }
 
+    pub fn apply_snippet_text_edit(
+        &self,
+        edit: SnippetTextEdit,
+        start_offset: usize,
+    ) -> anyhow::Result<()> {
+        let SnippetTextEdit {
+            range,
+            new_text,
+            insert_text_format,
+            ..
+        } = edit;
+        let text_format = insert_text_format.unwrap_or(InsertTextFormat::PLAIN_TEXT);
+
+        let selection = self.doc().lines.with_untracked(|x| {
+            anyhow::Result::<Selection>::Ok(Selection::region(
+                x.buffer().offset_of_position(&range.start)?,
+                x.buffer().offset_of_position(&range.end)?,
+            ))
+        })?;
+        match text_format {
+            InsertTextFormat::PLAIN_TEXT => self.do_edit(
+                &selection,
+                &[(selection.clone(), new_text.as_str())],
+                false,
+            ),
+            InsertTextFormat::SNIPPET => {
+                let snippet = Snippet::from_str(&new_text)?;
+                let text = snippet.text();
+                let additional_edit = vec![(selection.clone(), text.as_str())];
+
+                self.completion_apply_snippet(
+                    snippet,
+                    &selection,
+                    additional_edit,
+                    start_offset,
+                )?;
+            },
+            _ => {
+                // We don't know how to support this text format
+            },
+        }
+
+        Ok(())
+    }
+
     pub fn completion_apply_snippet(
         &self,
         snippet: Snippet,
@@ -2930,6 +2975,71 @@ impl EditorData {
                     send(result);
                 },
             );
+        }
+    }
+
+    pub fn on_enter(&self) -> Result<()> {
+        let doc = self.doc();
+        let rev = doc.rev();
+        let content = doc.content.get_untracked();
+        if let DocContent::File { path, .. } = content {
+            let cursor = self.cursor().get_untracked();
+            let offset = cursor.offset();
+            let (line, character) = doc.lines.with_untracked(|x| {
+                let line = x.buffer().line_of_offset(offset);
+                let index_of_line = x.buffer().offset_of_line(line);
+                (line, index_of_line)
+            });
+            let character = offset - character?;
+            let editor = self.clone();
+            let send = create_ext_action(self.scope, move |result| {
+                editor.on_enter_callback(rev, result, offset)
+            });
+
+            self.common.proxy.proxy_rpc.on_enter(
+                path.clone(),
+                Position {
+                    line:      line as u32,
+                    character: character as u32,
+                },
+                move |(_, result)| send(result),
+            );
+        }
+        Ok(())
+    }
+
+    fn _on_enter_callback(
+        &self,
+        rev: u64,
+        result: Result<ProxyResponse, RpcError>,
+        offset: usize,
+    ) -> Result<()> {
+        if let ProxyResponse::OnEnterResponse { resp, .. } = result?
+            && let Some(edits) = resp
+            && !edits.is_empty()
+        {
+            let current_rev = self.doc().rev();
+            if current_rev == rev {
+                for edit in edits.into_iter().rev() {
+                    self.apply_snippet_text_edit(edit, offset)?;
+                }
+            }
+            Ok(())
+        } else {
+            bail!("_on_enter_callback response error or edits is empty");
+        }
+    }
+
+    fn on_enter_callback(
+        &self,
+        rev: u64,
+        result: Result<ProxyResponse, RpcError>,
+        offset: usize,
+    ) {
+        if self._on_enter_callback(rev, result, offset).is_err()
+            && let Err(err) = self.run_edit_command(&EditCommand::InsertNewLine)
+        {
+            error!("{err:?}");
         }
     }
 
@@ -4210,10 +4320,17 @@ impl KeyPressFocus for EditorData {
             }
         }
 
-        error!("editor run_command {}", command.kind.str());
+        debug!("editor run_command {}", command.kind.str());
         match &command.kind {
             crate::command::CommandKind::Workbench(_) => CommandExecuted::No,
             crate::command::CommandKind::Edit(cmd) => {
+                if matches!(cmd, EditCommand::InsertNewLine) {
+                    if let Err(err) = self.on_enter() {
+                        error!("{err:?}");
+                    } else {
+                        return CommandExecuted::Yes;
+                    }
+                }
                 match self.run_edit_command(cmd) {
                     Ok(rs) => rs,
                     Err(err) => {
@@ -4284,7 +4401,7 @@ impl KeyPressFocus for EditorData {
             self.common.hover.active.set(false);
             // normal editor receive char
             if self.get_mode() == Mode::Insert {
-                error!("receive_char {c}");
+                // error!("receive_char {c}");
                 let mut cursor = self.cursor().get_untracked();
                 let doc = self.doc();
                 let offset = cursor.offset();
