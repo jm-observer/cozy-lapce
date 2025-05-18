@@ -1142,10 +1142,14 @@ impl EditorData {
                 self.search_backward(mods);
             },
             FocusCommand::Save => {
-                self.save(true, || {});
+                if let Err(err) = self.save(true, || {}) {
+                    error!("{err}");
+                }
             },
             FocusCommand::SaveWithoutFormatting => {
-                self.save(false, || {});
+                if let Err(err) = self.save(false, || {}) {
+                    error!("{err}");
+                }
             },
             FocusCommand::FormatDocument => {
                 self.format();
@@ -2514,8 +2518,12 @@ impl EditorData {
                          has_completions={has_completions} {:?}",
                         doc.content.get_untracked()
                     );
-                    if !is_pristine && is_current_rec && !editor.has_completions() {
-                        editor.save(true, || {});
+                    if !is_pristine
+                        && is_current_rec
+                        && !editor.has_completions()
+                        && let Err(err) = editor.save(true, || {})
+                    {
+                        error!("{err}");
                     }
                 },
             ));
@@ -2592,7 +2600,40 @@ impl EditorData {
         self.apply_deltas(&[(text, delta, inval_lines)]);
     }
 
-    pub fn do_text_edit(&self, edits: &[TextEdit], format_before_save: bool) {
+    pub fn do_text_edit(
+        &self,
+        edits: Vec<TextEdit>,
+        format_before_save: bool,
+    ) -> Result<()> {
+        let doc = self.doc();
+        if edits.iter().any(|x| x.new_text.contains("todo!()")) {
+            for edit in edits {
+                let TextEdit { range, new_text } = edit;
+
+                let start_offset = doc.lines.with_untracked(|x| {
+                    x.buffer().offset_of_position(&range.start)
+                })?;
+                let (insert_text_format, new_text) = if new_text.contains("todo!()")
+                {
+                    (
+                        Some(InsertTextFormat::SNIPPET),
+                        new_text.replace("todo!()", "$0"),
+                    )
+                } else {
+                    (Some(InsertTextFormat::PLAIN_TEXT), new_text)
+                };
+                self.apply_snippet_text_edit(
+                    SnippetTextEdit {
+                        range,
+                        new_text,
+                        insert_text_format,
+                        annotation_id: None,
+                    },
+                    start_offset,
+                )?;
+            }
+            return Ok(());
+        }
         let (selection, edits) = self.doc().lines.with_untracked(|x| {
             let selection = self.cursor().get_untracked().edit_selection(x.buffer());
             let edits = edits
@@ -2615,15 +2656,16 @@ impl EditorData {
                 .collect::<Vec<_>>();
             (selection, edits)
         });
-        let selection = match selection {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            },
-        };
+        // let selection = match selection {
+        //     Ok(rs) => rs,
+        //     Err(err) => {
+        //         error!("{err:?}");
+        //         return;
+        //     },
+        // };
 
-        self.do_edit(&selection, &edits, format_before_save);
+        self.do_edit(&selection?, &edits, format_before_save);
+        Ok(())
     }
 
     fn apply_deltas(&self, deltas: &[(Rope, RopeDelta, InvalLines)]) {
@@ -2665,12 +2707,12 @@ impl EditorData {
     fn do_go_to_location(
         &self,
         location: EditorLocation,
-        edits: Option<Vec<TextEdit>>,
-    ) {
+        mut edits: Option<Vec<TextEdit>>,
+    ) -> Result<()> {
         if let Some(position) = location.position {
-            self.go_to_position(position, location.scroll_offset, edits);
-        } else if let Some(edits) = edits.as_ref() {
-            self.do_text_edit(edits, false);
+            self.go_to_position(position, location.scroll_offset, edits)?;
+        } else if let Some(edits) = edits.take() {
+            self.do_text_edit(edits, false)?;
         } else {
             let db: Arc<LapceDb> = use_context().unwrap();
             if let Ok(info) = db.get_doc_info(&self.common.workspace, &location.path)
@@ -2679,9 +2721,10 @@ impl EditorData {
                     EditorPosition::Offset(info.cursor_offset),
                     Some(Vec2::new(info.scroll_offset.0, info.scroll_offset.1)),
                     edits,
-                );
+                )?;
             }
         }
+        Ok(())
     }
 
     pub fn go_to_location(
@@ -2690,10 +2733,10 @@ impl EditorData {
         new_doc: bool,
         edits: Option<Vec<TextEdit>>,
         off_top_line: Option<f64>,
-    ) {
+    ) -> Result<()> {
         if !new_doc {
             self.common.offset_line_from_top.set(off_top_line);
-            self.do_go_to_location(location, edits);
+            self.do_go_to_location(location, edits)?;
         } else {
             let loaded = self.doc().loaded;
             let editor = self.clone();
@@ -2706,8 +2749,11 @@ impl EditorData {
                     crate::doc::DocStatus::Ok { loaded } => {
                         if loaded {
                             editor.common.offset_line_from_top.set(off_top_line);
-                            editor
-                                .do_go_to_location(location.clone(), edits.clone());
+                            if let Err(err) = editor
+                                .do_go_to_location(location.clone(), edits.clone())
+                            {
+                                error!("{err}");
+                            }
                         }
                         loaded
                     },
@@ -2715,25 +2761,19 @@ impl EditorData {
                 }
             });
         }
+        Ok(())
     }
 
     pub fn go_to_position(
         &self,
         position: EditorPosition,
         scroll_offset: Option<Vec2>,
-        edits: Option<Vec<TextEdit>>,
-    ) {
-        let offset = match self
+        mut edits: Option<Vec<TextEdit>>,
+    ) -> Result<()> {
+        let offset = self
             .doc()
             .lines
-            .with_untracked(|x| position.to_offset(x.buffer()))
-        {
-            Ok(rs) => rs,
-            Err(err) => {
-                error!("{err:?}");
-                return;
-            },
-        };
+            .with_untracked(|x| position.to_offset(x.buffer()))?;
         let modal = self
             .common
             .config
@@ -2746,8 +2786,8 @@ impl EditorData {
         if let Some(scroll_offset) = scroll_offset {
             self.scroll_to.set(Some(scroll_offset));
         }
-        if let Some(edits) = edits.as_ref() {
-            self.do_text_edit(edits, false);
+        if let Some(edits) = edits.take() {
+            self.do_text_edit(edits, false)?;
         }
         self.sync_document_symbol_by_offset(offset);
         self.doc.get_untracked().lines.update(|x| {
@@ -2757,6 +2797,7 @@ impl EditorData {
                 error!("UnFoldCode {offset} fail {err}")
             }
         });
+        Ok(())
     }
 
     pub fn show_code_actions(&self, imports: Option<(Vec<String>, Position)>) {
@@ -2887,7 +2928,7 @@ impl EditorData {
         &self,
         allow_formatting: bool,
         after_action: impl FnOnce() + 'static,
-    ) {
+    ) -> Result<()> {
         let doc = self.doc();
         let is_pristine = doc.is_pristine();
         let content = doc.content.get_untracked();
@@ -2896,11 +2937,11 @@ impl EditorData {
             self.common
                 .internal_command
                 .send(InternalCommand::SaveScratchDoc2 { doc });
-            return;
+            return Ok(());
         }
 
         if content.path().is_some() && is_pristine {
-            return;
+            return Ok(());
         }
 
         let (normalize_line_endings, format_on_save) =
@@ -2912,7 +2953,7 @@ impl EditorData {
             });
 
         let DocContent::File { path, .. } = content else {
-            return;
+            return Ok(());
         };
 
         // If we are disallowing formatting (such as due to a manual save without
@@ -2936,7 +2977,9 @@ impl EditorData {
                     let current_rev = editor.doc().rev();
                     if current_rev == rev {
                         // log::debug!("{:?}", edits);
-                        editor.do_text_edit(&edits, true);
+                        if let Err(err) = editor.do_text_edit(edits, true) {
+                            error!("{err}");
+                        }
                     }
                 }
                 editor.do_save(after_action);
@@ -2951,6 +2994,7 @@ impl EditorData {
         } else {
             self.do_save(after_action);
         }
+        Ok(())
     }
 
     pub fn format(&self) {
@@ -2963,8 +3007,10 @@ impl EditorData {
             let send = create_ext_action(self.scope, move |result| {
                 if let Ok(ProxyResponse::GetDocumentFormatting { edits }) = result {
                     let current_rev = editor.doc().rev();
-                    if current_rev == rev {
-                        editor.do_text_edit(&edits, true);
+                    if current_rev == rev
+                        && let Err(err) = editor.do_text_edit(edits, true)
+                    {
+                        error!("{err}");
                     }
                 }
             });

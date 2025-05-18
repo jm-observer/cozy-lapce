@@ -1519,7 +1519,7 @@ impl PaletteData {
                         None => return,
                     };
                     self.preview_editor.update_doc(doc);
-                    self.preview_editor.go_to_location(
+                    if let Err(err) = self.preview_editor.go_to_location(
                         EditorLocation {
                             path,
                             position: Some(EditorPosition::Line(*line)),
@@ -1530,7 +1530,9 @@ impl PaletteData {
                         false,
                         None,
                         None,
-                    );
+                    ) {
+                        error!("{err}");
+                    }
                 },
                 PaletteItemContent::Command { .. } => {},
                 PaletteItemContent::Workspace { .. } => {},
@@ -1552,12 +1554,14 @@ impl PaletteData {
                         },
                     );
                     self.preview_editor.update_doc(doc);
-                    self.preview_editor.go_to_location(
+                    if let Err(err) = self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
                         None,
                         None,
-                    );
+                    ) {
+                        error!("{err}");
+                    }
                 },
                 PaletteItemContent::DocumentSymbol { range, .. } => {
                     has_preview = true;
@@ -1576,7 +1580,7 @@ impl PaletteData {
                         None => return,
                     };
                     self.preview_editor.update_doc(doc);
-                    self.preview_editor.go_to_location(
+                    if let Err(err) = self.preview_editor.go_to_location(
                         EditorLocation {
                             path,
                             position: Some(EditorPosition::Position(range.start)),
@@ -1587,7 +1591,9 @@ impl PaletteData {
                         false,
                         None,
                         None,
-                    );
+                    ) {
+                        error!("{err}");
+                    }
                 },
                 PaletteItemContent::WorkspaceSymbol { location, .. } => {
                     has_preview = true;
@@ -1601,12 +1607,14 @@ impl PaletteData {
                         },
                     );
                     self.preview_editor.update_doc(doc);
-                    self.preview_editor.go_to_location(
+                    if let Err(err) = self.preview_editor.go_to_location(
                         location.clone(),
                         new_doc,
                         None,
                         None,
-                    );
+                    ) {
+                        error!("{err}");
+                    }
                 },
                 PaletteItemContent::ColorTheme { name } => self
                     .common

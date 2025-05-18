@@ -1021,8 +1021,8 @@ impl WindowWorkspaceData {
                                     false
                                 };
 
-                                if should_save {
-                                    editor_data.save(true, || {});
+                                if should_save && let Err(err) = editor_data.save(true, || {}) {
+                                        error!("{err}");
                                 }
                             }
                         });

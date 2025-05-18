@@ -576,12 +576,14 @@ impl MainSplitData {
                 batch(|| {
                     let is_empty =
                         edits.as_ref().map(|x| x.is_empty()).unwrap_or(true);
-                    editor.go_to_location(
+                    if let Err(err) = editor.go_to_location(
                         location.clone(),
                         new_doc,
                         edits.clone(),
                         off_top_line,
-                    );
+                    ) {
+                        error!("{err}");
+                    };
                     if !is_empty {
                         editor.check_auto_save();
                     }
@@ -2041,7 +2043,7 @@ impl MainSplitData {
                         let editor_id = editor.id();
                         let save_action = Rc::new(move || {
                             internal_command.send(InternalCommand::HideAlert);
-                            editor.save(false, move || {
+                            if let Err(err) = editor.save(false, move || {
                                 if let Some(editor) =
                                     editors.editor_untracked(editor_id)
                                 {
@@ -2051,7 +2053,9 @@ impl MainSplitData {
                                         Modifiers::empty(),
                                     );
                                 }
-                            });
+                            }) {
+                                error!("{err}");
+                            }
                         });
                         Some(AlertButton {
                             text:   "Save".to_string(),
@@ -2213,15 +2217,19 @@ impl MainSplitData {
         if let Some(edits) = workspace_edits(edit) {
             for (url, edits) in edits {
                 if let Ok(path) = url.to_file_path() {
-                    // let active_path = self
-                    //     .active_editor
-                    //     .get_untracked()
-                    //     .map(|editor| editor.doc())
-                    //     .map(|doc| doc.content.get_untracked())
-                    //     .and_then(|content| content.path().cloned());
-                    let position = edits
-                        .last()
-                        .map(|edit| EditorPosition::Position(edit.range.start));
+                    let active_path = self
+                        .active_editor
+                        .get_untracked()
+                        .map(|editor| editor.doc())
+                        .map(|doc| doc.content.get_untracked())
+                        .and_then(|content| content.path().cloned());
+                    let position = if active_path.as_ref() == Some(&path) {
+                        None
+                    } else {
+                        edits
+                            .first()
+                            .map(|edit| EditorPosition::Position(edit.range.start))
+                    };
                     let location = EditorLocation {
                         path,
                         position,
@@ -3167,7 +3175,7 @@ impl MainSplitData {
                     common,
                     EditorViewKind::Normal,
                 );
-                editor.go_to_location(
+                if let Err(err) = editor.go_to_location(
                     EditorLocation {
                         path:               path.clone(),
                         position:           Some(EditorPosition::Offset(
@@ -3183,7 +3191,9 @@ impl MainSplitData {
                     new_doc,
                     None,
                     None,
-                );
+                ) {
+                    error!("{err}");
+                }
 
                 editor.id()
             },
