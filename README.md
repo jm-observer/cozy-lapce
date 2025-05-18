@@ -11,7 +11,7 @@
 ## Differences from Lapce
 
 -  **No Modal Editing**: Modal (Vim-style) editing is not supported, as the author doesn't use or maintain it
--  **Windows Only**: Currently only tested and used on Windows; Linux and macOS are unverified
+-  **Windows And Linux Only**: Currently only tested and used on Windows and Linux; macOS are unverified
 -  **Theme Simplified**: Original themes like `Lapce Light/Dark` are no longer maintained. Only `jb-light` is actively used
 -  **Mouse Enhancements**: Many UI operations are now accessible via mouse (e.g., right-click menus, tabs)
 -  **Code Folding Added**: Editor supports foldable regions (functions, structs, etc.) with persistent state
@@ -20,6 +20,8 @@
     - Avoid large memory copies
     - More fine-grained configuration options
 -  **Rust-First Development**: Recommended extensions include [Rust (by dzhou121)] and `Crates`. Support for other languages is not yet verified
+-  **Debugging is only supported on Windows**: To enable debugging features such as breakpoints, step execution, and variable inspection, install the [lldb-win](https://github.com/llvm/llvm-project/releases) plugin. Once installed, the editor will use the `lldb` backend to provide full debugging capabilities on Windows.
+
 
 ---
 
@@ -35,9 +37,7 @@ please see the [**DEVELOPING Guide**](./docs/DEVELOPING.md).
 
 ## Roadmap
 
-- 🐞 **Debugger Support**: Plan to integrate debugging features via DAP protocol and LLDB
 - 🤖 **AI Assistance**: Exploring the possibility of AI-powered code completions, inline suggestions, chat-based refactoring, etc.
-
 ---
 
 ## Contribute to Cozy Lapce
@@ -51,7 +51,7 @@ You’re warmly welcome to contribute in any of the following ways:
 
 🐞 Fix bugs & enhance features – Submit pull requests or open issues
 
-🧪 Debugging / AI – Join efforts in building DAP debugging or AI-assisted tools
+🧪 AI – Join efforts in building AI-assisted tools
 
 💡 Have a better idea? Share your thoughts or suggestions — we're listening!
 

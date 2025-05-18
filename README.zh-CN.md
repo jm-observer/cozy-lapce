@@ -7,11 +7,12 @@
 ## 与 Lapce 的差异
 
 - 因为作者不会用 Modal Editing，因此原有Modal Editing 模式没支持
-- 只验证了windows平台的功能，linux和mac没有验证
+- 只验证了windows/linux平台的功能，mac没有验证
 - 原有的样式主题，没有维护，甚至可能有影响到。当前主要用`jb-light`
 - 界面增加了很多鼠标可操作的功能，编辑界面增加了折叠功能
 - 底层进行了大量的优化：移除多线程、取消大数据的复制、细化配置等等
 - rust开发推荐插件：Rust(by dzhou121)，Crates。其他语言开发未验证
+- 调试功能 **仅支持在 Windows 系统下使用**: 通过安装插件lldb-win，可以实现debug功能
 ---
 
 ## 使用说明文档
