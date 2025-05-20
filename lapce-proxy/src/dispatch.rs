@@ -880,7 +880,7 @@ impl ProxyHandler for Dispatcher {
                 window_id,
                 tab_id,
             } => {
-                log::warn!("Initial {workspace:?}");
+                log::debug!("Initial {workspace:?}");
                 self.window_id = window_id;
                 self.tab_id = tab_id;
                 self.workspace = workspace;

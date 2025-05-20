@@ -1984,7 +1984,9 @@ pub fn read_grammar_query(queries_dir: &Path, name: &str, kind: &str) -> String 
 
     let file = queries_dir.join(name).join(kind);
     let query = std::fs::read_to_string(&file).unwrap_or_else(|err| {
-        warn!("Failed to read queries at: {file:?}, {err}");
+        if name != "comment" {
+            warn!("Failed to read queries at: {file:?}, {err}");
+        }
         String::new()
     });
 

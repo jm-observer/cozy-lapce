@@ -1,9 +1,13 @@
-use std::{env, io::Write, path::Path};
+use std::{
+    env,
+    io::{Seek, SeekFrom, Write},
+    path::Path,
+};
 
 use anyhow::{Context, Result, anyhow};
 use log::trace;
 
-use crate::update::ReleaseInfo;
+use crate::update::{ReleaseAsset, ReleaseInfo};
 
 #[allow(dead_code)]
 async fn get_github_api(url: &str) -> Result<String> {
@@ -21,40 +25,39 @@ pub async fn find_grammar_release() -> Result<ReleaseInfo> {
         "https://api.github.com/repos/lapce/tree-sitter-grammars/releases?per_page=100",
     ).await.context("Failed to retrieve releases for tree-sitter-grammars")?)?;
 
-    use lapce_core::meta::{RELEASE, ReleaseType, VERSION};
+    // use lapce_core::meta::{RELEASE, ReleaseType, VERSION};
 
-    let releases = releases
-        .into_iter()
-        .filter_map(|f| {
-            if matches!(RELEASE, ReleaseType::Debug | ReleaseType::Nightly) {
-                return Some(f);
-            }
+    // let releases = releases
+    //     .into_iter()
+    //     .filter_map(|f| {
+    //         if matches!(RELEASE, ReleaseType::Debug | ReleaseType::Nightly) {
+    //             return Some(f);
+    //         }
 
-            let tag_name = if f.tag_name.starts_with('v') {
-                f.tag_name.trim_start_matches('v')
-            } else {
-                f.tag_name.as_str()
-            };
+    //         let tag_name = if f.tag_name.starts_with('v') {
+    //             f.tag_name.trim_start_matches('v')
+    //         } else {
+    //             f.tag_name.as_str()
+    //         };
 
-            use std::cmp::Ordering;
+    //         use std::cmp::Ordering;
 
-            use semver::Version;
+    //         use semver::Version;
 
-            let sv = Version::parse(tag_name).ok()?;
-            let version = Version::parse(VERSION).ok()?;
+    //         let sv = Version::parse(tag_name).ok()?;
+    //         let version = Version::parse(VERSION).ok()?;
 
-            if matches!(sv.cmp_precedence(&version), Ordering::Equal) {
-                Some(f)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
+    //         if matches!(sv.cmp_precedence(&version), Ordering::Equal) {
+    //             Some(f)
+    //         } else {
+    //             None
+    //         }
+    //     })
+    //     .collect::<Vec<_>>();
 
     let Some(release) = releases.first() else {
         return Err(anyhow!("Couldn't find any release"));
     };
-
     Ok(release.to_owned())
 }
 pub async fn fetch_grammars(
@@ -111,32 +114,58 @@ async fn download_release(
     }
 
     for asset in &release.assets {
-        if asset.name.starts_with(file_name) {
-            let resp = lapce_proxy::async_get_url(&asset.browser_download_url, None)
-                .await?;
-            if !resp.status().is_success() {
-                return Err(anyhow!("download file error {}", resp.text().await?));
-            }
+        download_release_asset(dir, file_name, asset, &release_version)
+            .await
+            .map_err(|x| anyhow!("download {:?} fail: {}", asset, x))?;
+    }
+    Ok(true)
+}
 
-            let mut file = tempfile::tempfile()?;
+async fn download_release_asset(
+    dir: &Path,
+    file_name: &str,
+    asset: &ReleaseAsset,
+    release_version: &str,
+) -> Result<bool> {
+    use tokio::fs;
 
-            {
-                let bytes = resp.bytes().await?;
-                file.write_all(&bytes)?;
-                file.flush()?;
-            }
-
-            if asset.name.ends_with(".zip") {
-                let mut archive = zip::ZipArchive::new(file)?;
-                archive.extract(dir)?;
-            } else if asset.name.ends_with(".tar.zst") {
-                let mut archive =
-                    tar::Archive::new(zstd::stream::read::Decoder::new(file)?);
-                archive.unpack(dir)?;
-            }
-
-            fs::write(dir.join("version"), &release_version).await?;
+    if asset.name.starts_with(file_name) {
+        let resp = lapce_proxy::async_get_url(&asset.browser_download_url, None)
+            .await
+            .map_err(|x| {
+                anyhow!(
+                    "browser_download_url {} fail: {}",
+                    asset.browser_download_url,
+                    x
+                )
+            })?;
+        if !resp.status().is_success() {
+            return Err(anyhow!(
+                "download {} error {}",
+                asset.browser_download_url,
+                resp.text().await?
+            ));
         }
+
+        let mut file = tempfile::tempfile()?;
+
+        {
+            let bytes = resp.bytes().await?;
+            file.write_all(&bytes)?;
+            file.flush()?;
+        }
+        file.seek(SeekFrom::Start(0))?;
+
+        if asset.name.ends_with(".zip") {
+            let mut archive = zip::ZipArchive::new(file)?;
+            archive.extract(dir)?;
+        } else if asset.name.ends_with(".tar.zst") {
+            let mut archive =
+                tar::Archive::new(zstd::stream::read::Decoder::new(file)?);
+            archive.unpack(dir)?;
+        }
+
+        fs::write(dir.join("version"), &release_version).await?;
     }
     Ok(true)
 }

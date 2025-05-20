@@ -1393,7 +1393,7 @@ dependencies = [
 
 [[package]]
 name = "cozy-lapce"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "ansi-to-style",
  "anyhow",
@@ -4744,7 +4744,7 @@ dependencies = [
 
 [[package]]
 name = "lapce-app"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "Inflector",
  "alacritty_terminal",
@@ -4802,14 +4802,14 @@ dependencies = [
  "toml_edit 0.20.7",
  "unicode-width 0.1.14",
  "url",
- "windows-sys 0.59.0",
+ "windows-sys 0.45.0",
  "zip",
  "zstd",
 ]
 
 [[package]]
 name = "lapce-core"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "ahash",
  "anyhow",
@@ -4843,7 +4843,7 @@ dependencies = [
 
 [[package]]
 name = "lapce-proxy"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -4896,7 +4896,7 @@ dependencies = [
 
 [[package]]
 name = "lapce-rpc"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "cargo",

@@ -30,7 +30,7 @@ use lapce_rpc::{
     },
     stdio::stdio_transport,
 };
-use log::error;
+use log::{debug, error};
 
 #[derive(Parser)]
 #[clap(name = "Lapce-proxy")]
@@ -239,12 +239,15 @@ pub async fn async_get_url<T: reqwest::IntoUrl + Clone>(
     url: T,
     user_agent: Option<&str>,
 ) -> Result<reqwest::Response> {
-    let mut builder = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
-        let proxy = reqwest::Proxy::all(proxy)?;
-        reqwest::Client::builder()
-            .proxy(proxy)
-            .timeout(std::time::Duration::from_secs(10))
+    let proxy = if let Ok(proxy) = std::env::var("https_lapce_proxy") {
+        Some(proxy)
     } else if let Ok(proxy) = std::env::var("https_proxy") {
+        Some(proxy)
+    } else {
+        None
+    };
+    let mut builder = if let Some(proxy) = proxy {
+        debug!("proxy {proxy}");
         let proxy = reqwest::Proxy::all(proxy)?;
         reqwest::Client::builder()
             .proxy(proxy)
