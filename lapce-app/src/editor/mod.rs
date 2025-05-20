@@ -2541,22 +2541,25 @@ impl EditorData {
         let doc = self.doc();
         let cursor_offset = cursor.offset();
 
-        let (screen_line_index, rev_offset) = if format_before_save {
+        let (screen_line_index, rev_offset, selection_offset) = if format_before_save
+        {
             let screen_line_index =
                 self.upper_lines_of_cursor_with_offset(cursor_offset);
+            let (start, end) = cursor.get_selection().unwrap_or((0, 0));
             (
                 screen_line_index,
                 doc.lines.with_untracked(|x| {
                     x.buffer()
                         .text()
-                        .slice_to_cow(0..cursor.offset())
+                        .slice_to_cow(0..end)
                         .char_indices()
                         .filter(|c| c.1.is_ascii() && !c.1.is_whitespace())
                         .count()
                 }),
+                end - start,
             )
         } else {
-            (None, 0)
+            (None, 0, 0)
         };
 
         // let rev_offset = doc.buffer.with_untracked(|x| x.len()) - cursor.offset();
@@ -2581,10 +2584,17 @@ impl EditorData {
                     .nth(rev_offset.saturating_sub(1))
                     .map(|(index, _)| index + 1)
                     .unwrap_or_default();
-                cursor.set_offset(offset, false, false);
+                cursor.add_region(
+                    offset - selection_offset,
+                    offset,
+                    false,
+                    false,
+                    None,
+                );
                 log::debug!(
                     "rev_offset={rev_offset} offset={offset}, \
-                     {screen_line_index:?} cursor.offset={}",
+                     selection_offset={selection_offset}{screen_line_index:?} \
+                     cursor.offset={}",
                     cursor.offset()
                 );
                 self.common.offset_line_from_top.set(screen_line_index);

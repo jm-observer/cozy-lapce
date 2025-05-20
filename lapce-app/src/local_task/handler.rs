@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::{Result, anyhow};
 use crossbeam_channel::Receiver;
 use doc::lines::{buffer::diff::rope_diff, selection::Selection};
 use floem::{prelude::Color, text::FamilyOwned};
@@ -15,7 +16,6 @@ use lapce_xi_rope::{
 };
 use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
-use anyhow::{anyhow, Result};
 
 use crate::{
     config::{LapceConfig, color::LapceColor},
@@ -267,10 +267,16 @@ async fn handle_find_grammar(
     queries_directory: &Path,
 ) -> Result<LocalResponse> {
     use crate::app::grammars::*;
-    let release = find_grammar_release().await.map_err(|x| anyhow!("find_grammar_release fail: {x}"))?;
+    let release = find_grammar_release()
+        .await
+        .map_err(|x| anyhow!("find_grammar_release fail: {x}"))?;
     let mut updated = false;
-    updated |= fetch_grammars(&release, grammars_directory).await.map_err(|x| anyhow!("fetch_grammars fail: {x}"))?;
-    updated |= fetch_queries(&release, queries_directory).await.map_err(|x| anyhow!("fetch_queries fail: {x}"))?;
+    updated |= fetch_grammars(&release, grammars_directory)
+        .await
+        .map_err(|x| anyhow!("fetch_grammars fail: {x}"))?;
+    updated |= fetch_queries(&release, queries_directory)
+        .await
+        .map_err(|x| anyhow!("fetch_queries fail: {x}"))?;
     Ok(LocalResponse::FindGrammar { updated })
 }
 #[allow(clippy::too_many_arguments)]
