@@ -9,8 +9,7 @@ With the original author's consent, this new repository was created as an indepe
 
 📘 中文版说明请见：[README.zh-CN.md](./README.zh-CN.md)
 
-![Cozy Lapce Main Interface](./resources/image/screenshot-main.png)
-
+![Cozy Lapce Main Interface](./resources/gif/debug.gif)
 ---
 
 ## Differences from Lapce
