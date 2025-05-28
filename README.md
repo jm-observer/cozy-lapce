@@ -1,6 +1,11 @@
 # Cozy Lapce
 
-**Cozy Lapce** is a lightweight fork of [Lapce](https://github.com/lapce/lapce), aiming to maintain and simplify this excellent code editor.
+**Cozy Lapce** is a lightweight fork of [Lapce](https://github.com/lapce/lapce), aiming to maintain and streamline this excellent code editor.
+
+During development, the editor’s core was substantially refactored to fix various bugs and experiment with a more suitable architecture. As this has been a learning-by-doing process, the implementation gradually diverged from the original project in both design philosophy and technical details.
+
+With the original author's consent, this new repository was created as an independent effort to better support future development and long-term maintenance.
+
 
 📘 中文版说明请见：[README.zh-CN.md](./README.zh-CN.md)
 
